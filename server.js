@@ -1,0 +1,596 @@
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { Pool } = require('pg');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false }
+});
+
+if (!process.env.DATABASE_URL) {
+  console.warn('DATABASE_URL is not set. Configure Railway PostgreSQL first.');
+}
+
+app.use(cors({
+  origin: FRONTEND_ORIGIN === '*' ? true : FRONTEND_ORIGIN.split(',').map(x => x.trim()),
+  credentials: true
+}));
+app.use(express.json());
+
+const bootstrapSql = `
+CREATE TABLE IF NOT EXISTS agencies (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE,
+  plan TEXT DEFAULT 'starter',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  agency_id INTEGER NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+  full_name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('owner','teamlead','hr')),
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS candidates (
+  id SERIAL PRIMARY KEY,
+  agency_id INTEGER NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+  owner_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  updated_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  name TEXT NOT NULL DEFAULT '',
+  tg TEXT DEFAULT '',
+  age TEXT DEFAULT '',
+  english TEXT DEFAULT '',
+  exp TEXT DEFAULT '',
+  platforms TEXT DEFAULT '',
+  shift TEXT DEFAULT '',
+  schedule TEXT DEFAULT '',
+  top_pages TEXT DEFAULT '',
+  avg_check TEXT DEFAULT '',
+  job TEXT DEFAULT '',
+  status TEXT DEFAULT '',
+  stage TEXT DEFAULT 'new',
+  source TEXT DEFAULT 'manual',
+  notes TEXT DEFAULT '',
+  ratings JSONB NOT NULL DEFAULT '{}'::jsonb,
+  total INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS candidate_status_history (
+  id SERIAL PRIMARY KEY,
+  candidate_id INTEGER NOT NULL REFERENCES candidates(id) ON DELETE CASCADE,
+  status TEXT NOT NULL,
+  changed_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS candidate_ai_insights (
+  candidate_id INTEGER PRIMARY KEY REFERENCES candidates(id) ON DELETE CASCADE,
+  recommendation TEXT NOT NULL,
+  confidence INTEGER NOT NULL,
+  summary TEXT NOT NULL,
+  strengths JSONB NOT NULL DEFAULT '[]'::jsonb,
+  risks JSONB NOT NULL DEFAULT '[]'::jsonb,
+  generated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_candidates_agency_created ON candidates(agency_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_candidates_agency_status ON candidates(agency_id, status);
+CREATE INDEX IF NOT EXISTS idx_candidates_agency_owner ON candidates(agency_id, owner_user_id);
+`;
+
+async function query(text, params = []) {
+  return pool.query(text, params);
+}
+
+async function initDb() {
+  await query(bootstrapSql);
+}
+initDb().catch(err => {
+  console.error('DB init failed:', err.message);
+});
+
+function signToken(user) {
+  return jwt.sign(
+    {
+      userId: user.id,
+      agencyId: user.agency_id,
+      role: user.role,
+      email: user.email,
+      fullName: user.full_name
+    },
+    JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+}
+
+function auth(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+}
+
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) return res.status(403).json({ error: 'Forbidden' });
+    next();
+  };
+}
+
+function canSeeCandidate(row, user) {
+  if (user.role === 'owner' || user.role === 'teamlead') return true;
+  return Number(row.owner_user_id) === Number(user.userId) || Number(row.created_by_user_id) === Number(user.userId);
+}
+
+function candidateVerdict(total) {
+  if (total >= 40) return 'hire';
+  if (total >= 28) return 'review';
+  if (total > 0) return 'reject';
+  return 'unrated';
+}
+
+function buildAiInsight(candidate) {
+  const strengths = [];
+  const risks = [];
+
+  if ((candidate.english || '').match(/B2|C1|Native/i)) strengths.push('Сильный английский для premium-фанов');
+  if ((candidate.exp || '').trim() && Number(candidate.exp) >= 1) strengths.push('Есть подтвержденный опыт в adult/продажах');
+  if ((candidate.platforms || '').includes('OnlyFans') || (candidate.platforms || '').includes('Fansly')) strengths.push('Знает профильные платформы');
+  if ((candidate.schedule || '').includes('6/1')) strengths.push('Готов к интенсивному графику');
+  if ((candidate.total || 0) >= 40) strengths.push('Высокий score по интервью');
+
+  if (!candidate.exp) risks.push('Не указан опыт — нужен дополнительный скрининг');
+  if ((candidate.total || 0) < 28) risks.push('Низкий балл по чеклисту');
+  if (!candidate.shift) risks.push('Не зафиксированы смены');
+  if (!candidate.status) risks.push('Нет статуса после звонка');
+  if ((candidate.notes || '').length < 25) risks.push('Мало заметок — низкая прозрачность решения');
+
+  const total = Number(candidate.total || 0);
+  let recommendation = 'REVIEW';
+  let confidence = 62;
+  if (total >= 40) {
+    recommendation = 'HIRE';
+    confidence = 82;
+  } else if (total < 28 && total > 0) {
+    recommendation = 'REJECT';
+    confidence = 77;
+  }
+
+  const summary = recommendation === 'HIRE'
+    ? 'Кандидат выглядит сильным для тест-смены или оффера. Есть признаки fit по метрикам и по процессу.'
+    : recommendation === 'REJECT'
+      ? 'Кандидат пока слабый: либо мало структуры в ответах, либо заметны риски по графику/опыту/результатам.'
+      : 'Нужна дополнительная проверка: тест-смена, примеры переписок или уточнение по цифрам и загрузке.';
+
+  return {
+    recommendation,
+    confidence,
+    summary,
+    strengths: strengths.slice(0, 4),
+    risks: risks.slice(0, 4)
+  };
+}
+
+async function ensureDemoOwner() {
+  const found = await query('SELECT id FROM users WHERE email = $1 LIMIT 1', ['owner@allstars.local']);
+  if (found.rows.length) return;
+  const agency = await query(
+    'INSERT INTO agencies(name, slug, plan) VALUES ($1,$2,$3) RETURNING id',
+    ['AllStars Demo', 'allstars-demo', 'pro']
+  );
+  const hash = await bcrypt.hash('demo12345', 10);
+  await query(
+    `INSERT INTO users(agency_id, full_name, email, password_hash, role)
+     VALUES ($1,$2,$3,$4,$5)`,
+    [agency.rows[0].id, 'Owner Demo', 'owner@allstars.local', hash, 'owner']
+  );
+  console.log('Demo owner created: owner@allstars.local / demo12345');
+}
+ensureDemoOwner().catch(() => {});
+
+app.post('/auth/register', async (req, res) => {
+  const { agencyName, fullName, email, password } = req.body || {};
+  if (!agencyName || !fullName || !email || !password) {
+    return res.status(400).json({ error: 'agencyName, fullName, email, password are required' });
+  }
+  if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+  const existing = await query('SELECT id FROM users WHERE email = $1 LIMIT 1', [email.toLowerCase()]);
+  if (existing.rows.length) return res.status(409).json({ error: 'Email already in use' });
+
+  const agencySlug = agencyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const agency = await query(
+    'INSERT INTO agencies(name, slug) VALUES ($1,$2) RETURNING *',
+    [agencyName, `${agencySlug || 'agency'}-${Date.now().toString().slice(-5)}`]
+  );
+  const hash = await bcrypt.hash(password, 10);
+  const user = await query(
+    `INSERT INTO users(agency_id, full_name, email, password_hash, role)
+     VALUES ($1,$2,$3,$4,'owner')
+     RETURNING id, agency_id, full_name, email, role`,
+    [agency.rows[0].id, fullName, email.toLowerCase(), hash]
+  );
+  const token = signToken(user.rows[0]);
+  res.status(201).json({ token, user: user.rows[0], agency: agency.rows[0] });
+});
+
+app.post('/auth/login', async (req, res) => {
+  const { email, password } = req.body || {};
+  const result = await query('SELECT * FROM users WHERE email = $1 AND is_active = TRUE LIMIT 1', [(email || '').toLowerCase()]);
+  const user = result.rows[0];
+  if (!user) return res.status(401).json({ error: 'Неверный email или пароль' });
+  const ok = await bcrypt.compare(password || '', user.password_hash);
+  if (!ok) return res.status(401).json({ error: 'Неверный email или пароль' });
+  const token = signToken(user);
+  res.json({
+    token,
+    user: {
+      id: user.id,
+      agency_id: user.agency_id,
+      full_name: user.full_name,
+      email: user.email,
+      role: user.role
+    }
+  });
+});
+
+app.get('/auth/me', auth, async (req, res) => {
+  const user = await query(
+    `SELECT u.id, u.agency_id, u.full_name, u.email, u.role, a.name AS agency_name
+     FROM users u
+     JOIN agencies a ON a.id = u.agency_id
+     WHERE u.id = $1`,
+    [req.user.userId]
+  );
+  res.json(user.rows[0]);
+});
+
+app.get('/users', auth, requireRole('owner', 'teamlead'), async (req, res) => {
+  const users = await query(
+    `SELECT id, full_name, email, role, is_active, created_at
+     FROM users WHERE agency_id = $1 ORDER BY created_at DESC`,
+    [req.user.agencyId]
+  );
+  res.json(users.rows);
+});
+
+app.post('/users', auth, requireRole('owner'), async (req, res) => {
+  const { fullName, email, password, role } = req.body || {};
+  if (!fullName || !email || !password || !role) return res.status(400).json({ error: 'Missing fields' });
+  if (!['owner', 'teamlead', 'hr'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
+
+  const exists = await query('SELECT id FROM users WHERE email = $1 LIMIT 1', [email.toLowerCase()]);
+  if (exists.rows.length) return res.status(409).json({ error: 'Email already exists' });
+
+  const hash = await bcrypt.hash(password, 10);
+  const result = await query(
+    `INSERT INTO users(agency_id, full_name, email, password_hash, role)
+     VALUES ($1,$2,$3,$4,$5)
+     RETURNING id, full_name, email, role, is_active, created_at`,
+    [req.user.agencyId, fullName, email.toLowerCase(), hash, role]
+  );
+  res.status(201).json(result.rows[0]);
+});
+
+app.get('/candidates', auth, async (req, res) => {
+  const { search = '', status = '', verdict = '', ownerId = '' } = req.query;
+  const params = [req.user.agencyId];
+  let where = 'WHERE c.agency_id = $1';
+  if (search) {
+    params.push(`%${search.toLowerCase()}%`);
+    where += ` AND (
+      LOWER(c.name) LIKE $${params.length}
+      OR LOWER(c.tg) LIKE $${params.length}
+      OR LOWER(c.platforms) LIKE $${params.length}
+      OR LOWER(c.notes) LIKE $${params.length}
+    )`;
+  }
+  if (status) {
+    params.push(status);
+    where += ` AND c.status = $${params.length}`;
+  }
+  if (ownerId) {
+    params.push(Number(ownerId));
+    where += ` AND c.owner_user_id = $${params.length}`;
+  }
+  if (req.user.role === 'hr') {
+    params.push(req.user.userId);
+    where += ` AND (c.owner_user_id = $${params.length} OR c.created_by_user_id = $${params.length})`;
+  }
+
+  const result = await query(
+    `SELECT c.*,
+            owner.full_name AS owner_name,
+            creator.full_name AS created_by_name
+     FROM candidates c
+     LEFT JOIN users owner ON owner.id = c.owner_user_id
+     LEFT JOIN users creator ON creator.id = c.created_by_user_id
+     ${where}
+     ORDER BY c.created_at DESC`,
+    params
+  );
+
+  let rows = result.rows;
+  if (verdict) rows = rows.filter(r => candidateVerdict(r.total) === verdict);
+  res.json(rows);
+});
+
+app.post('/candidates', auth, async (req, res) => {
+  const { fields = {}, ratings = {}, total = 0, ownerUserId } = req.body || {};
+  const candidate = await query(
+    `INSERT INTO candidates(
+      agency_id, owner_user_id, created_by_user_id, updated_by_user_id,
+      name, tg, age, english, exp, platforms, shift, schedule, top_pages, avg_check, job, status, source, notes, ratings, total
+    ) VALUES (
+      $1,$2,$3,$3,
+      $4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19
+    ) RETURNING *`,
+    [
+      req.user.agencyId,
+      ownerUserId || req.user.userId,
+      req.user.userId,
+      fields.name || '',
+      fields.tg || '',
+      fields.age || '',
+      fields.english || '',
+      fields.exp || '',
+      fields.platforms || '',
+      fields.shift || '',
+      fields.schedule || '',
+      fields.top || '',
+      fields.avgcheck || '',
+      fields.job || '',
+      fields.status || '',
+      fields.source || 'manual',
+      fields.notes || '',
+      JSON.stringify(ratings),
+      total || 0
+    ]
+  );
+
+  if (fields.status) {
+    await query(
+      `INSERT INTO candidate_status_history(candidate_id, status, changed_by_user_id)
+       VALUES ($1,$2,$3)`,
+      [candidate.rows[0].id, fields.status, req.user.userId]
+    );
+  }
+
+  const ai = buildAiInsight(candidate.rows[0]);
+  await query(
+    `INSERT INTO candidate_ai_insights(candidate_id, recommendation, confidence, summary, strengths, risks)
+     VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb)
+     ON CONFLICT (candidate_id)
+     DO UPDATE SET recommendation = EXCLUDED.recommendation,
+                   confidence = EXCLUDED.confidence,
+                   summary = EXCLUDED.summary,
+                   strengths = EXCLUDED.strengths,
+                   risks = EXCLUDED.risks,
+                   generated_at = NOW()`,
+    [candidate.rows[0].id, ai.recommendation, ai.confidence, ai.summary, JSON.stringify(ai.strengths), JSON.stringify(ai.risks)]
+  );
+
+  res.status(201).json(candidate.rows[0]);
+});
+
+app.patch('/candidates/:id', auth, async (req, res) => {
+  const existing = await query('SELECT * FROM candidates WHERE id = $1 AND agency_id = $2 LIMIT 1', [req.params.id, req.user.agencyId]);
+  const row = existing.rows[0];
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  if (!canSeeCandidate(row, req.user)) return res.status(403).json({ error: 'Forbidden' });
+
+  const { fields = {}, ratings, total, ownerUserId } = req.body || {};
+  const next = {
+    name: fields.name ?? row.name,
+    tg: fields.tg ?? row.tg,
+    age: fields.age ?? row.age,
+    english: fields.english ?? row.english,
+    exp: fields.exp ?? row.exp,
+    platforms: fields.platforms ?? row.platforms,
+    shift: fields.shift ?? row.shift,
+    schedule: fields.schedule ?? row.schedule,
+    top_pages: fields.top ?? row.top_pages,
+    avg_check: fields.avgcheck ?? row.avg_check,
+    job: fields.job ?? row.job,
+    status: fields.status ?? row.status,
+    source: fields.source ?? row.source,
+    notes: fields.notes ?? row.notes,
+    ratings: ratings ?? row.ratings,
+    total: total ?? row.total,
+    owner_user_id: ownerUserId ?? row.owner_user_id
+  };
+
+  const updated = await query(
+    `UPDATE candidates
+     SET owner_user_id = $3,
+         updated_by_user_id = $4,
+         updated_at = NOW(),
+         name = $5, tg = $6, age = $7, english = $8, exp = $9, platforms = $10,
+         shift = $11, schedule = $12, top_pages = $13, avg_check = $14,
+         job = $15, status = $16, source = $17, notes = $18, ratings = $19::jsonb, total = $20
+     WHERE id = $1 AND agency_id = $2
+     RETURNING *`,
+    [
+      req.params.id,
+      req.user.agencyId,
+      next.owner_user_id,
+      req.user.userId,
+      next.name, next.tg, next.age, next.english, next.exp,
+      next.platforms, next.shift, next.schedule, next.top_pages,
+      next.avg_check, next.job, next.status, next.source, next.notes,
+      JSON.stringify(next.ratings), next.total
+    ]
+  );
+
+  if (next.status && next.status !== row.status) {
+    await query(
+      `INSERT INTO candidate_status_history(candidate_id, status, changed_by_user_id)
+       VALUES ($1,$2,$3)`,
+      [req.params.id, next.status, req.user.userId]
+    );
+  }
+
+  const ai = buildAiInsight(updated.rows[0]);
+  await query(
+    `INSERT INTO candidate_ai_insights(candidate_id, recommendation, confidence, summary, strengths, risks)
+     VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb)
+     ON CONFLICT (candidate_id)
+     DO UPDATE SET recommendation = EXCLUDED.recommendation,
+                   confidence = EXCLUDED.confidence,
+                   summary = EXCLUDED.summary,
+                   strengths = EXCLUDED.strengths,
+                   risks = EXCLUDED.risks,
+                   generated_at = NOW()`,
+    [req.params.id, ai.recommendation, ai.confidence, ai.summary, JSON.stringify(ai.strengths), JSON.stringify(ai.risks)]
+  );
+
+  res.json(updated.rows[0]);
+});
+
+app.delete('/candidates/:id', auth, async (req, res) => {
+  const existing = await query('SELECT * FROM candidates WHERE id = $1 AND agency_id = $2 LIMIT 1', [req.params.id, req.user.agencyId]);
+  const row = existing.rows[0];
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  if (!canSeeCandidate(row, req.user)) return res.status(403).json({ error: 'Forbidden' });
+  await query('DELETE FROM candidates WHERE id = $1 AND agency_id = $2', [req.params.id, req.user.agencyId]);
+  res.json({ ok: true });
+});
+
+app.get('/candidates/:id/history', auth, async (req, res) => {
+  const check = await query('SELECT * FROM candidates WHERE id = $1 AND agency_id = $2 LIMIT 1', [req.params.id, req.user.agencyId]);
+  if (!check.rows[0]) return res.status(404).json({ error: 'Not found' });
+
+  const history = await query(
+    `SELECT h.*, u.full_name AS changed_by_name
+     FROM candidate_status_history h
+     LEFT JOIN users u ON u.id = h.changed_by_user_id
+     WHERE h.candidate_id = $1
+     ORDER BY h.created_at DESC`,
+    [req.params.id]
+  );
+
+  const insight = await query(
+    `SELECT * FROM candidate_ai_insights WHERE candidate_id = $1`,
+    [req.params.id]
+  );
+
+  res.json({ history: history.rows, ai: insight.rows[0] || null });
+});
+
+app.get('/analytics/overview', auth, async (req, res) => {
+  const baseFilter = req.user.role === 'hr'
+    ? 'WHERE c.agency_id = $1 AND (c.owner_user_id = $2 OR c.created_by_user_id = $2)'
+    : 'WHERE c.agency_id = $1';
+  const params = req.user.role === 'hr' ? [req.user.agencyId, req.user.userId] : [req.user.agencyId];
+
+  const totals = await query(
+    `SELECT
+      COUNT(*)::int AS total_candidates,
+      COALESCE(AVG(total), 0)::numeric(10,2) AS avg_score,
+      COUNT(*) FILTER (WHERE status = 'Принят')::int AS hired,
+      COUNT(*) FILTER (WHERE status = 'Тест-смена')::int AS trial,
+      COUNT(*) FILTER (WHERE status = 'Изучает гайд')::int AS guide,
+      COUNT(*) FILTER (WHERE status = 'Отказ')::int AS rejected
+     FROM candidates c
+     ${baseFilter}`,
+    params
+  );
+
+  const byHr = await query(
+    `SELECT
+      COALESCE(u.full_name, 'Без владельца') AS hr_name,
+      COUNT(c.id)::int AS total,
+      COUNT(c.id) FILTER (WHERE c.status = 'Принят')::int AS hired,
+      COALESCE(AVG(c.total), 0)::numeric(10,2) AS avg_score
+     FROM candidates c
+     LEFT JOIN users u ON u.id = c.owner_user_id
+     ${baseFilter}
+     GROUP BY COALESCE(u.full_name, 'Без владельца')
+     ORDER BY total DESC, hired DESC`,
+    params
+  );
+
+  const statusFunnel = await query(
+    `SELECT COALESCE(status, 'Без статуса') AS status, COUNT(*)::int AS count
+     FROM candidates c
+     ${baseFilter}
+     GROUP BY COALESCE(status, 'Без статуса')
+     ORDER BY count DESC`,
+    params
+  );
+
+  const bestProfiles = await query(
+    `SELECT english, platforms, schedule, COUNT(*)::int AS total, ROUND(AVG(total), 2) AS avg_score
+     FROM candidates c
+     ${baseFilter}
+     GROUP BY english, platforms, schedule
+     HAVING COUNT(*) >= 1
+     ORDER BY avg_score DESC, total DESC
+     LIMIT 8`,
+    params
+  );
+
+  res.json({
+    overview: totals.rows[0],
+    byHr: byHr.rows,
+    statusFunnel: statusFunnel.rows,
+    bestProfiles: bestProfiles.rows
+  });
+});
+
+app.get('/dashboard/feed', auth, async (req, res) => {
+  const params = [req.user.agencyId];
+  let where = 'WHERE c.agency_id = $1';
+  if (req.user.role === 'hr') {
+    params.push(req.user.userId);
+    where += ' AND (c.owner_user_id = $2 OR c.created_by_user_id = $2)';
+  }
+
+  const recent = await query(
+    `SELECT c.id, c.name, c.status, c.total, c.updated_at, u.full_name AS owner_name
+     FROM candidates c
+     LEFT JOIN users u ON u.id = c.owner_user_id
+     ${where}
+     ORDER BY c.updated_at DESC
+     LIMIT 10`,
+    params
+  );
+  res.json(recent.rows);
+});
+
+app.get('/health', async (_req, res) => {
+  try {
+    await query('SELECT 1');
+    res.json({ status: 'ok', db: 'connected' });
+  } catch {
+    res.status(500).json({ status: 'error', db: 'disconnected' });
+  }
+});
+
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.listen(PORT, () => {
+  console.log(`AllStars HR SaaS running on ${PORT}`);
+});

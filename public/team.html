@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AllStars — Кандидаты</title>
+  <title>AllStars — Команда</title>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
 :root{
@@ -101,8 +101,8 @@ a{text-decoration:none;color:inherit}
     <div class="sidebar-section">Workspace</div>
     <a class="nav-item" href="/dashboard.html"><span class="nav-num">🏠</span><span>Dashboard</span></a>
     <a class="nav-item" href="/index.html"><span class="nav-num">＋</span><span>Новый кандидат</span></a>
-    <a class="nav-item active" href="/candidates.html"><span class="nav-num">👥</span><span>Кандидаты</span></a>
-    <a class="nav-item" href="/team.html"><span class="nav-num">🧑‍🤝‍🧑</span><span>Команда</span></a>
+    <a class="nav-item" href="/candidates.html"><span class="nav-num">👥</span><span>Кандидаты</span></a>
+    <a class="nav-item active" href="/team.html"><span class="nav-num">🧑‍🤝‍🧑</span><span>Команда</span></a>
     <div class="sidebar-footer">
       <div class="small muted">Вошёл как</div>
       <div style="font-weight:700" data-me-name></div>
@@ -114,55 +114,37 @@ a{text-decoration:none;color:inherit}
   <main class="main">
     <div class="page-header">
       <div>
-        <div class="tag">Agency pipeline</div>
-        <h1>База кандидатов</h1>
-        <p>Поиск, фильтры, AI-инсайты и разделение доступа по ролям.</p>
+        <div class="tag">RBAC</div>
+        <h1>Команда</h1>
+        <p>Owner видит и управляет командой. Teamlead может просматривать, HR — только свой участок.</p>
       </div>
-      <a class="btn" href="/index.html">Добавить кандидата</a>
     </div>
 
-    <div class="toolbar">
-      <div class="search-wrap">
-        <span class="search-icon">🔍</span>
-        <input id="q" placeholder="Имя, @username, заметки..." />
-      </div>
-      <select class="fsel" id="status">
-        <option value="">Все статусы</option>
-        <option value="Принят">Принят</option>
-        <option value="Тест-смена">Тест-смена</option>
-        <option value="Изучает гайд">Изучает гайд</option>
-        <option value="Отказ">Отказ</option>
-      </select>
-      <select class="fsel" id="verdict">
-        <option value="">Все вердикты</option>
-        <option value="hire">Берём</option>
-        <option value="review">Думаем</option>
-        <option value="reject">Отказ</option>
-      </select>
-      <button class="btn ghost" id="apply">Применить</button>
-    </div>
-
-    <div class="cards-grid" id="grid"></div>
-  </main>
-</div>
-
-<div class="modal-overlay" id="modal">
-  <div class="modal">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:1rem">
-      <h2 id="m-title">Кандидат</h2>
-      <button class="btn ghost" onclick="closeModal()">Закрыть</button>
-    </div>
     <div class="grid grid-2">
-      <div class="panel">
-        <h3 style="margin-bottom:.75rem">История статусов</h3>
-        <div id="m-history" class="list"></div>
-      </div>
-      <div class="panel">
-        <h3 style="margin-bottom:.75rem">AI recommendation</h3>
-        <div id="m-ai"></div>
-      </div>
+      <section class="panel">
+        <h3 style="margin-bottom:.75rem">Пользователи</h3>
+        <table class="table">
+          <thead><tr><th>Имя</th><th>Email</th><th>Роль</th><th>Создан</th></tr></thead>
+          <tbody id="users"></tbody>
+        </table>
+      </section>
+      <section class="panel" id="create-wrap">
+        <h3 style="margin-bottom:.75rem">Добавить участника</h3>
+        <div class="list">
+          <input class="input" id="fullName" placeholder="Имя">
+          <input class="input" id="email" placeholder="Email">
+          <input class="input" id="password" type="password" placeholder="Пароль">
+          <select class="fsel" id="role">
+            <option value="hr">HR</option>
+            <option value="teamlead">Teamlead</option>
+            <option value="owner">Owner</option>
+          </select>
+          <button class="btn" id="addUser">Создать пользователя</button>
+          <div id="msg" class="small muted"></div>
+        </div>
+      </section>
     </div>
-  </div>
+  </main>
 </div>
 
 <script>
@@ -228,79 +210,38 @@ async function loadMe(){
 }
 </script>
 <script>
-let all = [];
-async function load() {
-  const params = new URLSearchParams();
-  if (document.getElementById('q').value.trim()) params.set('search', document.getElementById('q').value.trim());
-  if (document.getElementById('status').value) params.set('status', document.getElementById('status').value);
-  if (document.getElementById('verdict').value) params.set('verdict', document.getElementById('verdict').value);
-  all = await api('/candidates?' + params.toString());
-  render();
-}
-function card(candidate) {
-  return `
-    <div class="cand-card">
-      <div class="card-top">
-        <div class="avatar">${initials(candidate.name)}</div>
-        <div style="flex:1">
-          <div class="card-name">${candidate.name}</div>
-          <div class="card-sub">${candidate.tg || '—'} · HR: ${candidate.owner_name || '—'}</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <span class="badge ${verdictClass(candidate.total)}">${verdictLabel(candidate.total)} · ${candidate.total}/50</span>
-        <span class="badge ${statusClass(candidate.status)}">${candidate.status || 'Без статуса'}</span>
-      </div>
-      <div class="card-fields">
-        <div class="frow"><span class="flabel">Англ.</span><span class="fval">${candidate.english || '—'}</span></div>
-        <div class="frow"><span class="flabel">Опыт</span><span class="fval">${candidate.exp || '—'}</span></div>
-        <div class="frow"><span class="flabel">Платформы</span><span class="fval">${candidate.platforms || '—'}</span></div>
-        <div class="frow"><span class="flabel">Смены</span><span class="fval">${candidate.shift || '—'}</span></div>
-      </div>
-      <div class="small muted">${candidate.notes || 'Без заметок'}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn ghost" onclick="openDetails(${candidate.id}, '${(candidate.name || '').replace(/'/g, "\'")}')">AI / История</button>
-        <button class="btn red" onclick="removeCandidate(${candidate.id})">Удалить</button>
-      </div>
-    </div>
-  `;
-}
-function render() {
-  const grid = document.getElementById('grid');
-  grid.innerHTML = all.map(card).join('') || '<div class="muted">Нет данных</div>';
-}
-async function openDetails(id, name) {
-  document.getElementById('m-title').textContent = name;
-  const data = await api(`/candidates/${id}/history`);
-  document.getElementById('m-history').innerHTML = data.history.map(item => `
-    <div class="list-item">
-      <strong>${item.status}</strong>
-      <div class="small muted">${item.changed_by_name || '—'} · ${fmtDate(item.created_at)}</div>
-    </div>
-  `).join('') || '<div class="muted small">Истории пока нет</div>';
+async function loadUsers() {
+  const me = getMe() || await loadMe();
+  const users = await api('/users');
+  document.getElementById('users').innerHTML = users.map(u => `
+    <tr><td>${u.full_name}</td><td>${u.email}</td><td>${u.role}</td><td>${fmtDate(u.created_at)}</td></tr>
+  `).join('') || '<tr><td colspan="4">Нет пользователей</td></tr>';
 
-  const ai = data.ai;
-  document.getElementById('m-ai').innerHTML = ai ? `
-    <div class="list">
-      <div class="list-item"><strong>${ai.recommendation}</strong> · confidence ${ai.confidence}%</div>
-      <div class="list-item">${ai.summary}</div>
-      <div class="list-item"><strong>Сильные стороны</strong><div class="small muted">${(ai.strengths || []).join(' · ') || '—'}</div></div>
-      <div class="list-item"><strong>Риски</strong><div class="small muted">${(ai.risks || []).join(' · ') || '—'}</div></div>
-    </div>
-  ` : '<div class="muted small">AI insight ещё не сформирован</div>';
-  document.getElementById('modal').style.display = 'flex';
-}
-function closeModal() { document.getElementById('modal').style.display = 'none'; }
-async function removeCandidate(id) {
-  if (!confirm('Удалить кандидата?')) return;
-  await api(`/candidates/${id}`, { method:'DELETE' });
-  await load();
+  if (me.role !== 'owner') {
+    document.getElementById('create-wrap').innerHTML = '<div class="muted">Создание пользователей доступно только owner.</div>';
+  }
 }
 (async function(){
   if (!getToken()) return clearSession();
   await loadMe();
-  document.getElementById('apply').onclick = load;
-  await load();
+  await loadUsers();
+  const btn = document.getElementById('addUser');
+  if (btn) btn.onclick = async () => {
+    const body = {
+      fullName: document.getElementById('fullName').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      password: document.getElementById('password').value,
+      role: document.getElementById('role').value
+    };
+    const msg = document.getElementById('msg');
+    try {
+      await api('/users', { method:'POST', body: JSON.stringify(body) });
+      msg.textContent = 'Пользователь создан';
+      await loadUsers();
+    } catch (err) {
+      msg.textContent = err.message;
+    }
+  };
 })().catch(err => alert(err.message));
 </script>
 </body>

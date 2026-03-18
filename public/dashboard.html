@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AllStars — Кандидаты</title>
+  <title>AllStars — Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
 :root{
@@ -99,9 +99,9 @@ a{text-decoration:none;color:inherit}
       <div class="sub" data-me-agency>Agency</div>
     </div>
     <div class="sidebar-section">Workspace</div>
-    <a class="nav-item" href="/dashboard.html"><span class="nav-num">🏠</span><span>Dashboard</span></a>
+    <a class="nav-item active" href="/dashboard.html"><span class="nav-num">🏠</span><span>Dashboard</span></a>
     <a class="nav-item" href="/index.html"><span class="nav-num">＋</span><span>Новый кандидат</span></a>
-    <a class="nav-item active" href="/candidates.html"><span class="nav-num">👥</span><span>Кандидаты</span></a>
+    <a class="nav-item" href="/candidates.html"><span class="nav-num">👥</span><span>Кандидаты</span></a>
     <a class="nav-item" href="/team.html"><span class="nav-num">🧑‍🤝‍🧑</span><span>Команда</span></a>
     <div class="sidebar-footer">
       <div class="small muted">Вошёл как</div>
@@ -114,55 +114,43 @@ a{text-decoration:none;color:inherit}
   <main class="main">
     <div class="page-header">
       <div>
-        <div class="tag">Agency pipeline</div>
-        <h1>База кандидатов</h1>
-        <p>Поиск, фильтры, AI-инсайты и разделение доступа по ролям.</p>
+        <div class="tag">Analytics + Team</div>
+        <h1>Dashboard</h1>
+        <p>Конверсия, performance HR и лучший профиль кандидата.</p>
       </div>
-      <a class="btn" href="/index.html">Добавить кандидата</a>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a class="btn ghost" href="/candidates.html">Открыть базу</a>
+        <a class="btn" href="/index.html">Добавить кандидата</a>
+      </div>
     </div>
 
-    <div class="toolbar">
-      <div class="search-wrap">
-        <span class="search-icon">🔍</span>
-        <input id="q" placeholder="Имя, @username, заметки..." />
-      </div>
-      <select class="fsel" id="status">
-        <option value="">Все статусы</option>
-        <option value="Принят">Принят</option>
-        <option value="Тест-смена">Тест-смена</option>
-        <option value="Изучает гайд">Изучает гайд</option>
-        <option value="Отказ">Отказ</option>
-      </select>
-      <select class="fsel" id="verdict">
-        <option value="">Все вердикты</option>
-        <option value="hire">Берём</option>
-        <option value="review">Думаем</option>
-        <option value="reject">Отказ</option>
-      </select>
-      <button class="btn ghost" id="apply">Применить</button>
+    <div class="grid grid-4" id="stats"></div>
+
+    <div class="grid grid-2" style="margin-top:12px">
+      <section class="panel">
+        <h3 style="margin-bottom:.75rem">Funnel по статусам</h3>
+        <div id="funnel" class="list"></div>
+      </section>
+      <section class="panel">
+        <h3 style="margin-bottom:.75rem">Последние изменения</h3>
+        <div id="feed" class="list"></div>
+      </section>
     </div>
 
-    <div class="cards-grid" id="grid"></div>
+    <div class="grid grid-2" style="margin-top:12px">
+      <section class="panel">
+        <h3 style="margin-bottom:.75rem">Performance по HR</h3>
+        <table class="table">
+          <thead><tr><th>HR</th><th>Всего</th><th>Нанято</th><th>Средний балл</th></tr></thead>
+          <tbody id="byHr"></tbody>
+        </table>
+      </section>
+      <section class="panel">
+        <h3 style="margin-bottom:.75rem">Лучшие профили</h3>
+        <div id="bestProfiles" class="list"></div>
+      </section>
+    </div>
   </main>
-</div>
-
-<div class="modal-overlay" id="modal">
-  <div class="modal">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:1rem">
-      <h2 id="m-title">Кандидат</h2>
-      <button class="btn ghost" onclick="closeModal()">Закрыть</button>
-    </div>
-    <div class="grid grid-2">
-      <div class="panel">
-        <h3 style="margin-bottom:.75rem">История статусов</h3>
-        <div id="m-history" class="list"></div>
-      </div>
-      <div class="panel">
-        <h3 style="margin-bottom:.75rem">AI recommendation</h3>
-        <div id="m-ai"></div>
-      </div>
-    </div>
-  </div>
 </div>
 
 <script>
@@ -228,79 +216,48 @@ async function loadMe(){
 }
 </script>
 <script>
-let all = [];
-async function load() {
-  const params = new URLSearchParams();
-  if (document.getElementById('q').value.trim()) params.set('search', document.getElementById('q').value.trim());
-  if (document.getElementById('status').value) params.set('status', document.getElementById('status').value);
-  if (document.getElementById('verdict').value) params.set('verdict', document.getElementById('verdict').value);
-  all = await api('/candidates?' + params.toString());
-  render();
-}
-function card(candidate) {
-  return `
-    <div class="cand-card">
-      <div class="card-top">
-        <div class="avatar">${initials(candidate.name)}</div>
-        <div style="flex:1">
-          <div class="card-name">${candidate.name}</div>
-          <div class="card-sub">${candidate.tg || '—'} · HR: ${candidate.owner_name || '—'}</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <span class="badge ${verdictClass(candidate.total)}">${verdictLabel(candidate.total)} · ${candidate.total}/50</span>
-        <span class="badge ${statusClass(candidate.status)}">${candidate.status || 'Без статуса'}</span>
-      </div>
-      <div class="card-fields">
-        <div class="frow"><span class="flabel">Англ.</span><span class="fval">${candidate.english || '—'}</span></div>
-        <div class="frow"><span class="flabel">Опыт</span><span class="fval">${candidate.exp || '—'}</span></div>
-        <div class="frow"><span class="flabel">Платформы</span><span class="fval">${candidate.platforms || '—'}</span></div>
-        <div class="frow"><span class="flabel">Смены</span><span class="fval">${candidate.shift || '—'}</span></div>
-      </div>
-      <div class="small muted">${candidate.notes || 'Без заметок'}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn ghost" onclick="openDetails(${candidate.id}, '${(candidate.name || '').replace(/'/g, "\'")}')">AI / История</button>
-        <button class="btn red" onclick="removeCandidate(${candidate.id})">Удалить</button>
-      </div>
-    </div>
-  `;
-}
-function render() {
-  const grid = document.getElementById('grid');
-  grid.innerHTML = all.map(card).join('') || '<div class="muted">Нет данных</div>';
-}
-async function openDetails(id, name) {
-  document.getElementById('m-title').textContent = name;
-  const data = await api(`/candidates/${id}/history`);
-  document.getElementById('m-history').innerHTML = data.history.map(item => `
-    <div class="list-item">
-      <strong>${item.status}</strong>
-      <div class="small muted">${item.changed_by_name || '—'} · ${fmtDate(item.created_at)}</div>
-    </div>
-  `).join('') || '<div class="muted small">Истории пока нет</div>';
-
-  const ai = data.ai;
-  document.getElementById('m-ai').innerHTML = ai ? `
-    <div class="list">
-      <div class="list-item"><strong>${ai.recommendation}</strong> · confidence ${ai.confidence}%</div>
-      <div class="list-item">${ai.summary}</div>
-      <div class="list-item"><strong>Сильные стороны</strong><div class="small muted">${(ai.strengths || []).join(' · ') || '—'}</div></div>
-      <div class="list-item"><strong>Риски</strong><div class="small muted">${(ai.risks || []).join(' · ') || '—'}</div></div>
-    </div>
-  ` : '<div class="muted small">AI insight ещё не сформирован</div>';
-  document.getElementById('modal').style.display = 'flex';
-}
-function closeModal() { document.getElementById('modal').style.display = 'none'; }
-async function removeCandidate(id) {
-  if (!confirm('Удалить кандидата?')) return;
-  await api(`/candidates/${id}`, { method:'DELETE' });
-  await load();
-}
-(async function(){
+(async function() {
   if (!getToken()) return clearSession();
   await loadMe();
-  document.getElementById('apply').onclick = load;
-  await load();
+  const data = await api('/analytics/overview');
+  const feed = await api('/dashboard/feed');
+
+  const o = data.overview;
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-card"><div class="s-val">${o.total_candidates}</div><div class="s-label">Всего кандидатов</div></div>
+    <div class="stat-card"><div class="s-val">${o.avg_score}</div><div class="s-label">Средний балл</div></div>
+    <div class="stat-card"><div class="s-val">${o.hired}</div><div class="s-label">Принято</div></div>
+    <div class="stat-card"><div class="s-val">${o.rejected}</div><div class="s-label">Отказов</div></div>
+  `;
+
+  document.getElementById('funnel').innerHTML = data.statusFunnel.map(item => `
+    <div class="list-item" style="display:flex;justify-content:space-between;align-items:center">
+      <span>${item.status}</span>
+      <span class="badge default">${item.count}</span>
+    </div>
+  `).join('') || '<div class="muted small">Нет данных</div>';
+
+  document.getElementById('feed').innerHTML = feed.map(item => `
+    <div class="list-item">
+      <div style="display:flex;justify-content:space-between;gap:8px">
+        <strong>${item.name}</strong>
+        <span class="badge ${verdictClass(item.total)}">${verdictLabel(item.total)}</span>
+      </div>
+      <div class="small muted">HR: ${item.owner_name || '—'} · Статус: ${item.status || '—'}</div>
+      <div class="small muted">${fmtDate(item.updated_at)}</div>
+    </div>
+  `).join('') || '<div class="muted small">Нет активности</div>';
+
+  document.getElementById('byHr').innerHTML = data.byHr.map(item => `
+    <tr><td>${item.hr_name}</td><td>${item.total}</td><td>${item.hired}</td><td>${item.avg_score}</td></tr>
+  `).join('') || '<tr><td colspan="4">Нет данных</td></tr>';
+
+  document.getElementById('bestProfiles').innerHTML = data.bestProfiles.map(item => `
+    <div class="list-item">
+      <div><strong>${item.english || '—'}</strong> · ${item.platforms || '—'} · ${item.schedule || '—'}</div>
+      <div class="small muted">Кандидатов: ${item.total} · avg score: ${item.avg_score}</div>
+    </div>
+  `).join('') || '<div class="muted small">Нет данных</div>';
 })().catch(err => alert(err.message));
 </script>
 </body>
