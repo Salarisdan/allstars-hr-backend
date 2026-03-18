@@ -66,7 +66,10 @@ app.delete('/candidates/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// Serve static frontend
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Health check
-app.get('/', (req, res) => res.json({ status: 'ok', service: 'AllStars HR Backend' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', service: 'AllStars HR Backend' }));
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
