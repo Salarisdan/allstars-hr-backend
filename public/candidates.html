@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AllStars — Кандидаты</title>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AllStars — База кандидатов</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
 :root{
   --bg:#0d0f14;--surface:#141720;--surface2:#1c2030;--surface3:#232840;
   --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
@@ -15,293 +15,439 @@
   --yellow:#fbbf24;--yellow-bg:rgba(251,191,36,0.1);--yellow-border:rgba(251,191,36,0.25);
   --red:#f87171;--red-bg:rgba(248,113,113,0.1);--red-border:rgba(248,113,113,0.25);
   --purple:#a78bfa;--purple-bg:rgba(167,139,250,0.1);--purple-border:rgba(167,139,250,0.25);
-  --orange:#fb923c;
   --r:10px;--r2:14px;--fs:14px;--fs-sm:12px;--fs-xs:11px;
 }
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);font-size:var(--fs);line-height:1.6}
-a{text-decoration:none;color:inherit}
-.layout{display:flex;min-height:100vh}
-.sidebar{width:240px;flex-shrink:0;position:fixed;top:0;left:0;bottom:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:1.25rem 0 2rem}
-.sidebar-logo{padding:0 1rem 1rem;border-bottom:1px solid var(--border);margin-bottom:.75rem}
-.sidebar-logo .brand{font-size:16px;font-weight:700}
-.sidebar-logo .sub{font-size:var(--fs-xs);color:var(--text3);margin-top:2px}
-.sidebar-section{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);padding:.4rem 1rem .2rem}
-.nav-item{display:flex;align-items:center;gap:8px;padding:8px 1rem;font-size:var(--fs-sm);color:var(--text2);border-left:2px solid transparent;transition:.15s}
-.nav-item:hover{background:rgba(255,255,255,.03);color:var(--text)}
-.nav-item.active{color:var(--accent2);background:var(--accent-bg);border-left-color:var(--accent)}
-.nav-num{min-width:18px;color:var(--text3);font-size:var(--fs-xs)}
-.sidebar-footer{padding:1rem;border-top:1px solid var(--border);margin-top:1rem}
-.main{margin-left:240px;flex:1;padding:2rem 1.5rem 4rem;max-width:1180px}
-.page-header{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;margin-bottom:1.5rem}
-.page-header .tag{display:inline-block;font-size:var(--fs-xs);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent2);background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:20px;padding:4px 10px;margin-bottom:.75rem}
-.page-header h1{font-size:28px;letter-spacing:-.4px}
-.page-header p{font-size:var(--fs-sm);color:var(--text2);margin-top:4px}
-.panel{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);padding:1rem}
-.grid{display:grid;gap:12px}
-.grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
-.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
-.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
-.stat-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:1rem}
-.stat-card .s-val{font-size:24px;font-weight:700}
-.stat-card .s-label{font-size:var(--fs-xs);color:var(--text3);margin-top:2px}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:1rem}
-.search-wrap{flex:1;min-width:220px;position:relative}
-.search-wrap input,.fsel,.input,.textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:.7rem .9rem;font-family:'Manrope',sans-serif;color:var(--text);outline:none}
-.search-wrap input{padding-left:34px}
-.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--text3)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:.7rem 1rem;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--r);font-family:'Manrope',sans-serif;font-size:var(--fs);font-weight:600;color:var(--accent2);cursor:pointer}
-.btn.ghost{background:none;border-color:var(--border);color:var(--text2)}
-.btn.green{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
-.btn.red{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
-.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
-.cand-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);padding:1rem;display:flex;flex-direction:column;gap:12px}
-.card-top{display:flex;gap:10px}
-.avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent2);font-weight:700}
-.card-name{font-weight:700}
-.card-sub{font-size:var(--fs-sm);color:var(--text2)}
-.badge{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs);font-weight:700;padding:4px 9px;border-radius:999px;border:1px solid var(--border)}
-.badge.green{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
-.badge.yellow{background:var(--yellow-bg);border-color:var(--yellow-border);color:var(--yellow)}
-.badge.red{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
-.badge.purple{background:var(--purple-bg);border-color:var(--purple-border);color:var(--purple)}
-.badge.default{background:var(--surface3);color:var(--text2)}
-.card-fields{display:flex;flex-direction:column;gap:6px}
-.frow{display:flex;gap:8px}
-.flabel{min-width:90px;font-size:var(--fs-xs);font-weight:700;color:var(--text3);text-transform:uppercase}
-.fval{font-size:var(--fs-sm)}
-.pill-group{display:flex;flex-wrap:wrap;gap:6px}
-.pill{padding:5px 11px;border-radius:999px;border:1px solid var(--border2);background:var(--surface3);font-size:var(--fs-sm);color:var(--text2);cursor:pointer;user-select:none}
-.pill.selected{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent2);font-weight:600}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;padding:1rem;z-index:100}
-.modal{width:100%;max-width:760px;max-height:92vh;overflow:auto;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r2);padding:1.25rem}
-.modal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.full{grid-column:1/-1}
-.table{width:100%;border-collapse:collapse}
-.table th,.table td{padding:.75rem;border-bottom:1px solid var(--border);text-align:left;font-size:var(--fs-sm)}
-.table th{color:var(--text3);font-size:var(--fs-xs);text-transform:uppercase}
-.list{display:flex;flex-direction:column;gap:8px}
-.list-item{padding:.85rem 1rem;border:1px solid var(--border);background:var(--surface2);border-radius:var(--r)}
-.hr{height:1px;background:var(--border);margin:1rem 0}
-.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem}
-.auth-card{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--border2);border-radius:18px;padding:1.3rem}
-.muted{color:var(--text2)}
-.small{font-size:var(--fs-sm)}
-.hidden{display:none!important}
-@media(max-width:980px){.grid-4,.grid-3,.grid-2,.modal-grid{grid-template-columns:1fr}.sidebar{display:none}.main{margin-left:0;padding:1.25rem 1rem 4rem}}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);font-size:var(--fs);}
+.layout{display:flex;min-height:100vh;}
+
+.sidebar{width:230px;flex-shrink:0;position:fixed;top:0;left:0;bottom:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;z-index:100;padding:1.25rem 0 2rem;}
+.sidebar-logo{padding:0 1rem 1.25rem;border-bottom:1px solid var(--border);margin-bottom:.75rem;}
+.sidebar-logo .brand{font-size:16px;font-weight:700;color:var(--text);}
+.sidebar-logo .sub{font-size:var(--fs-xs);color:var(--text3);margin-top:2px;}
+.nav-item{display:flex;align-items:center;gap:8px;padding:6px 1rem;font-size:var(--fs-sm);color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:all .15s;text-decoration:none;white-space:nowrap;overflow:hidden;}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.03);}
+.nav-item.active{color:var(--accent2);border-left-color:var(--accent);background:var(--accent-bg);}
+.nav-num{font-size:var(--fs-xs);color:var(--text3);min-width:14px;flex-shrink:0;}
+.sidebar-sep{height:1px;background:var(--border);margin:.6rem 1rem;}
+.sidebar-section{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);padding:.4rem 1rem .2rem;}
+
+.main{margin-left:230px;padding:2.5rem 2rem 5rem;}
+.page-header{margin-bottom:1.75rem;}
+.page-header .tag{display:inline-block;font-size:var(--fs-xs);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent2);background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:20px;padding:3px 10px;margin-bottom:.75rem;}
+.page-header h1{font-size:26px;font-weight:700;letter-spacing:-.4px;}
+.page-header p{font-size:var(--fs-sm);color:var(--text2);margin-top:4px;}
+
+/* STATS */
+.stats-row{display:flex;gap:10px;margin-bottom:1.5rem;flex-wrap:wrap;}
+.stat-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:.65rem 1rem;min-width:90px;}
+.stat-card .s-val{font-size:20px;font-weight:700;}
+.stat-card .s-label{font-size:var(--fs-xs);color:var(--text3);margin-top:1px;}
+.stat-card.green .s-val{color:var(--green);}
+.stat-card.yellow .s-val{color:var(--yellow);}
+.stat-card.red .s-val{color:var(--red);}
+.stat-card.purple .s-val{color:var(--purple);}
+
+/* SEARCH */
+.toolbar{display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap;align-items:center;}
+.search-wrap{flex:1;min-width:200px;position:relative;}
+.search-wrap input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:.6rem .75rem .6rem 34px;font-family:'Manrope',sans-serif;font-size:var(--fs);color:var(--text);outline:none;transition:border-color .15s;}
+.search-wrap input:focus{border-color:var(--accent-border);}
+.search-wrap input::placeholder{color:var(--text3);}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none;color:var(--text3);}
+.fsel{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:.6rem .9rem;font-family:'Manrope',sans-serif;font-size:var(--fs-sm);color:var(--text2);outline:none;cursor:pointer;}
+.fsel:focus{border-color:var(--accent-border);}
+.sort-btn{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:.6rem .9rem;font-family:'Manrope',sans-serif;font-size:var(--fs-sm);color:var(--text2);cursor:pointer;white-space:nowrap;transition:all .15s;}
+.sort-btn:hover,.sort-btn.active{border-color:var(--accent-border);color:var(--accent2);}
+.export-btn{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:.6rem 1rem;font-family:'Manrope',sans-serif;font-size:var(--fs-sm);color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.export-btn:hover{border-color:var(--border2);color:var(--text);}
+
+/* GRID */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;}
+
+/* CARD */
+.cand-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);padding:1.1rem;display:flex;flex-direction:column;gap:12px;transition:border-color .15s,box-shadow .15s;cursor:default;}
+.cand-card:hover{border-color:var(--border2);}
+
+.card-top{display:flex;align-items:flex-start;gap:10px;}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--accent-bg);border:1px solid var(--accent-border);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--accent2);flex-shrink:0;}
+.card-id{flex:1;min-width:0;}
+.card-name{font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.card-tg{font-size:var(--fs-sm);color:var(--accent2);text-decoration:none;display:inline-block;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+.card-tg:hover{text-decoration:underline;}
+.card-age-job{font-size:var(--fs-xs);color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.card-actions{display:flex;gap:6px;flex-shrink:0;}
+.btn-icon{background:none;border:1px solid var(--border);border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--text3);transition:all .12s;flex-shrink:0;}
+.btn-icon:hover{border-color:var(--border2);color:var(--text);}
+.btn-icon.del:hover{border-color:var(--red-border);color:var(--red);}
+
+.card-sep{height:1px;background:var(--border);}
+
+/* FIELDS TABLE */
+.card-fields{display:flex;flex-direction:column;gap:6px;}
+.frow{display:flex;align-items:baseline;gap:8px;}
+.flabel{font-size:var(--fs-xs);color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.03em;flex-shrink:0;min-width:80px;}
+.fval{font-size:var(--fs-sm);color:var(--text);font-weight:500;min-width:0;word-break:break-word;}
+
+/* TAGS */
+.card-tags{display:flex;flex-wrap:wrap;gap:4px;}
+.ctag{font-size:var(--fs-xs);padding:2px 8px;border-radius:20px;white-space:nowrap;}
+.ctag.platform{background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent2);}
+.ctag.shift{background:var(--surface3);border:1px solid var(--border);color:var(--text2);}
+
+/* SCORE */
+.card-score{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.mini-stars{display:flex;gap:2px;}
+.mstar{font-size:12px;color:var(--surface3);}
+.mstar.on{color:var(--yellow);}
+.score-val{font-size:var(--fs-sm);color:var(--text2);white-space:nowrap;}
+.score-val strong{color:var(--text);font-size:var(--fs);}
+
+/* BADGES */
+.badge{font-size:var(--fs-xs);font-weight:600;padding:2px 9px;border-radius:20px;white-space:nowrap;}
+.badge.green{background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);}
+.badge.yellow{background:var(--yellow-bg);border:1px solid var(--yellow-border);color:var(--yellow);}
+.badge.red{background:var(--red-bg);border:1px solid var(--red-border);color:var(--red);}
+.badge.none{background:var(--surface3);border:1px solid var(--border);color:var(--text3);}
+.badge.принят{background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);}
+.badge.тест{background:var(--purple-bg);border:1px solid var(--purple-border);color:var(--purple);}
+.badge.гайд{background:var(--yellow-bg);border:1px solid var(--yellow-border);color:var(--yellow);}
+.badge.отказ{background:var(--red-bg);border:1px solid var(--red-border);color:var(--red);}
+.badge.def{background:var(--surface3);border:1px solid var(--border);color:var(--text3);}
+
+/* NOTES */
+.card-notes{font-size:var(--fs-sm);color:var(--text2);line-height:1.55;background:var(--surface3);border-radius:7px;padding:.5rem .75rem;word-break:break-word;}
+
+/* HISTORY */
+.card-history{display:flex;flex-direction:column;gap:4px;}
+.hist-item{display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--text3);}
+.hist-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+
+/* DATE */
+.card-date{font-size:var(--fs-xs);color:var(--text3);}
+
+/* EDIT MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem;}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r2);padding:1.5rem;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;}
+.modal h2{font-size:17px;font-weight:700;margin-bottom:1.25rem;}
+.modal-fields{display:flex;flex-direction:column;gap:8px;margin-bottom:1.25rem;}
+.m-field{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:.6rem .9rem;}
+.m-field:focus-within{border-color:var(--accent-border);}
+.m-label{font-size:var(--fs-xs);color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
+.m-input{width:100%;background:none;border:none;outline:none;font-family:'Manrope',sans-serif;font-size:var(--fs);color:var(--text);caret-color:var(--accent2);}
+.m-input::placeholder{color:var(--text3);}
+.m-textarea{width:100%;background:none;border:none;outline:none;font-family:'Manrope',sans-serif;font-size:var(--fs);color:var(--text);resize:vertical;min-height:72px;line-height:1.6;}
+.m-textarea::placeholder{color:var(--text3);}
+.pill-group{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px;}
+.pill{padding:4px 11px;border-radius:20px;border:1px solid var(--border2);background:var(--surface3);font-size:var(--fs-sm);color:var(--text2);cursor:pointer;user-select:none;transition:all .12s;font-family:'Manrope',sans-serif;white-space:nowrap;}
+.pill:hover{border-color:var(--accent-border);color:var(--text);}
+.pill.selected{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent2);font-weight:600;}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;}
+.btn-save{padding:.65rem 1.25rem;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--r);font-family:'Manrope',sans-serif;font-size:var(--fs);font-weight:600;color:var(--accent2);cursor:pointer;transition:all .15s;}
+.btn-save:hover{background:rgba(79,110,247,.2);}
+.btn-cancel{padding:.65rem 1.1rem;background:none;border:1px solid var(--border);border-radius:var(--r);font-family:'Manrope',sans-serif;font-size:var(--fs);color:var(--text2);cursor:pointer;}
+.btn-cancel:hover{border-color:var(--border2);color:var(--text);}
+
+.empty{text-align:center;padding:4rem 0;color:var(--text3);font-size:var(--fs);line-height:1.8;grid-column:1/-1;}
+.empty strong{display:block;font-size:18px;color:var(--text2);margin-bottom:6px;}
+
+@media(max-width:860px){.sidebar{display:none;}.main{margin-left:0;padding:1.25rem 1rem 4rem;}.cards-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
 <div class="layout">
-  <nav class="sidebar">
-    <div class="sidebar-logo">
-      <div class="brand">AllStars</div>
-      <div class="sub" data-me-agency>Agency</div>
-    </div>
-    <div class="sidebar-section">Workspace</div>
-    <a class="nav-item" href="/dashboard.html"><span class="nav-num">🏠</span><span>Dashboard</span></a>
-    <a class="nav-item" href="/index.html"><span class="nav-num">＋</span><span>Новый кандидат</span></a>
-    <a class="nav-item active" href="/candidates.html"><span class="nav-num">👥</span><span>Кандидаты</span></a>
-    <a class="nav-item" href="/team.html"><span class="nav-num">🧑‍🤝‍🧑</span><span>Команда</span></a>
-    <div class="sidebar-footer">
-      <div class="small muted">Вошёл как</div>
-      <div style="font-weight:700" data-me-name></div>
-      <div class="small muted" data-me-role></div>
-      <button class="btn ghost" style="margin-top:.75rem;width:100%" onclick="clearSession()">Выйти</button>
-    </div>
-  </nav>
+<nav class="sidebar">
+  <div class="sidebar-logo"><div class="brand">AllStars</div><div class="sub">База кандидатов</div></div>
+  <div class="sidebar-section">Навигация</div>
+  <a class="nav-item" href="index.html"><span class="nav-num">←</span><span>HR Скрипт</span></a>
+  <div class="sidebar-sep"></div>
+  <a class="nav-item active" href="candidates.html"><span class="nav-num">👥</span><span>Все кандидаты</span></a>
+</nav>
 
-  <main class="main">
-    <div class="page-header">
-      <div>
-        <div class="tag">Agency pipeline</div>
-        <h1>База кандидатов</h1>
-        <p>Поиск, фильтры, AI-инсайты и разделение доступа по ролям.</p>
-      </div>
-      <a class="btn" href="/index.html">Добавить кандидата</a>
-    </div>
+<main class="main">
+  <div class="page-header">
+    <div class="tag">AllStars Agency</div>
+    <h1>База кандидатов</h1>
+    <p id="subtitle">Загрузка...</p>
+  </div>
 
-    <div class="toolbar">
-      <div class="search-wrap">
-        <span class="search-icon">🔍</span>
-        <input id="q" placeholder="Имя, @username, заметки..." />
-      </div>
-      <select class="fsel" id="status">
-        <option value="">Все статусы</option>
-        <option value="Принят">Принят</option>
-        <option value="Тест-смена">Тест-смена</option>
-        <option value="Изучает гайд">Изучает гайд</option>
-        <option value="Отказ">Отказ</option>
-      </select>
-      <select class="fsel" id="verdict">
-        <option value="">Все вердикты</option>
-        <option value="hire">Берём</option>
-        <option value="review">Думаем</option>
-        <option value="reject">Отказ</option>
-      </select>
-      <button class="btn ghost" id="apply">Применить</button>
-    </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="s-val" id="st-all">—</div><div class="s-label">Всего</div></div>
+    <div class="stat-card green"><div class="s-val" id="st-ok">—</div><div class="s-label">Берём</div></div>
+    <div class="stat-card yellow"><div class="s-val" id="st-maybe">—</div><div class="s-label">Думаем</div></div>
+    <div class="stat-card red"><div class="s-val" id="st-no">—</div><div class="s-label">Отказ</div></div>
+    <div class="stat-card purple"><div class="s-val" id="st-active">—</div><div class="s-label">В работе</div></div>
+  </div>
 
-    <div class="cards-grid" id="grid"></div>
-  </main>
-</div>
-
-<div class="modal-overlay" id="modal">
-  <div class="modal">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:1rem">
-      <h2 id="m-title">Кандидат</h2>
-      <button class="btn ghost" onclick="closeModal()">Закрыть</button>
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="search" placeholder="Имя, @username или тег..." oninput="render()">
     </div>
-    <div class="grid grid-2">
-      <div class="panel">
-        <h3 style="margin-bottom:.75rem">История статусов</h3>
-        <div id="m-history" class="list"></div>
+    <select class="fsel" id="fv" onchange="render()">
+      <option value="">Все вердикты</option>
+      <option value="green">✓ Берём</option>
+      <option value="yellow">⚠ Думаем</option>
+      <option value="red">✗ Отказ</option>
+    </select>
+    <select class="fsel" id="fs" onchange="render()">
+      <option value="">Все статусы</option>
+      <option value="Принят">Принят</option>
+      <option value="Тест-смена">Тест-смена</option>
+      <option value="Изучает гайд">Изучает гайд</option>
+      <option value="Отказ">Отказ</option>
+    </select>
+    <button class="sort-btn" id="sort-btn" onclick="toggleSort()">↓ По дате</button>
+    <button class="export-btn" onclick="exportCSV()">⬇ CSV</button>
+  </div>
+
+  <div class="cards-grid" id="grid"><div class="empty"><strong>Загружаем...</strong></div></div>
+</main>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="modal" style="display:none" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2>Редактировать кандидата</h2>
+    <div class="modal-fields">
+      <div class="m-field"><div class="m-label">Имя</div><input class="m-input" id="m-name"></div>
+      <div class="m-field"><div class="m-label">Telegram</div><input class="m-input" id="m-tg"></div>
+      <div class="m-field"><div class="m-label">Возраст</div><input class="m-input" id="m-age"></div>
+      <div class="m-field">
+        <div class="m-label">Английский</div>
+        <div class="pill-group" id="m-english">
+          <span class="pill" data-val="A1">A1</span><span class="pill" data-val="A2">A2</span>
+          <span class="pill" data-val="B1">B1</span><span class="pill" data-val="B2">B2</span>
+          <span class="pill" data-val="C1">C1</span><span class="pill" data-val="Native">Native</span>
+        </div>
       </div>
-      <div class="panel">
-        <h3 style="margin-bottom:.75rem">AI recommendation</h3>
-        <div id="m-ai"></div>
+      <div class="m-field"><div class="m-label">Опыт (лет)</div><input class="m-input" id="m-exp"></div>
+      <div class="m-field">
+        <div class="m-label">Платформы</div>
+        <div class="pill-group" id="m-platforms">
+          <span class="pill" data-val="OnlyFans">OnlyFans</span>
+          <span class="pill" data-val="Fansly">Fansly</span>
+          <span class="pill" data-val="Обе">Обе</span>
+        </div>
       </div>
+      <div class="m-field">
+        <div class="m-label">Смены</div>
+        <div class="pill-group" id="m-shifts">
+          <span class="pill" data-val="00–06">00–06</span><span class="pill" data-val="06–12">06–12</span>
+          <span class="pill" data-val="12–18">12–18</span><span class="pill" data-val="18–00">18–00</span>
+        </div>
+      </div>
+      <div class="m-field">
+        <div class="m-label">Статус</div>
+        <div class="pill-group" id="m-status">
+          <span class="pill" data-val="Изучает гайд">Изучает гайд</span>
+          <span class="pill" data-val="Тест-смена">Тест-смена</span>
+          <span class="pill" data-val="Принят">Принят</span>
+          <span class="pill" data-val="Отказ">Отказ</span>
+        </div>
+      </div>
+      <div class="m-field"><div class="m-label">Средний чек</div><input class="m-input" id="m-avgcheck"></div>
+      <div class="m-field"><div class="m-label">Заметки</div><textarea class="m-textarea" id="m-notes" placeholder="Впечатление, особенности, причина отказа..."></textarea></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="document.getElementById('modal').style.display='none'">Отмена</button>
+      <button class="btn-save" onclick="saveEdit()">Сохранить</button>
     </div>
   </div>
 </div>
 
 <script>
-const API = window.location.origin;
-const tokenKey = 'allstars_token';
-const meKey = 'allstars_me';
+const API='https://allstars-hr-backend-production.up.railway.app';
+let all=[], sortAsc=false, editId=null;
 
-function getToken(){ return localStorage.getItem(tokenKey); }
-function setToken(token){ localStorage.setItem(tokenKey, token); }
-function clearSession(){ localStorage.removeItem(tokenKey); localStorage.removeItem(meKey); window.location.href = '/login.html'; }
-function setMe(me){ localStorage.setItem(meKey, JSON.stringify(me)); }
-function getMe(){ try { return JSON.parse(localStorage.getItem(meKey) || 'null'); } catch { return null; } }
+function vc(t){return t>=40?'green':t>=28?'yellow':t>0?'red':'none';}
+function vt(t){return t>=40?'✓ Берём':t>=28?'⚠ Думаем':t>0?'✗ Отказ':'Без оценки';}
+function sc(s){if(!s)return'def';const x=s.toLowerCase();if(x.includes('принят'))return'принят';if(x.includes('тест'))return'тест';if(x.includes('изучает'))return'гайд';if(x.includes('отказ'))return'отказ';return'def';}
+function initials(n){if(!n)return'?';return n.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2);}
+function fmtDate(s){if(!s)return'';const d=new Date(s);return d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});}
+function fmtTime(s){if(!s)return'';const d=new Date(s);return d.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}
 
-async function api(path, options = {}) {
-  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
-  const token = getToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API}${path}`, { ...options, headers });
-  if (res.status === 401) { clearSession(); throw new Error('Unauthorized'); }
-  const text = await res.text();
-  const data = text ? JSON.parse(text) : {};
-  if (!res.ok) throw new Error(data.error || 'Request failed');
-  return data;
+function flatten(r){return{...r,name:r.name,tg:r.tg,age:r.age,english:r.english,exp:r.exp,platforms:r.platforms,shift:r.shift,schedule:r.schedule,top:r.top_pages,avgcheck:r.avg_check,job:r.job,status:r.status,notes:r.notes,...(r.fields||{})};}
+
+function updateStats(){
+  document.getElementById('st-all').textContent=all.length;
+  document.getElementById('st-ok').textContent=all.filter(r=>r.total>=40).length;
+  document.getElementById('st-maybe').textContent=all.filter(r=>r.total>=28&&r.total<40).length;
+  document.getElementById('st-no').textContent=all.filter(r=>r.total>0&&r.total<28).length;
+  document.getElementById('st-active').textContent=all.filter(r=>['Принят','Тест-смена','Изучает гайд'].includes(r.status)).length;
+  document.getElementById('subtitle').textContent=all.length+' кандидатов в базе';
 }
 
-function initials(name='?'){
-  return name.trim().split(/\s+/).map(x=>x[0]).join('').toUpperCase().slice(0,2) || '?';
-}
-function verdictClass(total){
-  if (total >= 40) return 'green';
-  if (total >= 28) return 'yellow';
-  if (total > 0) return 'red';
-  return 'default';
-}
-function verdictLabel(total){
-  if (total >= 40) return 'Берём';
-  if (total >= 28) return 'Думаем';
-  if (total > 0) return 'Отказ';
-  return 'Без оценки';
-}
-function statusClass(status=''){
-  const x = status.toLowerCase();
-  if (x.includes('принят')) return 'green';
-  if (x.includes('тест')) return 'purple';
-  if (x.includes('гайд')) return 'yellow';
-  if (x.includes('отказ')) return 'red';
-  return 'default';
-}
-function fmtDate(s){
-  if (!s) return '—';
-  return new Date(s).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
-}
-async function loadMe(){
-  const me = await api('/auth/me');
-  setMe(me);
-  const nameEl = document.querySelector('[data-me-name]');
-  const roleEl = document.querySelector('[data-me-role]');
-  const agencyEl = document.querySelector('[data-me-agency]');
-  if (nameEl) nameEl.textContent = me.full_name;
-  if (roleEl) roleEl.textContent = me.role;
-  if (agencyEl) agencyEl.textContent = me.agency_name || '';
-  return me;
-}
-</script>
-<script>
-let all = [];
-async function load() {
-  const params = new URLSearchParams();
-  if (document.getElementById('q').value.trim()) params.set('search', document.getElementById('q').value.trim());
-  if (document.getElementById('status').value) params.set('status', document.getElementById('status').value);
-  if (document.getElementById('verdict').value) params.set('verdict', document.getElementById('verdict').value);
-  all = await api('/candidates?' + params.toString());
-  render();
-}
-function card(candidate) {
-  return `
-    <div class="cand-card">
+function render(){
+  const q=document.getElementById('search').value.toLowerCase().trim();
+  const fv=document.getElementById('fv').value;
+  const fs=document.getElementById('fs').value;
+  const grid=document.getElementById('grid');
+  grid.innerHTML='';
+
+  let list=[...all];
+  if(q)list=list.filter(r=>{
+    const f=flatten(r);
+    return (f.name||'').toLowerCase().includes(q)||(f.tg||'').toLowerCase().includes(q)||
+      [f.platforms,f.english,f.shift,f.status].filter(Boolean).join(' ').toLowerCase().includes(q);
+  });
+  if(fv)list=list.filter(r=>vc(r.total)===fv);
+  if(fs)list=list.filter(r=>(r.status||'')===fs);
+  list.sort((a,b)=>sortAsc?(new Date(a.created_at)-new Date(b.created_at)):(new Date(b.created_at)-new Date(a.created_at)));
+
+  if(!list.length){grid.innerHTML='<div class="empty"><strong>Ничего не найдено</strong>Измени фильтры или поисковый запрос</div>';return;}
+
+  list.forEach(rec=>{
+    const f=flatten(rec);
+    const v=vc(rec.total),s=sc(f.status);
+    const tgHref=f.tg?'https://t.me/'+f.tg.replace('@',''):null;
+    const starLevel=rec.total>0?Math.round(rec.total/50*5):0;
+    const stars=Array.from({length:5},(_,i)=>`<span class="mstar${i<starLevel?' on':''}" >★</span>`).join('');
+    let hist=[];try{hist=JSON.parse(rec.status_history||'[]');}catch{}
+
+    const card=document.createElement('div');
+    card.className='cand-card';
+    card.innerHTML=`
       <div class="card-top">
-        <div class="avatar">${initials(candidate.name)}</div>
-        <div style="flex:1">
-          <div class="card-name">${candidate.name}</div>
-          <div class="card-sub">${candidate.tg || '—'} · HR: ${candidate.owner_name || '—'}</div>
+        <div class="avatar">${initials(f.name)}</div>
+        <div class="card-id">
+          <div class="card-name">${f.name||'—'}</div>
+          ${tgHref?`<a class="card-tg" href="${tgHref}" target="_blank">${f.tg}</a>`:(f.tg?`<span class="card-tg">${f.tg}</span>`:'')}
+          ${f.age||f.job?`<div class="card-age-job">${[f.age?f.age+' лет':'',f.job].filter(Boolean).join(' · ')}</div>`:''}
+        </div>
+        <div class="card-actions">
+          <button class="btn-icon edit" title="Редактировать">✏</button>
+          <button class="btn-icon del" title="Удалить">×</button>
         </div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <span class="badge ${verdictClass(candidate.total)}">${verdictLabel(candidate.total)} · ${candidate.total}/50</span>
-        <span class="badge ${statusClass(candidate.status)}">${candidate.status || 'Без статуса'}</span>
-      </div>
+      <div class="card-sep"></div>
       <div class="card-fields">
-        <div class="frow"><span class="flabel">Англ.</span><span class="fval">${candidate.english || '—'}</span></div>
-        <div class="frow"><span class="flabel">Опыт</span><span class="fval">${candidate.exp || '—'}</span></div>
-        <div class="frow"><span class="flabel">Платформы</span><span class="fval">${candidate.platforms || '—'}</span></div>
-        <div class="frow"><span class="flabel">Смены</span><span class="fval">${candidate.shift || '—'}</span></div>
+        ${f.english?`<div class="frow"><span class="flabel">Англ.</span><span class="fval">${f.english}</span></div>`:''}
+        ${f.exp?`<div class="frow"><span class="flabel">Опыт</span><span class="fval">${f.exp} лет</span></div>`:''}
+        ${f.avgcheck?`<div class="frow"><span class="flabel">Ср. чек</span><span class="fval">${f.avgcheck}</span></div>`:''}
+        ${f.top?`<div class="frow"><span class="flabel">Топ</span><span class="fval">${f.top}</span></div>`:''}
+        ${f.schedule?`<div class="frow"><span class="flabel">График</span><span class="fval">${f.schedule}</span></div>`:''}
       </div>
-      <div class="small muted">${candidate.notes || 'Без заметок'}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn ghost" onclick="openDetails(${candidate.id}, '${(candidate.name || '').replace(/'/g, "\'")}')">AI / История</button>
-        <button class="btn red" onclick="removeCandidate(${candidate.id})">Удалить</button>
+      ${f.platforms||f.shift?`<div class="card-tags">
+        ${f.platforms?`<span class="ctag platform">${f.platforms}</span>`:''}
+        ${f.shift?(f.shift.split(',').map(x=>`<span class="ctag shift">${x.trim()}</span>`).join('')):''}
+      </div>`:''}
+      <div class="card-sep"></div>
+      <div class="card-score">
+        <div style="display:flex;align-items:center;gap:7px">
+          <div class="mini-stars">${stars}</div>
+          <span class="score-val"><strong>${rec.total}</strong> / 50</span>
+        </div>
+        <span class="badge ${v}">${vt(rec.total)}</span>
       </div>
-    </div>
-  `;
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        ${f.status?`<span class="badge ${s}">${f.status}</span>`:'<span></span>'}
+        <span class="card-date">${fmtDate(rec.created_at)}</span>
+      </div>
+      ${f.notes?`<div class="card-notes">${f.notes}</div>`:''}
+      ${hist.length>1?`<div class="card-history">${hist.map(h=>`<div class="hist-item"><div class="hist-dot"></div><span>${h.status}</span><span style="margin-left:auto;font-size:10px">${fmtTime(h.date)}</span></div>`).join('')}</div>`:''}
+    `;
+    card.querySelector('.edit').addEventListener('click',()=>openEdit(rec));
+    card.querySelector('.del').addEventListener('click',()=>deleteCand(rec.id,f.name));
+    grid.appendChild(card);
+  });
 }
-function render() {
-  const grid = document.getElementById('grid');
-  grid.innerHTML = all.map(card).join('') || '<div class="muted">Нет данных</div>';
-}
-async function openDetails(id, name) {
-  document.getElementById('m-title').textContent = name;
-  const data = await api(`/candidates/${id}/history`);
-  document.getElementById('m-history').innerHTML = data.history.map(item => `
-    <div class="list-item">
-      <strong>${item.status}</strong>
-      <div class="small muted">${item.changed_by_name || '—'} · ${fmtDate(item.created_at)}</div>
-    </div>
-  `).join('') || '<div class="muted small">Истории пока нет</div>';
 
-  const ai = data.ai;
-  document.getElementById('m-ai').innerHTML = ai ? `
-    <div class="list">
-      <div class="list-item"><strong>${ai.recommendation}</strong> · confidence ${ai.confidence}%</div>
-      <div class="list-item">${ai.summary}</div>
-      <div class="list-item"><strong>Сильные стороны</strong><div class="small muted">${(ai.strengths || []).join(' · ') || '—'}</div></div>
-      <div class="list-item"><strong>Риски</strong><div class="small muted">${(ai.risks || []).join(' · ') || '—'}</div></div>
-    </div>
-  ` : '<div class="muted small">AI insight ещё не сформирован</div>';
-  document.getElementById('modal').style.display = 'flex';
+async function deleteCand(id,name){
+  if(!confirm('Удалить карточку '+(name||id)+'?'))return;
+  await fetch(API+'/candidates/'+id,{method:'DELETE'});
+  all=all.filter(r=>r.id!==id);
+  updateStats();render();
 }
-function closeModal() { document.getElementById('modal').style.display = 'none'; }
-async function removeCandidate(id) {
-  if (!confirm('Удалить кандидата?')) return;
-  await api(`/candidates/${id}`, { method:'DELETE' });
-  await load();
+
+// ── EDIT ──
+function initModalPills(id,multi=false){
+  document.getElementById(id)?.querySelectorAll('.pill').forEach(p=>{
+    p.addEventListener('click',()=>{
+      if(!multi){document.getElementById(id).querySelectorAll('.pill').forEach(x=>x.classList.remove('selected'));}
+      p.classList.toggle('selected');
+    });
+  });
 }
-(async function(){
-  if (!getToken()) return clearSession();
-  await loadMe();
-  document.getElementById('apply').onclick = load;
-  await load();
-})().catch(err => alert(err.message));
+function setModalPill(id,val,multi=false){
+  document.getElementById(id)?.querySelectorAll('.pill').forEach(p=>{
+    const vals=multi?val.split(',').map(x=>x.trim()):[val];
+    p.classList.toggle('selected',vals.includes(p.dataset.val));
+  });
+}
+function getModalPill(id,multi=false){
+  const sel=[...document.getElementById(id)?.querySelectorAll('.pill.selected')||[]].map(p=>p.dataset.val);
+  return multi?sel.join(', '):(sel[0]||'');
+}
+
+initModalPills('m-english');initModalPills('m-platforms');initModalPills('m-shifts',true);initModalPills('m-status');
+
+function openEdit(rec){
+  editId=rec.id;
+  const f=flatten(rec);
+  document.getElementById('m-name').value=f.name||'';
+  document.getElementById('m-tg').value=f.tg||'';
+  document.getElementById('m-age').value=f.age||'';
+  document.getElementById('m-exp').value=f.exp||'';
+  document.getElementById('m-avgcheck').value=f.avgcheck||'';
+  document.getElementById('m-notes').value=f.notes||rec.notes||'';
+  setModalPill('m-english',f.english||'');
+  setModalPill('m-platforms',f.platforms||'');
+  setModalPill('m-shifts',f.shift||'',true);
+  setModalPill('m-status',f.status||'');
+  document.getElementById('modal').style.display='flex';
+}
+
+function closeModal(e){if(e.target.id==='modal')document.getElementById('modal').style.display='none';}
+
+async function saveEdit(){
+  const fields={
+    name:document.getElementById('m-name').value.trim(),
+    tg:document.getElementById('m-tg').value.trim(),
+    age:document.getElementById('m-age').value.trim(),
+    english:getModalPill('m-english'),
+    exp:document.getElementById('m-exp').value.trim(),
+    platforms:getModalPill('m-platforms'),
+    shift:getModalPill('m-shifts',true),
+    avgcheck:document.getElementById('m-avgcheck').value.trim(),
+    status:getModalPill('m-status'),
+  };
+  const notes=document.getElementById('m-notes').value.trim();
+  const res=await fetch(API+'/candidates/'+editId,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields,notes})});
+  const updated=await res.json();
+  all=all.map(r=>r.id===editId?updated:r);
+  document.getElementById('modal').style.display='none';
+  updateStats();render();
+}
+
+// ── SORT ──
+function toggleSort(){
+  sortAsc=!sortAsc;
+  document.getElementById('sort-btn').textContent=sortAsc?'↑ По дате':'↓ По дате';
+  render();
+}
+
+// ── EXPORT CSV ──
+function exportCSV(){
+  const headers=['ID','Имя','Telegram','Возраст','Английский','Опыт','Платформы','Смены','График','Топ','Ср.чек','Занятость','Статус','Заметки','Балл','Вердикт','Дата'];
+  const rows=all.map(r=>{
+    const f=flatten(r);
+    return [r.id,f.name,f.tg,f.age,f.english,f.exp,f.platforms,f.shift,f.schedule,f.top,f.avgcheck,f.job,f.status,f.notes||r.notes||'',r.total,vt(r.total),fmtDate(r.created_at)].map(x=>`"${String(x||'').replace(/"/g,'""')}"`);
+  });
+  const csv=[headers,...rows].map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download='allstars_candidates_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+}
+
+async function load(){
+  try{
+    const data=await(await fetch(API+'/candidates')).json();
+    all=data;updateStats();render();
+  }catch{
+    document.getElementById('grid').innerHTML='<div class="empty"><strong>Ошибка подключения</strong>Не удалось загрузить данные</div>';
+    document.getElementById('subtitle').textContent='Ошибка подключения';
+  }
+}
+load();
 </script>
 </body>
 </html>

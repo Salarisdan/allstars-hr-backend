@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AllStars — Новый кандидат</title>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AllStars — HR Скрипт</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
 :root{
   --bg:#0d0f14;--surface:#141720;--surface2:#1c2030;--surface3:#232840;
   --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
@@ -14,349 +14,375 @@
   --green:#34d39a;--green-bg:rgba(52,211,154,0.1);--green-border:rgba(52,211,154,0.25);
   --yellow:#fbbf24;--yellow-bg:rgba(251,191,36,0.1);--yellow-border:rgba(251,191,36,0.25);
   --red:#f87171;--red-bg:rgba(248,113,113,0.1);--red-border:rgba(248,113,113,0.25);
-  --purple:#a78bfa;--purple-bg:rgba(167,139,250,0.1);--purple-border:rgba(167,139,250,0.25);
-  --orange:#fb923c;
-  --r:10px;--r2:14px;--fs:14px;--fs-sm:12px;--fs-xs:11px;
+  --orange:#fb923c;--note-bg:rgba(251,146,60,0.08);--note-border:rgba(251,146,60,0.22);
+  --case-bg:rgba(248,113,113,0.05);--case-border:rgba(248,113,113,0.18);
+  --r:10px;--r2:14px;
+  --fs:14px;--fs-sm:12px;--fs-xs:11px;
 }
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);font-size:var(--fs);line-height:1.6}
-a{text-decoration:none;color:inherit}
-.layout{display:flex;min-height:100vh}
-.sidebar{width:240px;flex-shrink:0;position:fixed;top:0;left:0;bottom:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:1.25rem 0 2rem}
-.sidebar-logo{padding:0 1rem 1rem;border-bottom:1px solid var(--border);margin-bottom:.75rem}
-.sidebar-logo .brand{font-size:16px;font-weight:700}
-.sidebar-logo .sub{font-size:var(--fs-xs);color:var(--text3);margin-top:2px}
-.sidebar-section{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);padding:.4rem 1rem .2rem}
-.nav-item{display:flex;align-items:center;gap:8px;padding:8px 1rem;font-size:var(--fs-sm);color:var(--text2);border-left:2px solid transparent;transition:.15s}
-.nav-item:hover{background:rgba(255,255,255,.03);color:var(--text)}
-.nav-item.active{color:var(--accent2);background:var(--accent-bg);border-left-color:var(--accent)}
-.nav-num{min-width:18px;color:var(--text3);font-size:var(--fs-xs)}
-.sidebar-footer{padding:1rem;border-top:1px solid var(--border);margin-top:1rem}
-.main{margin-left:240px;flex:1;padding:2rem 1.5rem 4rem;max-width:1180px}
-.page-header{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;margin-bottom:1.5rem}
-.page-header .tag{display:inline-block;font-size:var(--fs-xs);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent2);background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:20px;padding:4px 10px;margin-bottom:.75rem}
-.page-header h1{font-size:28px;letter-spacing:-.4px}
-.page-header p{font-size:var(--fs-sm);color:var(--text2);margin-top:4px}
-.panel{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);padding:1rem}
-.grid{display:grid;gap:12px}
-.grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
-.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
-.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
-.stat-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:1rem}
-.stat-card .s-val{font-size:24px;font-weight:700}
-.stat-card .s-label{font-size:var(--fs-xs);color:var(--text3);margin-top:2px}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:1rem}
-.search-wrap{flex:1;min-width:220px;position:relative}
-.search-wrap input,.fsel,.input,.textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:.7rem .9rem;font-family:'Manrope',sans-serif;color:var(--text);outline:none}
-.search-wrap input{padding-left:34px}
-.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--text3)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:.7rem 1rem;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--r);font-family:'Manrope',sans-serif;font-size:var(--fs);font-weight:600;color:var(--accent2);cursor:pointer}
-.btn.ghost{background:none;border-color:var(--border);color:var(--text2)}
-.btn.green{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
-.btn.red{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
-.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
-.cand-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);padding:1rem;display:flex;flex-direction:column;gap:12px}
-.card-top{display:flex;gap:10px}
-.avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent2);font-weight:700}
-.card-name{font-weight:700}
-.card-sub{font-size:var(--fs-sm);color:var(--text2)}
-.badge{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs);font-weight:700;padding:4px 9px;border-radius:999px;border:1px solid var(--border)}
-.badge.green{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
-.badge.yellow{background:var(--yellow-bg);border-color:var(--yellow-border);color:var(--yellow)}
-.badge.red{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
-.badge.purple{background:var(--purple-bg);border-color:var(--purple-border);color:var(--purple)}
-.badge.default{background:var(--surface3);color:var(--text2)}
-.card-fields{display:flex;flex-direction:column;gap:6px}
-.frow{display:flex;gap:8px}
-.flabel{min-width:90px;font-size:var(--fs-xs);font-weight:700;color:var(--text3);text-transform:uppercase}
-.fval{font-size:var(--fs-sm)}
-.pill-group{display:flex;flex-wrap:wrap;gap:6px}
-.pill{padding:5px 11px;border-radius:999px;border:1px solid var(--border2);background:var(--surface3);font-size:var(--fs-sm);color:var(--text2);cursor:pointer;user-select:none}
-.pill.selected{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent2);font-weight:600}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;padding:1rem;z-index:100}
-.modal{width:100%;max-width:760px;max-height:92vh;overflow:auto;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r2);padding:1.25rem}
-.modal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.full{grid-column:1/-1}
-.table{width:100%;border-collapse:collapse}
-.table th,.table td{padding:.75rem;border-bottom:1px solid var(--border);text-align:left;font-size:var(--fs-sm)}
-.table th{color:var(--text3);font-size:var(--fs-xs);text-transform:uppercase}
-.list{display:flex;flex-direction:column;gap:8px}
-.list-item{padding:.85rem 1rem;border:1px solid var(--border);background:var(--surface2);border-radius:var(--r)}
-.hr{height:1px;background:var(--border);margin:1rem 0}
-.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem}
-.auth-card{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--border2);border-radius:18px;padding:1.3rem}
-.muted{color:var(--text2)}
-.small{font-size:var(--fs-sm)}
-.hidden{display:none!important}
-@media(max-width:980px){.grid-4,.grid-3,.grid-2,.modal-grid{grid-template-columns:1fr}.sidebar{display:none}.main{margin-left:0;padding:1.25rem 1rem 4rem}}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);font-size:var(--fs);line-height:1.65;}
+.layout{display:flex;min-height:100vh;}
+
+.sidebar{width:230px;flex-shrink:0;position:fixed;top:0;left:0;bottom:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;z-index:100;padding:1.25rem 0 2rem;}
+.sidebar-logo{padding:0 1rem 1.25rem;border-bottom:1px solid var(--border);margin-bottom:.75rem;}
+.sidebar-logo .brand{font-size:16px;font-weight:700;color:var(--text);}
+.sidebar-logo .sub{font-size:var(--fs-xs);color:var(--text3);margin-top:2px;}
+.nav-item{display:flex;align-items:center;gap:8px;padding:6px 1rem;font-size:var(--fs-sm);color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:all .15s;text-decoration:none;white-space:nowrap;overflow:hidden;}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.03);}
+.nav-item.active{color:var(--accent2);border-left-color:var(--accent);background:var(--accent-bg);}
+.nav-num{font-size:var(--fs-xs);color:var(--text3);min-width:14px;flex-shrink:0;}
+.nav-label{overflow:hidden;text-overflow:ellipsis;}
+.sidebar-sep{height:1px;background:var(--border);margin:.6rem 1rem;}
+.sidebar-section{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);padding:.4rem 1rem .2rem;}
+
+.main{margin-left:230px;max-width:780px;padding:2.5rem 2rem 5rem;}
+.page-header{margin-bottom:2.5rem;padding-bottom:1.75rem;border-bottom:1px solid var(--border);}
+.page-header .tag{display:inline-block;font-size:var(--fs-xs);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent2);background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:20px;padding:3px 10px;margin-bottom:.75rem;}
+.page-header h1{font-size:28px;font-weight:700;letter-spacing:-.4px;line-height:1.2;}
+.page-header p{font-size:var(--fs-sm);color:var(--text2);margin-top:5px;}
+
+.section{margin-bottom:2.5rem;scroll-margin-top:2rem;}
+.section-header{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;}
+.section-num{width:26px;height:26px;border-radius:7px;background:var(--accent-bg);border:1px solid var(--accent-border);display:flex;align-items:center;justify-content:center;font-size:var(--fs-xs);font-weight:700;color:var(--accent2);flex-shrink:0;}
+.section-title{font-size:18px;font-weight:700;letter-spacing:-.2px;}
+.divider{height:1px;background:var(--border);margin:2rem 0;}
+
+.speech{background:var(--surface2);border:1px solid var(--border2);border-left:3px solid var(--accent);border-radius:0 var(--r) var(--r) 0;padding:.875rem 1.1rem;margin:.875rem 0;font-size:var(--fs);line-height:1.7;}
+.speech .speaker{font-size:var(--fs-xs);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent2);margin-bottom:5px;}
+.note{background:var(--note-bg);border:1px solid var(--note-border);border-radius:var(--r);padding:.65rem .9rem;font-size:var(--fs-sm);color:var(--orange);margin:.65rem 0;display:flex;gap:7px;align-items:flex-start;}
+.listen{background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--r);padding:.65rem .9rem;font-size:var(--fs-sm);color:var(--green);margin:.4rem 0 1rem;display:flex;gap:7px;align-items:flex-start;}
+.question{margin:1rem 0;}
+.q-header{display:flex;gap:9px;align-items:flex-start;margin-bottom:.3rem;}
+.q-num{width:20px;height:20px;border-radius:5px;background:var(--surface3);border:1px solid var(--border2);font-size:10px;font-weight:700;color:var(--text2);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.q-text{font-size:var(--fs);font-weight:600;color:var(--text);line-height:1.5;}
+.case{background:var(--case-bg);border:1px solid var(--case-border);border-left:3px solid var(--red);border-radius:0 var(--r) var(--r) 0;padding:.875rem 1.1rem;margin:.875rem 0;}
+.case-label{font-size:var(--fs-xs);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--red);margin-bottom:7px;}
+.case-text{font-size:var(--fs);line-height:1.65;}
+.case-hint{font-size:var(--fs-sm);color:var(--text2);margin-top:7px;padding-top:7px;border-top:1px solid var(--case-border);}
+
+/* CARD FORM */
+.card-form{display:flex;flex-direction:column;gap:8px;margin-bottom:1rem;}
+.c-field{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:.6rem .9rem;transition:border-color .15s;}
+.c-field:focus-within{border-color:var(--accent-border);background:var(--surface3);}
+.f-label{font-size:var(--fs-xs);color:var(--text3);margin-bottom:4px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;}
+.f-input{width:100%;background:none;border:none;outline:none;font-family:'Manrope',sans-serif;font-size:var(--fs);color:var(--text);caret-color:var(--accent2);}
+.f-input::placeholder{color:var(--text3);}
+.f-textarea{width:100%;background:none;border:none;outline:none;font-family:'Manrope',sans-serif;font-size:var(--fs);color:var(--text);caret-color:var(--accent2);resize:vertical;min-height:64px;line-height:1.6;}
+.f-textarea::placeholder{color:var(--text3);}
+
+.pill-group{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px;}
+.pill{padding:4px 11px;border-radius:20px;border:1px solid var(--border2);background:var(--surface3);font-size:var(--fs-sm);color:var(--text2);cursor:pointer;user-select:none;transition:all .12s;font-family:'Manrope',sans-serif;white-space:nowrap;}
+.pill:hover{border-color:var(--accent-border);color:var(--text);}
+.pill.selected{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent2);font-weight:600;}
+
+.save-btn{display:inline-flex;align-items:center;gap:8px;padding:.7rem 1.25rem;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--r);font-family:'Manrope',sans-serif;font-size:var(--fs);font-weight:600;color:var(--accent2);cursor:pointer;transition:all .15s;}
+.save-btn:hover{background:rgba(79,110,247,.2);}
+.save-btn.saved{background:var(--green-bg);border-color:var(--green-border);color:var(--green);}
+.save-btn:disabled{opacity:.5;cursor:not-allowed;}
+
+/* CHECKLIST */
+.cl-section{margin-bottom:1.25rem;}
+.cl-section-title{font-size:var(--fs-xs);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:.6rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);}
+.cl-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);gap:12px;}
+.cl-row:last-child{border-bottom:none;}
+.cl-label{font-size:var(--fs);color:var(--text);flex:1;min-width:0;padding-right:8px;}
+.stars{display:flex;gap:2px;flex-shrink:0;}
+.star{font-size:19px;cursor:pointer;color:var(--surface3);transition:color .1s,transform .1s;user-select:none;line-height:1;}
+.star:hover{transform:scale(1.2);}
+.star.on{color:var(--yellow);}
+.total-bar{display:flex;align-items:center;justify-content:space-between;margin-top:1.25rem;padding:.9rem 1.1rem;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r2);}
+.total-label{font-size:var(--fs);font-weight:600;}
+.total-score{font-size:24px;font-weight:700;}
+.total-score span{font-size:15px;font-weight:400;color:var(--text2);}
+.verdict{display:none;margin-top:.75rem;padding:.75rem 1.1rem;border-radius:var(--r2);font-size:var(--fs);font-weight:600;}
+.verdict.show{display:block;}
+.verdict.green{background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);}
+.verdict.yellow{background:var(--yellow-bg);border:1px solid var(--yellow-border);color:var(--yellow);}
+.verdict.red{background:var(--red-bg);border:1px solid var(--red-border);color:var(--red);}
+.reset-btn{margin-top:.75rem;background:none;border:none;font-family:'Manrope',sans-serif;font-size:var(--fs-sm);color:var(--text3);cursor:pointer;padding:0;}
+.reset-btn:hover{color:var(--text2);}
+
+@media(max-width:860px){.sidebar{display:none;}.main{margin-left:0;padding:1.25rem 1rem 4rem;}}
 </style>
 </head>
 <body>
 <div class="layout">
-  <nav class="sidebar">
-    <div class="sidebar-logo">
-      <div class="brand">AllStars</div>
-      <div class="sub" data-me-agency>Agency</div>
-    </div>
-    <div class="sidebar-section">Workspace</div>
-    <a class="nav-item" href="/dashboard.html"><span class="nav-num">🏠</span><span>Dashboard</span></a>
-    <a class="nav-item active" href="/index.html"><span class="nav-num">＋</span><span>Новый кандидат</span></a>
-    <a class="nav-item" href="/candidates.html"><span class="nav-num">👥</span><span>Кандидаты</span></a>
-    <a class="nav-item" href="/team.html"><span class="nav-num">🧑‍🤝‍🧑</span><span>Команда</span></a>
-    <div class="sidebar-footer">
-      <div class="small muted">Вошёл как</div>
-      <div style="font-weight:700" data-me-name></div>
-      <div class="small muted" data-me-role></div>
-      <button class="btn ghost" style="margin-top:.75rem;width:100%" onclick="clearSession()">Выйти</button>
-    </div>
-  </nav>
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">AllStars</div>
+    <div class="sub">HR-скрипт интервью</div>
+  </div>
+  <div class="sidebar-section">Скрипт</div>
+  <a class="nav-item" href="#card"><span class="nav-num">—</span><span class="nav-label">Карточка кандидата</span></a>
+  <a class="nav-item" href="#s1"><span class="nav-num">1</span><span class="nav-label">Открытие</span></a>
+  <a class="nav-item" href="#s2"><span class="nav-num">2</span><span class="nav-label">Опыт и результаты</span></a>
+  <a class="nav-item" href="#s3"><span class="nav-num">3</span><span class="nav-label">Личность и мотивация</span></a>
+  <a class="nav-item" href="#s4"><span class="nav-num">4</span><span class="nav-label">Практические кейсы</span></a>
+  <a class="nav-item" href="#s5"><span class="nav-num">5</span><span class="nav-label">О нас — AllStars</span></a>
+  <a class="nav-item" href="#s6"><span class="nav-num">6</span><span class="nav-label">Финал</span></a>
+  <a class="nav-item" href="#s7"><span class="nav-num">★</span><span class="nav-label">Чеклист оценки</span></a>
+  <div class="sidebar-sep"></div>
+  <div class="sidebar-section">База</div>
+  <a class="nav-item" href="candidates.html"><span class="nav-num">👥</span><span class="nav-label">Все кандидаты</span></a>
+</nav>
 
-  <main class="main">
-    <div class="page-header">
-      <div>
-        <div class="tag">HR Script + Scoring</div>
-        <h1>Новый кандидат</h1>
-        <p>Создай карточку, оцени кандидата и получи AI-рекомендацию после сохранения.</p>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <a class="btn ghost" href="/candidates.html">База</a>
-        <a class="btn ghost" href="/dashboard.html">Dashboard</a>
-      </div>
-    </div>
+<main class="main">
+  <div class="page-header">
+    <div class="tag">Fansly / OnlyFans</div>
+    <h1>Скрипт HR-интервью</h1>
+    <p>Оператор чата · AllStars Agency</p>
+  </div>
 
-    <section class="panel">
-      <div class="modal-grid">
-        <div><div class="small muted" style="margin-bottom:4px">Имя</div><input class="input" id="f-name" placeholder="Имя кандидата"></div>
-        <div><div class="small muted" style="margin-bottom:4px">Telegram</div><input class="input" id="f-tg" placeholder="@username"></div>
-        <div><div class="small muted" style="margin-bottom:4px">Возраст</div><input class="input" id="f-age" placeholder="—"></div>
-        <div>
-          <div class="small muted" style="margin-bottom:4px">Английский</div>
-          <div class="pill-group" id="pills-english">
-            <span class="pill" data-val="A1">A1</span><span class="pill" data-val="A2">A2</span>
-            <span class="pill" data-val="B1">B1</span><span class="pill" data-val="B2">B2</span>
-            <span class="pill" data-val="C1">C1</span><span class="pill" data-val="Native">Native</span>
-          </div>
+  <div class="section" id="card">
+    <div class="section-header"><div class="section-num">—</div><div class="section-title">Карточка кандидата</div></div>
+    <div class="card-form">
+      <div class="c-field"><div class="f-label">Имя</div><input class="f-input" id="f-name" placeholder="Имя кандидата"></div>
+      <div class="c-field"><div class="f-label">Telegram</div><input class="f-input" id="f-tg" placeholder="@username"></div>
+      <div class="c-field"><div class="f-label">Возраст</div><input class="f-input" id="f-age" placeholder="—"></div>
+      <div class="c-field">
+        <div class="f-label">Английский</div>
+        <div class="pill-group" id="pills-english">
+          <span class="pill" data-val="A1">A1</span><span class="pill" data-val="A2">A2</span>
+          <span class="pill" data-val="B1">B1</span><span class="pill" data-val="B2">B2</span>
+          <span class="pill" data-val="C1">C1</span><span class="pill" data-val="Native">Native</span>
         </div>
-        <div><div class="small muted" style="margin-bottom:4px">Опыт в adult (лет)</div><input class="input" id="f-exp" placeholder="—"></div>
-        <div>
-          <div class="small muted" style="margin-bottom:4px">Платформы</div>
-          <div class="pill-group" id="pills-platforms">
-            <span class="pill" data-val="OnlyFans">OnlyFans</span>
-            <span class="pill" data-val="Fansly">Fansly</span>
-            <span class="pill" data-val="Обе">Обе</span>
-          </div>
-        </div>
-        <div>
-          <div class="small muted" style="margin-bottom:4px">Смены</div>
-          <div class="pill-group" id="pills-shifts">
-            <span class="pill" data-val="00–06">00–06</span><span class="pill" data-val="06–12">06–12</span>
-            <span class="pill" data-val="12–18">12–18</span><span class="pill" data-val="18–00">18–00</span>
-          </div>
-        </div>
-        <div>
-          <div class="small muted" style="margin-bottom:4px">График</div>
-          <div class="pill-group" id="pills-schedule">
-            <span class="pill" data-val="5/2">5/2</span><span class="pill" data-val="6/1">6/1</span>
-          </div>
-        </div>
-        <div><div class="small muted" style="margin-bottom:4px">Топ страницы</div><input class="input" id="f-top"></div>
-        <div><div class="small muted" style="margin-bottom:4px">Средний чек</div><input class="input" id="f-avgcheck"></div>
-        <div><div class="small muted" style="margin-bottom:4px">Занятость / учёба</div><input class="input" id="f-job"></div>
-        <div>
-          <div class="small muted" style="margin-bottom:4px">Статус</div>
-          <div class="pill-group" id="pills-status">
-            <span class="pill" data-val="Изучает гайд">Изучает гайд</span>
-            <span class="pill" data-val="Тест-смена">Тест-смена</span>
-            <span class="pill" data-val="Принят">Принят</span>
-            <span class="pill" data-val="Отказ">Отказ</span>
-          </div>
-        </div>
-        <div class="full"><div class="small muted" style="margin-bottom:4px">Заметки</div><textarea class="textarea" id="f-notes" rows="4"></textarea></div>
       </div>
-    </section>
-
-    <div class="grid grid-2" style="margin-top:12px">
-      <section class="panel">
-        <h3 style="margin-bottom:.75rem">Чеклист оценки</h3>
-        <div id="checklist"></div>
-        <div class="hr"></div>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div><strong>Итого:</strong> <span id="total-score">0</span> / 50</div>
-          <button class="btn" id="save-btn">Сохранить кандидата</button>
+      <div class="c-field"><div class="f-label">Опыт в adult (лет)</div><input class="f-input" id="f-exp" placeholder="—"></div>
+      <div class="c-field">
+        <div class="f-label">Платформы</div>
+        <div class="pill-group" id="pills-platforms">
+          <span class="pill" data-val="OnlyFans">OnlyFans</span>
+          <span class="pill" data-val="Fansly">Fansly</span>
+          <span class="pill" data-val="Обе">Обе</span>
         </div>
-      </section>
-      <section class="panel">
-        <h3 style="margin-bottom:.75rem">Что нового в этой версии</h3>
-        <div class="list">
-          <div class="list-item">🔐 Логин и workspace на агентство</div>
-          <div class="list-item">🧑‍🤝‍🧑 Роли owner / teamlead / hr</div>
-          <div class="list-item">📊 Аналитика и dashboard</div>
-          <div class="list-item">✨ AI recommendation после сохранения</div>
+      </div>
+      <div class="c-field">
+        <div class="f-label">Смены (можно несколько)</div>
+        <div class="pill-group" id="pills-shifts">
+          <span class="pill" data-val="00–06">00–06</span><span class="pill" data-val="06–12">06–12</span>
+          <span class="pill" data-val="12–18">12–18</span><span class="pill" data-val="18–00">18–00</span>
         </div>
-      </section>
+      </div>
+      <div class="c-field">
+        <div class="f-label">График</div>
+        <div class="pill-group" id="pills-schedule">
+          <span class="pill" data-val="5/2">5/2</span><span class="pill" data-val="6/1">6/1</span>
+        </div>
+      </div>
+      <div class="c-field"><div class="f-label">Топ страниц (прошлое место)</div><input class="f-input" id="f-top" placeholder="—"></div>
+      <div class="c-field"><div class="f-label">Средний чек</div><input class="f-input" id="f-avgcheck" placeholder="—"></div>
+      <div class="c-field"><div class="f-label">Основная занятость / учёба</div><input class="f-input" id="f-job" placeholder="—"></div>
+      <div class="c-field">
+        <div class="f-label">Статус после звонка</div>
+        <div class="pill-group" id="pills-status">
+          <span class="pill" data-val="Изучает гайд">Изучает гайд</span>
+          <span class="pill" data-val="Тест-смена">Тест-смена</span>
+          <span class="pill" data-val="Принят">Принят</span>
+          <span class="pill" data-val="Отказ">Отказ</span>
+        </div>
+      </div>
+      <div class="c-field"><div class="f-label">Заметки</div><textarea class="f-textarea" id="f-notes" placeholder="Впечатление после звонка, что сказал кандидат, почему отказал..."></textarea></div>
     </div>
-  </main>
+    <button class="save-btn" id="save-btn" onclick="saveCandidate()">💾 Сохранить кандидата</button>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section" id="s1">
+    <div class="section-header"><div class="section-num">1</div><div class="section-title">Открытие</div></div>
+    <div class="speech"><div class="speaker">🗣 Влад</div>Привет, [Имя]! Спасибо, что нашёл время. Меня зовут Влад, я HR в AllStars. Сегодня познакомимся — задам несколько вопросов об опыте, разберём пару рабочих ситуаций, и после расскажу о нас и отвечу на вопросы. Обычно 20–30 минут. Тебе удобно сейчас?</div>
+    <div class="note"><span>📌</span> Если кандидат напряжён — скажи: «Это неформальный разговор, правильных ответов нет».</div>
+  </div>
+  <div class="divider"></div>
+
+  <div class="section" id="s2">
+    <div class="section-header"><div class="section-num">2</div><div class="section-title">Опыт и результаты</div></div>
+    <div class="question"><div class="q-header"><div class="q-num">1</div><div class="q-text">Расскажи кратко — где работал, с каким типажом моделей и на каких платформах?</div></div></div>
+    <div class="listen"><span>👂</span> Слушаем не только факты, но и как человек о себе говорит.</div>
+    <div class="question"><div class="q-header"><div class="q-num">2</div><div class="q-text">Какие были цифры — средний чек, конверсия в PPV, сколько фанов одновременно вёл?</div></div></div>
+    <div class="listen"><span>👂</span> Понимает ли кандидат свои метрики или работал «на автомате»?</div>
+    <div class="question"><div class="q-header"><div class="q-num">3</div><div class="q-text">Какие фишки реально давали результат? Что бы внедрил у нас с первого месяца?</div></div></div>
+    <div class="listen"><span>👂</span> Конкретные механики — хороший знак.</div>
+    <div class="question"><div class="q-header"><div class="q-num">4</div><div class="q-text">Какая была самая крупная ошибка в чаттинге — и что ты из неё вынес?</div></div></div>
+    <div class="listen"><span>👂</span> Рефлексия и зрелость. Ответ «всё было хорошо» — красный флаг.</div>
+    <div class="question"><div class="q-header"><div class="q-num">5</div><div class="q-text">Как понимаешь, что фан готов к апсейлу прямо сейчас?</div></div></div>
+    <div class="listen"><span>👂</span> Чтение сигналов, тайминг.</div>
+    <div class="question"><div class="q-header"><div class="q-num">6</div><div class="q-text">Был ли фан, с которым старался, но не вышло? Что пошло не так?</div></div></div>
+    <div class="listen"><span>👂</span> Честность и самоанализ.</div>
+  </div>
+  <div class="divider"></div>
+
+  <div class="section" id="s3">
+    <div class="section-header"><div class="section-num">3</div><div class="section-title">Личность и мотивация</div></div>
+    <div class="question"><div class="q-header"><div class="q-num">1</div><div class="q-text">Чем занимаешься помимо работы — учёба, хобби, другая занятость?</div></div></div>
+    <div class="listen"><span>👂</span> Реальная загруженность и совместимость со сменами.</div>
+    <div class="question"><div class="q-header"><div class="q-num">2</div><div class="q-text">Какой уровень дохода рассматриваешь на старте и через 3 месяца?</div></div></div>
+    <div class="listen"><span>👂</span> «Хочу 200k через месяц» без опыта — красный флаг.</div>
+    <div class="question"><div class="q-header"><div class="q-num">3</div><div class="q-text">Какие смены рассматриваешь — утро, день, вечер?</div></div></div>
+    <div class="listen"><span>👂</span> Фиксируй в карточку.</div>
+    <div class="question"><div class="q-header"><div class="q-num">4</div><div class="q-text">Что для тебя идеальная работа в агентстве через год?</div></div></div>
+    <div class="listen"><span>👂</span> Тимлидство или высокий доход — оба варианта нормальны.</div>
+    <div class="question"><div class="q-header"><div class="q-num">5</div><div class="q-text">Как реагируешь на критику? Был ли случай, когда фидбэк задел, но ты согласился?</div></div></div>
+    <div class="listen"><span>👂</span> Защитная реакция — плохой знак.</div>
+    <div class="question"><div class="q-header"><div class="q-num">6</div><div class="q-text">Что тебя может выбить из рабочего ритма — и как справляешься?</div></div></div>
+    <div class="listen"><span>👂</span> Стрессоустойчивость и осознанность.</div>
+  </div>
+  <div class="divider"></div>
+
+  <div class="section" id="s4">
+    <div class="section-header"><div class="section-num">4</div><div class="section-title">Практические кейсы</div></div>
+    <div class="speech"><div class="speaker">🗣 Влад</div>Теперь самое интересное — дам несколько реальных ситуаций. Не ищи «правильный» ответ, мне важно увидеть ход твоих мыслей и как ты пишешь. Представь, что отправляешь это фану прямо сейчас. Готов?</div>
+    <div class="note"><span>📌</span> Дай время на каждый кейс. Не торопи.</div>
+    <div class="case"><div class="case-label">Кейс 1</div><div class="case-text">Новый лид с TikTok. Лайкнул фото, но молчит. Модель — брюнетка, вайб «girlfriend experience». Напиши первое сообщение — не спам.</div><div class="case-hint">✎ Тёплый вход, уход от шаблонов, удержание вайба модели.</div></div>
+    <div class="case"><div class="case-label">Кейс 2</div><div class="case-text">Фан флиртует 10 минут. Ты скидываешь PPV за $15. Он: «Дорого, у других дешевле» или «Скинь бесплатно, я хороший мальчик». Твои действия?</div><div class="case-hint">✎ Работа с возражениями, удержание ценности, без паники.</div></div>
+    <div class="case"><div class="case-label">Кейс 3</div><div class="case-text">Топ-спендер платил $500/мес, перестал открывать сообщения. Прошло 2 недели. Напиши сообщение — вернуть без надрыва и нужды.</div><div class="case-hint">✎ Win-back без давления, персонализация.</div></div>
+    <div class="case"><div class="case-label">Кейс 4</div><div class="case-text">Фан несколько раз покупал PPV, но сегодня груб: «Надоело, одно и то же». Как реагируешь?</div><div class="case-hint">✎ Управление эмоциями, быстрый ретейн, смена подачи.</div></div>
+  </div>
+  <div class="divider"></div>
+
+  <div class="section" id="s5">
+    <div class="section-header"><div class="section-num">5</div><div class="section-title">О нас — AllStars</div></div>
+    <div class="speech"><div class="speaker">🗣 Кто мы</div>Наше агентство называется AllStars. Мы — агентство полного цикла: сами делаем трафик и продажи. Приводим около 20 000 фанов в месяц. Работаем на двух платформах: Fansly — 12 моделей, OnlyFans — 7. Есть учебные страницы и топовые. Работаем по цифрам, команда живая.</div>
+    <div class="speech"><div class="speaker">🗣 Деньги и рост</div>Начинаешь на учебной странице — оборот 2–2,5k$/мес, ставка 25%. Расти можно быстро. Максимум — топ 0.5, оборот ~60 000$/мес. Реальная цифра.</div>
+    <div class="speech"><div class="speaker">🗣 AI-технологии</div>Генерация голосовых из CRM с именем фана. Генерация изображений и видео под запрос. AI-переводчик из короткой фразы делает вовлекающий текст. Кастомы за 1–2 дня. У тебя такое было на прошлом месте?</div>
+    <div class="note"><span>📌</span> Дай кандидату ответить.</div>
+    <div class="speech"><div class="speaker">🗣 Инструменты и условия</div>Переписка через OnlyMonster. Собственная CRM: смены, отчёты, балансы — всё в одном. Базовая ставка 20%, учебная страница 25%. KPI — плюс 2%. Смены 6 ч, 5/2 или 6/1. Выплаты каждый понедельник на крипту.</div>
+    <div class="speech"><div class="speaker">🗣 Обучение</div>Классических лекций нет — сразу в практику с поддержкой. Гайд в Notion → тест → тест-смена 2–2,5 ч со старшим оператором. Со второй смены работаешь сам. Мы не бросаем людей.</div>
+  </div>
+  <div class="divider"></div>
+
+  <div class="section" id="s6">
+    <div class="section-header"><div class="section-num">6</div><div class="section-title">Финал</div></div>
+    <div class="speech"><div class="speaker">🗣 Влад</div>Это всё о нас. Есть вопросы — по условиям, работе, команде?</div>
+    <div class="note"><span>📌</span> Хорошие вопросы — признак вовлечённости.</div>
+    <div class="speech"><div class="speaker">🗣 Влад</div>Если подходим друг другу — пришлю тестовое: стиль и грамотность, 24 часа. После — тест-смена и в график. Когда сможешь выполнить тестовое?</div>
+    <div class="note"><span>📌</span> После подтверждения запросить почту или Telegram для доступа к Notion.</div>
+  </div>
+  <div class="divider"></div>
+
+  <div class="section" id="s7">
+    <div class="section-header"><div class="section-num">★</div><div class="section-title">Чеклист оценки</div></div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:1rem;">Заполни после звонка. Нажми звёзды — загораются жёлтым.</p>
+    <div id="checklist"></div>
+    <div class="total-bar">
+      <span class="total-label">Итого</span>
+      <span class="total-score" id="total-score">0 <span>/ 50</span></span>
+    </div>
+    <div class="verdict" id="verdict"></div>
+    <button class="reset-btn" onclick="resetAll()">↺ Сбросить оценку</button>
+  </div>
+</main>
 </div>
 
 <script>
-const API = window.location.origin;
-const tokenKey = 'allstars_token';
-const meKey = 'allstars_me';
+const API='https://allstars-hr-backend-production.up.railway.app';
 
-function getToken(){ return localStorage.getItem(tokenKey); }
-function setToken(token){ localStorage.setItem(tokenKey, token); }
-function clearSession(){ localStorage.removeItem(tokenKey); localStorage.removeItem(meKey); window.location.href = '/login.html'; }
-function setMe(me){ localStorage.setItem(meKey, JSON.stringify(me)); }
-function getMe(){ try { return JSON.parse(localStorage.getItem(meKey) || 'null'); } catch { return null; } }
-
-async function api(path, options = {}) {
-  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
-  const token = getToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API}${path}`, { ...options, headers });
-  if (res.status === 401) { clearSession(); throw new Error('Unauthorized'); }
-  const text = await res.text();
-  const data = text ? JSON.parse(text) : {};
-  if (!res.ok) throw new Error(data.error || 'Request failed');
-  return data;
-}
-
-function initials(name='?'){
-  return name.trim().split(/\s+/).map(x=>x[0]).join('').toUpperCase().slice(0,2) || '?';
-}
-function verdictClass(total){
-  if (total >= 40) return 'green';
-  if (total >= 28) return 'yellow';
-  if (total > 0) return 'red';
-  return 'default';
-}
-function verdictLabel(total){
-  if (total >= 40) return 'Берём';
-  if (total >= 28) return 'Думаем';
-  if (total > 0) return 'Отказ';
-  return 'Без оценки';
-}
-function statusClass(status=''){
-  const x = status.toLowerCase();
-  if (x.includes('принят')) return 'green';
-  if (x.includes('тест')) return 'purple';
-  if (x.includes('гайд')) return 'yellow';
-  if (x.includes('отказ')) return 'red';
-  return 'default';
-}
-function fmtDate(s){
-  if (!s) return '—';
-  return new Date(s).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
-}
-async function loadMe(){
-  const me = await api('/auth/me');
-  setMe(me);
-  const nameEl = document.querySelector('[data-me-name]');
-  const roleEl = document.querySelector('[data-me-role]');
-  const agencyEl = document.querySelector('[data-me-agency]');
-  if (nameEl) nameEl.textContent = me.full_name;
-  if (roleEl) roleEl.textContent = me.role;
-  if (agencyEl) agencyEl.textContent = me.agency_name || '';
-  return me;
-}
-</script>
-<script>
-const criteria = [
-  {section:'Опыт и результаты', items:['Опыт в adult / смежных продажах','Понимает свои цифры','Читает сигналы готовности фана к апсейлу']},
-  {section:'Коммуникация', items:['Пишет тепло, без шаблонов','Работает с возражениями без паники']},
-  {section:'Личность и мотивация', items:['Открыт к фидбэку','Реалистичные финансовые ожидания','График совместим','Долгосрочная мотивация','Общее впечатление']}
-];
-const ratings = {};
-let idCounter = 0;
-
-function initPills(id, multi=false) {
-  document.getElementById(id)?.querySelectorAll('.pill').forEach(p => {
-    p.addEventListener('click', () => {
-      if (!multi) document.getElementById(id).querySelectorAll('.pill').forEach(x => x.classList.remove('selected'));
+function initPills(id,multi=false){
+  document.getElementById(id)?.querySelectorAll('.pill').forEach(p=>{
+    p.addEventListener('click',()=>{
+      if(!multi){document.getElementById(id).querySelectorAll('.pill').forEach(x=>x.classList.remove('selected'));}
       p.classList.toggle('selected');
     });
   });
 }
-function getPill(id, multi=false) {
-  const sel = [...document.getElementById(id)?.querySelectorAll('.pill.selected') || []].map(p => p.dataset.val);
-  return multi ? sel.join(', ') : (sel[0] || '');
+function getPill(id,multi=false){
+  const sel=[...document.getElementById(id)?.querySelectorAll('.pill.selected')||[]].map(p=>p.dataset.val);
+  return multi?sel.join(', '):(sel[0]||'');
 }
-function renderStars(id){
-  document.querySelectorAll(`.star[data-id="${id}"]`).forEach(s => s.classList.toggle('selected', Number(s.dataset.val) <= ratings[id]));
-}
-function updateTotal(){
-  const total = Object.values(ratings).reduce((a,b)=>a+b,0);
-  document.getElementById('total-score').textContent = total;
-  return total;
-}
-function buildChecklist(){
-  const root = document.getElementById('checklist');
-  criteria.forEach(block => {
-    const sec = document.createElement('div');
-    sec.innerHTML = `<div class="small muted" style="margin:.5rem 0">${block.section}</div>`;
-    block.items.forEach(label => {
-      const id = `c${idCounter++}`; ratings[id] = 0;
-      const row = document.createElement('div');
-      row.style.cssText = 'display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)';
-      row.innerHTML = `<div>${label}</div><div class="pill-group">${[1,2,3,4,5].map(n => `<span class="pill star" data-id="${id}" data-val="${n}">${n}</span>`).join('')}</div>`;
-      sec.appendChild(row);
-    });
-    root.appendChild(sec);
-  });
-  root.addEventListener('click', e => {
-    const t = e.target.closest('.star');
-    if (!t) return;
-    const id = t.dataset.id;
-    const val = Number(t.dataset.val);
-    ratings[id] = ratings[id] === val ? 0 : val;
-    renderStars(id);
-    updateTotal();
-  });
-}
+function clearPills(id){document.getElementById(id)?.querySelectorAll('.pill').forEach(p=>p.classList.remove('selected'));}
+
+initPills('pills-english');initPills('pills-platforms');initPills('pills-shifts',true);initPills('pills-schedule');initPills('pills-status');
 
 function getFields(){
-  return {
-    name: document.getElementById('f-name').value.trim(),
-    tg: document.getElementById('f-tg').value.trim().replace(/^@*/,'@').replace(/^@$/,''),
-    age: document.getElementById('f-age').value.trim(),
-    english: getPill('pills-english'),
-    exp: document.getElementById('f-exp').value.trim(),
-    platforms: getPill('pills-platforms'),
-    shift: getPill('pills-shifts', true),
-    schedule: getPill('pills-schedule'),
-    top: document.getElementById('f-top').value.trim(),
-    avgcheck: document.getElementById('f-avgcheck').value.trim(),
-    job: document.getElementById('f-job').value.trim(),
-    status: getPill('pills-status'),
-    notes: document.getElementById('f-notes').value.trim()
+  return{
+    name:document.getElementById('f-name').value.trim(),
+    tg:document.getElementById('f-tg').value.trim().replace(/^@*/,'@').replace(/^@$/,''),
+    age:document.getElementById('f-age').value.trim(),
+    english:getPill('pills-english'),
+    exp:document.getElementById('f-exp').value.trim(),
+    platforms:getPill('pills-platforms'),
+    shift:getPill('pills-shifts',true),
+    schedule:getPill('pills-schedule'),
+    top:document.getElementById('f-top').value.trim(),
+    avgcheck:document.getElementById('f-avgcheck').value.trim(),
+    job:document.getElementById('f-job').value.trim(),
+    status:getPill('pills-status'),
+    notes:document.getElementById('f-notes').value.trim(),
   };
 }
+function clearFields(){
+  ['f-name','f-tg','f-age','f-exp','f-top','f-avgcheck','f-job','f-notes'].forEach(id=>{document.getElementById(id).value='';});
+  ['pills-english','pills-platforms','pills-shifts','pills-schedule','pills-status'].forEach(clearPills);
+}
 
-(async function(){
-  if (!getToken()) return clearSession();
-  await loadMe();
-  ['pills-english','pills-platforms','pills-shifts','pills-schedule','pills-status'].forEach((id, idx) => initPills(id, id==='pills-shifts'));
-  buildChecklist();
-  document.getElementById('save-btn').onclick = async () => {
-    const fields = getFields();
-    if (!fields.name) return alert('Введи имя');
-    const total = updateTotal();
-    const btn = document.getElementById('save-btn');
-    btn.disabled = true; btn.textContent = 'Сохраняем...';
-    try {
-      const created = await api('/candidates', {
-        method: 'POST',
-        body: JSON.stringify({ fields, ratings, total })
-      });
-      const detail = await api(`/candidates/${created.id}/history`);
-      alert(`Кандидат сохранён. AI: ${detail.ai.recommendation} (${detail.ai.confidence}%)`);
-      location.href = '/candidates.html';
-    } catch (err) {
-      alert(err.message);
-      btn.disabled = false; btn.textContent = 'Сохранить кандидата';
-    }
-  };
-})().catch(err => alert(err.message));
+async function saveCandidate(){
+  const fields=getFields();
+  if(!fields.name){alert('Введи хотя бы имя кандидата');return;}
+  const total=Object.values(ratings).reduce((a,b)=>a+b,0);
+  const btn=document.getElementById('save-btn');
+  btn.textContent='⏳ Сохраняем...';btn.disabled=true;
+  try{
+    const res=await fetch(API+'/candidates',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields,ratings:{...ratings},total})});
+    if(!res.ok)throw new Error();
+    btn.textContent='✓ Сохранено';btn.classList.add('saved');
+    setTimeout(()=>{btn.textContent='💾 Сохранить кандидата';btn.classList.remove('saved');btn.disabled=false;},2000);
+    clearFields();
+    Object.keys(ratings).forEach(id=>{ratings[id]=0;renderStars(id);});
+    updateTotal();
+  }catch{
+    btn.textContent='❌ Ошибка';btn.disabled=false;
+    setTimeout(()=>{btn.textContent='💾 Сохранить кандидата';},3000);
+  }
+}
+
+const criteria=[
+  {section:"Опыт и результаты",items:["Опыт в adult / смежных продажах","Понимает свои цифры (чек, конверсия)","Читает сигналы готовности фана к апсейлу"]},
+  {section:"Коммуникация",items:["Пишет тепло, без шаблонов","Работает с возражениями без паники"]},
+  {section:"Личность и мотивация",items:["Открыт к фидбэку","Реалистичные финансовые ожидания","График совместим с нашими сменами","Долгосрочная мотивация","Общее впечатление — зрелость"]},
+];
+const ratings={};let idCounter=0;
+function buildChecklist(){
+  const el=document.getElementById('checklist');
+  criteria.forEach(s=>{
+    const sec=document.createElement('div');sec.className='cl-section';
+    const t=document.createElement('div');t.className='cl-section-title';t.textContent=s.section;sec.appendChild(t);
+    s.items.forEach(item=>{
+      const id='c'+(idCounter++);ratings[id]=0;
+      const row=document.createElement('div');row.className='cl-row';
+      const lbl=document.createElement('span');lbl.className='cl-label';lbl.textContent=item;
+      const stars=document.createElement('div');stars.className='stars';
+      for(let i=1;i<=5;i++){
+        const s=document.createElement('span');s.className='star';s.textContent='★';s.dataset.id=id;s.dataset.val=i;
+        s.addEventListener('click',()=>{ratings[id]=ratings[id]===i?0:i;renderStars(id);updateTotal();});
+        s.addEventListener('mouseover',()=>document.querySelectorAll(`.star[data-id="${id}"]`).forEach(x=>x.classList.toggle('on',+x.dataset.val<=i)));
+        s.addEventListener('mouseout',()=>renderStars(id));
+        stars.appendChild(s);
+      }
+      row.appendChild(lbl);row.appendChild(stars);sec.appendChild(row);
+    });
+    el.appendChild(sec);
+  });
+}
+function renderStars(id){document.querySelectorAll(`.star[data-id="${id}"]`).forEach(s=>s.classList.toggle('on',+s.dataset.val<=ratings[id]));}
+function updateTotal(){
+  const t=Object.values(ratings).reduce((a,b)=>a+b,0);
+  document.getElementById('total-score').innerHTML=t+' <span>/ 50</span>';
+  const v=document.getElementById('verdict');
+  if(!t){v.className='verdict';return;}
+  if(t>=40){v.className='verdict show green';v.textContent='✓ Берём — отправляем тестовое в течение часа';}
+  else if(t>=28){v.className='verdict show yellow';v.textContent='⚠ Думаем — доп. созвон или тестовое с повышенной планкой';}
+  else{v.className='verdict show red';v.textContent='✗ Отказ — вежливо отказываем, фиксируем причину';}
+}
+function resetAll(){Object.keys(ratings).forEach(id=>{ratings[id]=0;renderStars(id);});updateTotal();}
+
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){
+    document.querySelectorAll('.nav-item[href^="#"]').forEach(n=>n.classList.remove('active'));
+    const a=document.querySelector(`.nav-item[href="#${e.target.id}"]`);if(a)a.classList.add('active');
+  }});
+},{threshold:0.25});
+document.querySelectorAll('.section').forEach(s=>obs.observe(s));
+buildChecklist();
 </script>
 </body>
 </html>
