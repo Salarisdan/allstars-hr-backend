@@ -1,248 +1,819 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AllStars — Команда</title>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-:root{
-  --bg:#0d0f14;--surface:#141720;--surface2:#1c2030;--surface3:#232840;
-  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
-  --accent:#4f6ef7;--accent2:#6c87ff;--accent-bg:rgba(79,110,247,0.12);--accent-border:rgba(79,110,247,0.3);
-  --text:#e8eaf0;--text2:#8b90a8;--text3:#4a5068;
-  --green:#34d39a;--green-bg:rgba(52,211,154,0.1);--green-border:rgba(52,211,154,0.25);
-  --yellow:#fbbf24;--yellow-bg:rgba(251,191,36,0.1);--yellow-border:rgba(251,191,36,0.25);
-  --red:#f87171;--red-bg:rgba(248,113,113,0.1);--red-border:rgba(248,113,113,0.25);
-  --purple:#a78bfa;--purple-bg:rgba(167,139,250,0.1);--purple-border:rgba(167,139,250,0.25);
-  --orange:#fb923c;
-  --r:10px;--r2:14px;--fs:14px;--fs-sm:12px;--fs-xs:11px;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);font-size:var(--fs);line-height:1.6}
-a{text-decoration:none;color:inherit}
-.layout{display:flex;min-height:100vh}
-.sidebar{width:240px;flex-shrink:0;position:fixed;top:0;left:0;bottom:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:1.25rem 0 2rem}
-.sidebar-logo{padding:0 1rem 1rem;border-bottom:1px solid var(--border);margin-bottom:.75rem}
-.sidebar-logo .brand{font-size:16px;font-weight:700}
-.sidebar-logo .sub{font-size:var(--fs-xs);color:var(--text3);margin-top:2px}
-.sidebar-section{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);padding:.4rem 1rem .2rem}
-.nav-item{display:flex;align-items:center;gap:8px;padding:8px 1rem;font-size:var(--fs-sm);color:var(--text2);border-left:2px solid transparent;transition:.15s}
-.nav-item:hover{background:rgba(255,255,255,.03);color:var(--text)}
-.nav-item.active{color:var(--accent2);background:var(--accent-bg);border-left-color:var(--accent)}
-.nav-num{min-width:18px;color:var(--text3);font-size:var(--fs-xs)}
-.sidebar-footer{padding:1rem;border-top:1px solid var(--border);margin-top:1rem}
-.main{margin-left:240px;flex:1;padding:2rem 1.5rem 4rem;max-width:1180px}
-.page-header{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;margin-bottom:1.5rem}
-.page-header .tag{display:inline-block;font-size:var(--fs-xs);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent2);background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:20px;padding:4px 10px;margin-bottom:.75rem}
-.page-header h1{font-size:28px;letter-spacing:-.4px}
-.page-header p{font-size:var(--fs-sm);color:var(--text2);margin-top:4px}
-.panel{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);padding:1rem}
-.grid{display:grid;gap:12px}
-.grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
-.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
-.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
-.stat-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:1rem}
-.stat-card .s-val{font-size:24px;font-weight:700}
-.stat-card .s-label{font-size:var(--fs-xs);color:var(--text3);margin-top:2px}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:1rem}
-.search-wrap{flex:1;min-width:220px;position:relative}
-.search-wrap input,.fsel,.input,.textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:.7rem .9rem;font-family:'Manrope',sans-serif;color:var(--text);outline:none}
-.search-wrap input{padding-left:34px}
-.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--text3)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:.7rem 1rem;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--r);font-family:'Manrope',sans-serif;font-size:var(--fs);font-weight:600;color:var(--accent2);cursor:pointer}
-.btn.ghost{background:none;border-color:var(--border);color:var(--text2)}
-.btn.green{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
-.btn.red{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
-.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
-.cand-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);padding:1rem;display:flex;flex-direction:column;gap:12px}
-.card-top{display:flex;gap:10px}
-.avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent2);font-weight:700}
-.card-name{font-weight:700}
-.card-sub{font-size:var(--fs-sm);color:var(--text2)}
-.badge{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs);font-weight:700;padding:4px 9px;border-radius:999px;border:1px solid var(--border)}
-.badge.green{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
-.badge.yellow{background:var(--yellow-bg);border-color:var(--yellow-border);color:var(--yellow)}
-.badge.red{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
-.badge.purple{background:var(--purple-bg);border-color:var(--purple-border);color:var(--purple)}
-.badge.default{background:var(--surface3);color:var(--text2)}
-.card-fields{display:flex;flex-direction:column;gap:6px}
-.frow{display:flex;gap:8px}
-.flabel{min-width:90px;font-size:var(--fs-xs);font-weight:700;color:var(--text3);text-transform:uppercase}
-.fval{font-size:var(--fs-sm)}
-.pill-group{display:flex;flex-wrap:wrap;gap:6px}
-.pill{padding:5px 11px;border-radius:999px;border:1px solid var(--border2);background:var(--surface3);font-size:var(--fs-sm);color:var(--text2);cursor:pointer;user-select:none}
-.pill.selected{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent2);font-weight:600}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;padding:1rem;z-index:100}
-.modal{width:100%;max-width:760px;max-height:92vh;overflow:auto;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r2);padding:1.25rem}
-.modal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.full{grid-column:1/-1}
-.table{width:100%;border-collapse:collapse}
-.table th,.table td{padding:.75rem;border-bottom:1px solid var(--border);text-align:left;font-size:var(--fs-sm)}
-.table th{color:var(--text3);font-size:var(--fs-xs);text-transform:uppercase}
-.list{display:flex;flex-direction:column;gap:8px}
-.list-item{padding:.85rem 1rem;border:1px solid var(--border);background:var(--surface2);border-radius:var(--r)}
-.hr{height:1px;background:var(--border);margin:1rem 0}
-.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem}
-.auth-card{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--border2);border-radius:18px;padding:1.3rem}
-.muted{color:var(--text2)}
-.small{font-size:var(--fs-sm)}
-.hidden{display:none!important}
-@media(max-width:980px){.grid-4,.grid-3,.grid-2,.modal-grid{grid-template-columns:1fr}.sidebar{display:none}.main{margin-left:0;padding:1.25rem 1rem 4rem}}
-</style>
+    :root{
+      --bg:#0d0f14;
+      --surface:#141720;
+      --surface2:#1c2030;
+      --surface3:#232840;
+      --border:rgba(255,255,255,0.07);
+      --border2:rgba(255,255,255,0.13);
+      --accent:#4f6ef7;
+      --accent2:#6c87ff;
+      --accent-bg:rgba(79,110,247,0.12);
+      --accent-border:rgba(79,110,247,0.3);
+      --text:#e8eaf0;
+      --text2:#8b90a8;
+      --text3:#4a5068;
+      --green:#34d399;
+      --green-bg:rgba(52,211,153,0.10);
+      --green-border:rgba(52,211,153,0.25);
+      --red:#f87171;
+      --red-bg:rgba(248,113,113,0.10);
+      --red-border:rgba(248,113,113,0.25);
+      --yellow:#fbbf24;
+      --yellow-bg:rgba(251,191,36,0.10);
+      --yellow-border:rgba(251,191,36,0.25);
+      --purple:#a78bfa;
+      --purple-bg:rgba(167,139,250,0.10);
+      --purple-border:rgba(167,139,250,0.25);
+      --r:12px;
+      --r2:16px;
+      --fs:14px;
+      --fs-sm:12px;
+      --fs-xs:11px;
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:'Manrope',sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      font-size:var(--fs);
+      min-height:100vh;
+    }
+
+    .layout{display:flex;min-height:100vh}
+
+    .sidebar{
+      width:230px;
+      flex-shrink:0;
+      position:fixed;
+      top:0;left:0;bottom:0;
+      background:var(--surface);
+      border-right:1px solid var(--border);
+      padding:1.25rem 0 2rem;
+      overflow-y:auto;
+    }
+
+    .sidebar-logo{
+      padding:0 1rem 1.25rem;
+      border-bottom:1px solid var(--border);
+      margin-bottom:.75rem;
+    }
+
+    .brand{font-size:16px;font-weight:800;color:var(--text)}
+    .sub{font-size:var(--fs-xs);color:var(--text3);margin-top:2px}
+
+    .sidebar-section{
+      font-size:10px;
+      font-weight:700;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--text3);
+      padding:.4rem 1rem .2rem;
+    }
+
+    .nav-item{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 1rem;
+      font-size:var(--fs-sm);
+      color:var(--text2);
+      text-decoration:none;
+      border-left:2px solid transparent;
+      transition:.15s;
+    }
+
+    .nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
+    .nav-item.active{
+      color:var(--accent2);
+      border-left-color:var(--accent);
+      background:var(--accent-bg);
+    }
+
+    .main{
+      margin-left:230px;
+      width:100%;
+      padding:2rem 2rem 4rem;
+      max-width:1200px;
+    }
+
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      margin-bottom:1.5rem;
+      flex-wrap:wrap;
+    }
+
+    .page-title h1{
+      font-size:28px;
+      line-height:1.2;
+      letter-spacing:-.03em;
+      font-weight:800;
+    }
+
+    .page-title p{
+      color:var(--text2);
+      margin-top:6px;
+      font-size:var(--fs-sm);
+    }
+
+    .actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .btn{
+      border:none;
+      outline:none;
+      cursor:pointer;
+      border-radius:12px;
+      padding:.72rem 1rem;
+      font-family:'Manrope',sans-serif;
+      font-weight:700;
+      font-size:13px;
+      transition:.15s;
+    }
+
+    .btn-primary{
+      background:var(--accent-bg);
+      border:1px solid var(--accent-border);
+      color:var(--accent2);
+    }
+    .btn-primary:hover{background:rgba(79,110,247,.18)}
+
+    .btn-ghost{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      color:var(--text2);
+    }
+    .btn-ghost:hover{border-color:var(--border2);color:var(--text)}
+
+    .btn-green{
+      background:var(--green-bg);
+      border:1px solid var(--green-border);
+      color:var(--green);
+    }
+    .btn-green:hover{background:rgba(52,211,153,.16)}
+
+    .btn-red{
+      background:var(--red-bg);
+      border:1px solid var(--red-border);
+      color:var(--red);
+    }
+    .btn-red:hover{background:rgba(248,113,113,.16)}
+
+    .grid{
+      display:grid;
+      grid-template-columns:360px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+
+    .card{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:var(--r2);
+      padding:1rem;
+    }
+
+    .card h2{
+      font-size:17px;
+      font-weight:800;
+      margin-bottom:.9rem;
+      letter-spacing:-.02em;
+    }
+
+    .muted{
+      color:var(--text2);
+      font-size:var(--fs-sm);
+    }
+
+    .form{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      margin-top:.8rem;
+    }
+
+    .field{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:.7rem .85rem;
+    }
+
+    .field label{
+      display:block;
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:var(--text3);
+      margin-bottom:5px;
+      font-weight:700;
+    }
+
+    .field input,.field select{
+      width:100%;
+      background:none;
+      border:none;
+      outline:none;
+      color:var(--text);
+      font-size:14px;
+      font-family:'Manrope',sans-serif;
+    }
+
+    .field input::placeholder{color:var(--text3)}
+
+    .toolbar{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-bottom:1rem;
+    }
+
+    .search{
+      flex:1;
+      min-width:220px;
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:.72rem .9rem;
+      color:var(--text);
+      outline:none;
+      font-family:'Manrope',sans-serif;
+    }
+
+    .search::placeholder{color:var(--text3)}
+
+    .team-list{
+      display:grid;
+      gap:10px;
+    }
+
+    .user-card{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:1rem;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .user-top{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+    }
+
+    .user-main{
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      min-width:0;
+    }
+
+    .avatar{
+      width:44px;height:44px;
+      border-radius:50%;
+      background:var(--accent-bg);
+      border:1px solid var(--accent-border);
+      color:var(--accent2);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:800;
+      flex-shrink:0;
+    }
+
+    .user-text{min-width:0}
+    .user-name{
+      font-size:15px;
+      font-weight:800;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .user-email{
+      color:var(--text2);
+      font-size:13px;
+      margin-top:2px;
+      word-break:break-word;
+    }
+
+    .meta{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      margin-top:7px;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      border-radius:999px;
+      padding:4px 9px;
+      font-size:11px;
+      font-weight:700;
+      white-space:nowrap;
+    }
+
+    .badge.owner{
+      background:var(--accent-bg);
+      border:1px solid var(--accent-border);
+      color:var(--accent2);
+    }
+
+    .badge.teamlead{
+      background:var(--purple-bg);
+      border:1px solid var(--purple-border);
+      color:var(--purple);
+    }
+
+    .badge.hr{
+      background:var(--yellow-bg);
+      border:1px solid var(--yellow-border);
+      color:var(--yellow);
+    }
+
+    .badge.active{
+      background:var(--green-bg);
+      border:1px solid var(--green-border);
+      color:var(--green);
+    }
+
+    .badge.inactive{
+      background:var(--red-bg);
+      border:1px solid var(--red-border);
+      color:var(--red);
+    }
+
+    .user-actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .mini-btn{
+      border:none;
+      cursor:pointer;
+      border-radius:10px;
+      padding:.58rem .85rem;
+      font-size:12px;
+      font-weight:700;
+      font-family:'Manrope',sans-serif;
+      transition:.15s;
+    }
+
+    .mini-btn.role{
+      background:var(--surface3);
+      border:1px solid var(--border2);
+      color:var(--text2);
+    }
+    .mini-btn.role:hover{color:var(--text);border-color:var(--accent-border)}
+
+    .mini-btn.toggle-on{
+      background:var(--red-bg);
+      border:1px solid var(--red-border);
+      color:var(--red);
+    }
+
+    .mini-btn.toggle-off{
+      background:var(--green-bg);
+      border:1px solid var(--green-border);
+      color:var(--green);
+    }
+
+    .mini-btn.pass{
+      background:var(--accent-bg);
+      border:1px solid var(--accent-border);
+      color:var(--accent2);
+    }
+
+    .hint{
+      margin-top:.5rem;
+      color:var(--text3);
+      font-size:12px;
+      line-height:1.55;
+    }
+
+    .empty{
+      padding:2rem 1rem;
+      text-align:center;
+      color:var(--text3);
+      border:1px dashed var(--border2);
+      border-radius:14px;
+      background:var(--surface2);
+    }
+
+    .toast{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      background:var(--surface);
+      border:1px solid var(--border2);
+      color:var(--text);
+      padding:.85rem 1rem;
+      border-radius:12px;
+      box-shadow:0 10px 30px rgba(0,0,0,.22);
+      display:none;
+      z-index:1000;
+      max-width:360px;
+    }
+
+    .toast.show{display:block}
+
+    @media (max-width: 920px){
+      .sidebar{display:none}
+      .main{margin-left:0;padding:1rem}
+      .grid{grid-template-columns:1fr}
+    }
+  </style>
 </head>
 <body>
-<div class="layout">
-  <nav class="sidebar">
-    <div class="sidebar-logo">
-      <div class="brand">AllStars</div>
-      <div class="sub" data-me-agency>Agency</div>
-    </div>
-    <div class="sidebar-section">Workspace</div>
-    <a class="nav-item" href="/dashboard.html"><span class="nav-num">🏠</span><span>Dashboard</span></a>
-    <a class="nav-item" href="/index.html"><span class="nav-num">＋</span><span>Новый кандидат</span></a>
-    <a class="nav-item" href="/candidates.html"><span class="nav-num">👥</span><span>Кандидаты</span></a>
-    <a class="nav-item active" href="/team.html"><span class="nav-num">🧑‍🤝‍🧑</span><span>Команда</span></a>
-    <div class="sidebar-footer">
-      <div class="small muted">Вошёл как</div>
-      <div style="font-weight:700" data-me-name></div>
-      <div class="small muted" data-me-role></div>
-      <button class="btn ghost" style="margin-top:.75rem;width:100%" onclick="clearSession()">Выйти</button>
-    </div>
-  </nav>
-
-  <main class="main">
-    <div class="page-header">
-      <div>
-        <div class="tag">RBAC</div>
-        <h1>Команда</h1>
-        <p>Owner видит и управляет командой. Teamlead может просматривать, HR — только свой участок.</p>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="brand">AllStars</div>
+        <div class="sub">Команда агентства</div>
       </div>
-    </div>
 
-    <div class="grid grid-2">
-      <section class="panel">
-        <h3 style="margin-bottom:.75rem">Пользователи</h3>
-        <table class="table">
-          <thead><tr><th>Имя</th><th>Email</th><th>Роль</th><th>Создан</th></tr></thead>
-          <tbody id="users"></tbody>
-        </table>
-      </section>
-      <section class="panel" id="create-wrap">
-        <h3 style="margin-bottom:.75rem">Добавить участника</h3>
-        <div class="list">
-          <input class="input" id="fullName" placeholder="Имя">
-          <input class="input" id="email" placeholder="Email">
-          <input class="input" id="password" type="password" placeholder="Пароль">
-          <select class="fsel" id="role">
-            <option value="hr">HR</option>
-            <option value="teamlead">Teamlead</option>
-            <option value="owner">Owner</option>
-          </select>
-          <button class="btn" id="addUser">Создать пользователя</button>
-          <div id="msg" class="small muted"></div>
+      <div class="sidebar-section">Навигация</div>
+      <a class="nav-item" href="/dashboard.html">📊 Dashboard</a>
+      <a class="nav-item" href="/index.html">🧑‍💼 Новый кандидат</a>
+      <a class="nav-item" href="/candidates.html">👥 Кандидаты</a>
+      <a class="nav-item active" href="/team.html">🫂 Команда</a>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="page-title">
+          <h1>Команда</h1>
+          <p>Добавляй HR и тимлидов, меняй роли, отключай доступ без удаления истории.</p>
         </div>
-      </section>
-    </div>
-  </main>
-</div>
 
-<script>
-const API = window.location.origin;
-const tokenKey = 'allstars_token';
-const meKey = 'allstars_me';
+        <div class="actions">
+          <button class="btn btn-ghost" id="refreshBtn">Обновить</button>
+          <button class="btn btn-primary" id="logoutBtn">Выйти</button>
+        </div>
+      </div>
 
-function getToken(){ return localStorage.getItem(tokenKey); }
-function setToken(token){ localStorage.setItem(tokenKey, token); }
-function clearSession(){ localStorage.removeItem(tokenKey); localStorage.removeItem(meKey); window.location.href = '/login.html'; }
-function setMe(me){ localStorage.setItem(meKey, JSON.stringify(me)); }
-function getMe(){ try { return JSON.parse(localStorage.getItem(meKey) || 'null'); } catch { return null; } }
+      <div class="grid">
+        <section class="card">
+          <h2>Добавить участника</h2>
+          <div class="muted">Создание нового пользователя доступно владельцу агентства.</div>
 
-async function api(path, options = {}) {
-  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
-  const token = getToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API}${path}`, { ...options, headers });
-  if (res.status === 401) { clearSession(); throw new Error('Unauthorized'); }
-  const text = await res.text();
-  const data = text ? JSON.parse(text) : {};
-  if (!res.ok) throw new Error(data.error || 'Request failed');
-  return data;
-}
+          <form class="form" id="createUserForm">
+            <div class="field">
+              <label for="fullName">Имя</label>
+              <input id="fullName" name="fullName" placeholder="Например, Анна Коваль" required />
+            </div>
 
-function initials(name='?'){
-  return name.trim().split(/\s+/).map(x=>x[0]).join('').toUpperCase().slice(0,2) || '?';
-}
-function verdictClass(total){
-  if (total >= 40) return 'green';
-  if (total >= 28) return 'yellow';
-  if (total > 0) return 'red';
-  return 'default';
-}
-function verdictLabel(total){
-  if (total >= 40) return 'Берём';
-  if (total >= 28) return 'Думаем';
-  if (total > 0) return 'Отказ';
-  return 'Без оценки';
-}
-function statusClass(status=''){
-  const x = status.toLowerCase();
-  if (x.includes('принят')) return 'green';
-  if (x.includes('тест')) return 'purple';
-  if (x.includes('гайд')) return 'yellow';
-  if (x.includes('отказ')) return 'red';
-  return 'default';
-}
-function fmtDate(s){
-  if (!s) return '—';
-  return new Date(s).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
-}
-async function loadMe(){
-  const me = await api('/auth/me');
-  setMe(me);
-  const nameEl = document.querySelector('[data-me-name]');
-  const roleEl = document.querySelector('[data-me-role]');
-  const agencyEl = document.querySelector('[data-me-agency]');
-  if (nameEl) nameEl.textContent = me.full_name;
-  if (roleEl) roleEl.textContent = me.role;
-  if (agencyEl) agencyEl.textContent = me.agency_name || '';
-  return me;
-}
-</script>
-<script>
-async function loadUsers() {
-  const me = getMe() || await loadMe();
-  const users = await api('/users');
-  document.getElementById('users').innerHTML = users.map(u => `
-    <tr><td>${u.full_name}</td><td>${u.email}</td><td>${u.role}</td><td>${fmtDate(u.created_at)}</td></tr>
-  `).join('') || '<tr><td colspan="4">Нет пользователей</td></tr>';
+            <div class="field">
+              <label for="email">Email</label>
+              <input id="email" name="email" type="email" placeholder="anna@agency.com" required />
+            </div>
 
-  if (me.role !== 'owner') {
-    document.getElementById('create-wrap').innerHTML = '<div class="muted">Создание пользователей доступно только owner.</div>';
-  }
-}
-(async function(){
-  if (!getToken()) return clearSession();
-  await loadMe();
-  await loadUsers();
-  const btn = document.getElementById('addUser');
-  if (btn) btn.onclick = async () => {
-    const body = {
-      fullName: document.getElementById('fullName').value.trim(),
-      email: document.getElementById('email').value.trim(),
-      password: document.getElementById('password').value,
-      role: document.getElementById('role').value
-    };
-    const msg = document.getElementById('msg');
-    try {
-      await api('/users', { method:'POST', body: JSON.stringify(body) });
-      msg.textContent = 'Пользователь создан';
-      await loadUsers();
-    } catch (err) {
-      msg.textContent = err.message;
+            <div class="field">
+              <label for="password">Пароль</label>
+              <input id="password" name="password" type="password" placeholder="Не менее 8 символов" required />
+            </div>
+
+            <div class="field">
+              <label for="role">Роль</label>
+              <select id="role" name="role" required>
+                <option value="hr">HR</option>
+                <option value="teamlead">Teamlead</option>
+                <option value="owner">Owner</option>
+              </select>
+            </div>
+
+            <button class="btn btn-primary" type="submit">Создать пользователя</button>
+          </form>
+
+          <div class="hint">
+            Деактивация безопаснее удаления: пользователь теряет доступ, но все его кандидаты и история сохраняются.
+          </div>
+        </section>
+
+        <section>
+          <div class="toolbar">
+            <input id="searchInput" class="search" placeholder="Поиск по имени, email или роли..." />
+          </div>
+
+          <div id="teamList" class="team-list"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API = '';
+    const token =
+      localStorage.getItem('token') ||
+      localStorage.getItem('auth_token') ||
+      sessionStorage.getItem('token') ||
+      sessionStorage.getItem('auth_token');
+
+    const teamList = document.getElementById('teamList');
+    const searchInput = document.getElementById('searchInput');
+    const createUserForm = document.getElementById('createUserForm');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const toast = document.getElementById('toast');
+
+    let currentMe = null;
+    let users = [];
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => toast.classList.remove('show'), 2600);
     }
-  };
-})().catch(err => alert(err.message));
-</script>
+
+    function initials(name = '') {
+      return name
+        .trim()
+        .split(/\s+/)
+        .map(x => x[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase() || '?';
+    }
+
+    function roleLabel(role) {
+      if (role === 'owner') return 'Owner';
+      if (role === 'teamlead') return 'Teamlead';
+      return 'HR';
+    }
+
+    function roleClass(role) {
+      if (role === 'owner') return 'owner';
+      if (role === 'teamlead') return 'teamlead';
+      return 'hr';
+    }
+
+    async function api(path, options = {}) {
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const res = await fetch(API + path, {
+        ...options,
+        headers
+      });
+
+      let data = null;
+      try {
+        data = await res.json();
+      } catch {}
+
+      if (!res.ok) {
+        throw new Error(data?.error || 'Ошибка запроса');
+      }
+
+      return data;
+    }
+
+    async function loadMe() {
+      currentMe = await api('/auth/me');
+    }
+
+    async function loadUsers() {
+      users = await api('/users');
+      renderUsers();
+    }
+
+    function filteredUsers() {
+      const q = searchInput.value.trim().toLowerCase();
+      if (!q) return users;
+
+      return users.filter(u => {
+        const hay = [
+          u.full_name || '',
+          u.email || '',
+          u.role || '',
+          u.is_active ? 'active' : 'inactive'
+        ].join(' ').toLowerCase();
+
+        return hay.includes(q);
+      });
+    }
+
+    function renderUsers() {
+      const list = filteredUsers();
+
+      if (!list.length) {
+        teamList.innerHTML = `<div class="empty">Пользователи не найдены</div>`;
+        return;
+      }
+
+      teamList.innerHTML = list.map(user => {
+        const canManage = currentMe?.role === 'owner' && Number(currentMe?.id) !== Number(user.id);
+        const activeLabel = user.is_active ? 'Активен' : 'Отключен';
+
+        return `
+          <div class="user-card">
+            <div class="user-top">
+              <div class="user-main">
+                <div class="avatar">${initials(user.full_name)}</div>
+                <div class="user-text">
+                  <div class="user-name">${escapeHtml(user.full_name || 'Без имени')}</div>
+                  <div class="user-email">${escapeHtml(user.email || '')}</div>
+                  <div class="meta">
+                    <span class="badge ${roleClass(user.role)}">${roleLabel(user.role)}</span>
+                    <span class="badge ${user.is_active ? 'active' : 'inactive'}">${activeLabel}</span>
+                  </div>
+                </div>
+              </div>
+
+              ${canManage ? `
+                <div class="user-actions">
+                  <button class="mini-btn role" onclick="changeRole(${user.id}, '${user.role}')">Роль</button>
+                  <button class="mini-btn pass" onclick="resetPassword(${user.id}, '${escapeJs(user.full_name || '')}')">Пароль</button>
+                  <button class="mini-btn ${user.is_active ? 'toggle-on' : 'toggle-off'}" onclick="toggleActive(${user.id}, ${user.is_active})">
+                    ${user.is_active ? 'Деактивировать' : 'Активировать'}
+                  </button>
+                </div>
+              ` : `
+                <div class="muted">${Number(currentMe?.id) === Number(user.id) ? 'Это ты' : 'Нет прав на управление'}</div>
+              `}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function escapeJs(str) {
+      return String(str).replace(/'/g, "\\'");
+    }
+
+    async function changeRole(userId, currentRole) {
+      const next = prompt(
+        'Новая роль: owner, teamlead или hr',
+        currentRole
+      );
+
+      if (!next) return;
+
+      const role = next.trim().toLowerCase();
+
+      if (!['owner', 'teamlead', 'hr'].includes(role)) {
+        showToast('Недопустимая роль');
+        return;
+      }
+
+      try {
+        await api(`/users/${userId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ role })
+        });
+        showToast('Роль обновлена');
+        await loadUsers();
+      } catch (err) {
+        showToast(err.message);
+      }
+    }
+
+    async function toggleActive(userId, currentIsActive) {
+      const confirmText = currentIsActive
+        ? 'Отключить доступ этому пользователю?'
+        : 'Включить доступ этому пользователю?';
+
+      if (!confirm(confirmText)) return;
+
+      try {
+        await api(`/users/${userId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ isActive: !currentIsActive })
+        });
+        showToast(currentIsActive ? 'Пользователь деактивирован' : 'Пользователь активирован');
+        await loadUsers();
+      } catch (err) {
+        showToast(err.message);
+      }
+    }
+
+    async function resetPassword(userId, fullName) {
+      const password = prompt(`Новый пароль для ${fullName || 'пользователя'}:`);
+
+      if (!password) return;
+
+      if (password.length < 8) {
+        showToast('Пароль должен быть минимум 8 символов');
+        return;
+      }
+
+      try {
+        await api(`/users/${userId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ password })
+        });
+        showToast('Пароль обновлен');
+      } catch (err) {
+        showToast(err.message);
+      }
+    }
+
+    createUserForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(createUserForm);
+      const payload = {
+        fullName: formData.get('fullName')?.toString().trim(),
+        email: formData.get('email')?.toString().trim(),
+        password: formData.get('password')?.toString(),
+        role: formData.get('role')?.toString()
+      };
+
+      try {
+        await api('/users', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+
+        createUserForm.reset();
+        showToast('Пользователь создан');
+        await loadUsers();
+      } catch (err) {
+        showToast(err.message);
+      }
+    });
+
+    searchInput.addEventListener('input', renderUsers);
+
+    refreshBtn.addEventListener('click', async () => {
+      try {
+        await loadUsers();
+        showToast('Список обновлен');
+      } catch (err) {
+        showToast(err.message);
+      }
+    });
+
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('auth_token');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('auth_token');
+      location.href = '/login.html';
+    });
+
+    async function init() {
+      if (!token) {
+        location.href = '/login.html';
+        return;
+      }
+
+      try {
+        await loadMe();
+        await loadUsers();
+
+        if (currentMe?.role !== 'owner' && currentMe?.role !== 'teamlead') {
+          createUserForm.style.display = 'none';
+        }
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || 'Ошибка загрузки');
+      }
+    }
+
+    window.changeRole = changeRole;
+    window.toggleActive = toggleActive;
+    window.resetPassword = resetPassword;
+
+    init();
+  </script>
 </body>
 </html>
