@@ -655,7 +655,11 @@ function clearSession() {
 
               ${canManage ? `
                 <div class="user-actions">
-                  <button class="mini-btn role" onclick="changeRole(${user.id}, '${user.role}')">Роль</button>
+                  <select class="mini-btn role" onchange="changeRoleSelect(${user.id}, this.value)">
+  <option value="owner" ${user.role === 'owner' ? 'selected' : ''}>Owner</option>
+  <option value="teamlead" ${user.role === 'teamlead' ? 'selected' : ''}>Teamlead</option>
+  <option value="hr" ${user.role === 'hr' ? 'selected' : ''}>HR</option>
+</select>
                   <button class="mini-btn pass" onclick="resetPassword(${user.id}, '${escapeJs(user.full_name || '')}')">Пароль</button>
                   <button class="mini-btn ${user.is_active ? 'toggle-on' : 'toggle-off'}" onclick="toggleActive(${user.id}, ${user.is_active})">
                     ${user.is_active ? 'Деактивировать' : 'Активировать'}
@@ -669,6 +673,24 @@ function clearSession() {
         `;
       }).join('');
     }
+
+    async function changeRoleSelect(userId, role) {
+  if (!['owner', 'teamlead', 'hr'].includes(role)) {
+    showToast('Недопустимая роль');
+    return;
+  }
+
+  try {
+    await api(`/users/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role })
+    });
+    showToast('Роль обновлена');
+    await loadUsers();
+  } catch (err) {
+    showToast(err.message);
+  }
+}
 
     function escapeHtml(str) {
       return String(str)
@@ -816,6 +838,7 @@ function clearSession() {
     window.changeRole = changeRole;
     window.toggleActive = toggleActive;
     window.resetPassword = resetPassword;
+    window.changeRoleSelect = changeRoleSelect;
 
     init();
   </script>
