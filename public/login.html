@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AllStars HR SaaS — Вход</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+:root{
+  --bg:#0d0f14;--surface:#141720;--surface2:#1c2030;--surface3:#232840;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --accent:#4f6ef7;--accent2:#6c87ff;--accent-bg:rgba(79,110,247,0.12);--accent-border:rgba(79,110,247,0.3);
+  --text:#e8eaf0;--text2:#8b90a8;--text3:#4a5068;
+  --green:#34d39a;--green-bg:rgba(52,211,154,0.1);--green-border:rgba(52,211,154,0.25);
+  --yellow:#fbbf24;--yellow-bg:rgba(251,191,36,0.1);--yellow-border:rgba(251,191,36,0.25);
+  --red:#f87171;--red-bg:rgba(248,113,113,0.1);--red-border:rgba(248,113,113,0.25);
+  --purple:#a78bfa;--purple-bg:rgba(167,139,250,0.1);--purple-border:rgba(167,139,250,0.25);
+  --orange:#fb923c;
+  --r:10px;--r2:14px;--fs:14px;--fs-sm:12px;--fs-xs:11px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);font-size:var(--fs);line-height:1.6}
+a{text-decoration:none;color:inherit}
+.layout{display:flex;min-height:100vh}
+.sidebar{width:240px;flex-shrink:0;position:fixed;top:0;left:0;bottom:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:1.25rem 0 2rem}
+.sidebar-logo{padding:0 1rem 1rem;border-bottom:1px solid var(--border);margin-bottom:.75rem}
+.sidebar-logo .brand{font-size:16px;font-weight:700}
+.sidebar-logo .sub{font-size:var(--fs-xs);color:var(--text3);margin-top:2px}
+.sidebar-section{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);padding:.4rem 1rem .2rem}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 1rem;font-size:var(--fs-sm);color:var(--text2);border-left:2px solid transparent;transition:.15s}
+.nav-item:hover{background:rgba(255,255,255,.03);color:var(--text)}
+.nav-item.active{color:var(--accent2);background:var(--accent-bg);border-left-color:var(--accent)}
+.nav-num{min-width:18px;color:var(--text3);font-size:var(--fs-xs)}
+.sidebar-footer{padding:1rem;border-top:1px solid var(--border);margin-top:1rem}
+.main{margin-left:240px;flex:1;padding:2rem 1.5rem 4rem;max-width:1180px}
+.page-header{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;margin-bottom:1.5rem}
+.page-header .tag{display:inline-block;font-size:var(--fs-xs);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent2);background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:20px;padding:4px 10px;margin-bottom:.75rem}
+.page-header h1{font-size:28px;letter-spacing:-.4px}
+.page-header p{font-size:var(--fs-sm);color:var(--text2);margin-top:4px}
+.panel{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);padding:1rem}
+.grid{display:grid;gap:12px}
+.grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.stat-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:1rem}
+.stat-card .s-val{font-size:24px;font-weight:700}
+.stat-card .s-label{font-size:var(--fs-xs);color:var(--text3);margin-top:2px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:1rem}
+.search-wrap{flex:1;min-width:220px;position:relative}
+.search-wrap input,.fsel,.input,.textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:.7rem .9rem;font-family:'Manrope',sans-serif;color:var(--text);outline:none}
+.search-wrap input{padding-left:34px}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--text3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:.7rem 1rem;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--r);font-family:'Manrope',sans-serif;font-size:var(--fs);font-weight:600;color:var(--accent2);cursor:pointer}
+.btn.ghost{background:none;border-color:var(--border);color:var(--text2)}
+.btn.green{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
+.btn.red{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
+.cand-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);padding:1rem;display:flex;flex-direction:column;gap:12px}
+.card-top{display:flex;gap:10px}
+.avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent2);font-weight:700}
+.card-name{font-weight:700}
+.card-sub{font-size:var(--fs-sm);color:var(--text2)}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs);font-weight:700;padding:4px 9px;border-radius:999px;border:1px solid var(--border)}
+.badge.green{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
+.badge.yellow{background:var(--yellow-bg);border-color:var(--yellow-border);color:var(--yellow)}
+.badge.red{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
+.badge.purple{background:var(--purple-bg);border-color:var(--purple-border);color:var(--purple)}
+.badge.default{background:var(--surface3);color:var(--text2)}
+.card-fields{display:flex;flex-direction:column;gap:6px}
+.frow{display:flex;gap:8px}
+.flabel{min-width:90px;font-size:var(--fs-xs);font-weight:700;color:var(--text3);text-transform:uppercase}
+.fval{font-size:var(--fs-sm)}
+.pill-group{display:flex;flex-wrap:wrap;gap:6px}
+.pill{padding:5px 11px;border-radius:999px;border:1px solid var(--border2);background:var(--surface3);font-size:var(--fs-sm);color:var(--text2);cursor:pointer;user-select:none}
+.pill.selected{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent2);font-weight:600}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;padding:1rem;z-index:100}
+.modal{width:100%;max-width:760px;max-height:92vh;overflow:auto;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r2);padding:1.25rem}
+.modal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.full{grid-column:1/-1}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{padding:.75rem;border-bottom:1px solid var(--border);text-align:left;font-size:var(--fs-sm)}
+.table th{color:var(--text3);font-size:var(--fs-xs);text-transform:uppercase}
+.list{display:flex;flex-direction:column;gap:8px}
+.list-item{padding:.85rem 1rem;border:1px solid var(--border);background:var(--surface2);border-radius:var(--r)}
+.hr{height:1px;background:var(--border);margin:1rem 0}
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+.auth-card{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--border2);border-radius:18px;padding:1.3rem}
+.muted{color:var(--text2)}
+.small{font-size:var(--fs-sm)}
+.hidden{display:none!important}
+@media(max-width:980px){.grid-4,.grid-3,.grid-2,.modal-grid{grid-template-columns:1fr}.sidebar{display:none}.main{margin-left:0;padding:1.25rem 1rem 4rem}}
+</style>
+</head>
+<body>
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="page-header" style="display:block;margin-bottom:1rem">
+        <div class="tag">Multi-tenant HR CRM</div>
+        <h1>Вход в AllStars</h1>
+        <p>Логин, команда, аналитика и SaaS-структура под агентство.</p>
+      </div>
+
+      <div class="panel">
+        <div style="display:flex;gap:8px;margin-bottom:1rem">
+          <button class="btn" id="tab-login" type="button">Вход</button>
+          <button class="btn ghost" id="tab-register" type="button">Регистрация</button>
+        </div>
+
+        <form id="login-form" class="list">
+          <input class="input" name="email" placeholder="Email">
+<input class="input" name="password" placeholder="Пароль" type="password">
+          <button class="btn" type="submit">Войти</button>
+        </form>
+
+        <form id="register-form" class="list hidden">
+          <input class="input" name="agencyName" placeholder="Название агентства">
+          <input class="input" name="fullName" placeholder="Твоё имя">
+          <input class="input" name="email" placeholder="Email">
+          <input class="input" name="password" type="password" placeholder="Пароль от 8 символов">
+          <button class="btn" type="submit">Создать workspace</button>
+        </form>
+
+        <div id="auth-msg" class="small muted" style="margin-top:1rem"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+const API = window.location.origin;
+const tokenKey = 'allstars_token';
+const meKey = 'allstars_me';
+
+function getToken(){ return localStorage.getItem(tokenKey); }
+function setToken(token){ localStorage.setItem(tokenKey, token); }
+function clearSession(){ localStorage.removeItem(tokenKey); localStorage.removeItem(meKey); window.location.href = '/login.html'; }
+function setMe(me){ localStorage.setItem(meKey, JSON.stringify(me)); }
+function getMe(){ try { return JSON.parse(localStorage.getItem(meKey) || 'null'); } catch { return null; } }
+
+async function api(path, options = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(`${API}${path}`, { ...options, headers });
+  if (res.status === 401) { clearSession(); throw new Error('Unauthorized'); }
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : {};
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+function initials(name='?'){
+  return name.trim().split(/\s+/).map(x=>x[0]).join('').toUpperCase().slice(0,2) || '?';
+}
+function verdictClass(total){
+  if (total >= 40) return 'green';
+  if (total >= 28) return 'yellow';
+  if (total > 0) return 'red';
+  return 'default';
+}
+function verdictLabel(total){
+  if (total >= 40) return 'Берём';
+  if (total >= 28) return 'Думаем';
+  if (total > 0) return 'Отказ';
+  return 'Без оценки';
+}
+function statusClass(status=''){
+  const x = status.toLowerCase();
+  if (x.includes('принят')) return 'green';
+  if (x.includes('тест')) return 'purple';
+  if (x.includes('гайд')) return 'yellow';
+  if (x.includes('отказ')) return 'red';
+  return 'default';
+}
+function fmtDate(s){
+  if (!s) return '—';
+  return new Date(s).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+async function loadMe(){
+  const me = await api('/auth/me');
+  setMe(me);
+  const nameEl = document.querySelector('[data-me-name]');
+  const roleEl = document.querySelector('[data-me-role]');
+  const agencyEl = document.querySelector('[data-me-agency]');
+  if (nameEl) nameEl.textContent = me.full_name;
+  if (roleEl) roleEl.textContent = me.role;
+  if (agencyEl) agencyEl.textContent = me.agency_name || '';
+  return me;
+}
+</script>
+  <script>
+    const tabLogin = document.getElementById('tab-login');
+    const tabRegister = document.getElementById('tab-register');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const msg = document.getElementById('auth-msg');
+
+    function switchTab(mode) {
+      const isLogin = mode === 'login';
+      loginForm.classList.toggle('hidden', !isLogin);
+      registerForm.classList.toggle('hidden', isLogin);
+      tabLogin.className = isLogin ? 'btn' : 'btn ghost';
+      tabRegister.className = !isLogin ? 'btn' : 'btn ghost';
+      msg.textContent = isLogin
+        ? 'Демо вход уже заполнен.'
+        : 'После регистрации создаётся agency + owner account.';
+    }
+
+    tabLogin.onclick = () => switchTab('login');
+    tabRegister.onclick = () => switchTab('register');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.textContent = 'Входим...';
+      const fd = new FormData(loginForm);
+      try {
+        const data = await api('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify(Object.fromEntries(fd.entries()))
+        });
+        setToken(data.token);
+        window.location.href = '/dashboard.html';
+      } catch (err) {
+        msg.textContent = err.message;
+      }
+    });
+
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.textContent = 'Создаём workspace...';
+      const fd = new FormData(registerForm);
+      try {
+        const data = await api('/auth/register', {
+          method: 'POST',
+          body: JSON.stringify(Object.fromEntries(fd.entries()))
+        });
+        setToken(data.token);
+        window.location.href = '/dashboard.html';
+      } catch (err) {
+        msg.textContent = err.message;
+      }
+    });
+
+    switchTab('login');
+  </script>
+</body>
+</html>
