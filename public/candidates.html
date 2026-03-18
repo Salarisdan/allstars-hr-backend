@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AllStars — База кандидатов</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0d0f14;--surface:#141720;--surface2:#1c2030;--surface3:#232840;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --accent:#4f6ef7;--accent2:#6c87ff;--accent-bg:rgba(79,110,247,0.12);--accent-border:rgba(79,110,247,0.3);
+  --text:#e8eaf0;--text2:#8b90a8;--text3:#555b72;
+  --green:#34d39a;--green-bg:rgba(52,211,154,0.1);--green-border:rgba(52,211,154,0.25);
+  --yellow:#fbbf24;--yellow-bg:rgba(251,191,36,0.1);--yellow-border:rgba(251,191,36,0.25);
+  --red:#f87171;--red-bg:rgba(248,113,113,0.1);--red-border:rgba(248,113,113,0.25);
+  --purple:#a78bfa;--purple-bg:rgba(167,139,250,0.1);--purple-border:rgba(167,139,250,0.25);
+  --r:10px;--r2:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);font-size:15px;}
+.layout{display:flex;min-height:100vh;}
+
+/* SIDEBAR */
+.sidebar{width:240px;flex-shrink:0;position:fixed;top:0;left:0;bottom:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;z-index:100;padding:1.5rem 0 2rem;}
+.sidebar-logo{padding:0 1.25rem 1.5rem;border-bottom:1px solid var(--border);margin-bottom:1rem;}
+.sidebar-logo .brand{font-size:17px;font-weight:700;color:var(--text);}
+.sidebar-logo .sub{font-size:11px;color:var(--text3);margin-top:2px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:7px 1.25rem;font-size:13px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:all 0.15s;text-decoration:none;}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,0.03);}
+.nav-item.active{color:var(--accent2);border-left-color:var(--accent);background:var(--accent-bg);}
+.nav-num{font-size:11px;color:var(--text3);min-width:16px;}
+.sidebar-sep{height:1px;background:var(--border);margin:0.75rem 1.25rem;}
+.sidebar-section{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);padding:0.5rem 1.25rem 0.25rem;}
+
+/* MAIN */
+.main{margin-left:240px;padding:3rem 2.5rem 5rem;max-width:1100px;}
+.page-header{margin-bottom:2rem;}
+.page-header .tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent2);background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:20px;padding:3px 10px;margin-bottom:1rem;}
+.page-header h1{font-size:28px;font-weight:700;letter-spacing:-0.4px;}
+.page-header p{font-size:14px;color:var(--text2);margin-top:5px;}
+
+/* STATS ROW */
+.stats-row{display:flex;gap:10px;margin-bottom:2rem;flex-wrap:wrap;}
+.stat-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:0.75rem 1.25rem;min-width:110px;}
+.stat-card .s-val{font-size:22px;font-weight:700;color:var(--text);}
+.stat-card .s-label{font-size:11px;color:var(--text3);margin-top:2px;}
+.stat-card.green .s-val{color:var(--green);}
+.stat-card.yellow .s-val{color:var(--yellow);}
+.stat-card.red .s-val{color:var(--red);}
+
+/* SEARCH & FILTERS */
+.search-bar{display:flex;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap;}
+.search-input-wrap{flex:1;min-width:220px;position:relative;}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none;}
+.search-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:0.65rem 0.75rem 0.65rem 36px;font-family:'Manrope',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color 0.15s;}
+.search-input:focus{border-color:var(--accent-border);}
+.search-input::placeholder{color:var(--text3);}
+.filter-select{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:0.65rem 1rem;font-family:'Manrope',sans-serif;font-size:13px;color:var(--text2);outline:none;cursor:pointer;transition:border-color 0.15s;}
+.filter-select:focus{border-color:var(--accent-border);}
+
+/* CARDS GRID */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
+
+/* CANDIDATE CARD */
+.cand-card{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  padding:1.25rem;
+  display:flex;flex-direction:column;gap:14px;
+  transition:border-color 0.15s,transform 0.15s;
+  position:relative;
+}
+.cand-card:hover{border-color:var(--border2);transform:translateY(-1px);}
+
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.card-avatar{width:42px;height:42px;border-radius:50%;background:var(--accent-bg);border:1px solid var(--accent-border);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--accent2);flex-shrink:0;letter-spacing:-0.5px;}
+.card-name-block{flex:1;}
+.card-name{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.2px;line-height:1.3;}
+.card-tg{font-size:13px;color:var(--accent2);text-decoration:none;font-weight:500;margin-top:2px;display:inline-block;}
+.card-tg:hover{text-decoration:underline;}
+.card-age{font-size:12px;color:var(--text3);margin-top:1px;}
+.card-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;line-height:1;padding:2px;flex-shrink:0;transition:color 0.12s;}
+.card-del:hover{color:var(--red);}
+
+/* DIVIDER LINE */
+.card-line{height:1px;background:var(--border);}
+
+/* FIELDS */
+.card-fields{display:flex;flex-direction:column;gap:8px;}
+.field-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.field-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap;}
+.field-val{font-size:13px;color:var(--text);text-align:right;font-weight:500;}
+
+/* TAGS */
+.card-tags{display:flex;flex-wrap:wrap;gap:5px;}
+.tag{font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid var(--border2);background:var(--surface3);color:var(--text2);font-weight:500;}
+.tag.platform{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent2);}
+.tag.shift{background:var(--surface3);color:var(--text2);}
+
+/* SCORE */
+.card-score{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:2px;}
+.score-stars{display:flex;gap:2px;}
+.score-star{font-size:13px;color:var(--surface3);}
+.score-star.on{color:var(--yellow);}
+.score-num{font-size:13px;font-weight:700;color:var(--text2);}
+.score-num strong{color:var(--text);font-size:15px;}
+.verdict-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;}
+.verdict-badge.green{background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);}
+.verdict-badge.yellow{background:var(--yellow-bg);border:1px solid var(--yellow-border);color:var(--yellow);}
+.verdict-badge.red{background:var(--red-bg);border:1px solid var(--red-border);color:var(--red);}
+.verdict-badge.none{background:var(--surface3);border:1px solid var(--border);color:var(--text3);}
+
+/* STATUS BADGE */
+.status-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;}
+.status-badge.принят{background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);}
+.status-badge.тест-смена{background:var(--purple-bg);border:1px solid var(--purple-border);color:var(--purple);}
+.status-badge.изучает{background:var(--yellow-bg);border:1px solid var(--yellow-border);color:var(--yellow);}
+.status-badge.отказ{background:var(--red-bg);border:1px solid var(--red-border);color:var(--red);}
+.status-badge.default{background:var(--surface3);border:1px solid var(--border);color:var(--text3);}
+
+.card-date{font-size:11px;color:var(--text3);text-align:right;}
+
+/* EMPTY / LOADING */
+.empty{text-align:center;padding:4rem 0;color:var(--text3);font-size:14px;line-height:1.8;}
+.empty strong{display:block;font-size:20px;color:var(--text2);margin-bottom:8px;}
+
+@media(max-width:900px){.sidebar{display:none;}.main{margin-left:0;padding:1.5rem 1.25rem 4rem;}.cards-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">AllStars</div>
+    <div class="sub">База кандидатов</div>
+  </div>
+  <div class="sidebar-section">Скрипт</div>
+  <a class="nav-item" href="index.html"><span class="nav-num">←</span> HR Скрипт</a>
+  <div class="sidebar-sep"></div>
+  <div class="sidebar-section">База</div>
+  <a class="nav-item active" href="candidates.html"><span class="nav-num">👥</span> Все кандидаты</a>
+</nav>
+
+<main class="main">
+  <div class="page-header">
+    <div class="tag">AllStars Agency</div>
+    <h1>База кандидатов</h1>
+    <p id="subtitle">Загрузка...</p>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row" id="stats-row">
+    <div class="stat-card"><div class="s-val" id="stat-total">—</div><div class="s-label">Всего</div></div>
+    <div class="stat-card green"><div class="s-val" id="stat-green">—</div><div class="s-label">Берём</div></div>
+    <div class="stat-card yellow"><div class="s-val" id="stat-yellow">—</div><div class="s-label">Думаем</div></div>
+    <div class="stat-card red"><div class="s-val" id="stat-red">—</div><div class="s-label">Отказ</div></div>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="search-bar">
+    <div class="search-input-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="search" placeholder="Поиск по имени, @username или тегу..." oninput="applyFilters()">
+    </div>
+    <select class="filter-select" id="filter-verdict" onchange="applyFilters()">
+      <option value="">Все вердикты</option>
+      <option value="green">✓ Берём</option>
+      <option value="yellow">⚠ Думаем</option>
+      <option value="red">✗ Отказ</option>
+    </select>
+    <select class="filter-select" id="filter-status" onchange="applyFilters()">
+      <option value="">Все статусы</option>
+      <option value="Принят">Принят</option>
+      <option value="Тест-смена">Тест-смена</option>
+      <option value="Изучает гайд">Изучает гайд</option>
+      <option value="Отказ">Отказ</option>
+    </select>
+  </div>
+
+  <div class="cards-grid" id="cards-grid">
+    <div class="empty"><strong>Загружаем...</strong></div>
+  </div>
+</main>
+</div>
+
+<script>
+const API = 'https://allstars-hr-backend-production.up.railway.app';
+let allCandidates = [];
+
+function verdictClass(total) {
+  if (total >= 40) return 'green';
+  if (total >= 28) return 'yellow';
+  if (total > 0)  return 'red';
+  return 'none';
+}
+function verdictText(total) {
+  if (total >= 40) return '✓ Берём';
+  if (total >= 28) return '⚠ Думаем';
+  if (total > 0)  return '✗ Отказ';
+  return 'Без оценки';
+}
+
+function statusClass(status) {
+  if (!status) return 'default';
+  const s = status.toLowerCase();
+  if (s.includes('принят')) return 'принят';
+  if (s.includes('тест')) return 'тест-смена';
+  if (s.includes('изучает')) return 'изучает';
+  if (s.includes('отказ')) return 'отказ';
+  return 'default';
+}
+
+function initials(name) {
+  if (!name) return '?';
+  return name.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0,2);
+}
+
+function formatDate(str) {
+  if (!str) return '';
+  const d = new Date(str);
+  return d.toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit', year:'numeric'});
+}
+
+function buildCard(rec) {
+  const f = {
+    name: rec.name, tg: rec.tg, age: rec.age, english: rec.english,
+    exp: rec.exp, platforms: rec.platforms, shift: rec.shift, schedule: rec.schedule,
+    top: rec.top_pages, avgcheck: rec.avg_check, job: rec.job, status: rec.status,
+    ...(rec.fields || {})
+  };
+  const vc = verdictClass(rec.total);
+  const vt = verdictText(rec.total);
+  const sc = statusClass(f.status);
+  const tgHref = f.tg ? 'https://t.me/' + f.tg.replace('@','') : null;
+
+  // mini stars (show average visually out of 5 stars based on total/50*5)
+  const starLevel = rec.total > 0 ? Math.round(rec.total / 50 * 5) : 0;
+  const starsHtml = Array.from({length:5}, (_,i) =>
+    `<span class="score-star${i < starLevel ? ' on' : ''}">★</span>`).join('');
+
+  const card = document.createElement('div');
+  card.className = 'cand-card';
+  card.dataset.id = rec.id;
+  card.dataset.name = (f.name||'').toLowerCase();
+  card.dataset.tg = (f.tg||'').toLowerCase();
+  card.dataset.tags = [f.platforms, f.english, f.shift, f.schedule, f.status].filter(Boolean).join(' ').toLowerCase();
+  card.dataset.verdict = vc;
+  card.dataset.status = f.status || '';
+
+  card.innerHTML = `
+    <div class="card-top">
+      <div class="card-avatar">${initials(f.name)}</div>
+      <div class="card-name-block">
+        <div class="card-name">${f.name || '—'}</div>
+        ${tgHref ? `<a class="card-tg" href="${tgHref}" target="_blank">${f.tg}</a>` : (f.tg ? `<span class="card-tg">${f.tg}</span>` : '')}
+        ${f.age ? `<div class="card-age">${f.age} лет${f.job ? ' · ' + f.job : ''}</div>` : ''}
+      </div>
+      <button class="card-del" title="Удалить">×</button>
+    </div>
+
+    <div class="card-line"></div>
+
+    <div class="card-fields">
+      ${f.english ? `<div class="field-row"><span class="field-label">Английский</span><span class="field-val">${f.english}</span></div>` : ''}
+      ${f.exp ? `<div class="field-row"><span class="field-label">Опыт</span><span class="field-val">${f.exp} лет</span></div>` : ''}
+      ${f.avgcheck ? `<div class="field-row"><span class="field-label">Ср. чек</span><span class="field-val">${f.avgcheck}</span></div>` : ''}
+      ${f.top ? `<div class="field-row"><span class="field-label">Топ страниц</span><span class="field-val">${f.top}</span></div>` : ''}
+      ${f.schedule ? `<div class="field-row"><span class="field-label">График</span><span class="field-val">${f.schedule}</span></div>` : ''}
+    </div>
+
+    <div class="card-tags">
+      ${f.platforms ? `<span class="tag platform">${f.platforms}</span>` : ''}
+      ${f.shift ? f.shift.split(',').map(s => `<span class="tag shift">${s.trim()}</span>`).join('') : ''}
+    </div>
+
+    <div class="card-line"></div>
+
+    <div class="card-score">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="score-stars">${starsHtml}</div>
+        <span class="score-num"><strong>${rec.total}</strong> / 50</span>
+      </div>
+      <span class="verdict-badge ${vc}">${vt}</span>
+    </div>
+
+    ${f.status ? `<div style="display:flex;align-items:center;justify-content:space-between;">
+      <span class="status-badge ${sc}">${f.status}</span>
+      <span class="card-date">${formatDate(rec.created_at)}</span>
+    </div>` : `<div class="card-date">${formatDate(rec.created_at)}</div>`}
+  `;
+
+  card.querySelector('.card-del').addEventListener('click', () => deleteCandidate(rec.id, f.name));
+  return card;
+}
+
+async function deleteCandidate(id, name) {
+  if (!confirm('Удалить карточку ' + (name || id) + '?')) return;
+  await fetch(API + '/candidates/' + id, { method: 'DELETE' });
+  allCandidates = allCandidates.filter(r => r.id !== id);
+  updateStats();
+  applyFilters();
+}
+
+function updateStats() {
+  document.getElementById('stat-total').textContent = allCandidates.length;
+  document.getElementById('stat-green').textContent = allCandidates.filter(r => r.total >= 40).length;
+  document.getElementById('stat-yellow').textContent = allCandidates.filter(r => r.total >= 28 && r.total < 40).length;
+  document.getElementById('stat-red').textContent = allCandidates.filter(r => r.total > 0 && r.total < 28).length;
+  document.getElementById('subtitle').textContent = `${allCandidates.length} кандидатов в базе`;
+}
+
+function applyFilters() {
+  const q = document.getElementById('search').value.toLowerCase().trim();
+  const vf = document.getElementById('filter-verdict').value;
+  const sf = document.getElementById('filter-status').value;
+  const grid = document.getElementById('cards-grid');
+  grid.innerHTML = '';
+
+  const filtered = allCandidates.filter(rec => {
+    const card = document.createElement('div');
+    card.dataset.name = (rec.name||'').toLowerCase();
+    card.dataset.tg = (rec.tg||'').toLowerCase();
+    card.dataset.tags = [rec.platforms, rec.english, rec.shift, rec.schedule, rec.status].filter(Boolean).join(' ').toLowerCase();
+    const matchQ = !q || card.dataset.name.includes(q) || card.dataset.tg.includes(q) || card.dataset.tags.includes(q);
+    const matchV = !vf || verdictClass(rec.total) === vf;
+    const matchS = !sf || (rec.status || '') === sf;
+    return matchQ && matchV && matchS;
+  });
+
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><strong>Ничего не найдено</strong>Попробуй изменить фильтры или поиск</div>';
+    return;
+  }
+
+  filtered.forEach(rec => {
+    const f = {
+      name: rec.name, tg: rec.tg, age: rec.age, english: rec.english,
+      exp: rec.exp, platforms: rec.platforms, shift: rec.shift, schedule: rec.schedule,
+      top: rec.top_pages, avgcheck: rec.avg_check, job: rec.job, status: rec.status,
+      ...(rec.fields || {})
+    };
+    // merge flat fields into rec for buildCard
+    const merged = {...rec, ...f};
+    grid.appendChild(buildCard(merged));
+  });
+}
+
+async function load() {
+  try {
+    const res = await fetch(API + '/candidates');
+    const data = await res.json();
+    // flatten fields from server
+    allCandidates = data.map(r => ({
+      ...r,
+      ...(r.fields || {}),
+    }));
+    updateStats();
+    applyFilters();
+  } catch {
+    document.getElementById('cards-grid').innerHTML = '<div class="empty" style="grid-column:1/-1"><strong>Ошибка подключения</strong>Не удалось загрузить данные с сервера</div>';
+    document.getElementById('subtitle').textContent = 'Ошибка подключения';
+  }
+}
+
+load();
+</script>
+</body>
+</html>
