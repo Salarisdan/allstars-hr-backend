@@ -525,11 +525,15 @@
 
   <script>
     const API = '';
-    const token =
-      localStorage.getItem('token') ||
-      localStorage.getItem('auth_token') ||
-      sessionStorage.getItem('token') ||
-      sessionStorage.getItem('auth_token');
+const tokenKey = 'allstars_token';
+const meKey = 'allstars_me';
+const token = localStorage.getItem(tokenKey);
+
+function clearSession() {
+  localStorage.removeItem(tokenKey);
+  localStorage.removeItem(meKey);
+  window.location.href = '/login.html';
+}
 
     const teamList = document.getElementById('teamList');
     const searchInput = document.getElementById('searchInput');
