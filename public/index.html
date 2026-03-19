@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AllStars — HR Interview</title>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+ <!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AllStars — HR Interview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root{
       --bg:#0d0f14;
@@ -726,3 +734,721 @@
       }
     }
   </style>
+  
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="brand">AllStars</div>
+        <div class="sub">HR-интервью и оценка</div>
+      </div>
+
+      <div class="sidebar-section">Навигация</div>
+      <a class="nav-item active" href="/index.html">🧑‍💼 Новый кандидат</a>
+      <a class="nav-item" href="/candidates.html">👥 Кандидаты</a>
+      <a class="nav-item" href="/dashboard.html">📊 Dashboard</a>
+      <a class="nav-item" href="/team.html">🫂 Команда</a>
+
+      <div class="sidebar-section">Скрипт</div>
+      <a class="nav-item" href="#opening">1. Открытие</a>
+      <a class="nav-item" href="#experience">2. Опыт и результаты</a>
+      <a class="nav-item" href="#motivation">3. Личность и мотивация</a>
+      <a class="nav-item" href="#cases">4. Практические кейсы</a>
+      <a class="nav-item" href="#about">5. О нас — AllStars</a>
+      <a class="nav-item" href="#final">6. Финал</a>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="page-title">
+          <h1>HR Interview Workspace</h1>
+          <p>Карточка кандидата, скрипт созвона и чеклист оценки — в одном экране.</p>
+        </div>
+
+        <div class="top-actions">
+          <button class="btn btn-ghost" onclick="location.href='/candidates.html'">База кандидатов</button>
+          <button class="btn btn-ghost" onclick="logout()">Выйти</button>
+        </div>
+      </div>
+
+      <div class="hero">
+        <div class="left-column">
+          <section class="card panel">
+            <div class="panel-title">
+              <h2>Карточка кандидата</h2>
+              <span class="mini-note">Заполняется по ходу созвона</span>
+            </div>
+
+            <div class="stack">
+              <div class="grid-2">
+                <div class="field">
+                  <label>Имя</label>
+                  <input id="f-name" placeholder="Имя кандидата" />
+                </div>
+                <div class="field">
+                  <label>Telegram</label>
+                  <input id="f-tg" placeholder="@username" />
+                </div>
+              </div>
+
+              <div class="grid-3">
+                <div class="field">
+                  <label>Возраст</label>
+                  <input id="f-age" placeholder="—" />
+                </div>
+                <div class="field">
+                  <label>Опыт в adult (лет)</label>
+                  <input id="f-exp" placeholder="—" />
+                </div>
+                <div class="field">
+                  <label>Средний чек</label>
+                  <input id="f-avgcheck" placeholder="—" />
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Уровень английского</label>
+                <div class="pill-group" id="pills-english">
+                  <span class="pill" data-val="A1">A1</span>
+                  <span class="pill" data-val="A2">A2</span>
+                  <span class="pill" data-val="B1">B1</span>
+                  <span class="pill" data-val="B2">B2</span>
+                  <span class="pill" data-val="C1">C1</span>
+                  <span class="pill" data-val="Native">Native</span>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Платформы</label>
+                <div class="pill-group" id="pills-platforms">
+                  <span class="pill" data-val="OnlyFans">OnlyFans</span>
+                  <span class="pill" data-val="Fansly">Fansly</span>
+                  <span class="pill" data-val="Обе">Обе</span>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Смены (можно несколько)</label>
+                <div class="pill-group" id="pills-shifts">
+                  <span class="pill" data-val="00–06">00–06</span>
+                  <span class="pill" data-val="06–12">06–12</span>
+                  <span class="pill" data-val="12–18">12–18</span>
+                  <span class="pill" data-val="18–00">18–00</span>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>График</label>
+                <div class="pill-group" id="pills-schedule">
+                  <span class="pill" data-val="5/2">5/2</span>
+                  <span class="pill" data-val="6/1">6/1</span>
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div class="field">
+                  <label>Топ страницы / прошлое место</label>
+                  <input id="f-top" placeholder="—" />
+                </div>
+                <div class="field">
+                  <label>Основная занятость / учеба</label>
+                  <input id="f-job" placeholder="—" />
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Статус после звонка</label>
+                <select id="f-status-select">
+                  <option value="">Выбери статус</option>
+                  <option value="Изучает гайд">Изучает гайд</option>
+                  <option value="Тест-смена">Тест-смена</option>
+                  <option value="Принят">Принят</option>
+                  <option value="Отказ">Отказ</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Итоговые заметки HR</label>
+                <textarea id="f-notes" placeholder="Итоговое впечатление после звонка, общие выводы, решение..."></textarea>
+              </div>
+            </div>
+          </section>
+
+          <section class="checklist" id="score">
+            <div class="checklist-top">
+              <div>
+                <h2>Чеклист оценки</h2>
+                <p class="mini-note">Заполняется после звонка. Жёлтые звёзды — активная оценка критерия.</p>
+              </div>
+
+              <div class="score-box">
+                <div class="score-label">Итоговая оценка</div>
+                <div class="score-val" id="total-score">0 <span>/ 50</span></div>
+                <div class="verdict" id="verdict"></div>
+              </div>
+            </div>
+
+            <div class="criteria-grid" id="criteria-grid"></div>
+
+            <div class="bottom-actions">
+              <div class="status-line" id="save-status">Готово к сохранению</div>
+
+              <div class="sub-actions">
+                <button class="btn btn-ghost" type="button" onclick="resetAll()">Сбросить</button>
+                <button class="btn btn-primary save-btn" id="save-btn" type="button" onclick="saveCandidate()">Сохранить кандидата</button>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="script-wrap">
+          <section class="section" id="opening">
+            <div class="section-header">
+              <div class="section-num">1</div>
+              <h3>Открытие</h3>
+            </div>
+
+            <div class="speech">
+              <div class="speaker">🗣 Влад</div>
+              Привет, [Имя]! Спасибо, что нашёл время. Меня зовут Влад, я HR в AllStars. Сегодня познакомимся: я задам несколько вопросов об опыте, разберём пару рабочих ситуаций, а после расскажу о нас и отвечу на твои вопросы. Обычно это 20–30 минут. Тебе удобно сейчас?
+            </div>
+
+            <div class="note">
+              <span>📌</span>
+              Если кандидат напряжён — скажи: «Это неформальный разговор, правильных ответов нет. Мне важно понять, как ты мыслишь и как работаешь».
+            </div>
+          </section>
+
+          <section class="section" id="experience">
+            <div class="section-header">
+              <div class="section-num">2</div>
+              <h3>Опыт и результаты</h3>
+            </div>
+
+            <div class="question">
+              <div class="q-top">
+                <div class="q-badge">1</div>
+                <div class="q-text">Расскажи кратко, где работал, с каким типажом моделей и на каких платформах?</div>
+              </div>
+              <div class="q-hint">Слушай не только факты, но и как человек формулирует опыт: структурно или размыто.</div>
+              <textarea class="q-note" data-note-label="Опыт / платформы" placeholder="✍️ Коротко записать ответ кандидата..."></textarea>
+            </div>
+
+            <div class="listen"><span>👂</span> Сильный кандидат обычно быстро называет платформы, формат трафика, тип моделей и свои зоны ответственности.</div>
+
+            <div class="question">
+              <div class="q-top">
+                <div class="q-badge">2</div>
+                <div class="q-text">Какие были цифры: средний чек, конверсия в PPV, сколько фанов одновременно вёл?</div>
+              </div>
+              <div class="q-hint">Понимает ли кандидат свои метрики или работал «на автомате» без контроля результата.</div>
+              <textarea class="q-note" data-note-label="Цифры / метрики" placeholder="✍️ Средний чек, PPV, объём работы..."></textarea>
+            </div>
+
+            <div class="question">
+              <div class="q-top">
+                <div class="q-badge">3</div>
+                <div class="q-text">Какие фишки реально давали результат? Что бы ты внедрил у нас в первый месяц?</div>
+              </div>
+              <div class="q-hint">Ищи конкретику: ретеншн, сегментацию, re-engagement, продающие механики, кастомы, голосовые.</div>
+              <textarea class="q-note" data-note-label="Фишки / идеи" placeholder="✍️ Какие подходы реально работали у кандидата..."></textarea>
+            </div>
+
+            <div class="question">
+              <div class="q-top">
+                <div class="q-badge">4</div>
+                <div class="q-text">Какая была самая крупная ошибка в чаттинге — и что ты из неё вынес?</div>
+              </div>
+              <div class="q-hint">Ответ «ошибок не было» — плохой знак. Нужна рефлексия и зрелость.</div>
+              <textarea class="q-note" data-note-label="Ошибки / рефлексия" placeholder="✍️ Как анализирует ошибки и чему научился..."></textarea>
+            </div>
+
+            <div class="question">
+              <div class="q-top">
+                <div class="q-badge">5</div>
+                <div class="q-text">Как понимаешь, что фан готов к апсейлу прямо сейчас?</div>
+              </div>
+              <div class="q-hint">Смотри на понимание сигналов, тайминга и поведения платящего фана.</div>
+              <textarea class="q-note" data-note-label="Апсейл / сигналы" placeholder="✍️ Как читает готовность фана к продаже..."></textarea>
+            </div>
+
+            <div class="question">
+              <div class="q-top">
+                <div class="q-badge">6</div>
+                <div class="q-text">Был ли фан, с которым ты старался, но не вышло? Что пошло не так?</div>
+              </div>
+              <div class="q-hint">Проверка честности и способности видеть собственные ограничения.</div>
+              <textarea class="q-note" data-note-label="Сложный кейс" placeholder="✍️ Что не сработало и как это объясняет кандидат..."></textarea>
+            </div>
+          </section>
+
+          <section class="section" id="motivation">
+            <div class="section-header">
+              <div class="section-num">3</div>
+              <h3>Личность и мотивация</h3>
+            </div>
+
+            <div class="question">
+              <div class="q-top">
+                <div class="q-badge">1</div>
+                <div class="q-text">Чем занимаешься помимо работы — учёба, хобби, другая занятость?</div>
+              </div>
+              <div class="q-hint">Оцени реальную загрузку и совместимость со сменами.</div>
+              <textarea class="q-note" data-note-label="Занятость / фон" placeholder="✍️ Что ещё есть в жизни кандидата кроме работы..."></textarea>
+            </div>
+
+            <div class="question">
+              <div class="q-top">
+                <div class="q-badge">2</div>
+                <div class="q-text">Какой уровень дохода рассматриваешь на старте и через 3 месяца?</div>
+              </div>
+              <div class="q-hint">Нереалистичные ожидания без опыта — красный флаг.</div>
+              <textarea class="q-note" data-note-label="Финансовые ожидания" placeholder="✍️ Стартовые ожидания и планы на 3 месяца..."></textarea>
+            </div>
+
+            <div class="question">
+              <div class="q-top">
+                <div class="q-badge">3</div>
+                <div class="q-text">Какие смены рассматриваешь — утро, день, вечер, ночь?</div>
+              </div>
+              <div class="q-hint">Сразу фиксируй в карточку. Это одна из самых важных операционных переменных.</div>
+              <textarea class="q-note" data-note-label="Смены / доступность" placeholder="✍️ Какие смены и насколько стабильно готов работать..."></textarea>
+            </div>
+
+            <div class="question">
+              <div class="q-top">
+                <div class="q-badge">4</div>
+                <div class="q-text">Что для тебя идеальная работа в агентстве через год?</div>
+              </div>
+              <div class="q-hint">Рост в доходе или тимлидство — оба варианта нормальны. Важно наличие мотивации.</div>
+              <textarea class="q-note" data-note-label="Долгосрочная мотивация" placeholder="✍️ Как видит себя через год..."></textarea>
+            </div>
+
+            <div class="question">
+              <div class="q-top">
+                <div class="q-badge">5</div>
+                <div class="q-text">Как реагируешь на критику? Был ли случай, когда фидбэк задел, но ты согласился?</div>
+              </div>
+              <div class="q-hint">Защитная реакция на обратную связь — слабый признак для командной работы.</div>
+              <textarea class="q-note" data-note-label="Фидбэк / зрелость" placeholder="✍️ Как принимает критику и меняет поведение..."></textarea>
+            </div>
+
+            <div class="question">
+              <div class="q-top">
+                <div class="q-badge">6</div>
+                <div class="q-text">Что тебя может выбить из рабочего ритма — и как ты с этим справляешься?</div>
+              </div>
+              <div class="q-hint">Проверка стрессоустойчивости и осознанности.</div>
+              <textarea class="q-note" data-note-label="Стресс / ритм" placeholder="✍️ Как описывает стресс и выход из него..."></textarea>
+            </div>
+          </section>
+
+          <section class="section" id="cases">
+            <div class="section-header">
+              <div class="section-num">4</div>
+              <h3>Практические кейсы</h3>
+            </div>
+
+            <div class="speech">
+              <div class="speaker">🗣 Влад</div>
+              Теперь самое интересное — дам несколько реальных ситуаций. Не ищи «правильный» ответ: мне важно увидеть ход твоих мыслей и как ты пишешь. Представь, что ты отправляешь это фану прямо сейчас. Готов?
+            </div>
+
+            <div class="note"><span>📌</span> Дай кандидату время на каждый кейс. Не торопи. Можно просить думать вслух.</div>
+
+            <div class="case">
+              <div class="case-label">Кейс 1</div>
+              <div class="case-text">Новый лид с TikTok. Лайкнул фото, но молчит. Модель — брюнетка, vibe «girlfriend experience». Напиши первое сообщение — не спам.</div>
+              <div class="case-hint">Тёплый вход, отход от шаблонов, сохранение вайба модели.</div>
+              <textarea class="q-note" data-note-label="Кейс 1" placeholder="✍️ Как кандидат заходит в диалог, насколько тепло и нешаблонно..."></textarea>
+            </div>
+
+            <div class="case">
+              <div class="case-label">Кейс 2</div>
+              <div class="case-text">Фан флиртует 10 минут. Ты скидываешь PPV за $15. Он отвечает: «Дорого, у других дешевле» или «Скинь бесплатно, я хороший мальчик». Что делаешь?</div>
+              <div class="case-hint">Работа с возражениями, удержание ценности, спокойствие в продаже.</div>
+              <textarea class="q-note" data-note-label="Кейс 2" placeholder="✍️ Как отрабатывает возражения и защищает ценность..."></textarea>
+            </div>
+
+            <div class="case">
+              <div class="case-label">Кейс 3</div>
+              <div class="case-text">Топ-спендер платил $500/мес, перестал открывать сообщения. Прошло 2 недели. Напиши win-back сообщение: без нужды и без давления.</div>
+              <div class="case-hint">Ретеншн, персонализация, правильный тон, отсутствие desperate vibe.</div>
+              <textarea class="q-note" data-note-label="Кейс 3" placeholder="✍️ Как возвращает фаната и насколько тон уверенный..."></textarea>
+            </div>
+
+            <div class="case">
+              <div class="case-label">Кейс 4</div>
+              <div class="case-text">Фан несколько раз покупал PPV, но сегодня груб: «Надоело, одно и то же». Как реагируешь?</div>
+              <div class="case-hint">Управление эмоциями, быстрый ретейн, смена подачи, отсутствие конфликта.</div>
+              <textarea class="q-note" data-note-label="Кейс 4" placeholder="✍️ Как держит эмоции и меняет подачу..."></textarea>
+            </div>
+          </section>
+
+          <section class="section" id="about">
+            <div class="section-header">
+              <div class="section-num">5</div>
+              <h3>О нас — AllStars</h3>
+            </div>
+
+            <div class="speech">
+              <div class="speaker">🗣 Кто мы</div>
+              Наше агентство называется AllStars. Мы агентство полного цикла: сами делаем трафик и продажи. Приводим около 20 000 фанов в месяц. Работаем на двух платформах: Fansly — 12 моделей, OnlyFans — 7. Есть учебные страницы и топовые. Работаем по цифрам, команда живая.
+            </div>
+
+            <div class="speech">
+              <div class="speaker">🗣 Деньги и рост</div>
+              Начинаешь на учебной странице — оборот 2–2.5k$/мес, ставка 25%. Расти можно быстро. Верхний ориентир — топ 0.5, оборот около 60 000$/мес. Это реальная траектория роста.
+            </div>
+
+            <div class="speech">
+              <div class="speaker">🗣 AI-технологии</div>
+              Генерация голосовых из CRM с именем фана. Генерация изображений и видео под запрос. AI-переводчик из короткой фразы делает вовлекающий текст. Кастомы за 1–2 дня. У тебя такое уже было на прошлом месте?
+            </div>
+
+            <div class="note"><span>📌</span> После этого дай кандидату ответить. Тут хорошо видно, цепляет ли его масштаб и технологичность.</div>
+          </section>
+
+          <section class="section" id="final">
+            <div class="section-header">
+              <div class="section-num">6</div>
+              <h3>Финал</h3>
+            </div>
+
+            <div class="speech">
+              <div class="speaker">🗣 Влад</div>
+              Это всё о нас. Есть вопросы — по условиям, работе, команде, росту?
+            </div>
+
+            <div class="note"><span>📌</span> Хорошие вопросы — признак вовлечённости. Отметь в заметках, что именно его интересует.</div>
+
+            <div class="speech">
+              <div class="speaker">🗣 Влад</div>
+              Если подходим друг другу — пришлю тестовое: стиль и грамотность, 24 часа. После — тест-смена и вход в график. Когда сможешь выполнить тестовое?
+            </div>
+
+            <div class="question">
+              <div class="q-top">
+                <div class="q-badge">✓</div>
+                <div class="q-text">Итог по кандидату и следующий шаг</div>
+              </div>
+              <div class="q-hint">Зафиксируй главный вывод, обещания и следующий шаг после звонка.</div>
+              <textarea class="q-note" data-note-label="Итог / следующий шаг" placeholder="✍️ Что решили: тестовое, тест-смена, отказ, доп. вопросы..."></textarea>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const tokenKey = 'allstars_token';
+    const meKey = 'allstars_me';
+    const token = localStorage.getItem(tokenKey);
+
+    if (!token) {
+      window.location.href = '/login.html';
+    }
+
+    function logout() {
+      localStorage.removeItem(tokenKey);
+      localStorage.removeItem(meKey);
+      window.location.href = '/login.html';
+    }
+
+    function api(path, options = {}) {
+      return fetch(path, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...(options.headers || {})
+        }
+      });
+    }
+
+    function initPills(id, multi = false) {
+      const wrap = document.getElementById(id);
+      if (!wrap) return;
+
+      wrap.querySelectorAll('.pill').forEach(p => {
+        p.addEventListener('click', () => {
+          if (!multi) {
+            wrap.querySelectorAll('.pill').forEach(x => x.classList.remove('selected'));
+          }
+          p.classList.toggle('selected');
+        });
+      });
+    }
+
+    function getPill(id, multi = false) {
+      const wrap = document.getElementById(id);
+      const selected = [...(wrap?.querySelectorAll('.pill.selected') || [])].map(x => x.dataset.val);
+      return multi ? selected.join(', ') : (selected[0] || '');
+    }
+
+    function clearPills(id) {
+      document.getElementById(id)?.querySelectorAll('.pill').forEach(x => x.classList.remove('selected'));
+    }
+
+    function collectQuestionNotes() {
+      return [...document.querySelectorAll('.q-note')]
+        .map(el => {
+          const text = el.value.trim();
+          const label = el.dataset.noteLabel || 'Заметка';
+          return text ? `${label}: ${text}` : '';
+        })
+        .filter(Boolean)
+        .join('\n\n');
+    }
+
+    initPills('pills-english');
+    initPills('pills-platforms');
+    initPills('pills-shifts', true);
+    initPills('pills-schedule');
+
+    const criteria = [
+      {
+        section: 'Опыт и результаты',
+        items: [
+          'Опыт в adult / смежных продажах',
+          'Понимает свои цифры и метрики',
+          'Читает сигналы фана к апсейлу'
+        ]
+      },
+      {
+        section: 'Коммуникация',
+        items: [
+          'Пишет тепло, без шаблонов',
+          'Работает с возражениями спокойно'
+        ]
+      },
+      {
+        section: 'Личность и мотивация',
+        items: [
+          'Открыт к фидбэку',
+          'Реалистичные финансовые ожидания',
+          'График совместим с нашими сменами',
+          'Есть долгосрочная мотивация',
+          'Общее впечатление — зрелость'
+        ]
+      }
+    ];
+
+    const ratings = {};
+    let criterionCounter = 0;
+
+    function buildChecklist() {
+      const root = document.getElementById('criteria-grid');
+      root.innerHTML = '';
+
+      criteria.forEach(section => {
+        const block = document.createElement('div');
+        block.className = 'criteria-card';
+
+        const title = document.createElement('div');
+        title.className = 'criteria-title';
+        title.textContent = section.section;
+        block.appendChild(title);
+
+        section.items.forEach(item => {
+          const id = 'crit_' + (++criterionCounter);
+          ratings[id] = 0;
+
+          const row = document.createElement('div');
+          row.className = 'crit-row';
+
+          const label = document.createElement('div');
+          label.className = 'crit-label';
+          label.textContent = item;
+
+          const stars = document.createElement('div');
+          stars.className = 'stars';
+
+          for (let i = 1; i <= 5; i++) {
+            const star = document.createElement('span');
+            star.className = 'star';
+            star.textContent = '★';
+            star.dataset.id = id;
+            star.dataset.val = i;
+
+            star.addEventListener('click', () => {
+              ratings[id] = ratings[id] === i ? 0 : i;
+              renderStars(id);
+              updateTotal();
+            });
+
+            star.addEventListener('mouseover', () => {
+              document.querySelectorAll(`.star[data-id="${id}"]`).forEach(s => {
+                s.classList.toggle('on', Number(s.dataset.val) <= i);
+              });
+            });
+
+            star.addEventListener('mouseout', () => renderStars(id));
+            stars.appendChild(star);
+          }
+
+          row.appendChild(label);
+          row.appendChild(stars);
+          block.appendChild(row);
+        });
+
+        root.appendChild(block);
+      });
+    }
+
+    function renderStars(id) {
+      document.querySelectorAll(`.star[data-id="${id}"]`).forEach(star => {
+        star.classList.toggle('on', Number(star.dataset.val) <= ratings[id]);
+      });
+    }
+
+    function getVerdict(total) {
+      if (total >= 40) return { text: '✓ Берём — сильный кандидат', cls: 'green' };
+      if (total >= 28) return { text: '⚠ Думаем — нужен доп. скрининг / тест-смена', cls: 'yellow' };
+      if (total > 0) return { text: '✗ Отказ — слабый фит', cls: 'red' };
+      return null;
+    }
+
+    function updateTotal() {
+      const total = Object.values(ratings).reduce((a, b) => a + b, 0);
+      document.getElementById('total-score').innerHTML = `${total} <span>/ 50</span>`;
+
+      const verdict = document.getElementById('verdict');
+      const v = getVerdict(total);
+
+      if (!v) {
+        verdict.className = 'verdict';
+        verdict.textContent = '';
+        return;
+      }
+
+      verdict.className = `verdict show ${v.cls}`;
+      verdict.textContent = v.text;
+    }
+
+    function getFields() {
+      const mainNotes = document.getElementById('f-notes').value.trim();
+      const questionNotes = collectQuestionNotes();
+
+      const combinedNotes = [
+        mainNotes,
+        questionNotes ? `Структурированные заметки по интервью:\n\n${questionNotes}` : ''
+      ].filter(Boolean).join('\n\n────────────\n\n');
+
+      return {
+        name: document.getElementById('f-name').value.trim(),
+        tg: document.getElementById('f-tg').value.trim().replace(/^@*/, '@').replace(/^@$/, ''),
+        age: document.getElementById('f-age').value.trim(),
+        english: getPill('pills-english'),
+        exp: document.getElementById('f-exp').value.trim(),
+        platforms: getPill('pills-platforms'),
+        shift: getPill('pills-shifts', true),
+        schedule: getPill('pills-schedule'),
+        top: document.getElementById('f-top').value.trim(),
+        avgcheck: document.getElementById('f-avgcheck').value.trim(),
+        job: document.getElementById('f-job').value.trim(),
+        status: document.getElementById('f-status-select').value,
+        notes: combinedNotes
+      };
+    }
+
+    function clearFields() {
+      [
+        'f-name','f-tg','f-age','f-exp','f-top','f-avgcheck','f-job','f-notes'
+      ].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+
+      document.querySelectorAll('.q-note').forEach(el => el.value = '');
+
+      const statusSelect = document.getElementById('f-status-select');
+      if (statusSelect) statusSelect.value = '';
+
+      ['pills-english','pills-platforms','pills-shifts','pills-schedule','pills-status'].forEach(clearPills);
+    }
+
+    function setSaveStatus(text) {
+      document.getElementById('save-status').textContent = text;
+    }
+
+    async function saveCandidate() {
+      const fields = getFields();
+      const total = Object.values(ratings).reduce((a,b)=>a+b,0);
+      const btn = document.getElementById('save-btn');
+
+      if (!fields.name) {
+        setSaveStatus('Нужно заполнить хотя бы имя кандидата');
+        btn.classList.remove('saved');
+        btn.classList.add('error');
+        setTimeout(() => btn.classList.remove('error'), 1800);
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Сохраняем...';
+      setSaveStatus('Отправляем кандидата в базу...');
+
+      try {
+        const res = await api('/candidates', {
+          method: 'POST',
+          body: JSON.stringify({
+            fields,
+            ratings,
+            total
+          })
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || 'Ошибка сохранения');
+        }
+
+        btn.textContent = 'Сохранено';
+        btn.classList.add('saved');
+        setSaveStatus('Кандидат сохранён в базу');
+
+        clearFields();
+
+        Object.keys(ratings).forEach(id => {
+          ratings[id] = 0;
+          renderStars(id);
+        });
+
+        updateTotal();
+
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.textContent = 'Сохранить кандидата';
+          btn.classList.remove('saved');
+        }, 1800);
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Ошибка';
+        btn.classList.add('error');
+        setSaveStatus(err.message || 'Не удалось сохранить кандидата');
+
+        setTimeout(() => {
+          btn.textContent = 'Сохранить кандидата';
+          btn.classList.remove('error');
+        }, 2000);
+      }
+    }
+
+    function resetAll() {
+      clearFields();
+      Object.keys(ratings).forEach(id => {
+        ratings[id] = 0;
+        renderStars(id);
+      });
+      updateTotal();
+      setSaveStatus('Форма очищена');
+    }
+
+    buildChecklist();
+    updateTotal();
+  </script>
+</body>
+</html>
