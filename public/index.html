@@ -181,10 +181,20 @@
 
     .hero{
       display:grid;
-      grid-template-columns: 400px 1fr;
+      grid-template-columns: 430px 1fr;
       gap:16px;
       align-items:start;
-      margin-bottom:16px;
+    }
+
+    .left-column{
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+
+    .left-column .card,
+    .left-column .checklist{
+      position:static;
     }
 
     .card{
@@ -464,11 +474,12 @@
     }
 
     .checklist{
-      margin-top:16px;
+      margin-top:0;
       background:var(--surface2);
       border:1px solid var(--border);
       border-radius:18px;
       padding:1rem;
+      box-shadow:var(--shadow);
     }
 
     .checklist-top{
@@ -486,7 +497,7 @@
     }
 
     .score-box{
-      min-width:220px;
+      width:100%;
       background:var(--surface3);
       border:1px solid var(--border2);
       border-radius:14px;
@@ -529,7 +540,7 @@
 
     .criteria-grid{
       display:grid;
-      grid-template-columns:1fr 1fr;
+      grid-template-columns:1fr;
       gap:14px;
     }
 
@@ -628,12 +639,20 @@
       .hero{
         grid-template-columns:1fr;
       }
+
+      .left-column{
+        order:1;
+      }
+
+      .script-wrap{
+        order:2;
+      }
     }
 
     @media (max-width: 920px){
       .sidebar{display:none}
       .main{margin-left:0;padding:1rem}
-      .grid-2,.grid-3,.criteria-grid{grid-template-columns:1fr}
+      .grid-2,.grid-3{grid-template-columns:1fr}
     }
   </style>
 </head>
@@ -658,7 +677,6 @@
       <a class="nav-item" href="#cases">4. Практические кейсы</a>
       <a class="nav-item" href="#about">5. О нас — AllStars</a>
       <a class="nav-item" href="#final">6. Финал</a>
-      <a class="nav-item" href="#score">★ Оценка</a>
     </aside>
 
     <main class="main">
@@ -675,105 +693,72 @@
       </div>
 
       <div class="hero">
-        <section class="card panel">
-          <div class="panel-title">
-            <h2>Карточка кандидата</h2>
-            <span class="mini-note">Заполняется по ходу созвона</span>
-          </div>
+        <div class="left-column">
+          <section class="card panel">
+  <div class="panel-title">
+    <h2>Быстрые заметки</h2>
+    <span class="mini-note">Короткие тезисы по ходу звонка</span>
+  </div>
 
-          <div class="stack">
-            <div class="grid-2">
-              <div class="field">
-                <label>Имя</label>
-                <input id="f-name" placeholder="Имя кандидата" />
+  <div class="stack">
+    <div class="field">
+      <label>Опыт / платформы</label>
+      <textarea id="q-experience" placeholder="Где работал, с какими моделями, какие платформы..."></textarea>
+    </div>
+
+    <div class="field">
+      <label>Цифры / метрики</label>
+      <textarea id="q-metrics" placeholder="Средний чек, PPV, сколько фанов вёл, конверсия..."></textarea>
+    </div>
+
+    <div class="field">
+      <label>Мотивация / график</label>
+      <textarea id="q-motivation" placeholder="Что хочет по доходу, какие смены, чем занят кроме работы..."></textarea>
+    </div>
+
+    <div class="field">
+      <label>Кейсы / стиль мышления</label>
+      <textarea id="q-cases" placeholder="Как отвечает на кейсы, насколько тепло пишет, как продаёт..."></textarea>
+    </div>
+
+    <div class="field">
+      <label>Red flags / сильные стороны</label>
+      <textarea id="q-flags" placeholder="Что смутило, что понравилось, что перепроверить..."></textarea>
+    </div>
+
+    <div class="field">
+      <label>Следующий шаг</label>
+      <textarea id="q-nextstep" placeholder="Тестовое / тест-смена / отказ / уточнить опыт / запросить примеры..."></textarea>
+    </div>
+  </div>
+</section>
+
+          <section class="checklist" id="score">
+            <div class="checklist-top">
+              <div>
+                <h2>Чеклист оценки</h2>
+                <p class="mini-note">Заполняется после звонка. Жёлтые звёзды — активная оценка критерия.</p>
               </div>
-              <div class="field">
-                <label>Telegram</label>
-                <input id="f-tg" placeholder="@username" />
+
+              <div class="score-box">
+                <div class="score-label">Итоговая оценка</div>
+                <div class="score-val" id="total-score">0 <span>/ 50</span></div>
+                <div class="verdict" id="verdict"></div>
               </div>
             </div>
 
-            <div class="grid-3">
-              <div class="field">
-                <label>Возраст</label>
-                <input id="f-age" placeholder="—" />
-              </div>
-              <div class="field">
-                <label>Опыт в adult (лет)</label>
-                <input id="f-exp" placeholder="—" />
-              </div>
-              <div class="field">
-                <label>Средний чек</label>
-                <input id="f-avgcheck" placeholder="—" />
-              </div>
-            </div>
+            <div class="criteria-grid" id="criteria-grid"></div>
 
-            <div class="field">
-              <label>Уровень английского</label>
-              <div class="pill-group" id="pills-english">
-                <span class="pill" data-val="A1">A1</span>
-                <span class="pill" data-val="A2">A2</span>
-                <span class="pill" data-val="B1">B1</span>
-                <span class="pill" data-val="B2">B2</span>
-                <span class="pill" data-val="C1">C1</span>
-                <span class="pill" data-val="Native">Native</span>
-              </div>
-            </div>
+            <div class="bottom-actions">
+              <div class="status-line" id="save-status">Готово к сохранению</div>
 
-            <div class="field">
-              <label>Платформы</label>
-              <div class="pill-group" id="pills-platforms">
-                <span class="pill" data-val="OnlyFans">OnlyFans</span>
-                <span class="pill" data-val="Fansly">Fansly</span>
-                <span class="pill" data-val="Обе">Обе</span>
+              <div class="sub-actions">
+                <button class="btn btn-ghost" type="button" onclick="resetAll()">Сбросить</button>
+                <button class="btn btn-primary save-btn" id="save-btn" type="button" onclick="saveCandidate()">Сохранить кандидата</button>
               </div>
             </div>
-
-            <div class="field">
-              <label>Смены (можно несколько)</label>
-              <div class="pill-group" id="pills-shifts">
-                <span class="pill" data-val="00–06">00–06</span>
-                <span class="pill" data-val="06–12">06–12</span>
-                <span class="pill" data-val="12–18">12–18</span>
-                <span class="pill" data-val="18–00">18–00</span>
-              </div>
-            </div>
-
-            <div class="field">
-              <label>График</label>
-              <div class="pill-group" id="pills-schedule">
-                <span class="pill" data-val="5/2">5/2</span>
-                <span class="pill" data-val="6/1">6/1</span>
-              </div>
-            </div>
-
-            <div class="grid-2">
-              <div class="field">
-                <label>Топ страницы / прошлое место</label>
-                <input id="f-top" placeholder="—" />
-              </div>
-              <div class="field">
-                <label>Основная занятость / учеба</label>
-                <input id="f-job" placeholder="—" />
-              </div>
-            </div>
-
-            <div class="field">
-              <label>Статус после звонка</label>
-              <div class="pill-group" id="pills-status">
-                <span class="pill" data-val="Изучает гайд">Изучает гайд</span>
-                <span class="pill" data-val="Тест-смена">Тест-смена</span>
-                <span class="pill" data-val="Принят">Принят</span>
-                <span class="pill" data-val="Отказ">Отказ</span>
-              </div>
-            </div>
-
-            <div class="field">
-              <label>Заметки HR</label>
-              <textarea id="f-notes" placeholder="Впечатление после созвона, сильные/слабые стороны, красные флаги, обещания по тестовому, причина отказа..."></textarea>
-            </div>
-          </div>
-        </section>
+          </section>
+        </div>
 
         <div class="script-wrap">
           <section class="section" id="opening">
@@ -997,32 +982,6 @@
           </section>
         </div>
       </div>
-
-      <section class="checklist" id="score">
-        <div class="checklist-top">
-          <div>
-            <h2>Чеклист оценки</h2>
-            <p class="mini-note">Заполняется после звонка. Жёлтые звёзды — это активная оценка критерия.</p>
-          </div>
-
-          <div class="score-box">
-            <div class="score-label">Итоговая оценка</div>
-            <div class="score-val" id="total-score">0 <span>/ 50</span></div>
-            <div class="verdict" id="verdict"></div>
-          </div>
-        </div>
-
-        <div class="criteria-grid" id="criteria-grid"></div>
-
-        <div class="bottom-actions">
-          <div class="status-line" id="save-status">Готово к сохранению</div>
-
-          <div class="sub-actions">
-            <button class="btn btn-ghost" type="button" onclick="resetAll()">Сбросить</button>
-            <button class="btn btn-primary save-btn" id="save-btn" type="button" onclick="saveCandidate()">Сохранить кандидата</button>
-          </div>
-        </div>
-      </section>
     </main>
   </div>
 
@@ -1203,34 +1162,55 @@
     }
 
     function getFields() {
-      return {
-        name: document.getElementById('f-name').value.trim(),
-        tg: document.getElementById('f-tg').value.trim().replace(/^@*/, '@').replace(/^@$/, ''),
-        age: document.getElementById('f-age').value.trim(),
-        english: getPill('pills-english'),
-        exp: document.getElementById('f-exp').value.trim(),
-        platforms: getPill('pills-platforms'),
-        shift: getPill('pills-shifts', true),
-        schedule: getPill('pills-schedule'),
-        top: document.getElementById('f-top').value.trim(),
-        avgcheck: document.getElementById('f-avgcheck').value.trim(),
-        job: document.getElementById('f-job').value.trim(),
-        status: getPill('pills-status'),
-        notes: document.getElementById('f-notes').value.trim()
-      };
-    }
+  const notesMain = document.getElementById('f-notes').value.trim();
+  const quickNotes = {
+    experience: document.getElementById('q-experience')?.value.trim() || '',
+    metrics: document.getElementById('q-metrics')?.value.trim() || '',
+    motivation: document.getElementById('q-motivation')?.value.trim() || '',
+    cases: document.getElementById('q-cases')?.value.trim() || '',
+    flags: document.getElementById('q-flags')?.value.trim() || '',
+    nextstep: document.getElementById('q-nextstep')?.value.trim() || ''
+  };
+
+  const quickNotesText = [
+    quickNotes.experience ? `Опыт / платформы: ${quickNotes.experience}` : '',
+    quickNotes.metrics ? `Цифры / метрики: ${quickNotes.metrics}` : '',
+    quickNotes.motivation ? `Мотивация / график: ${quickNotes.motivation}` : '',
+    quickNotes.cases ? `Кейсы / стиль мышления: ${quickNotes.cases}` : '',
+    quickNotes.flags ? `Red flags / сильные стороны: ${quickNotes.flags}` : '',
+    quickNotes.nextstep ? `Следующий шаг: ${quickNotes.nextstep}` : ''
+  ].filter(Boolean).join('\n\n');
+
+  const combinedNotes = [notesMain, quickNotesText].filter(Boolean).join('\n\n────────────\n\n');
+
+  return {
+    name: document.getElementById('f-name').value.trim(),
+    tg: document.getElementById('f-tg').value.trim().replace(/^@*/, '@').replace(/^@$/, ''),
+    age: document.getElementById('f-age').value.trim(),
+    english: getPill('pills-english'),
+    exp: document.getElementById('f-exp').value.trim(),
+    platforms: getPill('pills-platforms'),
+    shift: getPill('pills-shifts', true),
+    schedule: getPill('pills-schedule'),
+    top: document.getElementById('f-top').value.trim(),
+    avgcheck: document.getElementById('f-avgcheck').value.trim(),
+    job: document.getElementById('f-job').value.trim(),
+    status: getPill('pills-status'),
+    notes: combinedNotes
+  };
+}
 
     function clearFields() {
-      ['f-name','f-tg','f-age','f-exp','f-top','f-avgcheck','f-job','f-notes'].forEach(id => {
-        document.getElementById(id).value = '';
-      });
+  [
+    'f-name','f-tg','f-age','f-exp','f-top','f-avgcheck','f-job','f-notes',
+    'q-experience','q-metrics','q-motivation','q-cases','q-flags','q-nextstep'
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
 
-      ['pills-english','pills-platforms','pills-shifts','pills-schedule','pills-status'].forEach(clearPills);
-    }
-
-    function setSaveStatus(text) {
-      document.getElementById('save-status').textContent = text;
-    }
+  ['pills-english','pills-platforms','pills-shifts','pills-schedule','pills-status'].forEach(clearPills);
+}
 
     async function saveCandidate() {
       const fields = getFields();
