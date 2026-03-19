@@ -175,16 +175,35 @@
     }
 
     .hero{
-      display:grid;
-      grid-template-columns: 430px 1fr;
-      gap:16px;
-      align-items:start;
-    }
+  display:grid;
+  grid-template-columns: 430px minmax(0, 1fr);
+  gap:16px;
+  align-items:start;
+}
 
     .left-column{
       display:flex;
       flex-direction:column;
       gap:16px;
+      position:relative;
+      top:auto;
+      align-self:start;
+    }
+
+    .left-column,
+    .left-column *,
+    .checklist,
+    .card,
+    .panel{
+      position:relative;
+    }
+
+    .left-column,
+    .checklist,
+    .card,
+    .panel{
+      top:auto !important;
+      bottom:auto !important;
     }
 
     .card{
@@ -793,12 +812,13 @@
 
               <div class="field">
                 <label>Статус после звонка</label>
-                <div class="pill-group" id="pills-status">
-                  <span class="pill" data-val="Изучает гайд">Изучает гайд</span>
-                  <span class="pill" data-val="Тест-смена">Тест-смена</span>
-                  <span class="pill" data-val="Принят">Принят</span>
-                  <span class="pill" data-val="Отказ">Отказ</span>
-                </div>
+                <select id="f-status-select">
+                  <option value="">Выбери статус</option>
+                  <option value="Изучает гайд">Изучает гайд</option>
+                  <option value="Тест-смена">Тест-смена</option>
+                  <option value="Принят">Принят</option>
+                  <option value="Отказ">Отказ</option>
+                </select>
               </div>
 
               <div class="field">
@@ -1140,7 +1160,6 @@
     initPills('pills-platforms');
     initPills('pills-shifts', true);
     initPills('pills-schedule');
-    initPills('pills-status');
 
     const criteria = [
       {
@@ -1283,7 +1302,7 @@
         top: document.getElementById('f-top').value.trim(),
         avgcheck: document.getElementById('f-avgcheck').value.trim(),
         job: document.getElementById('f-job').value.trim(),
-        status: getPill('pills-status'),
+        status: document.getElementById('f-status-select').value,
         notes: combinedNotes
       };
     }
@@ -1297,6 +1316,9 @@
       });
 
       document.querySelectorAll('.q-note').forEach(el => el.value = '');
+
+      const statusSelect = document.getElementById('f-status-select');
+      if (statusSelect) statusSelect.value = '';
 
       ['pills-english','pills-platforms','pills-shifts','pills-schedule','pills-status'].forEach(clearPills);
     }
