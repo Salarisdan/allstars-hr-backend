@@ -29,11 +29,6 @@
       --red:#f87171;
       --red-bg:rgba(248,113,113,.10);
       --red-border:rgba(248,113,113,.22);
-      --purple:#a78bfa;
-      --purple-bg:rgba(167,139,250,.10);
-      --purple-border:rgba(167,139,250,.22);
-      --radius:14px;
-      --radius2:18px;
       --shadow:0 10px 40px rgba(0,0,0,.24);
       --fs:14px;
       --fs-sm:12px;
@@ -192,15 +187,10 @@
       gap:16px;
     }
 
-    .left-column .card,
-    .left-column .checklist{
-      position:static;
-    }
-
     .card{
       background:var(--surface2);
       border:1px solid var(--border);
-      border-radius:var(--radius2);
+      border-radius:18px;
       box-shadow:var(--shadow);
     }
 
@@ -413,6 +403,30 @@
       font-size:12px;
       line-height:1.55;
       padding-left:31px;
+    }
+
+    .q-note{
+      margin-top:8px;
+      width:100%;
+      min-height:64px;
+      background:rgba(0,0,0,.20);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:.65rem;
+      color:var(--text);
+      font-family:'Manrope',sans-serif;
+      font-size:13px;
+      line-height:1.55;
+      resize:vertical;
+    }
+
+    .q-note:focus{
+      border-color:var(--accent-border);
+      outline:none;
+    }
+
+    .q-note::placeholder{
+      color:var(--text3);
     }
 
     .note{
@@ -695,43 +709,104 @@
       <div class="hero">
         <div class="left-column">
           <section class="card panel">
-  <div class="panel-title">
-    <h2>Быстрые заметки</h2>
-    <span class="mini-note">Короткие тезисы по ходу звонка</span>
-  </div>
+            <div class="panel-title">
+              <h2>Карточка кандидата</h2>
+              <span class="mini-note">Заполняется по ходу созвона</span>
+            </div>
 
-  <div class="stack">
-    <div class="field">
-      <label>Опыт / платформы</label>
-      <textarea id="q-experience" placeholder="Где работал, с какими моделями, какие платформы..."></textarea>
-    </div>
+            <div class="stack">
+              <div class="grid-2">
+                <div class="field">
+                  <label>Имя</label>
+                  <input id="f-name" placeholder="Имя кандидата" />
+                </div>
+                <div class="field">
+                  <label>Telegram</label>
+                  <input id="f-tg" placeholder="@username" />
+                </div>
+              </div>
 
-    <div class="field">
-      <label>Цифры / метрики</label>
-      <textarea id="q-metrics" placeholder="Средний чек, PPV, сколько фанов вёл, конверсия..."></textarea>
-    </div>
+              <div class="grid-3">
+                <div class="field">
+                  <label>Возраст</label>
+                  <input id="f-age" placeholder="—" />
+                </div>
+                <div class="field">
+                  <label>Опыт в adult (лет)</label>
+                  <input id="f-exp" placeholder="—" />
+                </div>
+                <div class="field">
+                  <label>Средний чек</label>
+                  <input id="f-avgcheck" placeholder="—" />
+                </div>
+              </div>
 
-    <div class="field">
-      <label>Мотивация / график</label>
-      <textarea id="q-motivation" placeholder="Что хочет по доходу, какие смены, чем занят кроме работы..."></textarea>
-    </div>
+              <div class="field">
+                <label>Уровень английского</label>
+                <div class="pill-group" id="pills-english">
+                  <span class="pill" data-val="A1">A1</span>
+                  <span class="pill" data-val="A2">A2</span>
+                  <span class="pill" data-val="B1">B1</span>
+                  <span class="pill" data-val="B2">B2</span>
+                  <span class="pill" data-val="C1">C1</span>
+                  <span class="pill" data-val="Native">Native</span>
+                </div>
+              </div>
 
-    <div class="field">
-      <label>Кейсы / стиль мышления</label>
-      <textarea id="q-cases" placeholder="Как отвечает на кейсы, насколько тепло пишет, как продаёт..."></textarea>
-    </div>
+              <div class="field">
+                <label>Платформы</label>
+                <div class="pill-group" id="pills-platforms">
+                  <span class="pill" data-val="OnlyFans">OnlyFans</span>
+                  <span class="pill" data-val="Fansly">Fansly</span>
+                  <span class="pill" data-val="Обе">Обе</span>
+                </div>
+              </div>
 
-    <div class="field">
-      <label>Red flags / сильные стороны</label>
-      <textarea id="q-flags" placeholder="Что смутило, что понравилось, что перепроверить..."></textarea>
-    </div>
+              <div class="field">
+                <label>Смены (можно несколько)</label>
+                <div class="pill-group" id="pills-shifts">
+                  <span class="pill" data-val="00–06">00–06</span>
+                  <span class="pill" data-val="06–12">06–12</span>
+                  <span class="pill" data-val="12–18">12–18</span>
+                  <span class="pill" data-val="18–00">18–00</span>
+                </div>
+              </div>
 
-    <div class="field">
-      <label>Следующий шаг</label>
-      <textarea id="q-nextstep" placeholder="Тестовое / тест-смена / отказ / уточнить опыт / запросить примеры..."></textarea>
-    </div>
-  </div>
-</section>
+              <div class="field">
+                <label>График</label>
+                <div class="pill-group" id="pills-schedule">
+                  <span class="pill" data-val="5/2">5/2</span>
+                  <span class="pill" data-val="6/1">6/1</span>
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div class="field">
+                  <label>Топ страницы / прошлое место</label>
+                  <input id="f-top" placeholder="—" />
+                </div>
+                <div class="field">
+                  <label>Основная занятость / учеба</label>
+                  <input id="f-job" placeholder="—" />
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Статус после звонка</label>
+                <div class="pill-group" id="pills-status">
+                  <span class="pill" data-val="Изучает гайд">Изучает гайд</span>
+                  <span class="pill" data-val="Тест-смена">Тест-смена</span>
+                  <span class="pill" data-val="Принят">Принят</span>
+                  <span class="pill" data-val="Отказ">Отказ</span>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Итоговые заметки HR</label>
+                <textarea id="f-notes" placeholder="Итоговое впечатление после звонка, общие выводы, решение..."></textarea>
+              </div>
+            </div>
+          </section>
 
           <section class="checklist" id="score">
             <div class="checklist-top">
@@ -790,6 +865,7 @@
                 <div class="q-text">Расскажи кратко, где работал, с каким типажом моделей и на каких платформах?</div>
               </div>
               <div class="q-hint">Слушай не только факты, но и как человек формулирует опыт: структурно или размыто.</div>
+              <textarea class="q-note" data-note-label="Опыт / платформы" placeholder="✍️ Коротко записать ответ кандидата..."></textarea>
             </div>
 
             <div class="listen"><span>👂</span> Сильный кандидат обычно быстро называет платформы, формат трафика, тип моделей и свои зоны ответственности.</div>
@@ -800,6 +876,7 @@
                 <div class="q-text">Какие были цифры: средний чек, конверсия в PPV, сколько фанов одновременно вёл?</div>
               </div>
               <div class="q-hint">Понимает ли кандидат свои метрики или работал «на автомате» без контроля результата.</div>
+              <textarea class="q-note" data-note-label="Цифры / метрики" placeholder="✍️ Средний чек, PPV, объём работы..."></textarea>
             </div>
 
             <div class="question">
@@ -808,6 +885,7 @@
                 <div class="q-text">Какие фишки реально давали результат? Что бы ты внедрил у нас в первый месяц?</div>
               </div>
               <div class="q-hint">Ищи конкретику: ретеншн, сегментацию, re-engagement, продающие механики, кастомы, голосовые.</div>
+              <textarea class="q-note" data-note-label="Фишки / идеи" placeholder="✍️ Какие подходы реально работали у кандидата..."></textarea>
             </div>
 
             <div class="question">
@@ -816,6 +894,7 @@
                 <div class="q-text">Какая была самая крупная ошибка в чаттинге — и что ты из неё вынес?</div>
               </div>
               <div class="q-hint">Ответ «ошибок не было» — плохой знак. Нужна рефлексия и зрелость.</div>
+              <textarea class="q-note" data-note-label="Ошибки / рефлексия" placeholder="✍️ Как анализирует ошибки и чему научился..."></textarea>
             </div>
 
             <div class="question">
@@ -824,6 +903,7 @@
                 <div class="q-text">Как понимаешь, что фан готов к апсейлу прямо сейчас?</div>
               </div>
               <div class="q-hint">Смотри на понимание сигналов, тайминга и поведения платящего фана.</div>
+              <textarea class="q-note" data-note-label="Апсейл / сигналы" placeholder="✍️ Как читает готовность фана к продаже..."></textarea>
             </div>
 
             <div class="question">
@@ -832,6 +912,7 @@
                 <div class="q-text">Был ли фан, с которым ты старался, но не вышло? Что пошло не так?</div>
               </div>
               <div class="q-hint">Проверка честности и способности видеть собственные ограничения.</div>
+              <textarea class="q-note" data-note-label="Сложный кейс" placeholder="✍️ Что не сработало и как это объясняет кандидат..."></textarea>
             </div>
           </section>
 
@@ -847,6 +928,7 @@
                 <div class="q-text">Чем занимаешься помимо работы — учёба, хобби, другая занятость?</div>
               </div>
               <div class="q-hint">Оцени реальную загрузку и совместимость со сменами.</div>
+              <textarea class="q-note" data-note-label="Занятость / фон" placeholder="✍️ Что ещё есть в жизни кандидата кроме работы..."></textarea>
             </div>
 
             <div class="question">
@@ -855,6 +937,7 @@
                 <div class="q-text">Какой уровень дохода рассматриваешь на старте и через 3 месяца?</div>
               </div>
               <div class="q-hint">Нереалистичные ожидания без опыта — красный флаг.</div>
+              <textarea class="q-note" data-note-label="Финансовые ожидания" placeholder="✍️ Стартовые ожидания и планы на 3 месяца..."></textarea>
             </div>
 
             <div class="question">
@@ -863,6 +946,7 @@
                 <div class="q-text">Какие смены рассматриваешь — утро, день, вечер, ночь?</div>
               </div>
               <div class="q-hint">Сразу фиксируй в карточку. Это одна из самых важных операционных переменных.</div>
+              <textarea class="q-note" data-note-label="Смены / доступность" placeholder="✍️ Какие смены и насколько стабильно готов работать..."></textarea>
             </div>
 
             <div class="question">
@@ -871,6 +955,7 @@
                 <div class="q-text">Что для тебя идеальная работа в агентстве через год?</div>
               </div>
               <div class="q-hint">Рост в доходе или тимлидство — оба варианта нормальны. Важно наличие мотивации.</div>
+              <textarea class="q-note" data-note-label="Долгосрочная мотивация" placeholder="✍️ Как видит себя через год..."></textarea>
             </div>
 
             <div class="question">
@@ -879,6 +964,7 @@
                 <div class="q-text">Как реагируешь на критику? Был ли случай, когда фидбэк задел, но ты согласился?</div>
               </div>
               <div class="q-hint">Защитная реакция на обратную связь — слабый признак для командной работы.</div>
+              <textarea class="q-note" data-note-label="Фидбэк / зрелость" placeholder="✍️ Как принимает критику и меняет поведение..."></textarea>
             </div>
 
             <div class="question">
@@ -887,6 +973,7 @@
                 <div class="q-text">Что тебя может выбить из рабочего ритма — и как ты с этим справляешься?</div>
               </div>
               <div class="q-hint">Проверка стрессоустойчивости и осознанности.</div>
+              <textarea class="q-note" data-note-label="Стресс / ритм" placeholder="✍️ Как описывает стресс и выход из него..."></textarea>
             </div>
           </section>
 
@@ -907,24 +994,28 @@
               <div class="case-label">Кейс 1</div>
               <div class="case-text">Новый лид с TikTok. Лайкнул фото, но молчит. Модель — брюнетка, vibe «girlfriend experience». Напиши первое сообщение — не спам.</div>
               <div class="case-hint">Тёплый вход, отход от шаблонов, сохранение вайба модели.</div>
+              <textarea class="q-note" data-note-label="Кейс 1" placeholder="✍️ Как кандидат заходит в диалог, насколько тепло и нешаблонно..."></textarea>
             </div>
 
             <div class="case">
               <div class="case-label">Кейс 2</div>
               <div class="case-text">Фан флиртует 10 минут. Ты скидываешь PPV за $15. Он отвечает: «Дорого, у других дешевле» или «Скинь бесплатно, я хороший мальчик». Что делаешь?</div>
               <div class="case-hint">Работа с возражениями, удержание ценности, спокойствие в продаже.</div>
+              <textarea class="q-note" data-note-label="Кейс 2" placeholder="✍️ Как отрабатывает возражения и защищает ценность..."></textarea>
             </div>
 
             <div class="case">
               <div class="case-label">Кейс 3</div>
               <div class="case-text">Топ-спендер платил $500/мес, перестал открывать сообщения. Прошло 2 недели. Напиши win-back сообщение: без нужды и без давления.</div>
               <div class="case-hint">Ретеншн, персонализация, правильный тон, отсутствие desperate vibe.</div>
+              <textarea class="q-note" data-note-label="Кейс 3" placeholder="✍️ Как возвращает фаната и насколько тон уверенный..."></textarea>
             </div>
 
             <div class="case">
               <div class="case-label">Кейс 4</div>
               <div class="case-text">Фан несколько раз покупал PPV, но сегодня груб: «Надоело, одно и то же». Как реагируешь?</div>
               <div class="case-hint">Управление эмоциями, быстрый ретейн, смена подачи, отсутствие конфликта.</div>
+              <textarea class="q-note" data-note-label="Кейс 4" placeholder="✍️ Как держит эмоции и меняет подачу..."></textarea>
             </div>
           </section>
 
@@ -950,16 +1041,6 @@
             </div>
 
             <div class="note"><span>📌</span> После этого дай кандидату ответить. Тут хорошо видно, цепляет ли его масштаб и технологичность.</div>
-
-            <div class="speech">
-              <div class="speaker">🗣 Инструменты и условия</div>
-              Переписка через OnlyMonster. Собственная CRM: смены, отчёты, балансы — всё в одном. Базовая ставка 20%, учебная страница 25%. KPI — плюс 2%. Смены 6 часов, 5/2 или 6/1. Выплаты каждый понедельник на крипту.
-            </div>
-
-            <div class="speech">
-              <div class="speaker">🗣 Обучение</div>
-              Классических лекций нет — сразу в практику с поддержкой. Гайд в Notion → тест → тест-смена 2–2.5 часа со старшим оператором. Со второй смены человек уже работает сам. Мы не бросаем людей.
-            </div>
           </section>
 
           <section class="section" id="final">
@@ -978,6 +1059,15 @@
             <div class="speech">
               <div class="speaker">🗣 Влад</div>
               Если подходим друг другу — пришлю тестовое: стиль и грамотность, 24 часа. После — тест-смена и вход в график. Когда сможешь выполнить тестовое?
+            </div>
+
+            <div class="question">
+              <div class="q-top">
+                <div class="q-badge">✓</div>
+                <div class="q-text">Итог по кандидату и следующий шаг</div>
+              </div>
+              <div class="q-hint">Зафиксируй главный вывод, обещания и следующий шаг после звонка.</div>
+              <textarea class="q-note" data-note-label="Итог / следующий шаг" placeholder="✍️ Что решили: тестовое, тест-смена, отказ, доп. вопросы..."></textarea>
             </div>
           </section>
         </div>
@@ -1033,6 +1123,17 @@
 
     function clearPills(id) {
       document.getElementById(id)?.querySelectorAll('.pill').forEach(x => x.classList.remove('selected'));
+    }
+
+    function collectQuestionNotes() {
+      return [...document.querySelectorAll('.q-note')]
+        .map(el => {
+          const text = el.value.trim();
+          const label = el.dataset.noteLabel || 'Заметка';
+          return text ? `${label}: ${text}` : '';
+        })
+        .filter(Boolean)
+        .join('\n\n');
     }
 
     initPills('pills-english');
@@ -1162,55 +1263,47 @@
     }
 
     function getFields() {
-  const notesMain = document.getElementById('f-notes').value.trim();
-  const quickNotes = {
-    experience: document.getElementById('q-experience')?.value.trim() || '',
-    metrics: document.getElementById('q-metrics')?.value.trim() || '',
-    motivation: document.getElementById('q-motivation')?.value.trim() || '',
-    cases: document.getElementById('q-cases')?.value.trim() || '',
-    flags: document.getElementById('q-flags')?.value.trim() || '',
-    nextstep: document.getElementById('q-nextstep')?.value.trim() || ''
-  };
+      const mainNotes = document.getElementById('f-notes').value.trim();
+      const questionNotes = collectQuestionNotes();
 
-  const quickNotesText = [
-    quickNotes.experience ? `Опыт / платформы: ${quickNotes.experience}` : '',
-    quickNotes.metrics ? `Цифры / метрики: ${quickNotes.metrics}` : '',
-    quickNotes.motivation ? `Мотивация / график: ${quickNotes.motivation}` : '',
-    quickNotes.cases ? `Кейсы / стиль мышления: ${quickNotes.cases}` : '',
-    quickNotes.flags ? `Red flags / сильные стороны: ${quickNotes.flags}` : '',
-    quickNotes.nextstep ? `Следующий шаг: ${quickNotes.nextstep}` : ''
-  ].filter(Boolean).join('\n\n');
+      const combinedNotes = [
+        mainNotes,
+        questionNotes ? `Структурированные заметки по интервью:\n\n${questionNotes}` : ''
+      ].filter(Boolean).join('\n\n────────────\n\n');
 
-  const combinedNotes = [notesMain, quickNotesText].filter(Boolean).join('\n\n────────────\n\n');
-
-  return {
-    name: document.getElementById('f-name').value.trim(),
-    tg: document.getElementById('f-tg').value.trim().replace(/^@*/, '@').replace(/^@$/, ''),
-    age: document.getElementById('f-age').value.trim(),
-    english: getPill('pills-english'),
-    exp: document.getElementById('f-exp').value.trim(),
-    platforms: getPill('pills-platforms'),
-    shift: getPill('pills-shifts', true),
-    schedule: getPill('pills-schedule'),
-    top: document.getElementById('f-top').value.trim(),
-    avgcheck: document.getElementById('f-avgcheck').value.trim(),
-    job: document.getElementById('f-job').value.trim(),
-    status: getPill('pills-status'),
-    notes: combinedNotes
-  };
-}
+      return {
+        name: document.getElementById('f-name').value.trim(),
+        tg: document.getElementById('f-tg').value.trim().replace(/^@*/, '@').replace(/^@$/, ''),
+        age: document.getElementById('f-age').value.trim(),
+        english: getPill('pills-english'),
+        exp: document.getElementById('f-exp').value.trim(),
+        platforms: getPill('pills-platforms'),
+        shift: getPill('pills-shifts', true),
+        schedule: getPill('pills-schedule'),
+        top: document.getElementById('f-top').value.trim(),
+        avgcheck: document.getElementById('f-avgcheck').value.trim(),
+        job: document.getElementById('f-job').value.trim(),
+        status: getPill('pills-status'),
+        notes: combinedNotes
+      };
+    }
 
     function clearFields() {
-  [
-    'f-name','f-tg','f-age','f-exp','f-top','f-avgcheck','f-job','f-notes',
-    'q-experience','q-metrics','q-motivation','q-cases','q-flags','q-nextstep'
-  ].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
+      [
+        'f-name','f-tg','f-age','f-exp','f-top','f-avgcheck','f-job','f-notes'
+      ].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
 
-  ['pills-english','pills-platforms','pills-shifts','pills-schedule','pills-status'].forEach(clearPills);
-}
+      document.querySelectorAll('.q-note').forEach(el => el.value = '');
+
+      ['pills-english','pills-platforms','pills-shifts','pills-schedule','pills-status'].forEach(clearPills);
+    }
+
+    function setSaveStatus(text) {
+      document.getElementById('save-status').textContent = text;
+    }
 
     async function saveCandidate() {
       const fields = getFields();
