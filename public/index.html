@@ -687,6 +687,41 @@
       .main{margin-left:0;padding:1rem}
       .grid-2,.grid-3{grid-template-columns:1fr}
     }
+
+    /* FORCE LEFT COLUMN TO SCROLL NORMALLY */
+    .hero,
+    .left-column,
+    .left-column > *,
+    .checklist,
+    .card,
+    .panel {
+      position: static !important;
+      top: auto !important;
+      bottom: auto !important;
+      left: auto !important;
+      right: auto !important;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 430px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .left-column {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-self: start;
+    }
+
+    @media (max-width: 1180px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+    }
+
   </style>
 </head>
 <body>
