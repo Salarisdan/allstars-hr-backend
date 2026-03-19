@@ -186,22 +186,7 @@
       display:flex;
       flex-direction:column;
       gap:16px;
-    }
-
-    .hero{
-  display:grid;
-  grid-template-columns:430px minmax(0,1fr);
-  gap:16px;
-  align-items:start;
-  margin:0;
-}
-
-    .left-column{
-      display:flex;
-      flex-direction:column;
-      gap:16px;
       align-self:start;
-      position:static !important;
     }
 
     .card{
@@ -209,12 +194,10 @@
       border:1px solid var(--border);
       border-radius:18px;
       box-shadow:var(--shadow);
-      position:static !important;
     }
 
     .panel{
       padding:1rem;
-      position:static !important;
     }
 
     .checklist{
@@ -224,7 +207,6 @@
       border-radius:18px;
       padding:1rem;
       box-shadow:var(--shadow);
-      position:static !important;
     }
 
     .script-wrap{
@@ -238,6 +220,18 @@
       .hero{
         grid-template-columns:1fr;
       }
+
+      .left-column{
+        order:1;
+      }
+
+      .script-wrap{
+        order:2;
+      }
+    }
+
+    .panel-title{
+
     }
 
     .panel-title{
@@ -711,32 +705,6 @@
       .grid-2,.grid-3{grid-template-columns:1fr}
     }
 
-    /* LEFT COLUMN MUST MOVE WITH PAGE */
-    .left-column,
-    .left-column > section,
-    .left-column .card,
-    .left-column .panel,
-    .left-column .checklist{
-      position:relative !important;
-      top:auto !important;
-      bottom:auto !important;
-      left:auto !important;
-      right:auto !important;
-      transform:none !important;
-    }
-
-    .left-column,
-    .left-column > section{
-      overflow:visible !important;
-      max-height:none !important;
-      height:auto !important;
-    }
-
-    @media (max-width:1180px){
-      .hero{
-        grid-template-columns:1fr;
-      }
-    }
 
   </style>
 </head>
