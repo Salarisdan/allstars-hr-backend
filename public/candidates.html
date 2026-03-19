@@ -1,307 +1,1438 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AllStars — Кандидаты</title>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AllStars — База кандидатов</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-:root{
-  --bg:#0d0f14;--surface:#141720;--surface2:#1c2030;--surface3:#232840;
-  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
-  --accent:#4f6ef7;--accent2:#6c87ff;--accent-bg:rgba(79,110,247,0.12);--accent-border:rgba(79,110,247,0.3);
-  --text:#e8eaf0;--text2:#8b90a8;--text3:#4a5068;
-  --green:#34d39a;--green-bg:rgba(52,211,154,0.1);--green-border:rgba(52,211,154,0.25);
-  --yellow:#fbbf24;--yellow-bg:rgba(251,191,36,0.1);--yellow-border:rgba(251,191,36,0.25);
-  --red:#f87171;--red-bg:rgba(248,113,113,0.1);--red-border:rgba(248,113,113,0.25);
-  --purple:#a78bfa;--purple-bg:rgba(167,139,250,0.1);--purple-border:rgba(167,139,250,0.25);
-  --orange:#fb923c;
-  --r:10px;--r2:14px;--fs:14px;--fs-sm:12px;--fs-xs:11px;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);font-size:var(--fs);line-height:1.6}
-a{text-decoration:none;color:inherit}
-.layout{display:flex;min-height:100vh}
-.sidebar{width:240px;flex-shrink:0;position:fixed;top:0;left:0;bottom:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:1.25rem 0 2rem}
-.sidebar-logo{padding:0 1rem 1rem;border-bottom:1px solid var(--border);margin-bottom:.75rem}
-.sidebar-logo .brand{font-size:16px;font-weight:700}
-.sidebar-logo .sub{font-size:var(--fs-xs);color:var(--text3);margin-top:2px}
-.sidebar-section{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);padding:.4rem 1rem .2rem}
-.nav-item{display:flex;align-items:center;gap:8px;padding:8px 1rem;font-size:var(--fs-sm);color:var(--text2);border-left:2px solid transparent;transition:.15s}
-.nav-item:hover{background:rgba(255,255,255,.03);color:var(--text)}
-.nav-item.active{color:var(--accent2);background:var(--accent-bg);border-left-color:var(--accent)}
-.nav-num{min-width:18px;color:var(--text3);font-size:var(--fs-xs)}
-.sidebar-footer{padding:1rem;border-top:1px solid var(--border);margin-top:1rem}
-.main{margin-left:240px;flex:1;padding:2rem 1.5rem 4rem;max-width:1180px}
-.page-header{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;margin-bottom:1.5rem}
-.page-header .tag{display:inline-block;font-size:var(--fs-xs);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent2);background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:20px;padding:4px 10px;margin-bottom:.75rem}
-.page-header h1{font-size:28px;letter-spacing:-.4px}
-.page-header p{font-size:var(--fs-sm);color:var(--text2);margin-top:4px}
-.panel{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);padding:1rem}
-.grid{display:grid;gap:12px}
-.grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
-.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
-.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
-.stat-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:1rem}
-.stat-card .s-val{font-size:24px;font-weight:700}
-.stat-card .s-label{font-size:var(--fs-xs);color:var(--text3);margin-top:2px}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:1rem}
-.search-wrap{flex:1;min-width:220px;position:relative}
-.search-wrap input,.fsel,.input,.textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:.7rem .9rem;font-family:'Manrope',sans-serif;color:var(--text);outline:none}
-.search-wrap input{padding-left:34px}
-.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--text3)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:.7rem 1rem;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--r);font-family:'Manrope',sans-serif;font-size:var(--fs);font-weight:600;color:var(--accent2);cursor:pointer}
-.btn.ghost{background:none;border-color:var(--border);color:var(--text2)}
-.btn.green{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
-.btn.red{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
-.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
-.cand-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r2);padding:1rem;display:flex;flex-direction:column;gap:12px}
-.card-top{display:flex;gap:10px}
-.avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent2);font-weight:700}
-.card-name{font-weight:700}
-.card-sub{font-size:var(--fs-sm);color:var(--text2)}
-.badge{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-xs);font-weight:700;padding:4px 9px;border-radius:999px;border:1px solid var(--border)}
-.badge.green{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
-.badge.yellow{background:var(--yellow-bg);border-color:var(--yellow-border);color:var(--yellow)}
-.badge.red{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
-.badge.purple{background:var(--purple-bg);border-color:var(--purple-border);color:var(--purple)}
-.badge.default{background:var(--surface3);color:var(--text2)}
-.card-fields{display:flex;flex-direction:column;gap:6px}
-.frow{display:flex;gap:8px}
-.flabel{min-width:90px;font-size:var(--fs-xs);font-weight:700;color:var(--text3);text-transform:uppercase}
-.fval{font-size:var(--fs-sm)}
-.pill-group{display:flex;flex-wrap:wrap;gap:6px}
-.pill{padding:5px 11px;border-radius:999px;border:1px solid var(--border2);background:var(--surface3);font-size:var(--fs-sm);color:var(--text2);cursor:pointer;user-select:none}
-.pill.selected{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent2);font-weight:600}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;padding:1rem;z-index:100}
-.modal{width:100%;max-width:760px;max-height:92vh;overflow:auto;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r2);padding:1.25rem}
-.modal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.full{grid-column:1/-1}
-.table{width:100%;border-collapse:collapse}
-.table th,.table td{padding:.75rem;border-bottom:1px solid var(--border);text-align:left;font-size:var(--fs-sm)}
-.table th{color:var(--text3);font-size:var(--fs-xs);text-transform:uppercase}
-.list{display:flex;flex-direction:column;gap:8px}
-.list-item{padding:.85rem 1rem;border:1px solid var(--border);background:var(--surface2);border-radius:var(--r)}
-.hr{height:1px;background:var(--border);margin:1rem 0}
-.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem}
-.auth-card{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--border2);border-radius:18px;padding:1.3rem}
-.muted{color:var(--text2)}
-.small{font-size:var(--fs-sm)}
-.hidden{display:none!important}
-@media(max-width:980px){.grid-4,.grid-3,.grid-2,.modal-grid{grid-template-columns:1fr}.sidebar{display:none}.main{margin-left:0;padding:1.25rem 1rem 4rem}}
-</style>
+    :root{
+      --bg:#0d0f14;
+      --surface:#141720;
+      --surface2:#1b1f2c;
+      --surface3:#232840;
+      --border:rgba(255,255,255,.07);
+      --border2:rgba(255,255,255,.12);
+      --accent:#4f6ef7;
+      --accent2:#7d95ff;
+      --accent-bg:rgba(79,110,247,.12);
+      --accent-border:rgba(79,110,247,.32);
+      --text:#e8eaf0;
+      --text2:#9ba3bd;
+      --text3:#58607c;
+      --green:#34d399;
+      --green-bg:rgba(52,211,153,.10);
+      --green-border:rgba(52,211,153,.22);
+      --yellow:#fbbf24;
+      --yellow-bg:rgba(251,191,36,.10);
+      --yellow-border:rgba(251,191,36,.22);
+      --red:#f87171;
+      --red-bg:rgba(248,113,113,.10);
+      --red-border:rgba(248,113,113,.22);
+      --purple:#a78bfa;
+      --purple-bg:rgba(167,139,250,.10);
+      --purple-border:rgba(167,139,250,.22);
+      --shadow:0 10px 40px rgba(0,0,0,.24);
+      --fs:14px;
+      --fs-sm:12px;
+      --fs-xs:11px;
+    }
+
+    *{
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
+    }
+
+    body{
+      font-family:'Manrope',sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      font-size:var(--fs);
+      min-height:100vh;
+    }
+
+    .layout{
+      display:flex;
+      min-height:100vh;
+    }
+
+    .sidebar{
+      width:230px;
+      flex-shrink:0;
+      position:fixed;
+      left:0;
+      top:0;
+      bottom:0;
+      background:var(--surface);
+      border-right:1px solid var(--border);
+      padding:1.2rem 0 1.5rem;
+      overflow-y:auto;
+      z-index:10;
+    }
+
+    .sidebar-logo{
+      padding:0 1rem 1.15rem;
+      border-bottom:1px solid var(--border);
+      margin-bottom:.7rem;
+    }
+
+    .brand{
+      font-size:16px;
+      font-weight:800;
+      color:var(--text);
+    }
+
+    .sub{
+      font-size:var(--fs-xs);
+      color:var(--text3);
+      margin-top:3px;
+    }
+
+    .sidebar-section{
+      font-size:10px;
+      font-weight:700;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--text3);
+      padding:.45rem 1rem .25rem;
+    }
+
+    .nav-item{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 1rem;
+      text-decoration:none;
+      color:var(--text2);
+      font-size:var(--fs-sm);
+      border-left:2px solid transparent;
+      transition:.15s;
+    }
+
+    .nav-item:hover{
+      color:var(--text);
+      background:rgba(255,255,255,.03);
+    }
+
+    .nav-item.active{
+      color:var(--accent2);
+      border-left-color:var(--accent);
+      background:var(--accent-bg);
+    }
+
+    .main{
+      margin-left:230px;
+      width:100%;
+      padding:1.6rem 1.6rem 3rem;
+    }
+
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      flex-wrap:wrap;
+      margin-bottom:1.2rem;
+    }
+
+    .page-title h1{
+      font-size:30px;
+      font-weight:800;
+      line-height:1.12;
+      letter-spacing:-.03em;
+    }
+
+    .page-title p{
+      color:var(--text2);
+      margin-top:6px;
+      font-size:13px;
+    }
+
+    .top-actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .btn{
+      border:none;
+      cursor:pointer;
+      font-family:'Manrope',sans-serif;
+      font-weight:700;
+      font-size:13px;
+      border-radius:12px;
+      padding:.78rem 1rem;
+      transition:.15s;
+    }
+
+    .btn-primary{
+      background:var(--accent-bg);
+      border:1px solid var(--accent-border);
+      color:var(--accent2);
+    }
+
+    .btn-primary:hover{
+      background:rgba(79,110,247,.18);
+    }
+
+    .btn-ghost{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      color:var(--text2);
+    }
+
+    .btn-ghost:hover{
+      border-color:var(--border2);
+      color:var(--text);
+    }
+
+    .stats{
+      display:grid;
+      grid-template-columns:repeat(5, minmax(0, 1fr));
+      gap:12px;
+      margin-bottom:1rem;
+    }
+
+    .stat{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:.95rem 1rem;
+      box-shadow:var(--shadow);
+    }
+
+    .stat .val{
+      font-size:23px;
+      font-weight:800;
+    }
+
+    .stat .label{
+      color:var(--text3);
+      font-size:11px;
+      margin-top:4px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-weight:800;
+    }
+
+    .toolbar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:1rem;
+      align-items:center;
+    }
+
+    .search{
+      flex:1;
+      min-width:220px;
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:.78rem .95rem;
+      color:var(--text);
+      font-family:'Manrope',sans-serif;
+      outline:none;
+    }
+
+    .search::placeholder{
+      color:var(--text3);
+    }
+
+    .select{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:.78rem .95rem;
+      color:var(--text);
+      font-family:'Manrope',sans-serif;
+      outline:none;
+      min-width:180px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(360px, 1fr));
+      gap:14px;
+    }
+
+    .cand{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .cand-head{
+      padding:1rem;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+      border-bottom:1px solid var(--border);
+    }
+
+    .cand-main{
+      display:flex;
+      gap:12px;
+      min-width:0;
+    }
+
+    .avatar{
+      width:44px;
+      height:44px;
+      border-radius:50%;
+      background:var(--accent-bg);
+      border:1px solid var(--accent-border);
+      color:var(--accent2);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:800;
+      flex-shrink:0;
+    }
+
+    .cand-text{
+      min-width:0;
+    }
+
+    .cand-name{
+      font-size:16px;
+      font-weight:800;
+      line-height:1.2;
+      word-break:break-word;
+    }
+
+    .cand-tg{
+      color:var(--accent2);
+      font-size:13px;
+      margin-top:4px;
+      word-break:break-word;
+    }
+
+    .cand-sub{
+      color:var(--text3);
+      font-size:12px;
+      margin-top:5px;
+      word-break:break-word;
+    }
+
+    .cand-actions{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .icon-btn{
+      border:none;
+      cursor:pointer;
+      background:var(--surface3);
+      border:1px solid var(--border2);
+      color:var(--text2);
+      border-radius:10px;
+      padding:.52rem .72rem;
+      font-family:'Manrope',sans-serif;
+      font-size:12px;
+      font-weight:700;
+      transition:.15s;
+    }
+
+    .icon-btn:hover{
+      color:var(--text);
+      border-color:var(--accent-border);
+    }
+
+    .icon-btn.danger:hover{
+      color:var(--red);
+      border-color:var(--red-border);
+    }
+
+    .cand-body{
+      padding:1rem;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .meta-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+
+    .meta-box{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:.72rem .8rem;
+    }
+
+    .meta-box .k{
+      font-size:10px;
+      color:var(--text3);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-weight:800;
+      margin-bottom:5px;
+    }
+
+    .meta-box .v{
+      font-size:13px;
+      line-height:1.45;
+      word-break:break-word;
+    }
+
+    .row{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:999px;
+      padding:4px 9px;
+      font-size:11px;
+      font-weight:700;
+      white-space:nowrap;
+    }
+
+    .badge.blue{
+      background:var(--accent-bg);
+      border:1px solid var(--accent-border);
+      color:var(--accent2);
+    }
+
+    .badge.green{
+      background:var(--green-bg);
+      border:1px solid var(--green-border);
+      color:var(--green);
+    }
+
+    .badge.yellow{
+      background:var(--yellow-bg);
+      border:1px solid var(--yellow-border);
+      color:var(--yellow);
+    }
+
+    .badge.red{
+      background:var(--red-bg);
+      border:1px solid var(--red-border);
+      color:var(--red);
+    }
+
+    .badge.purple{
+      background:var(--purple-bg);
+      border:1px solid var(--purple-border);
+      color:var(--purple);
+    }
+
+    .score-wrap{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:.8rem .9rem;
+    }
+
+    .score-left{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .score{
+      font-size:24px;
+      font-weight:800;
+      line-height:1;
+    }
+
+    .score span{
+      font-size:13px;
+      color:var(--text2);
+      font-weight:500;
+    }
+
+    .status-edit{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:.7rem .8rem;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .status-edit label{
+      font-size:10px;
+      color:var(--text3);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-weight:800;
+    }
+
+    .status-select{
+      width:100%;
+      background:none;
+      border:none;
+      outline:none;
+      color:var(--text);
+      font-family:'Manrope',sans-serif;
+      font-size:13px;
+    }
+
+    .notes-wrap{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .notes-title{
+      font-size:11px;
+      color:var(--text3);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-weight:800;
+    }
+
+    .note-section{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:.8rem .9rem;
+    }
+
+    .note-section-title{
+      font-size:12px;
+      font-weight:800;
+      color:var(--accent2);
+      margin-bottom:6px;
+    }
+
+    .note-section-text{
+      font-size:13px;
+      line-height:1.6;
+      color:var(--text);
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    .note-plain{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:.8rem .9rem;
+      font-size:13px;
+      line-height:1.6;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    .ai-box{
+      background:linear-gradient(180deg, rgba(79,110,247,.10), rgba(79,110,247,.05));
+      border:1px solid var(--accent-border);
+      border-radius:14px;
+      padding:.85rem .95rem;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .ai-head{
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .ai-title{
+      font-size:12px;
+      font-weight:800;
+      color:var(--accent2);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+
+    .ai-summary{
+      font-size:13px;
+      line-height:1.6;
+      color:var(--text);
+    }
+
+    .ai-columns{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    .ai-list{
+      background:rgba(255,255,255,.03);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:.75rem .8rem;
+    }
+
+    .ai-list-title{
+      font-size:11px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:var(--text3);
+      margin-bottom:6px;
+    }
+
+    .ai-list ul{
+      padding-left:16px;
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+    }
+
+    .ai-list li{
+      font-size:13px;
+      line-height:1.5;
+      color:var(--text);
+    }
+
+    .history{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .history-item{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:.75rem .85rem;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .history-item .left{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .history-item .date{
+      color:var(--text3);
+      font-size:12px;
+    }
+
+    .empty{
+      background:var(--surface2);
+      border:1px dashed var(--border2);
+      border-radius:18px;
+      padding:2rem 1rem;
+      text-align:center;
+      color:var(--text3);
+    }
+
+    .modal{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.62);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:1rem;
+      z-index:50;
+    }
+
+    .modal.show{
+      display:flex;
+    }
+
+    .modal-card{
+      width:min(760px, 100%);
+      max-height:90vh;
+      overflow:auto;
+      background:var(--surface);
+      border:1px solid var(--border2);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      padding:1rem;
+    }
+
+    .modal-head{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:center;
+      margin-bottom:1rem;
+    }
+
+    .modal-title{
+      font-size:18px;
+      font-weight:800;
+    }
+
+    .form-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    .field{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:.72rem .85rem;
+    }
+
+    .field.full{
+      grid-column:1 / -1;
+    }
+
+    .field label{
+      display:block;
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-weight:800;
+      color:var(--text3);
+      margin-bottom:5px;
+    }
+
+    .field input,
+    .field textarea,
+    .field select{
+      width:100%;
+      background:none;
+      border:none;
+      outline:none;
+      color:var(--text);
+      font-size:14px;
+      font-family:'Manrope',sans-serif;
+    }
+
+    .field textarea{
+      resize:vertical;
+      min-height:90px;
+      line-height:1.55;
+    }
+
+    .modal-actions{
+      display:flex;
+      justify-content:flex-end;
+      gap:8px;
+      margin-top:1rem;
+      flex-wrap:wrap;
+    }
+
+    @media (max-width:1180px){
+      .stats{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width:920px){
+      .sidebar{
+        display:none;
+      }
+
+      .main{
+        margin-left:0;
+        padding:1rem;
+      }
+
+      .grid{
+        grid-template-columns:1fr;
+      }
+
+      .meta-grid,
+      .form-grid,
+      .ai-columns{
+        grid-template-columns:1fr;
+      }
+    }
+  </style>
 </head>
 <body>
-<div class="layout">
-  <nav class="sidebar">
-    <div class="sidebar-logo">
-      <div class="brand">AllStars</div>
-      <div class="sub" data-me-agency>Agency</div>
-    </div>
-    <div class="sidebar-section">Workspace</div>
-    <a class="nav-item" href="/dashboard.html"><span class="nav-num">🏠</span><span>Dashboard</span></a>
-    <a class="nav-item" href="/index.html"><span class="nav-num">＋</span><span>Новый кандидат</span></a>
-    <a class="nav-item active" href="/candidates.html"><span class="nav-num">👥</span><span>Кандидаты</span></a>
-    <a class="nav-item" href="/team.html"><span class="nav-num">🧑‍🤝‍🧑</span><span>Команда</span></a>
-    <div class="sidebar-footer">
-      <div class="small muted">Вошёл как</div>
-      <div style="font-weight:700" data-me-name></div>
-      <div class="small muted" data-me-role></div>
-      <button class="btn ghost" style="margin-top:.75rem;width:100%" onclick="clearSession()">Выйти</button>
-    </div>
-  </nav>
-
-  <main class="main">
-    <div class="page-header">
-      <div>
-        <div class="tag">Agency pipeline</div>
-        <h1>База кандидатов</h1>
-        <p>Поиск, фильтры, AI-инсайты и разделение доступа по ролям.</p>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="brand">AllStars</div>
+        <div class="sub">База кандидатов</div>
       </div>
-      <a class="btn" href="/index.html">Добавить кандидата</a>
-    </div>
 
-    <div class="toolbar">
-      <div class="search-wrap">
-        <span class="search-icon">🔍</span>
-        <input id="q" placeholder="Имя, @username, заметки..." />
+      <div class="sidebar-section">Навигация</div>
+      <a class="nav-item" href="/index.html">🧑‍💼 Новый кандидат</a>
+      <a class="nav-item active" href="/candidates.html">👥 Кандидаты</a>
+      <a class="nav-item" href="/dashboard.html">📊 Dashboard</a>
+      <a class="nav-item" href="/team.html">🫂 Команда</a>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="page-title">
+          <h1>База кандидатов</h1>
+          <p>Просмотр, редактирование, быстрый статус и аккуратные заметки по интервью.</p>
+        </div>
+
+        <div class="top-actions">
+          <button class="btn btn-ghost" id="refreshBtn">Обновить</button>
+          <button class="btn btn-primary" onclick="location.href='/index.html'">Новый кандидат</button>
+        </div>
       </div>
-      <select class="fsel" id="status">
-        <option value="">Все статусы</option>
-        <option value="Принят">Принят</option>
-        <option value="Тест-смена">Тест-смена</option>
-        <option value="Изучает гайд">Изучает гайд</option>
-        <option value="Отказ">Отказ</option>
-      </select>
-      <select class="fsel" id="verdict">
-        <option value="">Все вердикты</option>
-        <option value="hire">Берём</option>
-        <option value="review">Думаем</option>
-        <option value="reject">Отказ</option>
-      </select>
-      <button class="btn ghost" id="apply">Применить</button>
-    </div>
 
-    <div class="cards-grid" id="grid"></div>
-  </main>
-</div>
+      <div class="stats" id="stats"></div>
 
-<div class="modal-overlay" id="modal">
-  <div class="modal">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:1rem">
-      <h2 id="m-title">Кандидат</h2>
-      <button class="btn ghost" onclick="closeModal()">Закрыть</button>
-    </div>
-    <div class="grid grid-2">
-      <div class="panel">
-        <h3 style="margin-bottom:.75rem">История статусов</h3>
-        <div id="m-history" class="list"></div>
+      <div class="toolbar">
+        <input class="search" id="searchInput" placeholder="Поиск по имени, Telegram, заметкам, платформам..." />
+        <select class="select" id="statusFilter">
+          <option value="">Все статусы</option>
+          <option value="Изучает гайд">Изучает гайд</option>
+          <option value="Тест-смена">Тест-смена</option>
+          <option value="Принят">Принят</option>
+          <option value="Отказ">Отказ</option>
+        </select>
+        <select class="select" id="verdictFilter">
+          <option value="">Все вердикты</option>
+          <option value="hire">Берём</option>
+          <option value="review">Думаем</option>
+          <option value="reject">Отказ</option>
+        </select>
+        <select class="select" id="sortSelect">
+          <option value="new">Сначала новые</option>
+          <option value="old">Сначала старые</option>
+          <option value="score_desc">По баллу ↓</option>
+          <option value="score_asc">По баллу ↑</option>
+        </select>
       </div>
-      <div class="panel">
-        <h3 style="margin-bottom:.75rem">AI recommendation</h3>
-        <div id="m-ai"></div>
+
+      <div class="grid" id="grid"></div>
+    </main>
+  </div>
+
+  <div class="modal" id="editModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title">Редактировать кандидата</div>
+        <button class="icon-btn" onclick="closeModal()">Закрыть</button>
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label>Имя</label>
+          <input id="m-name" />
+        </div>
+        <div class="field">
+          <label>Telegram</label>
+          <input id="m-tg" />
+        </div>
+        <div class="field">
+          <label>Возраст</label>
+          <input id="m-age" />
+        </div>
+        <div class="field">
+          <label>Опыт</label>
+          <input id="m-exp" />
+        </div>
+        <div class="field">
+          <label>Английский</label>
+          <input id="m-english" />
+        </div>
+        <div class="field">
+          <label>Средний чек</label>
+          <input id="m-avgcheck" />
+        </div>
+        <div class="field">
+          <label>Платформы</label>
+          <input id="m-platforms" />
+        </div>
+        <div class="field">
+          <label>Смены</label>
+          <input id="m-shift" />
+        </div>
+        <div class="field">
+          <label>График</label>
+          <input id="m-schedule" />
+        </div>
+        <div class="field">
+          <label>Топ страницы</label>
+          <input id="m-top" />
+        </div>
+        <div class="field">
+          <label>Занятость</label>
+          <input id="m-job" />
+        </div>
+        <div class="field">
+          <label>Статус</label>
+          <select id="m-status">
+            <option value="">Без статуса</option>
+            <option value="Изучает гайд">Изучает гайд</option>
+            <option value="Тест-смена">Тест-смена</option>
+            <option value="Принят">Принят</option>
+            <option value="Отказ">Отказ</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label>Заметки</label>
+          <textarea id="m-notes"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+        <button class="btn btn-primary" onclick="saveEdit()">Сохранить</button>
       </div>
     </div>
   </div>
-</div>
 
-<script>
-const API = window.location.origin;
-const tokenKey = 'allstars_token';
-const meKey = 'allstars_me';
+  <script>
+    const tokenKey = 'allstars_token';
+    const meKey = 'allstars_me';
+    const token = localStorage.getItem(tokenKey);
 
-function getToken(){ return localStorage.getItem(tokenKey); }
-function setToken(token){ localStorage.setItem(tokenKey, token); }
-function clearSession(){ localStorage.removeItem(tokenKey); localStorage.removeItem(meKey); window.location.href = '/login.html'; }
-function setMe(me){ localStorage.setItem(meKey, JSON.stringify(me)); }
-function getMe(){ try { return JSON.parse(localStorage.getItem(meKey) || 'null'); } catch { return null; } }
+    if (!token) {
+      window.location.href = '/login.html';
+    }
 
-async function api(path, options = {}) {
-  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
-  const token = getToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API}${path}`, { ...options, headers });
-  if (res.status === 401) { clearSession(); throw new Error('Unauthorized'); }
-  const text = await res.text();
-  const data = text ? JSON.parse(text) : {};
-  if (!res.ok) throw new Error(data.error || 'Request failed');
-  return data;
-}
+    const grid = document.getElementById('grid');
+    const stats = document.getElementById('stats');
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const verdictFilter = document.getElementById('verdictFilter');
+    const sortSelect = document.getElementById('sortSelect');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const editModal = document.getElementById('editModal');
 
-function initials(name='?'){
-  return name.trim().split(/\s+/).map(x=>x[0]).join('').toUpperCase().slice(0,2) || '?';
-}
-function verdictClass(total){
-  if (total >= 40) return 'green';
-  if (total >= 28) return 'yellow';
-  if (total > 0) return 'red';
-  return 'default';
-}
-function verdictLabel(total){
-  if (total >= 40) return 'Берём';
-  if (total >= 28) return 'Думаем';
-  if (total > 0) return 'Отказ';
-  return 'Без оценки';
-}
-function statusClass(status=''){
-  const x = status.toLowerCase();
-  if (x.includes('принят')) return 'green';
-  if (x.includes('тест')) return 'purple';
-  if (x.includes('гайд')) return 'yellow';
-  if (x.includes('отказ')) return 'red';
-  return 'default';
-}
-function fmtDate(s){
-  if (!s) return '—';
-  return new Date(s).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
-}
-async function loadMe(){
-  const me = await api('/auth/me');
-  setMe(me);
-  const nameEl = document.querySelector('[data-me-name]');
-  const roleEl = document.querySelector('[data-me-role]');
-  const agencyEl = document.querySelector('[data-me-agency]');
-  if (nameEl) nameEl.textContent = me.full_name;
-  if (roleEl) roleEl.textContent = me.role;
-  if (agencyEl) agencyEl.textContent = me.agency_name || '';
-  return me;
-}
-</script>
-<script>
-let all = [];
-async function load() {
-  const params = new URLSearchParams();
-  if (document.getElementById('q').value.trim()) params.set('search', document.getElementById('q').value.trim());
-  if (document.getElementById('status').value) params.set('status', document.getElementById('status').value);
-  if (document.getElementById('verdict').value) params.set('verdict', document.getElementById('verdict').value);
-  all = await api('/candidates?' + params.toString());
-  render();
-}
-function card(candidate) {
-  return `
-    <div class="cand-card">
-      <div class="card-top">
-        <div class="avatar">${initials(candidate.name)}</div>
-        <div style="flex:1">
-          <div class="card-name">${candidate.name}</div>
-          <div class="card-sub">${candidate.tg || '—'} · HR: ${candidate.owner_name || '—'}</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <span class="badge ${verdictClass(candidate.total)}">${verdictLabel(candidate.total)} · ${candidate.total}/50</span>
-        <span class="badge ${statusClass(candidate.status)}">${candidate.status || 'Без статуса'}</span>
-      </div>
-      <div class="card-fields">
-        <div class="frow"><span class="flabel">Англ.</span><span class="fval">${candidate.english || '—'}</span></div>
-        <div class="frow"><span class="flabel">Опыт</span><span class="fval">${candidate.exp || '—'}</span></div>
-        <div class="frow"><span class="flabel">Платформы</span><span class="fval">${candidate.platforms || '—'}</span></div>
-        <div class="frow"><span class="flabel">Смены</span><span class="fval">${candidate.shift || '—'}</span></div>
-      </div>
-      <div class="small muted">${candidate.notes || 'Без заметок'}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn ghost" onclick="openDetails(${candidate.id}, '${(candidate.name || '').replace(/'/g, "\'")}')">AI / История</button>
-        <button class="btn red" onclick="removeCandidate(${candidate.id})">Удалить</button>
-      </div>
-    </div>
-  `;
-}
-function render() {
-  const grid = document.getElementById('grid');
-  grid.innerHTML = all.map(card).join('') || '<div class="muted">Нет данных</div>';
-}
-async function openDetails(id, name) {
-  document.getElementById('m-title').textContent = name;
-  const data = await api(`/candidates/${id}/history`);
-  document.getElementById('m-history').innerHTML = data.history.map(item => `
-    <div class="list-item">
-      <strong>${item.status}</strong>
-      <div class="small muted">${item.changed_by_name || '—'} · ${fmtDate(item.created_at)}</div>
-    </div>
-  `).join('') || '<div class="muted small">Истории пока нет</div>';
+    let allCandidates = [];
+    let currentEditId = null;
 
-  const ai = data.ai;
-  document.getElementById('m-ai').innerHTML = ai ? `
-    <div class="list">
-      <div class="list-item"><strong>${ai.recommendation}</strong> · confidence ${ai.confidence}%</div>
-      <div class="list-item">${ai.summary}</div>
-      <div class="list-item"><strong>Сильные стороны</strong><div class="small muted">${(ai.strengths || []).join(' · ') || '—'}</div></div>
-      <div class="list-item"><strong>Риски</strong><div class="small muted">${(ai.risks || []).join(' · ') || '—'}</div></div>
-    </div>
-  ` : '<div class="muted small">AI insight ещё не сформирован</div>';
-  document.getElementById('modal').style.display = 'flex';
-}
-function closeModal() { document.getElementById('modal').style.display = 'none'; }
-async function removeCandidate(id) {
-  if (!confirm('Удалить кандидата?')) return;
-  await api(`/candidates/${id}`, { method:'DELETE' });
-  await load();
-}
-(async function(){
-  if (!getToken()) return clearSession();
-  await loadMe();
-  document.getElementById('apply').onclick = load;
-  await load();
-})().catch(err => alert(err.message));
-</script>
+    function api(path, options = {}) {
+      return fetch(path, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...(options.headers || {})
+        }
+      });
+    }
+
+    function initials(name = '') {
+      return name
+        .trim()
+        .split(/\s+/)
+        .map(x => x[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase() || '?';
+    }
+
+    function formatDate(date) {
+      if (!date) return '—';
+      const d = new Date(date);
+      return d.toLocaleString('ru-RU', {
+        day:'2-digit',
+        month:'2-digit',
+        year:'numeric',
+        hour:'2-digit',
+        minute:'2-digit'
+      });
+    }
+
+    function verdictMeta(total) {
+      if (total >= 40) return { label:'Берём', cls:'green' };
+      if (total >= 28) return { label:'Думаем', cls:'yellow' };
+      if (total > 0) return { label:'Отказ', cls:'red' };
+      return { label:'Без оценки', cls:'blue' };
+    }
+
+    function statusMeta(status) {
+      if (status === 'Принят') return 'green';
+      if (status === 'Тест-смена') return 'purple';
+      if (status === 'Изучает гайд') return 'yellow';
+      if (status === 'Отказ') return 'red';
+      return 'blue';
+    }
+
+    function escapeHtml(str = '') {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function escapeAttr(str = '') {
+      return escapeHtml(str);
+    }
+
+    function parseStructuredNotes(notes = '') {
+      const raw = String(notes || '').trim();
+      if (!raw) return { intro:'', sections:[] };
+
+      const divider = '────────────';
+      const parts = raw.split(divider).map(x => x.trim()).filter(Boolean);
+
+      let intro = '';
+      let structuredText = raw;
+
+      if (parts.length >= 2) {
+        intro = parts[0];
+        structuredText = parts.slice(1).join('\n\n');
+      }
+
+      const lines = structuredText
+        .split(/\n{2,}/)
+        .map(x => x.trim())
+        .filter(Boolean);
+
+      const sections = [];
+      let plain = [];
+
+      for (const line of lines) {
+        const idx = line.indexOf(':');
+        if (idx > 0 && idx < 60) {
+          const title = line.slice(0, idx).trim();
+          const text = line.slice(idx + 1).trim();
+
+          const looksStructured =
+            /опыт|платформы|метрики|ожидания|сигналы|мотивация|кейс|ошибки|стресс|следующий шаг|итог|фидбэк|фишки|апсейл|занятость|фон/i.test(title);
+
+          if (looksStructured) {
+            sections.push({ title, text });
+          } else {
+            plain.push(line);
+          }
+        } else {
+          plain.push(line);
+        }
+      }
+
+      if (!sections.length && !intro) {
+        return { intro:'', sections:[], plain:raw };
+      }
+
+      return {
+        intro,
+        sections,
+        plain: plain.join('\n\n')
+      };
+    }
+
+    function renderNotes(notes = '') {
+      const parsed = parseStructuredNotes(notes);
+
+      if (!notes || !String(notes).trim()) {
+        return `<div class="note-plain">Нет заметок</div>`;
+      }
+
+      let html = '';
+
+      if (parsed.intro) {
+        html += `
+          <div class="note-section">
+            <div class="note-section-title">Итог HR</div>
+            <div class="note-section-text">${escapeHtml(parsed.intro)}</div>
+          </div>
+        `;
+      }
+
+      if (parsed.sections?.length) {
+        html += parsed.sections.map(s => `
+          <div class="note-section">
+            <div class="note-section-title">${escapeHtml(s.title)}</div>
+            <div class="note-section-text">${escapeHtml(s.text)}</div>
+          </div>
+        `).join('');
+      }
+
+      if (parsed.plain) {
+        html += `<div class="note-plain">${escapeHtml(parsed.plain)}</div>`;
+      }
+
+      if (!html) {
+        html = `<div class="note-plain">${escapeHtml(notes)}</div>`;
+      }
+
+      return html;
+    }
+
+    async function loadCandidates() {
+      const res = await api('/candidates');
+      if (!res.ok) throw new Error('Не удалось загрузить кандидатов');
+      allCandidates = await res.json();
+      renderStats();
+      render();
+    }
+
+    function renderStats() {
+      const total = allCandidates.length;
+      const hired = allCandidates.filter(x => x.status === 'Принят').length;
+      const trial = allCandidates.filter(x => x.status === 'Тест-смена').length;
+      const guide = allCandidates.filter(x => x.status === 'Изучает гайд').length;
+      const avg = total ? (allCandidates.reduce((a,b)=>a + Number(b.total || 0), 0) / total).toFixed(1) : '0.0';
+
+      stats.innerHTML = `
+        <div class="stat"><div class="val">${total}</div><div class="label">Всего кандидатов</div></div>
+        <div class="stat"><div class="val">${hired}</div><div class="label">Приняты</div></div>
+        <div class="stat"><div class="val">${trial}</div><div class="label">Тест-смена</div></div>
+        <div class="stat"><div class="val">${guide}</div><div class="label">Изучают гайд</div></div>
+        <div class="stat"><div class="val">${avg}</div><div class="label">Средний балл</div></div>
+      `;
+    }
+
+    function getFiltered() {
+      let rows = [...allCandidates];
+      const q = searchInput.value.trim().toLowerCase();
+      const status = statusFilter.value;
+      const verdict = verdictFilter.value;
+      const sort = sortSelect.value;
+
+      if (q) {
+        rows = rows.filter(x => {
+          const hay = [
+            x.name, x.tg, x.notes, x.platforms, x.english, x.status, x.top_pages, x.avg_check, x.job
+          ].join(' ').toLowerCase();
+          return hay.includes(q);
+        });
+      }
+
+      if (status) {
+        rows = rows.filter(x => (x.status || '') === status);
+      }
+
+      if (verdict) {
+        rows = rows.filter(x => {
+          const v = x.total >= 40 ? 'hire' : x.total >= 28 ? 'review' : x.total > 0 ? 'reject' : '';
+          return v === verdict;
+        });
+      }
+
+      if (sort === 'new') {
+        rows.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+      } else if (sort === 'old') {
+        rows.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+      } else if (sort === 'score_desc') {
+        rows.sort((a,b) => Number(b.total || 0) - Number(a.total || 0));
+      } else if (sort === 'score_asc') {
+        rows.sort((a,b) => Number(a.total || 0) - Number(b.total || 0));
+      }
+
+      return rows;
+    }
+
+    async function loadCandidateHistory(id) {
+      try {
+        const res = await api(`/candidates/${id}/history`);
+        if (!res.ok) return null;
+        return await res.json();
+      } catch {
+        return null;
+      }
+    }
+
+    async function changeStatus(id, status) {
+      const candidate = allCandidates.find(x => Number(x.id) === Number(id));
+      if (!candidate) return;
+
+      const payload = {
+        fields: {
+          name: candidate.name || '',
+          tg: candidate.tg || '',
+          age: candidate.age || '',
+          english: candidate.english || '',
+          exp: candidate.exp || '',
+          platforms: candidate.platforms || '',
+          shift: candidate.shift || '',
+          schedule: candidate.schedule || '',
+          top: candidate.top_pages || '',
+          avgcheck: candidate.avg_check || '',
+          job: candidate.job || '',
+          status: status || '',
+          notes: candidate.notes || ''
+        },
+        ratings: candidate.ratings || {},
+        total: candidate.total || 0
+      };
+
+      const res = await api(`/candidates/${id}`, {
+        method:'PATCH',
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({}));
+        alert(err.error || 'Не удалось обновить статус');
+        return;
+      }
+
+      await loadCandidates();
+    }
+
+    async function deleteCandidate(id) {
+      if (!confirm('Удалить кандидата?')) return;
+
+      const res = await api(`/candidates/${id}`, { method:'DELETE' });
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({}));
+        alert(err.error || 'Не удалось удалить кандидата');
+        return;
+      }
+
+      await loadCandidates();
+    }
+
+    function openModal(candidate) {
+      currentEditId = candidate.id;
+      document.getElementById('m-name').value = candidate.name || '';
+      document.getElementById('m-tg').value = candidate.tg || '';
+      document.getElementById('m-age').value = candidate.age || '';
+      document.getElementById('m-exp').value = candidate.exp || '';
+      document.getElementById('m-english').value = candidate.english || '';
+      document.getElementById('m-avgcheck').value = candidate.avg_check || '';
+      document.getElementById('m-platforms').value = candidate.platforms || '';
+      document.getElementById('m-shift').value = candidate.shift || '';
+      document.getElementById('m-schedule').value = candidate.schedule || '';
+      document.getElementById('m-top').value = candidate.top_pages || '';
+      document.getElementById('m-job').value = candidate.job || '';
+      document.getElementById('m-status').value = candidate.status || '';
+      document.getElementById('m-notes').value = candidate.notes || '';
+      editModal.classList.add('show');
+    }
+
+    function closeModal() {
+      currentEditId = null;
+      editModal.classList.remove('show');
+    }
+
+    async function saveEdit() {
+      const candidate = allCandidates.find(x => Number(x.id) === Number(currentEditId));
+      if (!candidate) return;
+
+      const payload = {
+        fields: {
+          name: document.getElementById('m-name').value.trim(),
+          tg: document.getElementById('m-tg').value.trim(),
+          age: document.getElementById('m-age').value.trim(),
+          english: document.getElementById('m-english').value.trim(),
+          exp: document.getElementById('m-exp').value.trim(),
+          platforms: document.getElementById('m-platforms').value.trim(),
+          shift: document.getElementById('m-shift').value.trim(),
+          schedule: document.getElementById('m-schedule').value.trim(),
+          top: document.getElementById('m-top').value.trim(),
+          avgcheck: document.getElementById('m-avgcheck').value.trim(),
+          job: document.getElementById('m-job').value.trim(),
+          status: document.getElementById('m-status').value,
+          notes: document.getElementById('m-notes').value.trim()
+        },
+        ratings: candidate.ratings || {},
+        total: candidate.total || 0
+      };
+
+      const res = await api(`/candidates/${currentEditId}`, {
+        method:'PATCH',
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({}));
+        alert(err.error || 'Не удалось сохранить');
+        return;
+      }
+
+      closeModal();
+      await loadCandidates();
+    }
+
+    async function toggleDetails(id) {
+      const box = document.getElementById(`details-${id}`);
+      if (!box) return;
+
+      if (box.dataset.loaded === '1') {
+        box.hidden = !box.hidden;
+        return;
+      }
+
+      box.hidden = false;
+      box.innerHTML = `<div class="note-plain">Загружаем детали...</div>`;
+
+      const historyData = await loadCandidateHistory(id);
+      const candidate = allCandidates.find(x => Number(x.id) === Number(id));
+
+      let html = '';
+
+      if (candidate?.notes) {
+        html += `
+          <div class="notes-wrap">
+            <div class="notes-title">Заметки по интервью</div>
+            ${renderNotes(candidate.notes)}
+          </div>
+        `;
+      }
+
+      if (historyData?.ai) {
+        const ai = historyData.ai;
+        html += `
+          <div class="ai-box">
+            <div class="ai-head">
+              <div class="ai-title">AI Insight</div>
+              <span class="badge blue">${escapeHtml(ai.recommendation || 'REVIEW')} · ${escapeHtml(String(ai.confidence || 0))}%</span>
+            </div>
+            <div class="ai-summary">${escapeHtml(ai.summary || '')}</div>
+            <div class="ai-columns">
+              <div class="ai-list">
+                <div class="ai-list-title">Сильные стороны</div>
+                <ul>
+                  ${(Array.isArray(ai.strengths) && ai.strengths.length ? ai.strengths : ['Нет данных']).map(x => `<li>${escapeHtml(x)}</li>`).join('')}
+                </ul>
+              </div>
+              <div class="ai-list">
+                <div class="ai-list-title">Риски</div>
+                <ul>
+                  ${(Array.isArray(ai.risks) && ai.risks.length ? ai.risks : ['Нет данных']).map(x => `<li>${escapeHtml(x)}</li>`).join('')}
+                </ul>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      if (historyData?.history?.length) {
+        html += `
+          <div class="history">
+            <div class="notes-title">История статусов</div>
+            ${historyData.history.map(h => `
+              <div class="history-item">
+                <div class="left">
+                  <span class="badge ${statusMeta(h.status)}">${escapeHtml(h.status)}</span>
+                  <span>${escapeHtml(h.changed_by_name || 'Система')}</span>
+                </div>
+                <div class="date">${formatDate(h.created_at)}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      if (!html) {
+        html = `<div class="note-plain">Дополнительных данных пока нет</div>`;
+      }
+
+      box.innerHTML = html;
+      box.dataset.loaded = '1';
+    }
+
+    function render() {
+      const rows = getFiltered();
+
+      if (!rows.length) {
+        grid.innerHTML = `<div class="empty">Кандидаты не найдены</div>`;
+        return;
+      }
+
+      grid.innerHTML = rows.map(candidate => {
+        const verdict = verdictMeta(Number(candidate.total || 0));
+
+        return `
+          <article class="cand">
+            <div class="cand-head">
+              <div class="cand-main">
+                <div class="avatar">${initials(candidate.name || '')}</div>
+                <div class="cand-text">
+                  <div class="cand-name">${escapeHtml(candidate.name || 'Без имени')}</div>
+                  <div class="cand-tg">${candidate.tg ? escapeHtml(candidate.tg) : '—'}</div>
+                  <div class="cand-sub">Создан: ${formatDate(candidate.created_at)}</div>
+                </div>
+              </div>
+
+              <div class="cand-actions">
+                <button class="icon-btn" onclick="toggleDetails(${candidate.id})">Детали</button>
+                <button class="icon-btn" onclick="openEditFromId(${candidate.id})">Редактировать</button>
+                <button class="icon-btn danger" onclick="deleteCandidate(${candidate.id})">Удалить</button>
+              </div>
+            </div>
+
+            <div class="cand-body">
+              <div class="row">
+                <span class="badge ${verdict.cls}">${verdict.label}</span>
+                ${candidate.status ? `<span class="badge ${statusMeta(candidate.status)}">${escapeHtml(candidate.status)}</span>` : `<span class="badge blue">Без статуса</span>`}
+                ${candidate.platforms ? `<span class="badge blue">${escapeHtml(candidate.platforms)}</span>` : ''}
+                ${candidate.english ? `<span class="badge purple">${escapeHtml(candidate.english)}</span>` : ''}
+              </div>
+
+              <div class="score-wrap">
+                <div class="score-left">
+                  <div class="score">${Number(candidate.total || 0)} <span>/ 50</span></div>
+                </div>
+                <div style="color:var(--text3);font-size:12px;">Общий балл</div>
+              </div>
+
+              <div class="status-edit">
+                <label>Быстро изменить статус</label>
+                <select class="status-select" onchange="changeStatus(${candidate.id}, this.value)">
+                  <option value="" ${!candidate.status ? 'selected' : ''}>Без статуса</option>
+                  <option value="Изучает гайд" ${candidate.status === 'Изучает гайд' ? 'selected' : ''}>Изучает гайд</option>
+                  <option value="Тест-смена" ${candidate.status === 'Тест-смена' ? 'selected' : ''}>Тест-смена</option>
+                  <option value="Принят" ${candidate.status === 'Принят' ? 'selected' : ''}>Принят</option>
+                  <option value="Отказ" ${candidate.status === 'Отказ' ? 'selected' : ''}>Отказ</option>
+                </select>
+              </div>
+
+              <div class="meta-grid">
+                <div class="meta-box"><div class="k">Возраст</div><div class="v">${escapeHtml(candidate.age || '—')}</div></div>
+                <div class="meta-box"><div class="k">Опыт</div><div class="v">${escapeHtml(candidate.exp || '—')}</div></div>
+                <div class="meta-box"><div class="k">Средний чек</div><div class="v">${escapeHtml(candidate.avg_check || '—')}</div></div>
+                <div class="meta-box"><div class="k">График</div><div class="v">${escapeHtml(candidate.schedule || '—')}</div></div>
+                <div class="meta-box"><div class="k">Смены</div><div class="v">${escapeHtml(candidate.shift || '—')}</div></div>
+                <div class="meta-box"><div class="k">Топ страницы</div><div class="v">${escapeHtml(candidate.top_pages || '—')}</div></div>
+                <div class="meta-box"><div class="k">Занятость</div><div class="v">${escapeHtml(candidate.job || '—')}</div></div>
+                <div class="meta-box"><div class="k">Владелец</div><div class="v">${escapeHtml(candidate.owner_name || '—')}</div></div>
+              </div>
+
+              <div id="details-${candidate.id}" hidden></div>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function openEditFromId(id) {
+      const candidate = allCandidates.find(x => Number(x.id) === Number(id));
+      if (candidate) openModal(candidate);
+    }
+
+    refreshBtn.addEventListener('click', loadCandidates);
+    searchInput.addEventListener('input', render);
+    statusFilter.addEventListener('change', render);
+    verdictFilter.addEventListener('change', render);
+    sortSelect.addEventListener('change', render);
+
+    editModal.addEventListener('click', (e) => {
+      if (e.target === editModal) closeModal();
+    });
+
+    window.changeStatus = changeStatus;
+    window.deleteCandidate = deleteCandidate;
+    window.openEditFromId = openEditFromId;
+    window.closeModal = closeModal;
+    window.saveEdit = saveEdit;
+    window.toggleDetails = toggleDetails;
+
+    loadCandidates().catch(err => {
+      console.error(err);
+      grid.innerHTML = `<div class="empty">Не удалось загрузить кандидатов</div>`;
+    });
+  </script>
 </body>
 </html>
