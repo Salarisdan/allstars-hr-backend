@@ -176,18 +176,16 @@
 
     .hero{
   display:grid;
-  grid-template-columns: 430px minmax(0, 1fr);
+  grid-template-columns:430px minmax(0,1fr);
   gap:16px;
   align-items:start;
+  margin:0;
 }
 
     .left-column{
       display:flex;
       flex-direction:column;
       gap:16px;
-      position:relative;
-      top:auto;
-      align-self:start;
     }
 
     .left-column,
@@ -688,37 +686,30 @@
       .grid-2,.grid-3{grid-template-columns:1fr}
     }
 
-    /* FORCE LEFT COLUMN TO SCROLL NORMALLY */
-    .hero,
+    /* LEFT COLUMN MUST MOVE WITH PAGE */
     .left-column,
-    .left-column > *,
-    .checklist,
-    .card,
-    .panel {
-      position: static !important;
-      top: auto !important;
-      bottom: auto !important;
-      left: auto !important;
-      right: auto !important;
+    .left-column > section,
+    .left-column .card,
+    .left-column .panel,
+    .left-column .checklist{
+      position:relative !important;
+      top:auto !important;
+      bottom:auto !important;
+      left:auto !important;
+      right:auto !important;
+      transform:none !important;
     }
 
-    .hero {
-      display: grid;
-      grid-template-columns: 430px minmax(0, 1fr);
-      gap: 16px;
-      align-items: start;
+    .left-column,
+    .left-column > section{
+      overflow:visible !important;
+      max-height:none !important;
+      height:auto !important;
     }
 
-    .left-column {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      align-self: start;
-    }
-
-    @media (max-width: 1180px) {
-      .hero {
-        grid-template-columns: 1fr;
+    @media (max-width:1180px){
+      .hero{
+        grid-template-columns:1fr;
       }
     }
 
