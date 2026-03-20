@@ -484,6 +484,7 @@
 
     const leftCol = document.getElementById('leftCol');
     const rightCol = document.getElementById('rightCol');
+    let currentCandidate = null;
 
     function api(path, options = {}) {
       return fetch(path, {
@@ -643,6 +644,20 @@
               <div class="score">${Number(candidate.total || 0)} <span>/ 50</span></div>
             </div>
 
+            <div class="quick-edit">
+              <label>Быстро изменить статус</label>
+              <div class="quick-edit-row">
+                <select id="quick-status">
+                  <option value="" ${!candidate.status ? 'selected' : ''}>Без статуса</option>
+                  <option value="Изучает гайд" ${candidate.status === 'Изучает гайд' ? 'selected' : ''}>Изучает гайд</option>
+                  <option value="Тест-смена" ${candidate.status === 'Тест-смена' ? 'selected' : ''}>Тест-смена</option>
+                  <option value="Принят" ${candidate.status === 'Принят' ? 'selected' : ''}>Принят</option>
+                  <option value="Отказ" ${candidate.status === 'Отказ' ? 'selected' : ''}>Отказ</option>
+                </select>
+                <button class="btn btn-primary" onclick="quickUpdateStatus()">Сохранить статус</button>
+              </div>
+            </div>
+
             <div class="field-list">
               <div class="field-box"><div class="k">Возраст</div><div class="v">${escapeHtml(candidate.age || '—')}</div></div>
               <div class="field-box"><div class="k">Опыт</div><div class="v">${escapeHtml(candidate.exp || '—')}</div></div>
@@ -732,6 +747,7 @@
       if (!res.ok) throw new Error('Не удалось загрузить кандидатов');
       const candidates = await res.json();
       const candidate = candidates.find(x => String(x.id) === String(candidateId));
+      currentCandidate = candidate;
 
       if (!candidate) {
         document.getElementById('pageSub').textContent = 'Кандидат не найден';
@@ -751,6 +767,47 @@
       renderLeft(candidate);
       renderRight(candidate, historyData);
     }
+
+    async function quickUpdateStatus() {
+      if (!currentCandidate) return;
+
+      const status = document.getElementById('quick-status')?.value || '';
+
+      const payload = {
+        fields: {
+          name: currentCandidate.name || '',
+          tg: currentCandidate.tg || '',
+          age: currentCandidate.age || '',
+          english: currentCandidate.english || '',
+          exp: currentCandidate.exp || '',
+          platforms: currentCandidate.platforms || '',
+          shift: currentCandidate.shift || '',
+          schedule: currentCandidate.schedule || '',
+          top: currentCandidate.top_pages || '',
+          avgcheck: currentCandidate.avg_check || '',
+          job: currentCandidate.job || '',
+          status,
+          notes: currentCandidate.notes || ''
+        },
+        ratings: currentCandidate.ratings || {},
+        total: currentCandidate.total || 0
+      };
+
+      const res = await api(`/candidates/${candidateId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Не удалось обновить статус');
+        return;
+      }
+
+      await load();
+    }
+
+    window.quickUpdateStatus = quickUpdateStatus;
 
     load().catch(err => {
       console.error(err);
