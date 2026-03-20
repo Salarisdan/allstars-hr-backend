@@ -1,10 +1,22 @@
 require('dotenv').config();
+const { GoogleSpreadsheet } = require('google-spreadsheet');
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
+const { google } = require('googleapis');
+
+async function getGoogleSheet() {
+  const creds = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+  const doc = new GoogleSpreadsheet(process.env.GOOGLE_SPREADSHEET_NAME);
+
+  await doc.useServiceAccountAuth(creds);
+  await doc.loadInfo();
+
+  return doc;
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,6 +41,77 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 async function query(text, params = []) {
   return pool.query(text, params);
+}
+
+function getGoogleCreds() {
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  if (!raw) {
+    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is missing');
+  }
+
+  return JSON.parse(raw);
+}
+
+async function getSheetsClient() {
+  const creds = getGoogleCreds();
+
+  const auth = new google.auth.GoogleAuth({
+    credentials: creds,
+    scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
+  });
+
+  return google.sheets({ version: 'v4', auth });
+}
+
+function mapRussianInterviewStatus(status = '') {
+  const s = String(status || '').trim();
+
+  if (!s) return 'Новая заявка';
+
+  const known = new Set([
+    'Новая заявка',
+    'Назначено собеседование',
+    'Подтвердил',
+    'Не пришёл',
+    'Собеседование проведено',
+    'Отказ до собеседования',
+    'Отказ после собеседования',
+    'Отправлен гайд',
+    'Тестовое задание',
+    'Тест-смена',
+    'Принят'
+  ]);
+
+  if (known.has(s)) return s;
+  return s;
+}
+
+function normalizeRow(headers, row, rowIndex) {
+  const get = (name) => {
+    const idx = headers.indexOf(name);
+    return idx >= 0 ? (row[idx] ?? '') : '';
+  };
+
+  return {
+    row_number: rowIndex,
+    created_at: get('Дата'),
+    telegram_username: get('TG Username'),
+    telegram_user_id: get('TG ID'),
+    source: get('Источник'),
+    name: get('Имя'),
+    age: get('Возраст'),
+    english: get('Английский'),
+    platform: get('Платформа'),
+    shift: get('Смены'),
+    experience: get('Опыт'),
+    profiles: get('Анкеты'),
+    verification: get('Верификация'),
+    status: mapRussianInterviewStatus(get('Статус')),
+    interviewer_name: get('Кто проводит собеседование'),
+    interview_date: get('Дата собеседования'),
+    interview_time: get('Время собеседования'),
+    comments: get('Комментарии')
+  };
 }
 
 const bootstrapSql = `
@@ -742,6 +825,83 @@ app.get('/dashboard/feed', auth, async (req, res) => {
   );
 
   res.json(recent.rows);
+});
+
+app.get('/leads', async (req, res) => {
+  try {
+    const doc = await getGoogleSheet();
+
+    const sheet = doc.sheetsByTitle['AllStarsLeads']; // главный лист
+    const rows = await sheet.getRows();
+
+    const leads = rows.map(row => ({
+      name: row['Имя'],
+      tg: row['TG Username'],
+      tg_id: row['TG ID'],
+      age: row['Возраст'],
+      english: row['Английский'],
+      platform: row['Платформа'],
+      shift: row['Смены'],
+      exp: row['Опыт'],
+      status: row['Статус'],
+      interviewer: row['Кто проводит собеседование'],
+      interview_date: row['Дата собеседования'],
+      interview_time: row['Время собеседования'],
+      comment: row['Комментарии']
+    }));
+
+    res.json(leads);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Ошибка чтения таблицы' });
+  }
+});
+
+app.get('/api/interviews', auth, async (req, res) => {
+  try {
+    const spreadsheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
+    const sheets = await getSheetsClient();
+
+    const meta = await sheets.spreadsheets.get({
+      spreadsheetId: undefined,
+    }).catch(() => null);
+
+    // Ищем таблицу по имени через Drive API не будем.
+    // На MVP читаем напрямую по spreadsheetId, если он задан.
+    // Поэтому сначала пробуем из env:
+    const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+
+    if (!spreadsheetId) {
+      return res.status(500).json({
+        error: 'GOOGLE_SPREADSHEET_ID is missing'
+      });
+    }
+
+    const range = 'AllStarsLeads!A1:Z2000';
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range
+    });
+
+    const values = response.data.values || [];
+
+    if (!values.length) {
+      return res.json([]);
+    }
+
+    const headers = values[0];
+    const rows = values.slice(1);
+
+    const normalized = rows
+      .map((row, index) => normalizeRow(headers, row, index + 2))
+      .filter(x => x.telegram_user_id || x.telegram_username || x.name);
+
+    res.json(normalized);
+  } catch (err) {
+    console.error('Google Sheets read error:', err.message);
+    res.status(500).json({ error: 'Failed to read Google Sheet' });
+  }
 });
 
 app.get('/health', async (_req, res) => {
