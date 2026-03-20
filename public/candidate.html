@@ -118,6 +118,79 @@
       font-size:13px;
     }
 
+    .quick-edit{
+      margin-top:1rem;
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:.85rem .9rem;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .quick-edit label{
+      font-size:10px;
+      color:var(--text3);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-weight:800;
+    }
+
+    .quick-edit select{
+      width:100%;
+      background:none;
+      border:none;
+      outline:none;
+      color:var(--text);
+      font-size:14px;
+      font-family:'Manrope',sans-serif;
+    }
+
+    .quick-edit-row{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .editor-box{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:.9rem 1rem;
+      margin-top:1rem;
+    }
+
+    .editor-box label{
+      display:block;
+      font-size:10px;
+      color:var(--text3);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-weight:800;
+      margin-bottom:6px;
+    }
+
+    .editor-box textarea{
+      width:100%;
+      min-height:180px;
+      background:none;
+      border:none;
+      outline:none;
+      color:var(--text);
+      font-size:14px;
+      line-height:1.6;
+      resize:vertical;
+      font-family:'Manrope',sans-serif;
+    }
+
+    .editor-actions{
+      display:flex;
+      gap:8px;
+      margin-top:10px;
+      flex-wrap:wrap;
+    }
+
     .btns{display:flex;gap:8px;flex-wrap:wrap}
 
     .btn{
@@ -679,6 +752,14 @@
         <section class="section">
           <div class="section-title">Заметки по интервью</div>
           ${renderNotes(candidate.notes)}
+
+          <div class="editor-box">
+            <label>Редактировать заметки</label>
+            <textarea id="notes-editor">${escapeHtml(candidate.notes || '')}</textarea>
+            <div class="editor-actions">
+              <button class="btn btn-primary" onclick="saveNotes()">Сохранить заметки</button>
+            </div>
+          </div>
         </section>
       `;
 
@@ -807,7 +888,47 @@
       await load();
     }
 
+    async function saveNotes() {
+      if (!currentCandidate) return;
+
+      const notes = document.getElementById('notes-editor')?.value || '';
+
+      const payload = {
+        fields: {
+          name: currentCandidate.name || '',
+          tg: currentCandidate.tg || '',
+          age: currentCandidate.age || '',
+          english: currentCandidate.english || '',
+          exp: currentCandidate.exp || '',
+          platforms: currentCandidate.platforms || '',
+          shift: currentCandidate.shift || '',
+          schedule: currentCandidate.schedule || '',
+          top: currentCandidate.top_pages || '',
+          avgcheck: currentCandidate.avg_check || '',
+          job: currentCandidate.job || '',
+          status: currentCandidate.status || '',
+          notes
+        },
+        ratings: currentCandidate.ratings || {},
+        total: currentCandidate.total || 0
+      };
+
+      const res = await api(`/candidates/${candidateId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Не удалось сохранить заметки');
+        return;
+      }
+
+      await load();
+    }
+
     window.quickUpdateStatus = quickUpdateStatus;
+    window.saveNotes = saveNotes;
 
     load().catch(err => {
       console.error(err);
