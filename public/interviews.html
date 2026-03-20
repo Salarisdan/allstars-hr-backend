@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AllStars — Собеседования</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0d0f14;
+      --surface:#141720;
+      --surface2:#1b1f2c;
+      --surface3:#232840;
+      --border:rgba(255,255,255,.07);
+      --border2:rgba(255,255,255,.12);
+      --accent:#4f6ef7;
+      --accent2:#7d95ff;
+      --accent-bg:rgba(79,110,247,.12);
+      --accent-border:rgba(79,110,247,.32);
+      --text:#e8eaf0;
+      --text2:#9ba3bd;
+      --text3:#58607c;
+      --green:#34d399;
+      --green-bg:rgba(52,211,153,.10);
+      --green-border:rgba(52,211,153,.22);
+      --yellow:#fbbf24;
+      --yellow-bg:rgba(251,191,36,.10);
+      --yellow-border:rgba(251,191,36,.22);
+      --red:#f87171;
+      --red-bg:rgba(248,113,113,.10);
+      --red-border:rgba(248,113,113,.22);
+      --purple:#a78bfa;
+      --purple-bg:rgba(167,139,250,.10);
+      --purple-border:rgba(167,139,250,.22);
+      --shadow:0 10px 40px rgba(0,0,0,.24);
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+
+    body{
+      font-family:'Manrope',sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      min-height:100vh;
+    }
+
+    .layout{display:flex;min-height:100vh}
+
+    .sidebar{
+      width:230px;
+      flex-shrink:0;
+      position:fixed;
+      left:0;top:0;bottom:0;
+      background:var(--surface);
+      border-right:1px solid var(--border);
+      padding:1.2rem 0 1.5rem;
+      overflow-y:auto;
+      z-index:10;
+    }
+
+    .sidebar-logo{
+      padding:0 1rem 1.15rem;
+      border-bottom:1px solid var(--border);
+      margin-bottom:.7rem;
+    }
+
+    .brand{font-size:16px;font-weight:800;color:var(--text)}
+    .sub{font-size:11px;color:var(--text3);margin-top:3px}
+
+    .sidebar-section{
+      font-size:10px;
+      font-weight:700;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--text3);
+      padding:.45rem 1rem .25rem;
+    }
+
+    .nav-item{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 1rem;
+      text-decoration:none;
+      color:var(--text2);
+      font-size:12px;
+      border-left:2px solid transparent;
+      transition:.15s;
+    }
+
+    .nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
+    .nav-item.active{color:var(--accent2);border-left-color:var(--accent);background:var(--accent-bg)}
+
+    .main{
+      margin-left:230px;
+      width:100%;
+      padding:1.6rem 1.6rem 3rem;
+    }
+
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      flex-wrap:wrap;
+      margin-bottom:1rem;
+    }
+
+    .title h1{
+      font-size:30px;
+      font-weight:800;
+      line-height:1.1;
+      letter-spacing:-.03em;
+    }
+
+    .title p{
+      color:var(--text2);
+      margin-top:6px;
+      font-size:13px;
+    }
+
+    .btns{display:flex;gap:8px;flex-wrap:wrap}
+
+    .btn{
+      border:none;
+      cursor:pointer;
+      font-family:'Manrope',sans-serif;
+      font-weight:700;
+      font-size:13px;
+      border-radius:12px;
+      padding:.78rem 1rem;
+      transition:.15s;
+    }
+
+    .btn-primary{
+      background:var(--accent-bg);
+      border:1px solid var(--accent-border);
+      color:var(--accent2);
+    }
+
+    .btn-ghost{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      color:var(--text2);
+    }
+
+    .stats{
+      display:grid;
+      grid-template-columns:repeat(6,minmax(0,1fr));
+      gap:12px;
+      margin-bottom:1rem;
+    }
+
+    .stat{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:.95rem 1rem;
+      box-shadow:var(--shadow);
+    }
+
+    .stat .val{
+      font-size:23px;
+      font-weight:800;
+    }
+
+    .stat .label{
+      color:var(--text3);
+      font-size:11px;
+      margin-top:4px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-weight:800;
+    }
+
+    .toolbar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:1rem;
+      align-items:center;
+    }
+
+    .search,
+    .select{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:.78rem .95rem;
+      color:var(--text);
+      font-family:'Manrope',sans-serif;
+      outline:none;
+    }
+
+    .search{
+      flex:1;
+      min-width:220px;
+    }
+
+    .select{
+      min-width:220px;
+    }
+
+    .search::placeholder{color:var(--text3)}
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(360px,1fr));
+      gap:14px;
+    }
+
+    .card{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .card-head{
+      padding:1rem;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+      border-bottom:1px solid var(--border);
+    }
+
+    .card-main{
+      display:flex;
+      gap:12px;
+      min-width:0;
+    }
+
+    .avatar{
+      width:44px;height:44px;border-radius:50%;
+      background:var(--accent-bg);
+      border:1px solid var(--accent-border);
+      color:var(--accent2);
+      display:flex;align-items:center;justify-content:center;
+      font-weight:800;flex-shrink:0;
+    }
+
+    .name{
+      font-size:16px;
+      font-weight:800;
+      line-height:1.2;
+      word-break:break-word;
+    }
+
+    .tg{
+      color:var(--accent2);
+      font-size:13px;
+      margin-top:4px;
+      word-break:break-word;
+    }
+
+    .sub{
+      color:var(--text3);
+      font-size:12px;
+      margin-top:4px;
+      word-break:break-word;
+    }
+
+    .card-body{
+      padding:1rem;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .row{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:999px;
+      padding:4px 9px;
+      font-size:11px;
+      font-weight:700;
+      white-space:nowrap;
+    }
+
+    .badge.blue{background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent2)}
+    .badge.green{background:var(--green-bg);border:1px solid var(--green-border);color:var(--green)}
+    .badge.yellow{background:var(--yellow-bg);border:1px solid var(--yellow-border);color:var(--yellow)}
+    .badge.red{background:var(--red-bg);border:1px solid var(--red-border);color:var(--red)}
+    .badge.purple{background:var(--purple-bg);border:1px solid var(--purple-border);color:var(--purple)}
+
+    .meta-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+
+    .meta{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:.75rem .8rem;
+    }
+
+    .meta .k{
+      font-size:10px;
+      color:var(--text3);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-weight:800;
+      margin-bottom:5px;
+    }
+
+    .meta .v{
+      font-size:13px;
+      line-height:1.5;
+      word-break:break-word;
+    }
+
+    .actions{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+
+    .action-btn{
+      border:none;
+      cursor:pointer;
+      font-family:'Manrope',sans-serif;
+      font-size:12px;
+      font-weight:700;
+      border-radius:10px;
+      padding:.7rem .8rem;
+      transition:.15s;
+      background:var(--surface3);
+      border:1px solid var(--border2);
+      color:var(--text2);
+    }
+
+    .action-btn:hover{
+      color:var(--text);
+      border-color:var(--accent-border);
+    }
+
+    .notes{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:.8rem .9rem;
+      font-size:13px;
+      line-height:1.6;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    .empty{
+      background:var(--surface2);
+      border:1px dashed var(--border2);
+      border-radius:18px;
+      padding:2rem 1rem;
+      text-align:center;
+      color:var(--text3);
+    }
+
+    @media (max-width:1200px){
+      .stats{
+        grid-template-columns:repeat(3,minmax(0,1fr));
+      }
+    }
+
+    @media (max-width:920px){
+      .sidebar{display:none}
+      .main{margin-left:0;padding:1rem}
+      .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .grid{grid-template-columns:1fr}
+      .meta-grid,.actions{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="brand">AllStars</div>
+        <div class="sub">Собеседования</div>
+      </div>
+
+      <div class="sidebar-section">Навигация</div>
+      <a class="nav-item" href="/index.html">🧑‍💼 Новый кандидат</a>
+      <a class="nav-item" href="/candidates.html">👥 Кандидаты</a>
+      <a class="nav-item active" href="/interviews.html">📞 Собеседования</a>
+      <a class="nav-item" href="/dashboard.html">📊 Dashboard</a>
+      <a class="nav-item" href="/team.html">🫂 Команда</a>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="title">
+          <h1>Собеседования</h1>
+          <p>Первая CRM-страница для управления интервью и воронкой по собеседованиям.</p>
+        </div>
+
+        <div class="btns">
+          <button class="btn btn-ghost" id="refreshBtn">Обновить</button>
+          <button class="btn btn-primary" onclick="location.href='/candidate.html'">Карточки кандидатов</button>
+        </div>
+      </div>
+
+      <div class="stats" id="stats"></div>
+
+      <div class="toolbar">
+        <input class="search" id="searchInput" placeholder="Поиск по имени, Telegram, платформе, заметкам..." />
+        <select class="select" id="statusFilter">
+          <option value="">Все статусы</option>
+          <option value="Новая заявка">Новая заявка</option>
+          <option value="Назначено собеседование">Назначено собеседование</option>
+          <option value="Подтвердил">Подтвердил</option>
+          <option value="Не пришёл">Не пришёл</option>
+          <option value="Собеседование проведено">Собеседование проведено</option>
+          <option value="Отказ до собеседования">Отказ до собеседования</option>
+          <option value="Отказ после собеседования">Отказ после собеседования</option>
+          <option value="Отправлен гайд">Отправлен гайд</option>
+          <option value="Тестовое задание">Тестовое задание</option>
+          <option value="Тест-смена">Тест-смена</option>
+          <option value="Принят">Принят</option>
+        </select>
+      </div>
+
+      <div class="grid" id="grid"></div>
+    </main>
+  </div>
+
+  <script>
+    const tokenKey = 'allstars_token';
+    const token = localStorage.getItem(tokenKey);
+    if (!token) location.href = '/login.html';
+
+    const stats = document.getElementById('stats');
+    const grid = document.getElementById('grid');
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const refreshBtn = document.getElementById('refreshBtn');
+
+    let allCandidates = [];
+
+    function api(path, options = {}) {
+      return fetch(path, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...(options.headers || {})
+        }
+      });
+    }
+
+    function escapeHtml(str = '') {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function initials(name = '') {
+      return name.trim().split(/\s+/).map(x => x[0]).join('').slice(0,2).toUpperCase() || '?';
+    }
+
+    function formatDate(date) {
+      if (!date) return '—';
+      const d = new Date(date);
+      return d.toLocaleString('ru-RU', {
+        day:'2-digit',
+        month:'2-digit',
+        year:'numeric',
+        hour:'2-digit',
+        minute:'2-digit'
+      });
+    }
+
+    function statusBadge(status = '') {
+      const map = {
+        'Новая заявка': 'blue',
+        'Назначено собеседование': 'blue',
+        'Подтвердил': 'purple',
+        'Не пришёл': 'red',
+        'Собеседование проведено': 'green',
+        'Отказ до собеседования': 'red',
+        'Отказ после собеседования': 'red',
+        'Отправлен гайд': 'yellow',
+        'Тестовое задание': 'yellow',
+        'Тест-смена': 'purple',
+        'Принят': 'green'
+      };
+      return map[status] || 'blue';
+    }
+
+    function renderStats() {
+      const total = allCandidates.length;
+      const scheduled = allCandidates.filter(x => x.status === 'Назначено собеседование').length;
+      const confirmed = allCandidates.filter(x => x.status === 'Подтвердил').length;
+      const noShow = allCandidates.filter(x => x.status === 'Не пришёл').length;
+      const done = allCandidates.filter(x => x.status === 'Собеседование проведено').length;
+      const rejected = allCandidates.filter(x => x.status === 'Отказ до собеседования' || x.status === 'Отказ после собеседования').length;
+
+      stats.innerHTML = `
+        <div class="stat"><div class="val">${total}</div><div class="label">Всего в работе</div></div>
+        <div class="stat"><div class="val">${scheduled}</div><div class="label">Назначено</div></div>
+        <div class="stat"><div class="val">${confirmed}</div><div class="label">Подтвердили</div></div>
+        <div class="stat"><div class="val">${noShow}</div><div class="label">Не пришли</div></div>
+        <div class="stat"><div class="val">${done}</div><div class="label">Проведено</div></div>
+        <div class="stat"><div class="val">${rejected}</div><div class="label">Отказы</div></div>
+      `;
+    }
+
+    function getFiltered() {
+      let rows = [...allCandidates];
+      const q = searchInput.value.trim().toLowerCase();
+      const status = statusFilter.value;
+
+      if (q) {
+        rows = rows.filter(x => {
+          const hay = [
+            x.name,
+            x.tg,
+            x.platforms,
+            x.shift,
+            x.english,
+            x.notes,
+            x.status,
+            x.owner_name
+          ].join(' ').toLowerCase();
+
+          return hay.includes(q);
+        });
+      }
+
+      if (status) {
+        rows = rows.filter(x => (x.status || '') === status);
+      }
+
+      rows.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+      return rows;
+    }
+
+    async function loadCandidates() {
+      const res = await api('/candidates');
+      if (!res.ok) throw new Error('Не удалось загрузить кандидатов');
+
+      const rows = await res.json();
+
+      allCandidates = rows.filter(x => {
+        const interviewStatuses = [
+          'Новая заявка',
+          'Назначено собеседование',
+          'Подтвердил',
+          'Не пришёл',
+          'Собеседование проведено',
+          'Отказ до собеседования',
+          'Отказ после собеседования',
+          'Отправлен гайд',
+          'Тестовое задание',
+          'Тест-смена',
+          'Принят'
+        ];
+
+        return interviewStatuses.includes(x.status || '');
+      });
+
+      renderStats();
+      render();
+    }
+
+    async function updateInterviewStatus(id, status) {
+      const candidate = allCandidates.find(x => Number(x.id) === Number(id));
+      if (!candidate) return;
+
+      const payload = {
+        fields: {
+          name: candidate.name || '',
+          tg: candidate.tg || '',
+          age: candidate.age || '',
+          english: candidate.english || '',
+          exp: candidate.exp || '',
+          platforms: candidate.platforms || '',
+          shift: candidate.shift || '',
+          schedule: candidate.schedule || '',
+          top: candidate.top_pages || '',
+          avgcheck: candidate.avg_check || '',
+          job: candidate.job || '',
+          status,
+          notes: candidate.notes || '',
+          source: candidate.source || ''
+        },
+        ratings: candidate.ratings || {},
+        total: candidate.total || 0
+      };
+
+      const res = await api(`/candidates/${id}`, {
+        method:'PATCH',
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({}));
+        alert(err.error || 'Не удалось обновить статус');
+        return;
+      }
+
+      await loadCandidates();
+    }
+
+    function render() {
+      const rows = getFiltered();
+
+      if (!rows.length) {
+        grid.innerHTML = `<div class="empty">Собеседований по текущим фильтрам не найдено</div>`;
+        return;
+      }
+
+      grid.innerHTML = rows.map(candidate => `
+        <article class="card">
+          <div class="card-head">
+            <div class="card-main">
+              <div class="avatar">${initials(candidate.name || '')}</div>
+              <div>
+                <div class="name">${escapeHtml(candidate.name || 'Без имени')}</div>
+                <div class="tg">${escapeHtml(candidate.tg || '—')}</div>
+                <div class="sub">Создан: ${formatDate(candidate.created_at)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="row">
+              <span class="badge ${statusBadge(candidate.status || '')}">${escapeHtml(candidate.status || 'Без статуса')}</span>
+              ${candidate.platforms ? `<span class="badge blue">${escapeHtml(candidate.platforms)}</span>` : ''}
+              ${candidate.shift ? `<span class="badge purple">${escapeHtml(candidate.shift)}</span>` : ''}
+              ${candidate.english ? `<span class="badge yellow">${escapeHtml(candidate.english)}</span>` : ''}
+            </div>
+
+            <div class="meta-grid">
+              <div class="meta">
+                <div class="k">Опыт</div>
+                <div class="v">${escapeHtml(candidate.exp || '—')}</div>
+              </div>
+              <div class="meta">
+                <div class="k">Средний чек</div>
+                <div class="v">${escapeHtml(candidate.avg_check || '—')}</div>
+              </div>
+              <div class="meta">
+                <div class="k">Владелец</div>
+                <div class="v">${escapeHtml(candidate.owner_name || '—')}</div>
+              </div>
+              <div class="meta">
+                <div class="k">Балл</div>
+                <div class="v">${escapeHtml(String(candidate.total || 0))} / 50</div>
+              </div>
+            </div>
+
+            <div class="actions">
+              <button class="action-btn" onclick="updateInterviewStatus(${candidate.id}, 'Назначено собеседование')">Назначено</button>
+              <button class="action-btn" onclick="updateInterviewStatus(${candidate.id}, 'Подтвердил')">Подтвердил</button>
+              <button class="action-btn" onclick="updateInterviewStatus(${candidate.id}, 'Не пришёл')">Не пришёл</button>
+              <button class="action-btn" onclick="updateInterviewStatus(${candidate.id}, 'Собеседование проведено')">Проведено</button>
+              <button class="action-btn" onclick="updateInterviewStatus(${candidate.id}, 'Отказ до собеседования')">Отказ до</button>
+              <button class="action-btn" onclick="updateInterviewStatus(${candidate.id}, 'Отказ после собеседования')">Отказ после</button>
+              <button class="action-btn" onclick="updateInterviewStatus(${candidate.id}, 'Отправлен гайд')">Гайд</button>
+              <button class="action-btn" onclick="location.href='/candidate.html?id=${candidate.id}'">Открыть</button>
+            </div>
+
+            <div class="notes">${escapeHtml(candidate.notes || 'Без заметок')}</div>
+          </div>
+        </article>
+      `).join('');
+    }
+
+    searchInput.addEventListener('input', render);
+    statusFilter.addEventListener('change', render);
+    refreshBtn.addEventListener('click', loadCandidates);
+
+    window.updateInterviewStatus = updateInterviewStatus;
+
+    loadCandidates().catch(err => {
+      console.error(err);
+      grid.innerHTML = `<div class="empty">Не удалось загрузить страницу собеседований</div>`;
+    });
+  </script>
+</body>
+</html>
