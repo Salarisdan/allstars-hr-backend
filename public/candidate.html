@@ -191,6 +191,37 @@
       flex-wrap:wrap;
     }
 
+    .comment-box{
+      background:rgba(167,139,250,.08);
+      border:1px solid var(--purple-border);
+      border-radius:14px;
+      padding:.9rem 1rem;
+      margin-top:1rem;
+    }
+
+    .comment-box label{
+      display:block;
+      font-size:10px;
+      color:var(--text3);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-weight:800;
+      margin-bottom:6px;
+    }
+
+    .comment-box textarea{
+      width:100%;
+      min-height:120px;
+      background:none;
+      border:none;
+      outline:none;
+      color:var(--text);
+      font-size:14px;
+      line-height:1.6;
+      resize:vertical;
+      font-family:'Manrope',sans-serif;
+    }
+
     .btns{display:flex;gap:8px;flex-wrap:wrap}
 
     .btn{
@@ -654,8 +685,37 @@
       };
     }
 
+    function splitInternalComment(notes = '') {
+      const raw = String(notes || '');
+      const marker = '\n\n[INTERNAL_COMMENT]\n';
+      const index = raw.indexOf(marker);
+
+      if (index === -1) {
+        return {
+          publicNotes: raw.trim(),
+          internalComment: ''
+        };
+      }
+
+      return {
+        publicNotes: raw.slice(0, index).trim(),
+        internalComment: raw.slice(index + marker.length).trim()
+      };
+    }
+
+    function mergeInternalComment(publicNotes = '', internalComment = '') {
+      const cleanPublic = String(publicNotes || '').trim();
+      const cleanInternal = String(internalComment || '').trim();
+
+      if (!cleanInternal) return cleanPublic;
+      if (!cleanPublic) return `[INTERNAL_COMMENT]\n${cleanInternal}`;
+
+      return `${cleanPublic}\n\n[INTERNAL_COMMENT]\n${cleanInternal}`;
+    }
+
     function renderNotes(notes) {
-      const parsed = parseStructuredNotes(notes);
+      const split = splitInternalComment(notes);
+      const parsed = parseStructuredNotes(split.publicNotes);
 
       let html = '';
 
@@ -755,9 +815,17 @@
 
           <div class="editor-box">
             <label>Редактировать заметки</label>
-            <textarea id="notes-editor">${escapeHtml(candidate.notes || '')}</textarea>
+            <textarea id="notes-editor">${escapeHtml(splitInternalComment(candidate.notes || '').publicNotes)}</textarea>
             <div class="editor-actions">
               <button class="btn btn-primary" onclick="saveNotes()">Сохранить заметки</button>
+            </div>
+          </div>
+
+          <div class="comment-box">
+            <label>Внутренний комментарий тимлида</label>
+            <textarea id="internal-comment-editor">${escapeHtml(splitInternalComment(candidate.notes || '').internalComment)}</textarea>
+            <div class="editor-actions">
+              <button class="btn btn-ghost" onclick="saveInternalComment()">Сохранить комментарий</button>
             </div>
           </div>
         </section>
@@ -891,7 +959,9 @@
     async function saveNotes() {
       if (!currentCandidate) return;
 
-      const notes = document.getElementById('notes-editor')?.value || '';
+      const publicNotes = document.getElementById('notes-editor')?.value || '';
+      const internalComment = document.getElementById('internal-comment-editor')?.value || '';
+      const notes = mergeInternalComment(publicNotes, internalComment);
 
       const payload = {
         fields: {
@@ -927,8 +997,50 @@
       await load();
     }
 
+    async function saveInternalComment() {
+      if (!currentCandidate) return;
+
+      const publicNotes = document.getElementById('notes-editor')?.value || '';
+      const internalComment = document.getElementById('internal-comment-editor')?.value || '';
+      const mergedNotes = mergeInternalComment(publicNotes, internalComment);
+
+      const payload = {
+        fields: {
+          name: currentCandidate.name || '',
+          tg: currentCandidate.tg || '',
+          age: currentCandidate.age || '',
+          english: currentCandidate.english || '',
+          exp: currentCandidate.exp || '',
+          platforms: currentCandidate.platforms || '',
+          shift: currentCandidate.shift || '',
+          schedule: currentCandidate.schedule || '',
+          top: currentCandidate.top_pages || '',
+          avgcheck: currentCandidate.avg_check || '',
+          job: currentCandidate.job || '',
+          status: currentCandidate.status || '',
+          notes: mergedNotes
+        },
+        ratings: currentCandidate.ratings || {},
+        total: currentCandidate.total || 0
+      };
+
+      const res = await api(`/candidates/${candidateId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Не удалось сохранить комментарий');
+        return;
+      }
+
+      await load();
+    }
+
     window.quickUpdateStatus = quickUpdateStatus;
     window.saveNotes = saveNotes;
+    window.saveInternalComment = saveInternalComment;
 
     load().catch(err => {
       console.error(err);
