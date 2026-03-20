@@ -490,6 +490,34 @@
       font-size:13px;
     }
 
+    .pipeline-edit{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:.7rem .8rem;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .pipeline-edit label{
+      font-size:10px;
+      color:var(--text3);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-weight:800;
+    }
+
+    .pipeline-select{
+      width:100%;
+      background:none;
+      border:none;
+      outline:none;
+      color:var(--text);
+      font-family:'Manrope',sans-serif;
+      font-size:13px;
+    }
+
     .notes-wrap{
       display:flex;
       flex-direction:column;
@@ -802,6 +830,16 @@
           <option value="Принят">Принят</option>
           <option value="Отказ">Отказ</option>
         </select>
+        <select class="select" id="pipelineFilter">
+          <option value="">Все этапы</option>
+          <option value="new">Новый</option>
+          <option value="screening">Скрининг</option>
+          <option value="interview">Интервью</option>
+          <option value="test_task">Тестовое</option>
+          <option value="test_shift">Тест-смена</option>
+          <option value="hired">Нанят</option>
+          <option value="rejected">Отказ</option>
+        </select>
         <select class="select" id="verdictFilter">
           <option value="">Все вердикты</option>
           <option value="hire">Берём</option>
@@ -908,6 +946,7 @@
     const stats = document.getElementById('stats');
     const searchInput = document.getElementById('searchInput');
     const statusFilter = document.getElementById('statusFilter');
+    const pipelineFilter = document.getElementById('pipelineFilter');
     const verdictFilter = document.getElementById('verdictFilter');
     const sortSelect = document.getElementById('sortSelect');
     const refreshBtn = document.getElementById('refreshBtn');
@@ -962,6 +1001,19 @@
       if (status === 'Изучает гайд') return 'yellow';
       if (status === 'Отказ') return 'red';
       return 'blue';
+    }
+
+    function pipelineMeta(value = '') {
+      const map = {
+        new: { label:'Новый', cls:'blue' },
+        screening: { label:'Скрининг', cls:'purple' },
+        interview: { label:'Интервью', cls:'blue' },
+        test_task: { label:'Тестовое', cls:'yellow' },
+        test_shift: { label:'Тест-смена', cls:'purple' },
+        hired: { label:'Нанят', cls:'green' },
+        rejected: { label:'Отказ', cls:'red' }
+      };
+      return map[value] || { label:'Этап не задан', cls:'blue' };
     }
 
     function escapeHtml(str = '') {
@@ -1096,6 +1148,7 @@
       let rows = [...allCandidates];
       const q = searchInput.value.trim().toLowerCase();
       const status = statusFilter.value;
+      const pipeline = pipelineFilter.value;
       const verdict = verdictFilter.value;
       const sort = sortSelect.value;
 
@@ -1110,6 +1163,10 @@
 
       if (status) {
         rows = rows.filter(x => (x.status || '') === status);
+      }
+
+      if (pipeline) {
+        rows = rows.filter(x => (x.source || '') === pipeline);
       }
 
       if (verdict) {
@@ -1160,7 +1217,8 @@
           avgcheck: candidate.avg_check || '',
           job: candidate.job || '',
           status: status || '',
-          notes: candidate.notes || ''
+          notes: candidate.notes || '',
+          source: candidate.source || ''
         },
         ratings: candidate.ratings || {},
         total: candidate.total || 0
@@ -1174,6 +1232,45 @@
       if (!res.ok) {
         const err = await res.json().catch(()=>({}));
         alert(err.error || 'Не удалось обновить статус');
+        return;
+      }
+
+      await loadCandidates();
+    }
+
+    async function changePipeline(id, source) {
+      const candidate = allCandidates.find(x => Number(x.id) === Number(id));
+      if (!candidate) return;
+
+      const payload = {
+        fields: {
+          name: candidate.name || '',
+          tg: candidate.tg || '',
+          age: candidate.age || '',
+          english: candidate.english || '',
+          exp: candidate.exp || '',
+          platforms: candidate.platforms || '',
+          shift: candidate.shift || '',
+          schedule: candidate.schedule || '',
+          top: candidate.top_pages || '',
+          avgcheck: candidate.avg_check || '',
+          job: candidate.job || '',
+          status: candidate.status || '',
+          notes: candidate.notes || '',
+          source: source || ''
+        },
+        ratings: candidate.ratings || {},
+        total: candidate.total || 0
+      };
+
+      const res = await api(`/candidates/${id}`, {
+        method:'PATCH',
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({}));
+        alert(err.error || 'Не удалось обновить этап');
         return;
       }
 
@@ -1343,6 +1440,7 @@
 
       grid.innerHTML = rows.map(candidate => {
         const verdict = verdictMeta(Number(candidate.total || 0));
+        const pipeline = pipelineMeta(candidate.source || '');
 
         return `
           <article class="cand">
@@ -1367,6 +1465,7 @@
               <div class="row">
                 <span class="badge ${verdict.cls}">${verdict.label}</span>
                 ${candidate.status ? `<span class="badge ${statusMeta(candidate.status)}">${escapeHtml(candidate.status)}</span>` : `<span class="badge blue">Без статуса</span>`}
+                <span class="badge ${pipeline.cls}">${escapeHtml(pipeline.label)}</span>
                 ${candidate.platforms ? `<span class="badge blue">${escapeHtml(candidate.platforms)}</span>` : ''}
                 ${candidate.english ? `<span class="badge purple">${escapeHtml(candidate.english)}</span>` : ''}
               </div>
@@ -1386,6 +1485,20 @@
                   <option value="Тест-смена" ${candidate.status === 'Тест-смена' ? 'selected' : ''}>Тест-смена</option>
                   <option value="Принят" ${candidate.status === 'Принят' ? 'selected' : ''}>Принят</option>
                   <option value="Отказ" ${candidate.status === 'Отказ' ? 'selected' : ''}>Отказ</option>
+                </select>
+              </div>
+
+              <div class="pipeline-edit">
+                <label>Быстро изменить этап</label>
+                <select class="pipeline-select" onclick="event.stopPropagation()" onchange="changePipeline(${candidate.id}, this.value)">
+                  <option value="" ${!candidate.source ? 'selected' : ''}>Этап не задан</option>
+                  <option value="new" ${candidate.source === 'new' ? 'selected' : ''}>Новый</option>
+                  <option value="screening" ${candidate.source === 'screening' ? 'selected' : ''}>Скрининг</option>
+                  <option value="interview" ${candidate.source === 'interview' ? 'selected' : ''}>Интервью</option>
+                  <option value="test_task" ${candidate.source === 'test_task' ? 'selected' : ''}>Тестовое</option>
+                  <option value="test_shift" ${candidate.source === 'test_shift' ? 'selected' : ''}>Тест-смена</option>
+                  <option value="hired" ${candidate.source === 'hired' ? 'selected' : ''}>Нанят</option>
+                  <option value="rejected" ${candidate.source === 'rejected' ? 'selected' : ''}>Отказ</option>
                 </select>
               </div>
 
@@ -1415,6 +1528,7 @@
     refreshBtn.addEventListener('click', loadCandidates);
     searchInput.addEventListener('input', render);
     statusFilter.addEventListener('change', render);
+    pipelineFilter.addEventListener('change', render);
     verdictFilter.addEventListener('change', render);
     sortSelect.addEventListener('change', render);
 
@@ -1423,6 +1537,7 @@
     });
 
     window.changeStatus = changeStatus;
+    window.changePipeline = changePipeline;
     window.deleteCandidate = deleteCandidate;
     window.openEditFromId = openEditFromId;
     window.closeModal = closeModal;
