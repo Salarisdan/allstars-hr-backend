@@ -222,6 +222,56 @@
       font-family:'Manrope',sans-serif;
     }
 
+    .pipeline-box{
+      margin-top:1rem;
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:.85rem .9rem;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .pipeline-box label{
+      font-size:10px;
+      color:var(--text3);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-weight:800;
+    }
+
+    .pipeline-row{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .pipeline-select{
+      width:100%;
+      background:none;
+      border:none;
+      outline:none;
+      color:var(--text);
+      font-size:14px;
+      font-family:'Manrope',sans-serif;
+    }
+
+    .pipeline-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:999px;
+      padding:4px 9px;
+      font-size:11px;
+      font-weight:700;
+      white-space:nowrap;
+      background:var(--accent-bg);
+      border:1px solid var(--accent-border);
+      color:var(--accent2);
+    }
+
     .btns{display:flex;gap:8px;flex-wrap:wrap}
 
     .btn{
@@ -641,6 +691,19 @@
       return 'blue';
     }
 
+    function pipelineLabel(value = '') {
+      const map = {
+        new: 'Новый',
+        screening: 'Скрининг',
+        interview: 'Интервью',
+        test_task: 'Тестовое',
+        test_shift: 'Тест-смена',
+        hired: 'Нанят',
+        rejected: 'Отказ'
+      };
+      return map[value] || 'Не задан';
+    }
+
     function parseStructuredNotes(notes = '') {
       const raw = String(notes || '').trim();
       if (!raw) return { intro:'', sections:[], plain:'' };
@@ -791,6 +854,26 @@
               </div>
             </div>
 
+            <div class="pipeline-box">
+              <label>Этап pipeline</label>
+              <div class="pipeline-row">
+                <span class="pipeline-badge">${pipelineLabel(candidate.source || '')}</span>
+              </div>
+              <div class="pipeline-row">
+                <select id="quick-pipeline" class="pipeline-select">
+                  <option value="" ${!(candidate.source) ? 'selected' : ''}>Не задан</option>
+                  <option value="new" ${candidate.source === 'new' ? 'selected' : ''}>Новый</option>
+                  <option value="screening" ${candidate.source === 'screening' ? 'selected' : ''}>Скрининг</option>
+                  <option value="interview" ${candidate.source === 'interview' ? 'selected' : ''}>Интервью</option>
+                  <option value="test_task" ${candidate.source === 'test_task' ? 'selected' : ''}>Тестовое</option>
+                  <option value="test_shift" ${candidate.source === 'test_shift' ? 'selected' : ''}>Тест-смена</option>
+                  <option value="hired" ${candidate.source === 'hired' ? 'selected' : ''}>Нанят</option>
+                  <option value="rejected" ${candidate.source === 'rejected' ? 'selected' : ''}>Отказ</option>
+                </select>
+                <button class="btn btn-ghost" onclick="savePipeline()">Сохранить этап</button>
+              </div>
+            </div>
+
             <div class="field-list">
               <div class="field-box"><div class="k">Возраст</div><div class="v">${escapeHtml(candidate.age || '—')}</div></div>
               <div class="field-box"><div class="k">Опыт</div><div class="v">${escapeHtml(candidate.exp || '—')}</div></div>
@@ -936,7 +1019,8 @@
           avgcheck: currentCandidate.avg_check || '',
           job: currentCandidate.job || '',
           status,
-          notes: currentCandidate.notes || ''
+          notes: currentCandidate.notes || '',
+          source: currentCandidate.source || ''
         },
         ratings: currentCandidate.ratings || {},
         total: currentCandidate.total || 0
@@ -977,7 +1061,8 @@
           avgcheck: currentCandidate.avg_check || '',
           job: currentCandidate.job || '',
           status: currentCandidate.status || '',
-          notes
+          notes,
+          source: currentCandidate.source || ''
         },
         ratings: currentCandidate.ratings || {},
         total: currentCandidate.total || 0
@@ -1018,7 +1103,8 @@
           avgcheck: currentCandidate.avg_check || '',
           job: currentCandidate.job || '',
           status: currentCandidate.status || '',
-          notes: mergedNotes
+          notes: mergedNotes,
+          source: currentCandidate.source || ''
         },
         ratings: currentCandidate.ratings || {},
         total: currentCandidate.total || 0
@@ -1038,9 +1124,53 @@
       await load();
     }
 
+    async function savePipeline() {
+      if (!currentCandidate) return;
+
+      const pipeline = document.getElementById('quick-pipeline')?.value || '';
+
+      const split = splitInternalComment(currentCandidate.notes || '');
+      const notes = mergeInternalComment(split.publicNotes, split.internalComment);
+
+      const payload = {
+        fields: {
+          name: currentCandidate.name || '',
+          tg: currentCandidate.tg || '',
+          age: currentCandidate.age || '',
+          english: currentCandidate.english || '',
+          exp: currentCandidate.exp || '',
+          platforms: currentCandidate.platforms || '',
+          shift: currentCandidate.shift || '',
+          schedule: currentCandidate.schedule || '',
+          top: currentCandidate.top_pages || '',
+          avgcheck: currentCandidate.avg_check || '',
+          job: currentCandidate.job || '',
+          status: currentCandidate.status || '',
+          notes,
+          source: pipeline
+        },
+        ratings: currentCandidate.ratings || {},
+        total: currentCandidate.total || 0
+      };
+
+      const res = await api(`/candidates/${candidateId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Не удалось сохранить этап');
+        return;
+      }
+
+      await load();
+    }
+
     window.quickUpdateStatus = quickUpdateStatus;
     window.saveNotes = saveNotes;
     window.saveInternalComment = saveInternalComment;
+    window.savePipeline = savePipeline;
 
     load().catch(err => {
       console.error(err);
