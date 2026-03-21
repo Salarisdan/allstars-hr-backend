@@ -475,7 +475,7 @@
         <select class="select" id="statusFilter">
           <option value="">Все статусы</option>
           <option value="Новая заявка">Новая заявка</option>
-          <option value="Назначено собеседование">Назначено собеседование</option>
+          <option value="Собеседование">Собеседование</option>
           <option value="Подтвердил">Подтвердил</option>
           <option value="Не пришёл">Не пришёл</option>
           <option value="Собеседование проведено">Собеседование проведено</option>
@@ -526,6 +526,27 @@
         .replaceAll("'", '&#039;');
     }
 
+    function toDateInputValue(value) {
+      const s = String(value || '').trim();
+      if (!s) return '';
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+      const m1 = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+      if (m1) {
+        const [, dd, mm, yyyy] = m1;
+        return `${yyyy}-${mm}-${dd}`;
+      }
+
+      const m2 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (m2) {
+        const [, dd, mm, yyyy] = m2;
+        return `${yyyy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
+      }
+
+      return '';
+    }
+
     function initials(name = '') {
       return name.trim().split(/\s+/).map(x => x[0]).join('').slice(0,2).toUpperCase() || '?';
     }
@@ -545,7 +566,7 @@
     function statusBadge(status = '') {
       const map = {
         'Новая заявка': 'blue',
-        'Назначено собеседование': 'blue',
+        'Собеседование': 'blue',
         'Подтвердил': 'purple',
         'Не пришёл': 'red',
         'Собеседование проведено': 'green',
@@ -561,7 +582,7 @@
 
     function renderStats() {
       const total = allCandidates.length;
-      const scheduled = allCandidates.filter(x => x.status === 'Назначено собеседование').length;
+      const scheduled = allCandidates.filter(x => x.status === 'Собеседование').length;
       const confirmed = allCandidates.filter(x => x.status === 'Подтвердил').length;
       const noShow = allCandidates.filter(x => x.status === 'Не пришёл').length;
       const done = allCandidates.filter(x => x.status === 'Собеседование проведено').length;
@@ -627,10 +648,17 @@
       }
 
       const parseRuDate = (s) => {
-        const m = String(s || '').match(/^(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}))?$/);
-        if (!m) return 0;
-        const [, dd, mm, yyyy, hh = '00', min = '00'] = m;
-        return new Date(`${yyyy}-${mm}-${dd}T${hh}:${min}:00`).getTime();
+        const str = String(s || '').trim();
+        if (!str) return 0;
+
+        const m = str.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:[ ,]+(\d{2}):(\d{2}))?$/);
+        if (m) {
+          const [, dd, mm, yyyy, hh = '00', min = '00'] = m;
+          return new Date(`${yyyy}-${mm}-${dd}T${hh}:${min}:00`).getTime();
+        }
+
+        const native = Date.parse(str);
+        return Number.isNaN(native) ? 0 : native;
       };
 
       rows.sort((a, b) => parseRuDate(b.created_at) - parseRuDate(a.created_at));
@@ -716,7 +744,7 @@
               <div>
                 <div class="name">${escapeHtml(candidate.name || 'Без имени')}</div>
                 <div class="tg">${escapeHtml(candidate.tg || '—')}</div>
-                <div class="sub">Создан: ${formatDate(candidate.created_at)}</div>
+                <div class="sub">Дата заявки: ${escapeHtml(candidate.created_at || '—')}</div>
               </div>
             </div>
           </div>
@@ -730,6 +758,10 @@
             </div>
 
             <div class="meta-grid">
+              <div class="meta">
+                <div class="k">Дата заявки</div>
+                <div class="v">${escapeHtml(candidate.created_at || '—')}</div>
+              </div>
               <div class="meta">
                 <div class="k">Опыт</div>
                 <div class="v">${escapeHtml(candidate.exp || '—')}</div>
@@ -754,7 +786,7 @@
                   <div class="small-label">Статус</div>
                   <select class="input" id="status-${candidate.id}">
                     <option value="Новая заявка" ${candidate.status === 'Новая заявка' ? 'selected' : ''}>Новая заявка</option>
-                    <option value="Назначено собеседование" ${candidate.status === 'Назначено собеседование' ? 'selected' : ''}>Назначено собеседование</option>
+                    <option value="Собеседование" ${candidate.status === 'Собеседование' ? 'selected' : ''}>Собеседование</option>
                     <option value="Подтвердил" ${candidate.status === 'Подтвердил' ? 'selected' : ''}>Подтвердил</option>
                     <option value="Не пришёл" ${candidate.status === 'Не пришёл' ? 'selected' : ''}>Не пришёл</option>
                     <option value="Собеседование проведено" ${candidate.status === 'Собеседование проведено' ? 'selected' : ''}>Собеседование проведено</option>
@@ -773,11 +805,7 @@
                     class="input"
                     type="date"
                     id="date-${candidate.id}"
-                    value="${(() => {
-                      const s = String(candidate.interview_date || '').trim();
-                      const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-                      return m ? `${m[3]}-${m[2]}-${m[1]}` : '';
-                    })()}"
+                    value="${toDateInputValue(candidate.interview_date)}"
                   />
                 </div>
 
