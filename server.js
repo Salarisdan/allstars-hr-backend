@@ -57,7 +57,7 @@ async function getSheetsClient() {
 
   const auth = new google.auth.GoogleAuth({
     credentials: creds,
-    scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
+    scopes: ['https://www.googleapis.com/auth/spreadsheets']
   });
 
   return google.sheets({ version: 'v4', auth });
@@ -109,7 +109,7 @@ function normalizeRow(headers, row, rowIndex) {
     experience: get('Опыт'),
     profiles: get('Анкеты', 'С какими анкетами работал-а (топ, %)'),
     verification: get('Верификация', 'Вериф'),
-    status: mapRussianInterviewStatus(get('Статус')),
+    status: get('Статус') || 'Новая заявка',
     interviewer_name: get('Кто проводит собеседование'),
     interview_date: get('Дата собеседования'),
     interview_time: get('Время собеседования'),
@@ -862,33 +862,15 @@ app.get('/leads', async (req, res) => {
 
 app.get('/api/interviews', auth, async (req, res) => {
   try {
-    console.log('API /api/interviews CALLED');
-    console.log('SPREADSHEET_ID:', process.env.GOOGLE_SPREADSHEET_ID);
-    console.log('HAS CREDS:', !!process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-
-    const spreadsheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
-    const sheets = await getSheetsClient();
-
-    const meta = await sheets.spreadsheets.get({
-      spreadsheetId: undefined,
-    }).catch(() => null);
-
-    // Ищем таблицу по имени через Drive API не будем.
-    // На MVP читаем напрямую по spreadsheetId, если он задан.
-    // Поэтому сначала пробуем из env:
     const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
-
-    console.log('SPREADSHEET_ID:', spreadsheetId);
-
     if (!spreadsheetId) {
-      return res.status(500).json({
-        error: 'GOOGLE_SPREADSHEET_ID is missing'
-      });
+      return res.status(500).json({ error: 'GOOGLE_SPREADSHEET_ID is missing' });
     }
 
-    const range = 'AllStarsLeads!A1:Z2000';
+    const sheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
+    const sheets = await getSheetsClient();
 
-    console.log('Trying to read sheet...');
+    const range = `${sheetName}!A1:Q5000`;
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
@@ -906,12 +888,75 @@ app.get('/api/interviews', auth, async (req, res) => {
 
     const normalized = rows
       .map((row, index) => normalizeRow(headers, row, index + 2))
-      .filter(x => x.telegram_user_id || x.telegram_username || x.name);
+      .filter(x => x.telegram_user_id || x.telegram_username || x.name)
+      .sort((a, b) => {
+        const ad = String(a.created_at || '');
+        const bd = String(b.created_at || '');
+
+        const parseRuDate = (s) => {
+          const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}))?$/);
+          if (!m) return 0;
+          const [, dd, mm, yyyy, hh = '00', min = '00'] = m;
+          return new Date(`${yyyy}-${mm}-${dd}T${hh}:${min}:00`).getTime();
+        };
+
+        return parseRuDate(bd) - parseRuDate(ad);
+      });
 
     res.json(normalized);
   } catch (err) {
     console.error('Google Sheets read error:', err.message);
     res.status(500).json({ error: 'Failed to read Google Sheet' });
+  }
+});
+
+app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
+  try {
+    const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+    if (!spreadsheetId) {
+      return res.status(500).json({ error: 'GOOGLE_SPREADSHEET_ID is missing' });
+    }
+
+    const sheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
+    const rowNumber = Number(req.params.rowNumber);
+
+    if (!rowNumber || rowNumber < 2) {
+      return res.status(400).json({ error: 'Invalid row number' });
+    }
+
+    const {
+      status = '',
+      interviewer_name = '',
+      interview_date = '',
+      interview_time = '',
+      comments = ''
+    } = req.body || {};
+
+    const sheets = await getSheetsClient();
+
+    // M = Статус
+    // N = Кто проводит собеседование
+    // O = Дата собеседования
+    // P = Время собеседования
+    // Q = Комментарии
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        valueInputOption: 'USER_ENTERED',
+        data: [
+          { range: `${sheetName}!M${rowNumber}`, values: [[status]] },
+          { range: `${sheetName}!N${rowNumber}`, values: [[interviewer_name]] },
+          { range: `${sheetName}!O${rowNumber}`, values: [[interview_date]] },
+          { range: `${sheetName}!P${rowNumber}`, values: [[interview_time]] },
+          { range: `${sheetName}!Q${rowNumber}`, values: [[comments]] }
+        ]
+      }
+    });
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Google Sheets write error:', err.message);
+    res.status(500).json({ error: 'Failed to update Google Sheet' });
   }
 });
 
