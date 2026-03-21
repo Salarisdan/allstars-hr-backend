@@ -451,6 +451,33 @@
     .save-state.err{
       color:var(--red);
     }
+
+    .quick-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-top:6px;
+    }
+
+    .q-btn{
+      font-size:11px;
+      padding:5px 8px;
+      border-radius:8px;
+      border:1px solid var(--border);
+      background:var(--surface3);
+      color:var(--text2);
+      cursor:pointer;
+      transition:.15s;
+    }
+
+    .q-btn:hover{
+      color:var(--text);
+      border-color:var(--accent-border);
+    }
+
+    .q-btn.green{color:var(--green);border-color:var(--green-border);background:var(--green-bg);}
+    .q-btn.red{color:var(--red);border-color:var(--red-border);background:var(--red-bg);}
+    .q-btn.yellow{color:var(--yellow);border-color:var(--yellow-border);background:var(--yellow-bg);}
   </style>
 </head>
 <body>
@@ -873,6 +900,14 @@
                 </div>
               </div>
 
+              <div class="quick-actions">
+                <button class="q-btn green" onclick="quickSetStatus(${candidate.id}, 'Собеседование проведено')">Пришёл</button>
+                <button class="q-btn red" onclick="quickSetStatus(${candidate.id}, 'Не пришёл')">Не пришёл</button>
+                <button class="q-btn red" onclick="quickSetStatus(${candidate.id}, 'Отказ после собеседования')">Отказ</button>
+                <button class="q-btn yellow" onclick="quickSetStatus(${candidate.id}, 'Отправлен гайд')">Гайд</button>
+                <button class="q-btn yellow" onclick="quickSetStatus(${candidate.id}, 'Тестовое задание')">Тест</button>
+              </div>
+
               <div class="actions">
                 <button class="action-btn" onclick="saveInterviewRow(${candidate.id})">Сохранить</button>
                 <button class="action-btn" onclick="location.href='/candidate.html?id=${candidate.id}'">Открыть</button>
@@ -891,6 +926,38 @@
     refreshBtn.addEventListener('click', loadCandidates);
 
     window.saveInterviewRow = saveInterviewRow;
+
+    async function quickSetStatus(rowNumber, status) {
+      const statusEl = document.getElementById(`status-${rowNumber}`);
+      if (statusEl) {
+        statusEl.value = status;
+      }
+
+      setSaveState(rowNumber, 'Сохраняем...');
+
+      const res = await api(`/api/interviews/${rowNumber}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setSaveState(rowNumber, err.error || 'Ошибка', 'err');
+        return;
+      }
+
+      setSaveState(rowNumber, 'Сохранено', 'ok');
+
+      await loadCandidates();
+
+      setTimeout(() => {
+        setSaveState(rowNumber, '');
+      }, 1200);
+    }
+
+    window.quickSetStatus = quickSetStatus;
 
     loadCandidates().catch(err => {
       console.error(err);
