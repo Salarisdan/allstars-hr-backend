@@ -874,6 +874,8 @@ app.get('/api/interviews', auth, async (req, res) => {
     // Поэтому сначала пробуем из env:
     const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
 
+    console.log('SPREADSHEET_ID:', spreadsheetId);
+
     if (!spreadsheetId) {
       return res.status(500).json({
         error: 'GOOGLE_SPREADSHEET_ID is missing'
@@ -881,6 +883,8 @@ app.get('/api/interviews', auth, async (req, res) => {
     }
 
     const range = 'AllStarsLeads!A1:Z2000';
+
+    console.log('Trying to read sheet...');
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
