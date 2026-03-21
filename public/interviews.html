@@ -549,70 +549,37 @@
     }
 
     async function loadCandidates() {
-      const res = await api('/candidates');
-      if (!res.ok) throw new Error('Не удалось загрузить кандидатов');
+      const res = await api('/api/interviews');
+      if (!res.ok) throw new Error('Не удалось загрузить заявки из таблицы');
 
       const rows = await res.json();
 
-      allCandidates = rows.filter(x => {
-        const interviewStatuses = [
-          'Новая заявка',
-          'Назначено собеседование',
-          'Подтвердил',
-          'Не пришёл',
-          'Собеседование проведено',
-          'Отказ до собеседования',
-          'Отказ после собеседования',
-          'Отправлен гайд',
-          'Тестовое задание',
-          'Тест-смена',
-          'Принят'
-        ];
-
-        return interviewStatuses.includes(x.status || '');
-      });
+      allCandidates = rows.map(x => ({
+        id: x.row_number,
+        name: x.name || '',
+        tg: x.telegram_username || '',
+        created_at: x.created_at || '',
+        platforms: x.platform || '',
+        shift: x.shift || '',
+        english: x.english || '',
+        exp: x.experience || '',
+        avg_check: '',
+        owner_name: x.interviewer_name || '',
+        total: 0,
+        notes: x.comments || '',
+        status: x.status || 'Новая заявка',
+        interview_date: x.interview_date || '',
+        interview_time: x.interview_time || '',
+        telegram_user_id: x.telegram_user_id || '',
+        source: x.source || ''
+      }));
 
       renderStats();
       render();
     }
 
     async function updateInterviewStatus(id, status) {
-      const candidate = allCandidates.find(x => Number(x.id) === Number(id));
-      if (!candidate) return;
-
-      const payload = {
-        fields: {
-          name: candidate.name || '',
-          tg: candidate.tg || '',
-          age: candidate.age || '',
-          english: candidate.english || '',
-          exp: candidate.exp || '',
-          platforms: candidate.platforms || '',
-          shift: candidate.shift || '',
-          schedule: candidate.schedule || '',
-          top: candidate.top_pages || '',
-          avgcheck: candidate.avg_check || '',
-          job: candidate.job || '',
-          status,
-          notes: candidate.notes || '',
-          source: candidate.source || ''
-        },
-        ratings: candidate.ratings || {},
-        total: candidate.total || 0
-      };
-
-      const res = await api(`/candidates/${id}`, {
-        method:'PATCH',
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(()=>({}));
-        alert(err.error || 'Не удалось обновить статус');
-        return;
-      }
-
-      await loadCandidates();
+      alert('Статус из страницы собеседований пока меняется только после подключения записи обратно в Google Sheet. Сейчас у нас работает только чтение.');
     }
 
     function render() {
