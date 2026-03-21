@@ -87,25 +87,28 @@ function mapRussianInterviewStatus(status = '') {
 }
 
 function normalizeRow(headers, row, rowIndex) {
-  const get = (name) => {
-    const idx = headers.indexOf(name);
-    return idx >= 0 ? (row[idx] ?? '') : '';
+  const get = (...names) => {
+    for (const name of names) {
+      const idx = headers.indexOf(name);
+      if (idx >= 0) return row[idx] ?? '';
+    }
+    return '';
   };
 
   return {
     row_number: rowIndex,
     created_at: get('Дата'),
-    telegram_username: get('TG Username'),
-    telegram_user_id: get('TG ID'),
-    source: get('Источник'),
-    name: get('Имя'),
+    telegram_username: get('TG Username', 'Username'),
+    telegram_user_id: get('TG ID', 'ID'),
+    source: get('Источник', 'Отдкуда вы о нас узнали?'),
+    name: get('Имя', 'Как вас зовут?'),
     age: get('Возраст'),
-    english: get('Английский'),
+    english: get('Английский', 'Уровень английского'),
     platform: get('Платформа'),
-    shift: get('Смены'),
+    shift: get('Смены', 'Смена'),
     experience: get('Опыт'),
-    profiles: get('Анкеты'),
-    verification: get('Верификация'),
+    profiles: get('Анкеты', 'С какими анкетами работал-а (топ, %)'),
+    verification: get('Верификация', 'Вериф'),
     status: mapRussianInterviewStatus(get('Статус')),
     interviewer_name: get('Кто проводит собеседование'),
     interview_date: get('Дата собеседования'),
