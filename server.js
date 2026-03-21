@@ -862,6 +862,10 @@ app.get('/leads', async (req, res) => {
 
 app.get('/api/interviews', auth, async (req, res) => {
   try {
+    console.log('API /api/interviews CALLED');
+    console.log('SPREADSHEET_ID:', process.env.GOOGLE_SPREADSHEET_ID);
+    console.log('HAS CREDS:', !!process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+
     const spreadsheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
     const sheets = await getSheetsClient();
 
