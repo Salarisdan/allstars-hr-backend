@@ -379,6 +379,63 @@
       .grid{grid-template-columns:1fr}
       .meta-grid,.actions{grid-template-columns:1fr}
     }
+
+    .schedule-box{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:.8rem .9rem;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .schedule-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+
+    .schedule-grid-3{
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:8px;
+    }
+
+    .input{
+      width:100%;
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:.7rem .75rem;
+      color:var(--text);
+      font-family:'Manrope',sans-serif;
+      outline:none;
+    }
+
+    .input::placeholder{
+      color:var(--text3);
+    }
+
+    .small-label{
+      font-size:10px;
+      color:var(--text3);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-weight:800;
+      margin-bottom:4px;
+    }
+
+    .filter-date{
+      min-width:180px;
+    }
+
+    @media (max-width:920px){
+      .schedule-grid,
+      .schedule-grid-3{
+        grid-template-columns:1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -414,6 +471,7 @@
 
       <div class="toolbar">
         <input class="search" id="searchInput" placeholder="Поиск по имени, Telegram, платформе, заметкам..." />
+        <input class="input filter-date" type="date" id="dateFilter" />
         <select class="select" id="statusFilter">
           <option value="">Все статусы</option>
           <option value="Новая заявка">Новая заявка</option>
@@ -443,6 +501,7 @@
     const grid = document.getElementById('grid');
     const searchInput = document.getElementById('searchInput');
     const statusFilter = document.getElementById('statusFilter');
+    const dateFilter = document.getElementById('dateFilter');
     const refreshBtn = document.getElementById('refreshBtn');
 
     let allCandidates = [];
@@ -522,6 +581,7 @@
       let rows = [...allCandidates];
       const q = searchInput.value.trim().toLowerCase();
       const status = statusFilter.value;
+      const interviewDate = dateFilter.value;
 
       if (q) {
         rows = rows.filter(x => {
@@ -533,7 +593,9 @@
             x.english,
             x.notes,
             x.status,
-            x.owner_name
+            x.owner_name,
+            x.interview_date,
+            x.interview_time
           ].join(' ').toLowerCase();
 
           return hay.includes(q);
@@ -544,7 +606,34 @@
         rows = rows.filter(x => (x.status || '') === status);
       }
 
-      rows.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+      if (interviewDate) {
+        const normalizeToInputDate = (value) => {
+          const s = String(value || '').trim();
+
+          if (!s) return '';
+
+          if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+          const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+          if (m) {
+            const [, dd, mm, yyyy] = m;
+            return `${yyyy}-${mm}-${dd}`;
+          }
+
+          return '';
+        };
+
+        rows = rows.filter(x => normalizeToInputDate(x.interview_date) === interviewDate);
+      }
+
+      const parseRuDate = (s) => {
+        const m = String(s || '').match(/^(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}))?$/);
+        if (!m) return 0;
+        const [, dd, mm, yyyy, hh = '00', min = '00'] = m;
+        return new Date(`${yyyy}-${mm}-${dd}T${hh}:${min}:00`).getTime();
+      };
+
+      rows.sort((a, b) => parseRuDate(b.created_at) - parseRuDate(a.created_at));
       return rows;
     }
 
@@ -578,8 +667,37 @@
       render();
     }
 
-    async function updateInterviewStatus(id, status) {
-      alert('Статус из страницы собеседований пока меняется только после подключения записи обратно в Google Sheet. Сейчас у нас работает только чтение.');
+    async function saveInterviewRow(rowNumber) {
+      const status = document.getElementById(`status-${rowNumber}`)?.value || '';
+      const interviewer_name = document.getElementById(`interviewer-${rowNumber}`)?.value || '';
+      const interview_date_raw = document.getElementById(`date-${rowNumber}`)?.value || '';
+      const interview_time = document.getElementById(`time-${rowNumber}`)?.value || '';
+      const comments = document.getElementById(`comments-${rowNumber}`)?.value || '';
+
+      let interview_date = '';
+      if (interview_date_raw) {
+        const [yyyy, mm, dd] = interview_date_raw.split('-');
+        interview_date = `${dd}.${mm}.${yyyy}`;
+      }
+
+      const res = await api(`/api/interviews/${rowNumber}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status,
+          interviewer_name,
+          interview_date,
+          interview_time,
+          comments
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Не удалось сохранить в таблицу');
+        return;
+      }
+
+      await loadCandidates();
     }
 
     function render() {
@@ -630,18 +748,77 @@
               </div>
             </div>
 
-            <div class="actions">
-              <button class="action-btn" onclick="updateInterviewStatus(${candidate.id}, 'Назначено собеседование')">Назначено</button>
-              <button class="action-btn" onclick="updateInterviewStatus(${candidate.id}, 'Подтвердил')">Подтвердил</button>
-              <button class="action-btn" onclick="updateInterviewStatus(${candidate.id}, 'Не пришёл')">Не пришёл</button>
-              <button class="action-btn" onclick="updateInterviewStatus(${candidate.id}, 'Собеседование проведено')">Проведено</button>
-              <button class="action-btn" onclick="updateInterviewStatus(${candidate.id}, 'Отказ до собеседования')">Отказ до</button>
-              <button class="action-btn" onclick="updateInterviewStatus(${candidate.id}, 'Отказ после собеседования')">Отказ после</button>
-              <button class="action-btn" onclick="updateInterviewStatus(${candidate.id}, 'Отправлен гайд')">Гайд</button>
-              <button class="action-btn" onclick="location.href='/candidate.html?id=${candidate.id}'">Открыть</button>
-            </div>
+            <div class="schedule-box">
+              <div class="schedule-grid-3">
+                <div>
+                  <div class="small-label">Статус</div>
+                  <select class="input" id="status-${candidate.id}">
+                    <option value="Новая заявка" ${candidate.status === 'Новая заявка' ? 'selected' : ''}>Новая заявка</option>
+                    <option value="Назначено собеседование" ${candidate.status === 'Назначено собеседование' ? 'selected' : ''}>Назначено собеседование</option>
+                    <option value="Подтвердил" ${candidate.status === 'Подтвердил' ? 'selected' : ''}>Подтвердил</option>
+                    <option value="Не пришёл" ${candidate.status === 'Не пришёл' ? 'selected' : ''}>Не пришёл</option>
+                    <option value="Собеседование проведено" ${candidate.status === 'Собеседование проведено' ? 'selected' : ''}>Собеседование проведено</option>
+                    <option value="Отказ до собеседования" ${candidate.status === 'Отказ до собеседования' ? 'selected' : ''}>Отказ до собеседования</option>
+                    <option value="Отказ после собеседования" ${candidate.status === 'Отказ после собеседования' ? 'selected' : ''}>Отказ после собеседования</option>
+                    <option value="Отправлен гайд" ${candidate.status === 'Отправлен гайд' ? 'selected' : ''}>Отправлен гайд</option>
+                    <option value="Тестовое задание" ${candidate.status === 'Тестовое задание' ? 'selected' : ''}>Тестовое задание</option>
+                    <option value="Тест-смена" ${candidate.status === 'Тест-смена' ? 'selected' : ''}>Тест-смена</option>
+                    <option value="Принят" ${candidate.status === 'Принят' ? 'selected' : ''}>Принят</option>
+                  </select>
+                </div>
 
-            <div class="notes">${escapeHtml(candidate.notes || 'Без заметок')}</div>
+                <div>
+                  <div class="small-label">Дата собеседования</div>
+                  <input
+                    class="input"
+                    type="date"
+                    id="date-${candidate.id}"
+                    value="${(() => {
+                      const s = String(candidate.interview_date || '').trim();
+                      const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+                      return m ? `${m[3]}-${m[2]}-${m[1]}` : '';
+                    })()}"
+                  />
+                </div>
+
+                <div>
+                  <div class="small-label">Время</div>
+                  <input
+                    class="input"
+                    type="time"
+                    id="time-${candidate.id}"
+                    value="${escapeHtml(candidate.interview_time || '')}"
+                  />
+                </div>
+              </div>
+
+              <div class="schedule-grid">
+                <div>
+                  <div class="small-label">Кто проводит</div>
+                  <input
+                    class="input"
+                    id="interviewer-${candidate.id}"
+                    placeholder="Имя HR / интервьюера"
+                    value="${escapeHtml(candidate.owner_name || '')}"
+                  />
+                </div>
+
+                <div>
+                  <div class="small-label">Комментарий</div>
+                  <input
+                    class="input"
+                    id="comments-${candidate.id}"
+                    placeholder="Комментарий по заявке / собеседованию"
+                    value="${escapeHtml(candidate.notes || '')}"
+                  />
+                </div>
+              </div>
+
+              <div class="actions">
+                <button class="action-btn" onclick="saveInterviewRow(${candidate.id})">Сохранить</button>
+                <button class="action-btn" onclick="location.href='/candidate.html?id=${candidate.id}'">Открыть</button>
+              </div>
+            </div>
           </div>
         </article>
       `).join('');
@@ -649,9 +826,10 @@
 
     searchInput.addEventListener('input', render);
     statusFilter.addEventListener('change', render);
+    dateFilter.addEventListener('change', render);
     refreshBtn.addEventListener('click', loadCandidates);
 
-    window.updateInterviewStatus = updateInterviewStatus;
+    window.saveInterviewRow = saveInterviewRow;
 
     loadCandidates().catch(err => {
       console.error(err);
