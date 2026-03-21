@@ -63,6 +63,61 @@ async function getSheetsClient() {
   return google.sheets({ version: 'v4', auth });
 }
 
+function parseSheetDate(value) {
+  if (!value) return null;
+
+  if (value instanceof Date) return value;
+
+  const s = String(value).trim();
+  if (!s) return null;
+
+  const native = new Date(s);
+  if (!Number.isNaN(native.getTime())) return native;
+
+  const m1 = s.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}))?$/);
+  if (m1) {
+    const [, dd, mm, yyyy, hh = '00', min = '00'] = m1;
+    return new Date(`${yyyy}-${mm}-${dd}T${hh}:${min}:00`);
+  }
+
+  return null;
+}
+
+function isInterviewStatus(status) {
+  return [
+    'Собеседование',
+    'Изучает гайд',
+    'Не пришел на собес',
+    'Отказ',
+    'Тест смена'
+  ].includes(String(status || '').trim());
+}
+
+function countByPeriod(rows, dateField, predicate, days = null) {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - 7);
+
+  let total = 0;
+  let month = 0;
+  let week = 0;
+
+  for (const row of rows) {
+    if (predicate && !predicate(row)) continue;
+
+    total++;
+
+    const dt = parseSheetDate(row[dateField]);
+    if (!dt) continue;
+
+    if (dt >= monthStart) month++;
+    if (dt >= weekStart) week++;
+  }
+
+  return { total, month, week };
+}
+
 function mapRussianInterviewStatus(status = '') {
   const s = String(status || '').trim();
 

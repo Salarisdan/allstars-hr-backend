@@ -509,24 +509,26 @@
         </div>
       </div>
 
-      <div class="stats" id="stats"></div>
+      <div class="stats">
+        <div class="stat"><div class="val" id="stat-total">0</div><div class="label">Всего</div></div>
+        <div class="stat"><div class="val" id="stat-interview">0</div><div class="label">На собеседовании</div></div>
+        <div class="stat"><div class="val" id="stat-guide">0</div><div class="label">Изучает гайд</div></div>
+        <div class="stat"><div class="val" id="stat-test">0</div><div class="label">Тест смена</div></div>
+        <div class="stat"><div class="val" id="stat-no-show">0</div><div class="label">Не пришел</div></div>
+        <div class="stat"><div class="val" id="stat-rejected">0</div><div class="label">Отказ</div></div>
+      </div>
 
       <div class="toolbar">
         <input class="search" id="searchInput" placeholder="Поиск по имени, Telegram, платформе, заметкам..." />
         <input class="input filter-date" type="date" id="dateFilter" />
         <select class="select" id="statusFilter">
           <option value="">Все статусы</option>
-          <option value="Новая заявка">Новая заявка</option>
+          <option value="Отписал">Отписал</option>
           <option value="Собеседование">Собеседование</option>
-          <option value="Подтвердил">Подтвердил</option>
-          <option value="Не пришёл">Не пришёл</option>
-          <option value="Собеседование проведено">Собеседование проведено</option>
-          <option value="Отказ до собеседования">Отказ до собеседования</option>
-          <option value="Отказ после собеседования">Отказ после собеседования</option>
-          <option value="Отправлен гайд">Отправлен гайд</option>
-          <option value="Тестовое задание">Тестовое задание</option>
-          <option value="Тест-смена">Тест-смена</option>
-          <option value="Принят">Принят</option>
+          <option value="Изучает гайд">Изучает гайд</option>
+          <option value="Не пришел на собес">Не пришел на собес</option>
+          <option value="Отказ">Отказ</option>
+          <option value="Тест смена">Тест смена</option>
         </select>
       </div>
 
@@ -615,37 +617,30 @@
 
     function statusBadge(status = '') {
       const map = {
-        'Новая заявка': 'blue',
+        'Отписал': 'red',
         'Собеседование': 'blue',
-        'Подтвердил': 'purple',
-        'Не пришёл': 'red',
-        'Собеседование проведено': 'green',
-        'Отказ до собеседования': 'red',
-        'Отказ после собеседования': 'red',
-        'Отправлен гайд': 'yellow',
-        'Тестовое задание': 'yellow',
-        'Тест-смена': 'purple',
-        'Принят': 'green'
+        'Изучает гайд': 'yellow',
+        'Не пришел на собес': 'red',
+        'Отказ': 'red',
+        'Тест смена': 'purple'
       };
       return map[status] || 'blue';
     }
 
     function renderStats() {
       const total = allCandidates.length;
-      const scheduled = allCandidates.filter(x => x.status === 'Собеседование').length;
-      const confirmed = allCandidates.filter(x => x.status === 'Подтвердил').length;
-      const noShow = allCandidates.filter(x => x.status === 'Не пришёл').length;
-      const done = allCandidates.filter(x => x.status === 'Собеседование проведено').length;
-      const rejected = allCandidates.filter(x => x.status === 'Отказ до собеседования' || x.status === 'Отказ после собеседования').length;
+      const interview = allCandidates.filter(x => x.status === 'Собеседование').length;
+      const noShow = allCandidates.filter(x => x.status === 'Не пришел на собес').length;
+      const rejected = allCandidates.filter(x => x.status === 'Отказ').length;
+      const test = allCandidates.filter(x => x.status === 'Тест смена').length;
+      const guide = allCandidates.filter(x => x.status === 'Изучает гайд').length;
 
-      stats.innerHTML = `
-        <div class="stat"><div class="val">${total}</div><div class="label">Всего в работе</div></div>
-        <div class="stat"><div class="val">${scheduled}</div><div class="label">Назначено</div></div>
-        <div class="stat"><div class="val">${confirmed}</div><div class="label">Подтвердили</div></div>
-        <div class="stat"><div class="val">${noShow}</div><div class="label">Не пришли</div></div>
-        <div class="stat"><div class="val">${done}</div><div class="label">Проведено</div></div>
-        <div class="stat"><div class="val">${rejected}</div><div class="label">Отказы</div></div>
-      `;
+      document.getElementById('stat-total').textContent = total;
+      document.getElementById('stat-interview').textContent = interview;
+      document.getElementById('stat-no-show').textContent = noShow;
+      document.getElementById('stat-rejected').textContent = rejected;
+      document.getElementById('stat-test').textContent = test;
+      document.getElementById('stat-guide').textContent = guide;
     }
 
     function getFiltered() {
@@ -843,17 +838,12 @@
                 <div>
                   <div class="small-label">Статус</div>
                   <select class="input" id="status-${candidate.id}">
-                    <option value="Новая заявка" ${candidate.status === 'Новая заявка' ? 'selected' : ''}>Новая заявка</option>
+                    <option value="Отписал" ${candidate.status === 'Отписал' ? 'selected' : ''}>Отписал</option>
                     <option value="Собеседование" ${candidate.status === 'Собеседование' ? 'selected' : ''}>Собеседование</option>
-                    <option value="Подтвердил" ${candidate.status === 'Подтвердил' ? 'selected' : ''}>Подтвердил</option>
-                    <option value="Не пришёл" ${candidate.status === 'Не пришёл' ? 'selected' : ''}>Не пришёл</option>
-                    <option value="Собеседование проведено" ${candidate.status === 'Собеседование проведено' ? 'selected' : ''}>Собеседование проведено</option>
-                    <option value="Отказ до собеседования" ${candidate.status === 'Отказ до собеседования' ? 'selected' : ''}>Отказ до собеседования</option>
-                    <option value="Отказ после собеседования" ${candidate.status === 'Отказ после собеседования' ? 'selected' : ''}>Отказ после собеседования</option>
-                    <option value="Отправлен гайд" ${candidate.status === 'Отправлен гайд' ? 'selected' : ''}>Отправлен гайд</option>
-                    <option value="Тестовое задание" ${candidate.status === 'Тестовое задание' ? 'selected' : ''}>Тестовое задание</option>
-                    <option value="Тест-смена" ${candidate.status === 'Тест-смена' ? 'selected' : ''}>Тест-смена</option>
-                    <option value="Принят" ${candidate.status === 'Принят' ? 'selected' : ''}>Принят</option>
+                    <option value="Изучает гайд" ${candidate.status === 'Изучает гайд' ? 'selected' : ''}>Изучает гайд</option>
+                    <option value="Не пришел на собес" ${candidate.status === 'Не пришел на собес' ? 'selected' : ''}>Не пришел на собес</option>
+                    <option value="Отказ" ${candidate.status === 'Отказ' ? 'selected' : ''}>Отказ</option>
+                    <option value="Тест смена" ${candidate.status === 'Тест смена' ? 'selected' : ''}>Тест смена</option>
                   </select>
                 </div>
 
@@ -901,11 +891,11 @@
               </div>
 
               <div class="quick-actions">
-                <button class="q-btn green" onclick="quickSetStatus(${candidate.id}, 'Собеседование проведено')">Пришёл</button>
-                <button class="q-btn red" onclick="quickSetStatus(${candidate.id}, 'Не пришёл')">Не пришёл</button>
-                <button class="q-btn red" onclick="quickSetStatus(${candidate.id}, 'Отказ после собеседования')">Отказ</button>
-                <button class="q-btn yellow" onclick="quickSetStatus(${candidate.id}, 'Отправлен гайд')">Гайд</button>
-                <button class="q-btn yellow" onclick="quickSetStatus(${candidate.id}, 'Тестовое задание')">Тест</button>
+                <button class="q-btn green" onclick="quickSetStatus(${candidate.id}, 'Собеседование')">Собес</button>
+                <button class="q-btn yellow" onclick="quickSetStatus(${candidate.id}, 'Изучает гайд')">Гайд</button>
+                <button class="q-btn red" onclick="quickSetStatus(${candidate.id}, 'Не пришел на собес')">Не пришел</button>
+                <button class="q-btn red" onclick="quickSetStatus(${candidate.id}, 'Отказ')">Отказ</button>
+                <button class="q-btn yellow" onclick="quickSetStatus(${candidate.id}, 'Тест смена')">Тест</button>
               </div>
 
               <div class="actions">
