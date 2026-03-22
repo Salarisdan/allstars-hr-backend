@@ -689,18 +689,13 @@
       const s = String(value || '').trim();
       if (!s) return 0;
 
-      // формат: 22.03.2026 14:55
-      let m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:[ ,]+(\d{2}):(\d{2}))?$/);
+      // Формат: 22.03.2026 14:55 или 22.03.2026 9:58
+      let m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:[ ,]+(\d{1,2}):(\d{2}))?$/);
       if (m) {
         const [, dd, mm, yyyy, hh = '00', min = '00'] = m;
-        return new Date(`${yyyy}-${mm}-${dd}T${hh}:${min}:00`).getTime();
-      }
-
-      // формат: 22.03.2026
-      m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-      if (m) {
-        const [, dd, mm, yyyy] = m;
-        return new Date(`${yyyy}-${mm}-${dd}T00:00:00`).getTime();
+        return new Date(
+          `${yyyy}-${mm}-${dd}T${String(hh).padStart(2, '0')}:${String(min).padStart(2, '0')}:00`
+        ).getTime();
       }
 
       const native = Date.parse(s);
@@ -757,7 +752,12 @@
       }
 
       // Новые заявки сверху
-      rows.sort((a, b) => parseCandidateDate(b.created_at) - parseCandidateDate(a.created_at));
+      rows.sort((a, b) => {
+        const diff = parseCandidateDate(b.created_at) - parseCandidateDate(a.created_at);
+        if (diff !== 0) return diff;
+
+        return Number(b.id || 0) - Number(a.id || 0);
+      });
 
       return rows;
     }
