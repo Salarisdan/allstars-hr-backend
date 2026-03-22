@@ -835,6 +835,42 @@
       }, 1500);
     }
 
+    async function sendInterviewNotification(rowNumber) {
+      const interview_date_raw = document.getElementById(`date-${rowNumber}`)?.value || '';
+      const interview_time = document.getElementById(`time-${rowNumber}`)?.value || '';
+
+      if (!interview_date_raw || !interview_time) {
+        alert('Сначала укажи дату и время собеседования');
+        return;
+      }
+
+      const [yyyy, mm, dd] = interview_date_raw.split('-');
+      const interview_date = `${dd}.${mm}.${yyyy}`;
+
+      setSaveState(rowNumber, 'Отправляем уведомление...');
+
+      const res = await api(`/api/interviews/${rowNumber}/notify`, {
+        method: 'POST',
+        body: JSON.stringify({
+          interview_date,
+          interview_time
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setSaveState(rowNumber, data.error || 'Ошибка отправки', 'err');
+        return;
+      }
+
+      setSaveState(rowNumber, 'Уведомление отправлено', 'ok');
+
+      setTimeout(() => {
+        setSaveState(rowNumber, '');
+      }, 2000);
+    }
+
     function render() {
       const rows = getFiltered();
 
@@ -954,6 +990,7 @@
 
               <div class="actions">
                 <button class="action-btn" onclick="saveInterviewRow(${candidate.id})">Сохранить</button>
+                <button class="action-btn" onclick="sendInterviewNotification(${candidate.id})">Отправить уведомление</button>
                 <button class="action-btn" onclick="location.href='/candidate.html?id=${candidate.id}'">Открыть</button>
               </div>
 
@@ -971,6 +1008,7 @@
     refreshBtn.addEventListener('click', loadCandidates);
 
     window.saveInterviewRow = saveInterviewRow;
+    window.sendInterviewNotification = sendInterviewNotification;
 
     async function quickSetStatus(rowNumber, status) {
       const statusEl = document.getElementById(`status-${rowNumber}`);

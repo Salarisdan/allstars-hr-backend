@@ -1114,6 +1114,93 @@ app.get('/api/stats', auth, async (req, res) => {
   }
 });
 
+app.post('/api/interviews/:rowNumber/notify', auth, async (req, res) => {
+  try {
+    const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+    const sheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+
+    if (!spreadsheetId) {
+      return res.status(500).json({ error: 'GOOGLE_SPREADSHEET_ID is missing' });
+    }
+
+    if (!botToken) {
+      return res.status(500).json({ error: 'TELEGRAM_BOT_TOKEN is missing' });
+    }
+
+    const rowNumber = Number(req.params.rowNumber);
+    if (!rowNumber || rowNumber < 2) {
+      return res.status(400).json({ error: 'Invalid row number' });
+    }
+
+    const { interview_date = '', interview_time = '' } = req.body || {};
+
+    const sheets = await getSheetsClient();
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A${rowNumber}:Q${rowNumber}`
+    });
+
+    const row = response.data.values?.[0] || [];
+    if (!row.length) {
+      return res.status(404).json({ error: 'Row not found in sheet' });
+    }
+
+    // По твоей таблице:
+    // A Дата
+    // B Username
+    // C ID
+    // ...
+    const telegramUserId = row[2] || '';
+    const candidateName = row[4] || '';
+
+    if (!telegramUserId) {
+      return res.status(400).json({ error: 'Candidate TG ID is missing' });
+    }
+
+    const message =
+`Привет! 🙌
+Это HR агентства Allstars — вы недавно оставляли у нас заявку на работу чаттером.
+Мы рассмотрели вашу анкету и хотели бы пригласить вас на небольшой созвон.
+
+Расскажем подробнее об условиях, ответим на вопросы и познакомимся поближе 😊
+
+Будет ли вам удобно созвониться ${interview_date} в ${interview_time} по мск?
+
+Почему пришлось немного подождать?
+Потому что сейчас очень большой поток кандидатов, и мы физически не успеваем обработать всех сразу 🙏`;
+
+    const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        chat_id: telegramUserId,
+        text: message
+      })
+    });
+
+    const tgData = await tgRes.json();
+
+    if (!tgRes.ok || !tgData.ok) {
+      return res.status(500).json({
+        error: tgData.description || 'Failed to send Telegram message'
+      });
+    }
+
+    res.json({
+      ok: true,
+      candidate_name: candidateName,
+      telegram_user_id: telegramUserId
+    });
+  } catch (err) {
+    console.error('Telegram notify error:', err.message);
+    res.status(500).json({ error: 'Failed to send Telegram notification' });
+  }
+});
+
 app.get('/health', async (_req, res) => {
   try {
     await query('SELECT 1');
