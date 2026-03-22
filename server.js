@@ -1024,7 +1024,7 @@ app.get('/api/stats', auth, async (req, res) => {
 
     const sheets = await getSheetsClient();
 
-    const [summaryRes, weeklyRes] = await Promise.all([
+    const [summaryRes, weeklyRes, detailRes] = await Promise.all([
       sheets.spreadsheets.values.get({
         spreadsheetId,
         range: 'Статистика!B3:C7'
@@ -1032,11 +1032,16 @@ app.get('/api/stats', auth, async (req, res) => {
       sheets.spreadsheets.values.get({
         spreadsheetId,
         range: 'Статистика!B28:F31'
+      }),
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: 'Статистика!B12:E20'
       })
     ]);
 
     const summary = summaryRes.data.values || [];
     const weekly = weeklyRes.data.values || [];
+    const detail = detailRes.data.values || [];
 
     const toNum = (v) => {
       const n = Number(String(v || '').replace(',', '.').trim());
@@ -1089,11 +1094,19 @@ app.get('/api/stats', auth, async (req, res) => {
       rejects: lastWeek.rejects
     };
 
+    const details = detail.map(row => ({
+      status: row[0] || '',
+      count: toNum(row[1]),
+      percent: row[2] || '',
+      category: row[3] || ''
+    })).filter(x => x.status);
+
     res.json({
       totals,
       month,
       week,
-      weekly: weeklyRows
+      weekly: weeklyRows,
+      details
     });
   } catch (err) {
     console.error('Stats read error:', err.message);
