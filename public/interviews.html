@@ -530,6 +530,11 @@
           <option value="Отказ">Отказ</option>
           <option value="Тест смена">Тест смена</option>
         </select>
+        <select class="select" id="experienceFilter">
+          <option value="">Любой опыт</option>
+          <option value="no_exp">Без опыта</option>
+          <option value="has_exp">С опытом</option>
+        </select>
       </div>
 
       <div class="grid" id="grid"></div>
@@ -546,6 +551,7 @@
     const searchInput = document.getElementById('searchInput');
     const statusFilter = document.getElementById('statusFilter');
     const dateFilter = document.getElementById('dateFilter');
+    const experienceFilter = document.getElementById('experienceFilter');
     const refreshBtn = document.getElementById('refreshBtn');
 
     let allCandidates = [];
@@ -589,6 +595,42 @@
       }
 
       return '';
+    }
+
+    function parseExperienceMonths(raw) {
+      const s = String(raw || '').trim().toLowerCase().replace(',', '.');
+
+      if (!s) return 0;
+      if (s.includes('без опыта')) return 0;
+      if (s.includes('полгода')) return 6;
+
+      const yearsMatch = s.match(/(\d+(?:\.\d+)?)\s*(год|года|лет)/);
+      if (yearsMatch) {
+        return Math.round(parseFloat(yearsMatch[1]) * 12);
+      }
+
+      const monthsMatch = s.match(/(\d+(?:\.\d+)?)\s*(месяц|месяца|месяцев|мес)/);
+      if (monthsMatch) {
+        return Math.round(parseFloat(monthsMatch[1]));
+      }
+
+      const rangeMonths = s.match(/(\d+)\s*-\s*(\d+)\s*(месяц|месяца|месяцев|мес)/);
+      if (rangeMonths) {
+        return Math.round((parseFloat(rangeMonths[1]) + parseFloat(rangeMonths[2])) / 2);
+      }
+
+      const rangeYears = s.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*(год|года|лет)/);
+      if (rangeYears) {
+        const avgYears = (parseFloat(rangeYears[1]) + parseFloat(rangeYears[2])) / 2;
+        return Math.round(avgYears * 12);
+      }
+
+      const plainNumber = s.match(/(\d+(?:\.\d+)?)/);
+      if (plainNumber) {
+        return Math.round(parseFloat(plainNumber[1]));
+      }
+
+      return 0;
     }
 
     function setSaveState(rowNumber, text, type = '') {
@@ -648,6 +690,7 @@
       const q = searchInput.value.trim().toLowerCase();
       const status = statusFilter.value;
       const interviewDate = dateFilter.value;
+      const expFilter = experienceFilter.value;
 
       if (q) {
         rows = rows.filter(x => {
@@ -690,6 +733,17 @@
         };
 
         rows = rows.filter(x => normalizeToInputDate(x.interview_date) === interviewDate);
+      }
+
+      if (expFilter) {
+        rows = rows.filter(x => {
+          const months = parseExperienceMonths(x.exp);
+
+          if (expFilter === 'no_exp') return months < 3;
+          if (expFilter === 'has_exp') return months >= 3;
+
+          return true;
+        });
       }
 
       const parseRuDate = (s) => {
@@ -913,6 +967,7 @@
     searchInput.addEventListener('input', render);
     statusFilter.addEventListener('change', render);
     dateFilter.addEventListener('change', render);
+    experienceFilter.addEventListener('change', render);
     refreshBtn.addEventListener('click', loadCandidates);
 
     window.saveInterviewRow = saveInterviewRow;
