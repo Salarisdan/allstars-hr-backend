@@ -685,12 +685,33 @@
       document.getElementById('stat-guide').textContent = guide;
     }
 
+    function parseCandidateDate(value) {
+      const s = String(value || '').trim();
+      if (!s) return 0;
+
+      // формат: 22.03.2026 14:55
+      let m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:[ ,]+(\d{2}):(\d{2}))?$/);
+      if (m) {
+        const [, dd, mm, yyyy, hh = '00', min = '00'] = m;
+        return new Date(`${yyyy}-${mm}-${dd}T${hh}:${min}:00`).getTime();
+      }
+
+      // формат: 22.03.2026
+      m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+      if (m) {
+        const [, dd, mm, yyyy] = m;
+        return new Date(`${yyyy}-${mm}-${dd}T00:00:00`).getTime();
+      }
+
+      const native = Date.parse(s);
+      return Number.isNaN(native) ? 0 : native;
+    }
+
     function getFiltered() {
       let rows = [...allCandidates];
       const q = searchInput.value.trim().toLowerCase();
       const status = statusFilter.value;
       const interviewDate = dateFilter.value;
-      const expFilter = experienceFilter.value;
 
       if (q) {
         rows = rows.filter(x => {
@@ -704,7 +725,8 @@
             x.status,
             x.owner_name,
             x.interview_date,
-            x.interview_time
+            x.interview_time,
+            x.created_at
           ].join(' ').toLowerCase();
 
           return hay.includes(q);
@@ -718,7 +740,6 @@
       if (interviewDate) {
         const normalizeToInputDate = (value) => {
           const s = String(value || '').trim();
-
           if (!s) return '';
 
           if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
@@ -735,32 +756,9 @@
         rows = rows.filter(x => normalizeToInputDate(x.interview_date) === interviewDate);
       }
 
-      if (expFilter) {
-        rows = rows.filter(x => {
-          const months = parseExperienceMonths(x.exp);
+      // Новые заявки сверху
+      rows.sort((a, b) => parseCandidateDate(b.created_at) - parseCandidateDate(a.created_at));
 
-          if (expFilter === 'no_exp') return months < 3;
-          if (expFilter === 'has_exp') return months >= 3;
-
-          return true;
-        });
-      }
-
-      const parseRuDate = (s) => {
-        const str = String(s || '').trim();
-        if (!str) return 0;
-
-        const m = str.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:[ ,]+(\d{2}):(\d{2}))?$/);
-        if (m) {
-          const [, dd, mm, yyyy, hh = '00', min = '00'] = m;
-          return new Date(`${yyyy}-${mm}-${dd}T${hh}:${min}:00`).getTime();
-        }
-
-        const native = Date.parse(str);
-        return Number.isNaN(native) ? 0 : native;
-      };
-
-      rows.sort((a, b) => parseRuDate(b.created_at) - parseRuDate(a.created_at));
       return rows;
     }
 
