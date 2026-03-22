@@ -1017,77 +1017,87 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
 
 app.get('/api/stats', auth, async (req, res) => {
   try {
-    console.log('API /api/stats CALLED');
+    const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+    if (!spreadsheetId) {
+      return res.status(500).json({ error: 'GOOGLE_SPREADSHEET_ID is missing' });
+    }
 
     const sheets = await getSheetsClient();
 
-    const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
-    const sheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
+    const [summaryRes, weeklyRes] = await Promise.all([
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: 'Статистика!B3:C7'
+      }),
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: 'Статистика!B28:F31'
+      })
+    ]);
 
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: sheetName,
-    });
+    const summary = summaryRes.data.values || [];
+    const weekly = weeklyRes.data.values || [];
 
-    const rows = response.data.values || [];
-    if (!rows.length) return res.json({ totals: {}, month: {}, week: {} });
-
-    const headers = rows[0];
-    const data = rows.slice(1);
-
-    const now = new Date();
-
-    const result = {
-      totals: { leads: 0, interviews: 0, waiting: 0, rejects: 0 },
-      month: { leads: 0, interviews: 0, waiting: 0, rejects: 0 },
-      week: { leads: 0, interviews: 0, waiting: 0, rejects: 0 },
+    const toNum = (v) => {
+      const n = Number(String(v || '').replace(',', '.').trim());
+      return Number.isFinite(n) ? n : 0;
     };
 
-    const get = (row, name) => {
-      const i = headers.indexOf(name);
-      return i >= 0 ? row[i] : '';
+    const totals = {
+      leads: 0,
+      interviews: 0,
+      waiting: 0,
+      rejects: 0
     };
 
-    data.forEach(row => {
-      const status = (get(row, 'Статус') || '').toLowerCase();
-      const created = get(row, 'Дата');
+    for (const row of summary) {
+      const label = String(row[0] || '').trim().toLowerCase();
+      const value = toNum(row[1]);
 
-      const date = created ? new Date(created) : null;
+      if (label.includes('всего лидов')) totals.leads = value;
+      if (label.includes('собеседования')) totals.interviews = value;
+      if (label.includes('ожидание')) totals.waiting = value;
+      if (label.includes('отказы')) totals.rejects = value;
+    }
 
-      // --- TOTALS ---
-      result.totals.leads++;
+    const weeklyRows = weekly.map(row => ({
+      period: row[0] || '',
+      total: toNum(row[1]),
+      interviews: toNum(row[2]),
+      waiting: toNum(row[3]),
+      rejects: toNum(row[4])
+    }));
 
-      if (status.includes('собес')) result.totals.interviews++;
-      if (status.includes('ожид')) result.totals.waiting++;
-      if (status.includes('отказ')) result.totals.rejects++;
+    const lastWeek = weeklyRows[weeklyRows.length - 1] || {
+      total: 0,
+      interviews: 0,
+      waiting: 0,
+      rejects: 0
+    };
 
-      // --- MONTH ---
-      if (date && date.getMonth() === now.getMonth()) {
-        result.month.leads++;
+    const month = {
+      leads: weeklyRows.reduce((sum, x) => sum + x.total, 0),
+      interviews: weeklyRows.reduce((sum, x) => sum + x.interviews, 0),
+      waiting: weeklyRows.reduce((sum, x) => sum + x.waiting, 0),
+      rejects: weeklyRows.reduce((sum, x) => sum + x.rejects, 0)
+    };
 
-        if (status.includes('собес')) result.month.interviews++;
-        if (status.includes('ожид')) result.month.waiting++;
-        if (status.includes('отказ')) result.month.rejects++;
-      }
+    const week = {
+      leads: lastWeek.total,
+      interviews: lastWeek.interviews,
+      waiting: lastWeek.waiting,
+      rejects: lastWeek.rejects
+    };
 
-      // --- WEEK ---
-      if (date) {
-        const diff = (now - date) / (1000 * 60 * 60 * 24);
-        if (diff <= 7) {
-          result.week.leads++;
-
-          if (status.includes('собес')) result.week.interviews++;
-          if (status.includes('ожид')) result.week.waiting++;
-          if (status.includes('отказ')) result.week.rejects++;
-        }
-      }
+    res.json({
+      totals,
+      month,
+      week,
+      weekly: weeklyRows
     });
-
-    res.json(result);
-
   } catch (err) {
-    console.error('STATS ERROR:', err);
-    res.status(500).json({ error: 'Failed to load stats' });
+    console.error('Stats read error:', err.message);
+    res.status(500).json({ error: 'Failed to read stats from Google Sheets' });
   }
 });
 
