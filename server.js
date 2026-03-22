@@ -1119,6 +1119,7 @@ app.post('/api/interviews/:rowNumber/notify', auth, async (req, res) => {
     const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
     const sheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const hrChatId = process.env.HR_CHAT_ID;
 
     if (!spreadsheetId) {
       return res.status(500).json({ error: 'GOOGLE_SPREADSHEET_ID is missing' });
@@ -1147,13 +1148,9 @@ app.post('/api/interviews/:rowNumber/notify', auth, async (req, res) => {
       return res.status(404).json({ error: 'Row not found in sheet' });
     }
 
-    // По твоей таблице:
-    // A Дата
-    // B Username
-    // C ID
-    // ...
     const telegramUserId = row[2] || '';
     const candidateName = row[4] || '';
+    const username = row[1] || '';
 
     if (!telegramUserId) {
       return res.status(400).json({ error: 'Candidate TG ID is missing' });
@@ -1162,23 +1159,31 @@ app.post('/api/interviews/:rowNumber/notify', auth, async (req, res) => {
     const message =
 `Привет! 🙌
 Это HR агентства Allstars — вы недавно оставляли у нас заявку на работу чаттером.
-Мы рассмотрели вашу анкету и хотели бы пригласить вас на небольшой созвон.
 
+Мы рассмотрели вашу анкету и хотели бы пригласить вас на небольшой созвон.
 Расскажем подробнее об условиях, ответим на вопросы и познакомимся поближе 😊
 
-Будет ли вам удобно созвониться ${interview_date} в ${interview_time} по мск?
+Предлагаем созвониться ${interview_date} в ${interview_time} по мск.
+
+Если это время неудобно — нажмите кнопку ниже, и мы подберём другое 🙌
 
 Почему пришлось немного подождать?
 Потому что сейчас очень большой поток кандидатов, и мы физически не успеваем обработать всех сразу 🙏`;
 
     const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         chat_id: telegramUserId,
-        text: message
+        text: message,
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '✅ Подтверждаю', callback_data: `interview_confirm:${rowNumber}` },
+              { text: '🕒 Нужно другое время', callback_data: `interview_reschedule:${rowNumber}` }
+            ]
+          ]
+        }
       })
     });
 
@@ -1188,6 +1193,25 @@ app.post('/api/interviews/:rowNumber/notify', auth, async (req, res) => {
       return res.status(500).json({
         error: tgData.description || 'Failed to send Telegram message'
       });
+    }
+
+    // опционально: уведомить HR-чат, что приглашение отправлено
+    if (hrChatId) {
+      await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: hrChatId,
+          text:
+`📨 Приглашение на собеседование отправлено
+
+Кандидат: ${candidateName || '—'}
+Username: ${username || '—'}
+TG ID: ${telegramUserId}
+Дата: ${interview_date}
+Время: ${interview_time}`
+        })
+      }).catch(() => {});
     }
 
     res.json({
