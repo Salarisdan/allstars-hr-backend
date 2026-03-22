@@ -1015,6 +1015,82 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
   }
 });
 
+app.get('/api/stats', auth, async (req, res) => {
+  try {
+    console.log('API /api/stats CALLED');
+
+    const sheets = await getSheetsClient();
+
+    const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+    const sheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: sheetName,
+    });
+
+    const rows = response.data.values || [];
+    if (!rows.length) return res.json({ totals: {}, month: {}, week: {} });
+
+    const headers = rows[0];
+    const data = rows.slice(1);
+
+    const now = new Date();
+
+    const result = {
+      totals: { leads: 0, interviews: 0, waiting: 0, rejects: 0 },
+      month: { leads: 0, interviews: 0, waiting: 0, rejects: 0 },
+      week: { leads: 0, interviews: 0, waiting: 0, rejects: 0 },
+    };
+
+    const get = (row, name) => {
+      const i = headers.indexOf(name);
+      return i >= 0 ? row[i] : '';
+    };
+
+    data.forEach(row => {
+      const status = (get(row, 'Статус') || '').toLowerCase();
+      const created = get(row, 'Дата');
+
+      const date = created ? new Date(created) : null;
+
+      // --- TOTALS ---
+      result.totals.leads++;
+
+      if (status.includes('собес')) result.totals.interviews++;
+      if (status.includes('ожид')) result.totals.waiting++;
+      if (status.includes('отказ')) result.totals.rejects++;
+
+      // --- MONTH ---
+      if (date && date.getMonth() === now.getMonth()) {
+        result.month.leads++;
+
+        if (status.includes('собес')) result.month.interviews++;
+        if (status.includes('ожид')) result.month.waiting++;
+        if (status.includes('отказ')) result.month.rejects++;
+      }
+
+      // --- WEEK ---
+      if (date) {
+        const diff = (now - date) / (1000 * 60 * 60 * 24);
+        if (diff <= 7) {
+          result.week.leads++;
+
+          if (status.includes('собес')) result.week.interviews++;
+          if (status.includes('ожид')) result.week.waiting++;
+          if (status.includes('отказ')) result.week.rejects++;
+        }
+      }
+    });
+
+    res.json(result);
+
+  } catch (err) {
+    console.error('STATS ERROR:', err);
+    res.status(500).json({ error: 'Failed to load stats' });
+  }
+});
+
 app.get('/health', async (_req, res) => {
   try {
     await query('SELECT 1');
