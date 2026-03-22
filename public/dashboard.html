@@ -512,6 +512,53 @@
       });
     }
 
+    let distributionChartInstance = null;
+
+    function renderDistributionChart(data) {
+      const canvas = document.getElementById('distributionChart');
+      if (!canvas) return;
+
+      const ctx = canvas.getContext('2d');
+
+      if (distributionChartInstance) {
+        distributionChartInstance.destroy();
+      }
+
+      distributionChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Собеседования', 'Ожидание', 'Отказы'],
+          datasets: [
+            {
+              data: [
+                Number(data?.totals?.interviews || 0),
+                Number(data?.totals?.waiting || 0),
+                Number(data?.totals?.rejects || 0)
+              ]
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          cutout: '55%',
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: '#e8eaf0',
+                font: {
+                  family: 'Manrope'
+                },
+                padding: 16
+              }
+            }
+          }
+        }
+      });
+    }
+
     function renderStats(data) {
       const { totals, month, week } = data;
 
@@ -633,9 +680,17 @@
             <canvas id="weeklyChart"></canvas>
           </div>
         </section>
+
+        <section class="chart-card">
+          <div class="chart-title">Распределение лидов</div>
+          <div class="chart-wrap">
+            <canvas id="distributionChart"></canvas>
+          </div>
+        </section>
       `;
 
       renderWeeklyChart(data.weekly || []);
+      renderDistributionChart(data);
     }
 
     async function loadStats() {
