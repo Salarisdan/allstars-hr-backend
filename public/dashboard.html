@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AllStars — Статистика</title>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root{
       --bg:#0d0f14;
@@ -348,6 +349,27 @@
         grid-template-columns:1fr;
       }
     }
+
+    .chart-card{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      padding:1rem;
+      margin-top:18px;
+    }
+
+    .chart-title{
+      font-size:18px;
+      font-weight:800;
+      margin-bottom:12px;
+    }
+
+    .chart-wrap{
+      position:relative;
+      width:100%;
+      min-height:360px;
+    }
   </style>
 </head>
 <body>
@@ -402,6 +424,90 @@
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
           ...(options.headers || {})
+        }
+      });
+    }
+
+    let weeklyChartInstance = null;
+
+    function renderWeeklyChart(weekly = []) {
+      const canvas = document.getElementById('weeklyChart');
+      if (!canvas) return;
+
+      const ctx = canvas.getContext('2d');
+
+      if (weeklyChartInstance) {
+        weeklyChartInstance.destroy();
+      }
+
+      const labels = weekly.map(x => x.period || '—');
+      const totalData = weekly.map(x => Number(x.total || 0));
+      const interviewData = weekly.map(x => Number(x.interviews || 0));
+      const waitingData = weekly.map(x => Number(x.waiting || 0));
+      const rejectData = weekly.map(x => Number(x.rejects || 0));
+
+      weeklyChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Всего',
+              data: totalData
+            },
+            {
+              label: 'Собес',
+              data: interviewData
+            },
+            {
+              label: 'Ожид',
+              data: waitingData
+            },
+            {
+              label: 'Отказы',
+              data: rejectData
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: '#e8eaf0',
+                font: {
+                  family: 'Manrope'
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: {
+                color: '#9ba3bd',
+                font: {
+                  family: 'Manrope'
+                }
+              },
+              grid: {
+                color: 'rgba(255,255,255,.06)'
+              }
+            },
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: '#9ba3bd',
+                font: {
+                  family: 'Manrope'
+                }
+              },
+              grid: {
+                color: 'rgba(255,255,255,.06)'
+              }
+            }
+          }
         }
       });
     }
@@ -520,7 +626,16 @@
             </div>
           </div>
         </section>
+
+        <section class="chart-card">
+          <div class="chart-title">Статистика по неделям</div>
+          <div class="chart-wrap">
+            <canvas id="weeklyChart"></canvas>
+          </div>
+        </section>
       `;
+
+      renderWeeklyChart(data.weekly || []);
     }
 
     async function loadStats() {
