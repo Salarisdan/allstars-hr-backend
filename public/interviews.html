@@ -1135,6 +1135,7 @@
               <div class="actions">
                 <button class="action-btn" onclick="saveInterviewRow(${candidate.id})">Сохранить</button>
                 <button class="action-btn" onclick="sendInterviewNotification(${candidate.id})">Отправить уведомление</button>
+                <button class="action-btn" onclick="startInterview(${candidate.id})">Провести собеседование</button>
                 <button class="action-btn" onclick="location.href='/candidate.html?id=${candidate.id}'">Открыть</button>
               </div>
 
@@ -1153,6 +1154,11 @@
 
     window.saveInterviewRow = saveInterviewRow;
     window.sendInterviewNotification = sendInterviewNotification;
+    window.startInterview = startInterview;
+
+    function startInterview(rowNumber) {
+      location.href = `/index.html?sheetRow=${rowNumber}`;
+    }
 
     async function quickSetStatus(rowNumber, status) {
       const statusEl = document.getElementById(`status-${rowNumber}`);

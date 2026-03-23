@@ -1230,6 +1230,110 @@
       document.getElementById(id)?.querySelectorAll('.pill').forEach(x => x.classList.remove('selected'));
     }
 
+    function getQueryParam(name) {
+      const url = new URL(window.location.href);
+      return url.searchParams.get(name);
+    }
+
+    async function loadCandidateFromSheetRow() {
+      const sheetRow = getQueryParam('sheetRow');
+      if (!sheetRow) return;
+
+      const res = await api(`/api/interviews/${sheetRow}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error('Sheet candidate load error:', err.error || 'Не удалось загрузить кандидата');
+        return;
+      }
+
+      const candidate = await res.json();
+
+      // Основные поля карточки
+      const setVal = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value || '';
+      };
+
+      setVal('f-name', candidate.name || '');
+      setVal('f-tg', candidate.telegram_username || '');
+      setVal('f-age', candidate.age || '');
+      setVal('f-exp', candidate.experience || '');
+      setVal('f-top', candidate.profiles || '');
+      setVal('f-job', '');
+      setVal('f-avgcheck', '');
+      setVal('f-notes', candidate.comments || '');
+
+      // Статус
+      const statusSelect = document.getElementById('f-status-select');
+      if (statusSelect) {
+        statusSelect.value = candidate.status || '';
+      }
+
+      // English pills
+      selectSinglePillByValue('pills-english', candidate.english || '');
+
+      // Platforms pills
+      selectSinglePillByValue('pills-platforms', candidate.platform || '');
+
+      // Schedule / shifts
+      selectShiftPills(candidate.shift || '');
+
+      // Сохраним row number, чтобы потом при желании можно было связать результат обратно
+      window.currentInterviewSheetRow = candidate.row_number || null;
+    }
+
+    function clearPillsGroup(groupId) {
+      const group = document.getElementById(groupId);
+      if (!group) return;
+      group.querySelectorAll('.pill').forEach(p => p.classList.remove('selected'));
+    }
+
+    function selectSinglePillByValue(groupId, value) {
+      clearPillsGroup(groupId);
+      const group = document.getElementById(groupId);
+      if (!group) return;
+
+      const normalized = String(value || '').trim().toLowerCase();
+      if (!normalized) return;
+
+      const pills = [...group.querySelectorAll('.pill')];
+      const match = pills.find(p => String(p.dataset.val || '').trim().toLowerCase() === normalized);
+
+      if (match) {
+        match.classList.add('selected');
+      }
+    }
+
+    function selectShiftPills(value) {
+      clearPillsGroup('pills-shifts');
+
+      const group = document.getElementById('pills-shifts');
+      if (!group) return;
+
+      const raw = String(value || '').trim();
+      if (!raw) return;
+
+      const normalized = raw.toLowerCase();
+
+      const mappings = [
+        { keys: ['00–06', '00-06', '0-6', '0–6'], val: '00–06' },
+        { keys: ['06–12', '06-12', '6-12', '6–12'], val: '06–12' },
+        { keys: ['12–18', '12-18'], val: '12–18' },
+        { keys: ['18–00', '18-00', '18-24'], val: '18–00' }
+      ];
+
+      const parts = normalized.split(/[,;/]+/).map(x => x.trim()).filter(Boolean);
+
+      for (const part of parts.length ? parts : [normalized]) {
+        for (const map of mappings) {
+          if (map.keys.some(k => part.includes(k.toLowerCase()))) {
+            const pill = group.querySelector(`.pill[data-val="${map.val}"]`);
+            if (pill) pill.classList.add('selected');
+          }
+        }
+      }
+    }
+
     function collectQuestionNotes() {
       return [...document.querySelectorAll('.q-note')]
         .map(el => {
@@ -1245,6 +1349,8 @@
     initPills('pills-platforms');
     initPills('pills-shifts', true);
     initPills('pills-schedule');
+
+    loadCandidateFromSheetRow();
 
     const criteria = [
       {

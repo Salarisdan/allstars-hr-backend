@@ -965,6 +965,48 @@ app.get('/api/interviews', auth, async (req, res) => {
   }
 });
 
+app.get('/api/interviews/:rowNumber', auth, async (req, res) => {
+  try {
+    const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+    if (!spreadsheetId) {
+      return res.status(500).json({ error: 'GOOGLE_SPREADSHEET_ID is missing' });
+    }
+
+    const sheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
+    const rowNumber = Number(req.params.rowNumber);
+
+    if (!rowNumber || rowNumber < 2) {
+      return res.status(400).json({ error: 'Invalid row number' });
+    }
+
+    const sheets = await getSheetsClient();
+
+    const [headersRes, rowRes] = await Promise.all([
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A1:Q1`
+      }),
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A${rowNumber}:Q${rowNumber}`
+      })
+    ]);
+
+    const headers = headersRes.data.values?.[0] || [];
+    const row = rowRes.data.values?.[0] || [];
+
+    if (!row.length) {
+      return res.status(404).json({ error: 'Row not found' });
+    }
+
+    const candidate = normalizeRow(headers, row, rowNumber);
+    res.json(candidate);
+  } catch (err) {
+    console.error('Interview row read error:', err.message);
+    res.status(500).json({ error: 'Failed to read interview row' });
+  }
+});
+
 app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
   try {
     const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
