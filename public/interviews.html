@@ -580,18 +580,21 @@
       const s = String(value || '').trim();
       if (!s) return '';
 
+      // Уже в формате input date
       if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
 
-      const m1 = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-      if (m1) {
-        const [, dd, mm, yyyy] = m1;
+      // 22.03.2026
+      let m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+      if (m) {
+        const [, dd, mm, yyyy] = m;
         return `${yyyy}-${mm}-${dd}`;
       }
 
-      const m2 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-      if (m2) {
-        const [, dd, mm, yyyy] = m2;
-        return `${yyyy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
+      // 22.03.2026 14:30 или 22.03.2026 9:30
+      m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:[ ,]+(\d{1,2}):(\d{2}))?$/);
+      if (m) {
+        const [, dd, mm, yyyy] = m;
+        return `${yyyy}-${mm}-${dd}`;
       }
 
       return '';
