@@ -1276,6 +1276,228 @@ app.get('/health', async (_req, res) => {
   }
 });
 
+app.post('/api/ai/summary', auth, async (req, res) => {
+  try {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: 'OPENAI_API_KEY is missing' });
+    }
+
+    const { notes = '', status = '', candidate = {} } = req.body || {};
+
+    if (!String(notes).trim()) {
+      return res.status(400).json({ error: 'Notes are required' });
+    }
+
+    const candidateContext = `
+Имя: ${candidate.name || '—'}
+Возраст: ${candidate.age || '—'}
+Telegram: ${candidate.tg || '—'}
+Опыт: ${candidate.exp || '—'}
+Средний чек: ${candidate.avgcheck || '—'}
+Топ страницы: ${candidate.top || '—'}
+Занятость: ${candidate.job || '—'}
+Английский: ${candidate.english || '—'}
+Платформы: ${candidate.platforms || '—'}
+Смены: ${candidate.shifts || '—'}
+График: ${candidate.schedule || '—'}
+Выбранный HR статус: ${status || '—'}
+`.trim();
+
+    const systemPrompt = `
+Ты HR-ассистент. Твоя задача — превратить сырые заметки HR после собеседования в аккуратное, структурированное summary кандидата.
+
+ВАЖНО:
+- Не придумывай факты.
+- Не меняй решение HR.
+- Не предлагай свой статус.
+- В конце используй именно тот статус, который уже выбрал HR.
+- Пиши кратко, по делу, без воды.
+- Если какой-то информации нет, так и напиши: "Не выявлено" или "Не указано".
+
+Формат ответа строго такой:
+
+📌 Кратко о кандидате
+...
+
+💬 Коммуникация
+...
+
+🧠 Опыт
+...
+
+🇬🇧 Английский
+...
+
+🕒 Готовность / график
+...
+
+⚠️ Что важно учесть
+...
+
+✅ Следующий шаг
+...
+`.trim();
+
+    const userPrompt = `
+Данные кандидата:
+${candidateContext}
+
+Сырые заметки HR:
+${notes}
+`.trim();
+
+    const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4.1-mini',
+        temperature: 0.3,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ]
+      })
+    });
+
+    const json = await openaiRes.json();
+
+    if (!openaiRes.ok) {
+      console.error('OpenAI summary error:', json);
+      return res.status(500).json({
+        error: json?.error?.message || 'Failed to generate summary'
+      });
+    }
+
+    const summary = json?.choices?.[0]?.message?.content?.trim();
+    if (!summary) {
+      return res.status(500).json({ error: 'Empty summary from AI' });
+    }
+
+    res.json({ summary });
+  } catch (err) {
+    console.error('AI summary error:', err.message);
+    res.status(500).json({ error: 'Failed to generate summary' });
+  }
+});
+
+app.post('/api/ai/teamlead-handoff', auth, async (req, res) => {
+  try {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: 'OPENAI_API_KEY is missing' });
+    }
+
+    const { notes = '', status = '', candidate = {} } = req.body || {};
+
+    if (!String(notes).trim()) {
+      return res.status(400).json({ error: 'Notes are required' });
+    }
+
+    const candidateContext = `
+Имя: ${candidate.name || '—'}
+Возраст: ${candidate.age || '—'}
+Telegram: ${candidate.tg || '—'}
+Опыт: ${candidate.exp || '—'}
+Средний чек: ${candidate.avgcheck || '—'}
+Топ страницы: ${candidate.top || '—'}
+Занятость: ${candidate.job || '—'}
+Английский: ${candidate.english || '—'}
+Платформы: ${candidate.platforms || '—'}
+Смены: ${candidate.shifts || '—'}
+График: ${candidate.schedule || '—'}
+Выбранный HR статус: ${status || '—'}
+`.trim();
+
+    const systemPrompt = `
+Ты HR-ассистент. Твоя задача — превратить сырые заметки HR в структурированную передачу кандидата тимлиду.
+
+ВАЖНО:
+- Не придумывай факты.
+- Не меняй решение HR.
+- Не предлагай новый статус.
+- Используй только данные из карточки кандидата и заметок HR.
+- Пиши кратко, структурированно, по делу.
+- Это должен быть текст, который HR отправляет тимлиду для дальнейшей работы.
+
+Формат ответа строго такой:
+
+📌 Передача кандидата тимлиду
+
+Кандидат: ...
+Telegram: ...
+Возраст: ...
+
+1. Что по кандидату
+...
+
+2. Что показал на собеседовании
+...
+
+3. Сильные стороны
+...
+
+4. Слабые стороны / риски
+...
+
+5. Условия / график / смены
+...
+
+6. Что важно учесть в работе
+...
+
+7. Решение HR
+...
+`.trim();
+
+    const userPrompt = `
+Данные кандидата:
+${candidateContext}
+
+Сырые заметки HR:
+${notes}
+`.trim();
+
+    const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4.1-mini',
+        temperature: 0.2,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ]
+      })
+    });
+
+    const json = await openaiRes.json();
+
+    if (!openaiRes.ok) {
+      console.error('OpenAI teamlead handoff error:', json);
+      return res.status(500).json({
+        error: json?.error?.message || 'Failed to generate handoff'
+      });
+    }
+
+    const summary = json?.choices?.[0]?.message?.content?.trim();
+    if (!summary) {
+      return res.status(500).json({ error: 'Empty handoff from AI' });
+    }
+
+    res.json({ summary });
+  } catch (err) {
+    console.error('AI teamlead handoff error:', err.message);
+    res.status(500).json({ error: 'Failed to generate teamlead handoff' });
+  }
+});
+
 async function start() {
   try {
     await initDb();

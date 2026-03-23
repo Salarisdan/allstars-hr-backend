@@ -909,7 +909,10 @@
               <div class="field">
                 <label>Итоговые заметки HR</label>
                 <textarea id="f-notes" placeholder="Итоговое впечатление после звонка, общие выводы, решение..."></textarea>
-                <button class="btn btn-ghost" type="button" onclick="generateAISummary()">🤖 Сформировать summary</button>
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                  <button class="btn btn-ghost" type="button" onclick="generateAISummary()">🤖 Summary</button>
+                  <button class="btn btn-ghost" type="button" onclick="generateTeamleadHandoff()">🤖 Передача тимлиду</button>
+                </div>
               </div>
             </div>
           </section>
@@ -1329,6 +1332,52 @@
         document.getElementById('f-notes').value = data.summary || notes;
       } finally {
         if (btn) btn.disabled = false;
+      }
+    }
+
+    async function generateTeamleadHandoff() {
+      const notes = document.getElementById('f-notes')?.value || '';
+      const status = document.getElementById('f-status-select')?.value || '';
+
+      if (!notes.trim()) {
+        alert('Сначала заполни заметки');
+        return;
+      }
+
+      const payload = {
+        notes,
+        status,
+        candidate: {
+          name: document.getElementById('f-name')?.value || '',
+          age: document.getElementById('f-age')?.value || '',
+          tg: document.getElementById('f-tg')?.value || '',
+          exp: document.getElementById('f-exp')?.value || '',
+          avgcheck: document.getElementById('f-avgcheck')?.value || '',
+          top: document.getElementById('f-top')?.value || '',
+          job: document.getElementById('f-job')?.value || '',
+          english: getPill('pills-english') || '',
+          platforms: getPill('pills-platforms') || '',
+          shifts: getPills('pills-shifts').join(', '),
+          schedule: getPill('pills-schedule') || ''
+        }
+      };
+
+      try {
+        const res = await api('/api/ai/teamlead-handoff', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          alert(data.error || 'Ошибка генерации передачи');
+          return;
+        }
+
+        document.getElementById('f-notes').value = data.summary || notes;
+      } catch (err) {
+        alert('Ошибка генерации передачи');
       }
     }
 
