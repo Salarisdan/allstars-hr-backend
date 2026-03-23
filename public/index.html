@@ -911,8 +911,13 @@
                 <textarea id="f-notes" placeholder="Итоговое впечатление после звонка, общие выводы, решение..."></textarea>
                 <div style="display:flex;gap:8px;margin-top:8px;">
                   <button class="btn btn-ghost" type="button" onclick="generateAISummary()">🤖 Summary</button>
-                  <button class="btn btn-ghost" type="button" onclick="generateTeamleadHandoff()">🤖 Передача тимлиду</button>
                 </div>
+              </div>
+
+              <div class="field">
+                <label>Передача тимлиду</label>
+                <textarea id="f-teamlead-handoff" placeholder="Здесь будет структурированная передача кандидата тимлиду..."></textarea>
+                <button class="btn btn-ghost" type="button" onclick="generateTeamleadHandoff()">🤖 Передача тимлиду</button>
               </div>
             </div>
           </section>
@@ -1339,11 +1344,6 @@
       const notes = document.getElementById('f-notes')?.value || '';
       const status = document.getElementById('f-status-select')?.value || '';
 
-      if (!notes.trim()) {
-        alert('Сначала заполни заметки');
-        return;
-      }
-
       const payload = {
         notes,
         status,
@@ -1375,7 +1375,7 @@
           return;
         }
 
-        document.getElementById('f-notes').value = data.summary || notes;
+        document.getElementById('f-teamlead-handoff').value = data.summary || '';
       } catch (err) {
         alert('Ошибка генерации передачи');
       }
@@ -1442,6 +1442,16 @@
         })
         .filter(Boolean)
         .join('\n\n');
+    }
+
+    function buildFinalNotes(notes, teamleadHandoff) {
+      const main = String(notes || '').trim();
+      const handoff = String(teamleadHandoff || '').trim();
+
+      if (!handoff) return main;
+      if (!main) return `📌 Передача тимлиду\n\n${handoff}`;
+
+      return `${main}\n\n────────────\n\n📌 Передача тимлиду\n\n${handoff}`;
     }
 
     initPills('pills-english');
@@ -1574,6 +1584,7 @@
     function getFields() {
       const mainNotes = document.getElementById('f-notes').value.trim();
       const questionNotes = collectQuestionNotes();
+      const teamleadHandoff = document.getElementById('f-teamlead-handoff').value.trim();
 
       const combinedNotes = [
         mainNotes,
@@ -1593,13 +1604,13 @@
         avgcheck: document.getElementById('f-avgcheck').value.trim(),
         job: document.getElementById('f-job').value.trim(),
         status: document.getElementById('f-status-select').value,
-        notes: combinedNotes
+        notes: buildFinalNotes(combinedNotes, teamleadHandoff)
       };
     }
 
     function clearFields() {
       [
-        'f-name','f-tg','f-age','f-exp','f-top','f-avgcheck','f-job','f-notes'
+        'f-name','f-tg','f-age','f-exp','f-top','f-avgcheck','f-job','f-notes','f-teamlead-handoff'
       ].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
