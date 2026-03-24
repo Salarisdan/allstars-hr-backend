@@ -609,6 +609,12 @@
       flex-wrap:wrap;
     }
 
+    #teamlead-handoff{
+      width: 100%;
+      min-height: 180px;
+      resize: vertical;
+    }
+
     @media (max-width: 1100px){
       .wrap{
         grid-template-columns:1fr;
@@ -682,83 +688,28 @@
 
     async function generateCandidateAISummary() {
       console.log('generateCandidateAISummary clicked');
+
       if (!currentCandidate) {
         alert('Кандидат ещё не загружен');
-        return;
-      }
-
-      const notes =
-        document.querySelector('#candidate-notes')?.value ||
-        document.querySelector('#edit-notes')?.value ||
-        currentCandidate.notes ||
-        '';
-
-      const status =
-        currentCandidate.status ||
-        '';
-
-      if (!String(notes).trim()) {
-        alert('Сначала добавь заметки по кандидату');
-        return;
-      }
-
-      const payload = {
-        notes,
-        status,
-        candidate: {
-          name: currentCandidate.name || '',
-          age: currentCandidate.age || '',
-          tg: currentCandidate.tg || '',
-          exp: currentCandidate.exp || '',
-          avgcheck: currentCandidate.avg_check || '',
-          top: currentCandidate.top_pages || '',
-          job: currentCandidate.occupation || '',
-          english: currentCandidate.english || '',
-          platforms: currentCandidate.platforms || '',
-          shifts: currentCandidate.shifts || '',
-          schedule: currentCandidate.schedule || ''
-        }
-      };
-
-      const res = await api('/api/ai/summary', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        alert(data.error || 'Ошибка генерации summary');
         return;
       }
 
       const notesEl =
         document.querySelector('#candidate-notes') ||
-        document.querySelector('#edit-notes');
+        document.querySelector('#edit-notes') ||
+        document.querySelector('#notes') ||
+        document.querySelector('textarea[name="notes"]');
 
-      if (notesEl) {
-        notesEl.value = data.summary || notes;
-      }
-    }
+      const notes = notesEl?.value?.trim() || currentCandidate.notes || '';
+      const status = currentCandidate.status || '';
 
-    async function generateCandidateTeamleadHandoff() {
-      console.log('generateCandidateTeamleadHandoff clicked');
-      if (!currentCandidate) {
-        alert('Кандидат ещё не загружен');
-        return;
-      }
+      console.log('AI summary payload source', {
+        notes,
+        status,
+        currentCandidate
+      });
 
-      const notes =
-        document.querySelector('#candidate-notes')?.value ||
-        document.querySelector('#edit-notes')?.value ||
-        currentCandidate.notes ||
-        '';
-
-      const status =
-        currentCandidate.status ||
-        '';
-
-      if (!String(notes).trim()) {
+      if (!notes) {
         alert('Сначала добавь заметки по кандидату');
         return;
       }
@@ -781,21 +732,109 @@
         }
       };
 
-      const res = await api('/api/ai/teamlead-handoff', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
+      try {
+        console.log('sending /api/ai/summary', payload);
 
-      const data = await res.json().catch(() => ({}));
+        const res = await api('/api/ai/summary', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
 
-      if (!res.ok) {
-        alert(data.error || 'Ошибка генерации передачи');
+        const data = await res.json().catch(() => ({}));
+
+        console.log('/api/ai/summary response', res.status, data);
+
+        if (!res.ok) {
+          alert(data.error || 'Ошибка генерации summary');
+          return;
+        }
+
+        if (notesEl) {
+          notesEl.value = data.summary || notes;
+        } else {
+          alert('Не найдено поле заметок для вставки результата');
+        }
+      } catch (err) {
+        console.error('generateCandidateAISummary failed', err);
+        alert('Ошибка генерации summary');
+      }
+    }
+
+    async function generateCandidateTeamleadHandoff() {
+      console.log('generateCandidateTeamleadHandoff clicked');
+
+      if (!currentCandidate) {
+        alert('Кандидат ещё не загружен');
         return;
       }
 
+      const notesEl =
+        document.querySelector('#candidate-notes') ||
+        document.querySelector('#edit-notes') ||
+        document.querySelector('#notes') ||
+        document.querySelector('textarea[name="notes"]');
+
       const handoffEl = document.getElementById('teamlead-handoff');
-      if (handoffEl) {
+
+      const notes = notesEl?.value?.trim() || currentCandidate.notes || '';
+      const status = currentCandidate.status || '';
+
+      console.log('AI handoff payload source', {
+        notes,
+        status,
+        currentCandidate,
+        handoffElExists: !!handoffEl
+      });
+
+      if (!notes) {
+        alert('Сначала добавь заметки по кандидату');
+        return;
+      }
+
+      if (!handoffEl) {
+        alert('Не найдено поле "Передача тимлиду"');
+        return;
+      }
+
+      const payload = {
+        notes,
+        status,
+        candidate: {
+          name: currentCandidate.name || '',
+          age: currentCandidate.age || '',
+          tg: currentCandidate.tg || '',
+          exp: currentCandidate.exp || '',
+          avgcheck: currentCandidate.avg_check || '',
+          top: currentCandidate.top_pages || '',
+          job: currentCandidate.occupation || '',
+          english: currentCandidate.english || '',
+          platforms: currentCandidate.platforms || '',
+          shifts: currentCandidate.shifts || '',
+          schedule: currentCandidate.schedule || ''
+        }
+      };
+
+      try {
+        console.log('sending /api/ai/teamlead-handoff', payload);
+
+        const res = await api('/api/ai/teamlead-handoff', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        console.log('/api/ai/teamlead-handoff response', res.status, data);
+
+        if (!res.ok) {
+          alert(data.error || 'Ошибка генерации передачи');
+          return;
+        }
+
         handoffEl.value = data.summary || '';
+      } catch (err) {
+        console.error('generateCandidateTeamleadHandoff failed', err);
+        alert('Ошибка генерации передачи');
       }
     }
 
