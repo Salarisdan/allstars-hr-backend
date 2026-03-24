@@ -681,8 +681,9 @@
     }
 
     async function generateCandidateAISummary() {
+      console.log('generateCandidateAISummary clicked');
       if (!currentCandidate) {
-        alert('Сначала открой кандидата');
+        alert('Кандидат ещё не загружен');
         return;
       }
 
@@ -741,8 +742,9 @@
     }
 
     async function generateCandidateTeamleadHandoff() {
+      console.log('generateCandidateTeamleadHandoff clicked');
       if (!currentCandidate) {
-        alert('Сначала открой кандидата');
+        alert('Кандидат ещё не загружен');
         return;
       }
 
@@ -796,6 +798,24 @@
         handoffEl.value = data.summary || '';
       }
     }
+
+    function copyTeamleadHandoff() {
+      const handoffEl = document.getElementById('teamlead-handoff');
+      if (handoffEl && handoffEl.value) {
+        navigator.clipboard.writeText(handoffEl.value).then(() => {
+          alert('Передача скопирована!');
+        }).catch(() => {
+          alert('Не удалось скопировать');
+        });
+      } else {
+        alert('Сначала сгенерируйте передачу');
+      }
+    }
+
+    // Expose functions to global scope for onclick handlers
+    window.generateCandidateAISummary = generateCandidateAISummary;
+    window.generateCandidateTeamleadHandoff = generateCandidateTeamleadHandoff;
+    window.copyTeamleadHandoff = copyTeamleadHandoff;
 
     function escapeHtml(str = '') {
       return String(str)
@@ -1064,6 +1084,7 @@
               <div class="panel-actions">
                 <button class="btn btn-ghost" type="button" onclick="generateCandidateAISummary()">🤖 Summary</button>
                 <button class="btn btn-ghost" type="button" onclick="generateCandidateTeamleadHandoff()">🤖 Передача тимлиду</button>
+                <button class="btn btn-ghost" type="button" onclick="copyTeamleadHandoff()">📋 Скопировать передачу</button>
               </div>
             </div>
 
@@ -1141,6 +1162,7 @@
       const candidates = await res.json();
       const candidate = candidates.find(x => String(x.id) === String(candidateId));
       currentCandidate = candidate;
+      console.log('currentCandidate loaded', currentCandidate);
 
       if (!candidate) {
         document.getElementById('pageSub').textContent = 'Кандидат не найден';
