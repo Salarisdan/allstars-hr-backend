@@ -581,6 +581,34 @@
       padding:1rem;
     }
 
+    .panel{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:1rem;
+      margin-top:1rem;
+    }
+
+    .panel-title{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .panel-title h2{
+      font-size:17px;
+      font-weight:800;
+      letter-spacing:-.02em;
+    }
+
+    .panel-actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
     @media (max-width: 1100px){
       .wrap{
         grid-template-columns:1fr;
@@ -650,6 +678,123 @@
           ...(options.headers || {})
         }
       });
+    }
+
+    async function generateCandidateAISummary() {
+      if (!currentCandidate) {
+        alert('Сначала открой кандидата');
+        return;
+      }
+
+      const notes =
+        document.querySelector('#candidate-notes')?.value ||
+        document.querySelector('#edit-notes')?.value ||
+        currentCandidate.notes ||
+        '';
+
+      const status =
+        currentCandidate.status ||
+        '';
+
+      if (!String(notes).trim()) {
+        alert('Сначала добавь заметки по кандидату');
+        return;
+      }
+
+      const payload = {
+        notes,
+        status,
+        candidate: {
+          name: currentCandidate.name || '',
+          age: currentCandidate.age || '',
+          tg: currentCandidate.tg || '',
+          exp: currentCandidate.exp || '',
+          avgcheck: currentCandidate.avg_check || '',
+          top: currentCandidate.top_pages || '',
+          job: currentCandidate.occupation || '',
+          english: currentCandidate.english || '',
+          platforms: currentCandidate.platforms || '',
+          shifts: currentCandidate.shifts || '',
+          schedule: currentCandidate.schedule || ''
+        }
+      };
+
+      const res = await api('/api/ai/summary', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        alert(data.error || 'Ошибка генерации summary');
+        return;
+      }
+
+      const notesEl =
+        document.querySelector('#candidate-notes') ||
+        document.querySelector('#edit-notes');
+
+      if (notesEl) {
+        notesEl.value = data.summary || notes;
+      }
+    }
+
+    async function generateCandidateTeamleadHandoff() {
+      if (!currentCandidate) {
+        alert('Сначала открой кандидата');
+        return;
+      }
+
+      const notes =
+        document.querySelector('#candidate-notes')?.value ||
+        document.querySelector('#edit-notes')?.value ||
+        currentCandidate.notes ||
+        '';
+
+      const status =
+        currentCandidate.status ||
+        '';
+
+      if (!String(notes).trim()) {
+        alert('Сначала добавь заметки по кандидату');
+        return;
+      }
+
+      const payload = {
+        notes,
+        status,
+        candidate: {
+          name: currentCandidate.name || '',
+          age: currentCandidate.age || '',
+          tg: currentCandidate.tg || '',
+          exp: currentCandidate.exp || '',
+          avgcheck: currentCandidate.avg_check || '',
+          top: currentCandidate.top_pages || '',
+          job: currentCandidate.occupation || '',
+          english: currentCandidate.english || '',
+          platforms: currentCandidate.platforms || '',
+          shifts: currentCandidate.shifts || '',
+          schedule: currentCandidate.schedule || ''
+        }
+      };
+
+      const res = await api('/api/ai/teamlead-handoff', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        alert(data.error || 'Ошибка генерации передачи');
+        return;
+      }
+
+      const handoffEl = document.getElementById('teamlead-handoff');
+      if (handoffEl) {
+        handoffEl.value = data.summary || '';
+      }
     }
 
     function escapeHtml(str = '') {
@@ -910,6 +1055,21 @@
             <textarea id="internal-comment-editor">${escapeHtml(splitInternalComment(candidate.notes || '').internalComment)}</textarea>
             <div class="editor-actions">
               <button class="btn btn-ghost" onclick="saveInternalComment()">Сохранить комментарий</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">
+              <h2>AI помощник</h2>
+              <div class="panel-actions">
+                <button class="btn btn-ghost" type="button" onclick="generateCandidateAISummary()">🤖 Summary</button>
+                <button class="btn btn-ghost" type="button" onclick="generateCandidateTeamleadHandoff()">🤖 Передача тимлиду</button>
+              </div>
+            </div>
+
+            <div class="field" style="margin-top:12px;">
+              <label>Передача тимлиду</label>
+              <textarea id="teamlead-handoff" rows="10" placeholder="Здесь появится структурированная передача кандидата тимлиду..."></textarea>
             </div>
           </div>
         </section>
