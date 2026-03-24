@@ -1285,6 +1285,10 @@ app.post('/api/ai/summary', auth, async (req, res) => {
 
     const { notes = '', status = '', candidate = {} } = req.body || {};
 
+    if (!String(notes).trim()) {
+      return res.status(400).json({ error: 'Notes are required' });
+    }
+
     const prompt = `
 Ты HR-ассистент.
 
@@ -1311,39 +1315,64 @@ app.post('/api/ai/summary', auth, async (req, res) => {
 ...
 
 ✅ Следующий шаг
-${status}
+${status || 'Не указан'}
 
 Данные кандидата:
-Имя: ${candidate.name}
-Опыт: ${candidate.exp}
-Английский: ${candidate.english}
-Платформы: ${candidate.platforms}
-Смены: ${candidate.shifts}
+Имя: ${candidate.name || '—'}
+Возраст: ${candidate.age || '—'}
+Telegram: ${candidate.tg || '—'}
+Опыт: ${candidate.exp || '—'}
+Средний чек: ${candidate.avgcheck || '—'}
+Топ страницы: ${candidate.top || '—'}
+Занятость: ${candidate.job || '—'}
+Английский: ${candidate.english || '—'}
+Платформы: ${candidate.platforms || '—'}
+Смены: ${candidate.shifts || '—'}
+График: ${candidate.schedule || '—'}
 
 Заметки HR:
 ${notes}
-`;
+`.trim();
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
+          contents: [{ role: 'user', parts: [{ text: prompt }] }]
         })
       }
     );
 
     const data = await response.json();
 
+    if (!response.ok) {
+      console.error('Gemini summary HTTP error:', data);
+      return res.status(500).json({
+        error: data?.error?.message || 'Gemini request failed'
+      });
+    }
+
+    console.log('Gemini summary raw response:', JSON.stringify(data));
+
     const text =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      data?.candidates?.[0]?.content?.parts
+        ?.map(part => part?.text || '')
+        .join('')
+        .trim() || '';
+
+    if (!text) {
+      const blockReason = data?.promptFeedback?.blockReason || '';
+      const finishReason = data?.candidates?.[0]?.finishReason || '';
+      return res.status(500).json({
+        error: `Gemini returned empty text${blockReason ? `, blockReason: ${blockReason}` : ''}${finishReason ? `, finishReason: ${finishReason}` : ''}`
+      });
+    }
 
     res.json({ summary: text });
-
   } catch (err) {
-    console.error('Gemini error:', err.message);
+    console.error('Gemini summary error:', err.message);
     res.status(500).json({ error: 'Failed to generate summary' });
   }
 });
@@ -1351,8 +1380,15 @@ ${notes}
 app.post('/api/ai/teamlead-handoff', auth, async (req, res) => {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
+    }
 
     const { notes = '', status = '', candidate = {} } = req.body || {};
+
+    if (!String(notes).trim()) {
+      return res.status(400).json({ error: 'Notes are required' });
+    }
 
     const prompt = `
 Сделай передачу кандидата тимлиду.
@@ -1361,8 +1397,9 @@ app.post('/api/ai/teamlead-handoff', auth, async (req, res) => {
 
 📌 Передача кандидата тимлиду
 
-Кандидат: ${candidate.name}
-Telegram: ${candidate.tg}
+Кандидат: ${candidate.name || '—'}
+Telegram: ${candidate.tg || '—'}
+Возраст: ${candidate.age || '—'}
 
 1. Что по кандидату
 ...
@@ -1373,40 +1410,59 @@ Telegram: ${candidate.tg}
 3. Сильные стороны
 ...
 
-4. Риски
+4. Слабые стороны / риски
 ...
 
-5. Условия / график
+5. Условия / график / смены
 ...
 
-6. Что важно учесть
+6. Что важно учесть в работе
 ...
 
 7. Решение HR
-${status}
+${status || 'Не указан'}
 
 Заметки HR:
 ${notes}
-`;
+`.trim();
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
+          contents: [{ role: 'user', parts: [{ text: prompt }] }]
         })
       }
     );
 
     const data = await response.json();
 
+    if (!response.ok) {
+      console.error('Gemini handoff HTTP error:', data);
+      return res.status(500).json({
+        error: data?.error?.message || 'Gemini request failed'
+      });
+    }
+
+    console.log('Gemini handoff raw response:', JSON.stringify(data));
+
     const text =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      data?.candidates?.[0]?.content?.parts
+        ?.map(part => part?.text || '')
+        .join('')
+        .trim() || '';
+
+    if (!text) {
+      const blockReason = data?.promptFeedback?.blockReason || '';
+      const finishReason = data?.candidates?.[0]?.finishReason || '';
+      return res.status(500).json({
+        error: `Gemini returned empty text${blockReason ? `, blockReason: ${blockReason}` : ''}${finishReason ? `, finishReason: ${finishReason}` : ''}`
+      });
+    }
 
     res.json({ summary: text });
-
   } catch (err) {
     console.error('Gemini handoff error:', err.message);
     res.status(500).json({ error: 'Failed to generate handoff' });
