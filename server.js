@@ -1275,7 +1275,7 @@ app.get('/health', async (_req, res) => {
     res.status(500).json({ status: 'error', db: 'disconnected' });
   }
 });
-
+/api/ai/summary
 app.post('/api/ai/summary', auth, async (req, res) => {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -1376,7 +1376,7 @@ ${notes}
     res.status(500).json({ error: 'Failed to generate summary' });
   }
 });
-
+/api/ai/teamlead-handoff
 app.post('/api/ai/teamlead-handoff', auth, async (req, res) => {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
