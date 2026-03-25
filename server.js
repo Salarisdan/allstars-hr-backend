@@ -20,8 +20,15 @@ async function getGoogleSheet() {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
+
+if (!JWT_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET environment variable is required in production');
+  }
+  console.warn('WARNING: JWT_SECRET not set, using insecure default for development only');
+}
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -155,7 +162,7 @@ function normalizeRow(headers, row, rowIndex) {
     created_at: get('Дата'),
     telegram_username: get('TG Username', 'Username'),
     telegram_user_id: get('TG ID', 'ID'),
-    source: get('Источник', 'Отдкуда вы о нас узнали?'),
+    source: get('Источник', 'Откуда вы о нас узнали?'),
     name: get('Имя', 'Как вас зовут?'),
     age: get('Возраст'),
     english: get('Английский', 'Уровень английского'),
@@ -885,7 +892,7 @@ app.get('/dashboard/feed', auth, async (req, res) => {
   res.json(recent.rows);
 });
 
-app.get('/leads', async (req, res) => {
+app.get('/leads', auth, async (req, res) => {
   try {
     const doc = await getGoogleSheet();
 
@@ -1253,7 +1260,9 @@ TG ID: ${telegramUserId}
 Дата: ${interview_date}
 Время: ${interview_time}`
         })
-      }).catch(() => {});
+      }).catch(err => {
+        console.error('HR chat notification failed:', err.message);
+      });
     }
 
     res.json({
@@ -1275,7 +1284,8 @@ app.get('/health', async (_req, res) => {
     res.status(500).json({ status: 'error', db: 'disconnected' });
   }
 });
-/api/ai/summary
+
+// AI endpoints
 app.post('/api/ai/summary', auth, async (req, res) => {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -1376,7 +1386,7 @@ ${notes}
     res.status(500).json({ error: 'Failed to generate summary' });
   }
 });
-/api/ai/teamlead-handoff
+
 app.post('/api/ai/teamlead-handoff', auth, async (req, res) => {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
