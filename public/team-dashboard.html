@@ -368,7 +368,8 @@
     .modal-overlay{
       position:fixed;
       inset:0;
-      background:rgba(0,0,0,.55);
+      background:rgba(10,12,18,.75);
+      backdrop-filter:blur(6px);
       display:none;
       align-items:flex-end;
       justify-content:center;
@@ -380,21 +381,26 @@
     }
 
     .modal-sheet{
-      width:min(920px, 100%);
-      max-height:82vh;
-      background:var(--surface2);
+      width:min(900px, 100%);
+      max-height:85vh;
+      background:linear-gradient(180deg,#1b1f2c,#141720);
       border:1px solid var(--border);
       border-radius:22px 22px 0 0;
-      box-shadow:var(--shadow);
+      box-shadow:0 20px 80px rgba(0,0,0,.6);
       overflow:hidden;
+      animation:slideUp .25s ease;
+    }
+
+    @keyframes slideUp{
+      from{transform:translateY(40px);opacity:0}
+      to{transform:translateY(0);opacity:1}
     }
 
     .modal-head{
       display:flex;
-      align-items:center;
       justify-content:space-between;
-      gap:12px;
-      padding:1rem 1rem .85rem;
+      align-items:center;
+      padding:1rem;
       border-bottom:1px solid var(--border);
     }
 
@@ -406,45 +412,86 @@
     .modal-close{
       border:none;
       background:var(--surface3);
-      color:var(--text2);
       border:1px solid var(--border);
+      color:var(--text2);
+      padding:.5rem .75rem;
       border-radius:10px;
-      padding:.55rem .8rem;
       cursor:pointer;
-      font-family:'Manrope',sans-serif;
     }
 
     .modal-body{
       padding:1rem;
       overflow:auto;
-      max-height:calc(82vh - 70px);
+      max-height:calc(85vh - 70px);
     }
 
     .member-grid{
       display:grid;
       grid-template-columns:repeat(2,minmax(0,1fr));
-      gap:10px;
+      gap:12px;
     }
 
     .member-card{
-      background:var(--surface3);
+      background:linear-gradient(180deg,#232840,#1b1f2c);
       border:1px solid var(--border);
-      border-radius:14px;
-      padding:.9rem;
+      border-radius:16px;
+      padding:1rem;
+      transition:.2s ease;
+    }
+
+    .member-card:hover{
+      transform:translateY(-3px);
+      border-color:rgba(255,255,255,.15);
     }
 
     .member-name{
       font-size:15px;
       font-weight:800;
-      margin-bottom:8px;
+      margin-bottom:10px;
     }
 
     .member-meta{
       display:flex;
       flex-direction:column;
-      gap:5px;
+      gap:6px;
       font-size:12px;
       color:var(--text2);
+    }
+
+    .member-row{
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+    }
+
+    .member-label{
+      color:var(--text3);
+    }
+
+    .member-value{
+      font-weight:600;
+    }
+
+    .badge-platform{
+      display:inline-block;
+      padding:3px 8px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:700;
+      margin-left:8px;
+      vertical-align:middle;
+    }
+
+    .badge-of{
+      background:rgba(79,110,247,.18);
+      color:#7d95ff;
+      border:1px solid rgba(79,110,247,.35);
+    }
+
+    .badge-fansly{
+      background:rgba(168,85,247,.18);
+      color:#c084fc;
+      border:1px solid rgba(168,85,247,.35);
     }
 
     .detail-item.clickable{
@@ -460,7 +507,7 @@
       padding:.5rem 0;
     }
 
-    @media (max-width:920px){
+    @media (max-width:900px){
       .member-grid{
         grid-template-columns:1fr;
       }
@@ -655,18 +702,47 @@
 
       body.innerHTML = `
         <div class="member-grid">
-          ${data.map(person => `
-            <div class="member-card">
-              <div class="member-name">${person.name || 'Без имени'}</div>
-              <div class="member-meta">
-                <div><strong>Username:</strong> ${person.username || '—'}</div>
-                <div><strong>TG ID:</strong> ${person.tg_id || '—'}</div>
-                <div><strong>Платформа:</strong> ${person.platform || '—'}</div>
-                <div><strong>Дата старта:</strong> ${person.start_date || '—'}</div>
-                <div><strong>Срок работы:</strong> ${person.work_days || '—'}</div>
+          ${data.map(person => {
+            const platform = String(person.platform || '').toLowerCase();
+
+            let platformBadge = '';
+            if (platform.includes('onlyfans')) {
+              platformBadge = `<span class="badge-platform badge-of">OnlyFans</span>`;
+            } else if (platform.includes('fansly')) {
+              platformBadge = `<span class="badge-platform badge-fansly">Fansly</span>`;
+            }
+
+            return `
+              <div class="member-card">
+                <div class="member-name">
+                  ${person.name || 'Без имени'}
+                  ${platformBadge}
+                </div>
+
+                <div class="member-meta">
+                  <div class="member-row">
+                    <span class="member-label">Username</span>
+                    <span class="member-value">${person.username || '—'}</span>
+                  </div>
+
+                  <div class="member-row">
+                    <span class="member-label">TG ID</span>
+                    <span class="member-value">${person.tg_id || '—'}</span>
+                  </div>
+
+                  <div class="member-row">
+                    <span class="member-label">Дата старта</span>
+                    <span class="member-value">${person.start_date || '—'}</span>
+                  </div>
+
+                  <div class="member-row">
+                    <span class="member-label">Срок работы</span>
+                    <span class="member-value">${person.work_days || '—'} дней</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          `).join('')}
+            `;
+          }).join('')}
         </div>
       `;
     }
