@@ -364,6 +364,107 @@
     .status-yellow .detail-dot{
       background:#eab308;
     }
+
+    .modal-overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.55);
+      display:none;
+      align-items:flex-end;
+      justify-content:center;
+      z-index:1000;
+    }
+
+    .modal-overlay.show{
+      display:flex;
+    }
+
+    .modal-sheet{
+      width:min(920px, 100%);
+      max-height:82vh;
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:22px 22px 0 0;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .modal-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:1rem 1rem .85rem;
+      border-bottom:1px solid var(--border);
+    }
+
+    .modal-title{
+      font-size:18px;
+      font-weight:800;
+    }
+
+    .modal-close{
+      border:none;
+      background:var(--surface3);
+      color:var(--text2);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:.55rem .8rem;
+      cursor:pointer;
+      font-family:'Manrope',sans-serif;
+    }
+
+    .modal-body{
+      padding:1rem;
+      overflow:auto;
+      max-height:calc(82vh - 70px);
+    }
+
+    .member-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;
+    }
+
+    .member-card{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:.9rem;
+    }
+
+    .member-name{
+      font-size:15px;
+      font-weight:800;
+      margin-bottom:8px;
+    }
+
+    .member-meta{
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+      font-size:12px;
+      color:var(--text2);
+    }
+
+    .detail-item.clickable{
+      cursor:pointer;
+    }
+
+    .detail-item.clickable:hover{
+      transform:translateY(-2px);
+    }
+
+    .modal-empty{
+      color:var(--text3);
+      padding:.5rem 0;
+    }
+
+    @media (max-width:920px){
+      .member-grid{
+        grid-template-columns:1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -395,6 +496,18 @@
 
       <div id="content">
         <div class="loading">Загружаем статистику...</div>
+      </div>
+
+      <div class="modal-overlay" id="statusModal" onclick="closeStatusModal(event)">
+        <div class="modal-sheet">
+          <div class="modal-head">
+            <div class="modal-title" id="statusModalTitle">Список сотрудников</div>
+            <button class="modal-close" type="button" onclick="forceCloseStatusModal()">Закрыть</button>
+          </div>
+          <div class="modal-body" id="statusModalBody">
+            <div class="loading">Загружаем...</div>
+          </div>
+        </div>
       </div>
     </main>
   </div>
@@ -484,7 +597,7 @@
           <div class="details-title">Разбивка по текущим статусам</div>
           <div class="details-grid">
             ${(data.statuses || []).map(item => `
-              <div class="detail-item ${getStatusClass(item.name)}">
+              <div class="detail-item clickable ${getStatusClass(item.name)}" onclick="openStatusMembers('${String(item.name).replaceAll("'", "\\'")}')">
                 <div class="detail-top">
                   <span class="detail-dot"></span>
                   <div class="detail-name">${escapeHtml(item.name)}</div>
@@ -517,6 +630,60 @@
       console.error(err);
       content.innerHTML = `<div class="error-box">${err.message || 'Ошибка загрузки статистики команды'}</div>`;
     });
+
+    async function openStatusMembers(statusName) {
+      const modal = document.getElementById('statusModal');
+      const title = document.getElementById('statusModalTitle');
+      const body = document.getElementById('statusModalBody');
+
+      title.textContent = `Статус: ${statusName}`;
+      body.innerHTML = `<div class="loading">Загружаем список...</div>`;
+      modal.classList.add('show');
+
+      const res = await api(`/api/team-status-members?status=${encodeURIComponent(statusName)}`);
+      const data = await res.json().catch(() => []);
+
+      if (!res.ok) {
+        body.innerHTML = `<div class="error-box">Не удалось загрузить список</div>`;
+        return;
+      }
+
+      if (!Array.isArray(data) || !data.length) {
+        body.innerHTML = `<div class="modal-empty">По этому статусу никого не найдено</div>`;
+        return;
+      }
+
+      body.innerHTML = `
+        <div class="member-grid">
+          ${data.map(person => `
+            <div class="member-card">
+              <div class="member-name">${person.name || 'Без имени'}</div>
+              <div class="member-meta">
+                <div><strong>Username:</strong> ${person.username || '—'}</div>
+                <div><strong>TG ID:</strong> ${person.tg_id || '—'}</div>
+                <div><strong>Платформа:</strong> ${person.platform || '—'}</div>
+                <div><strong>Дата старта:</strong> ${person.start_date || '—'}</div>
+                <div><strong>Срок работы:</strong> ${person.work_days || '—'}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function closeStatusModal(event) {
+      if (event.target.id === 'statusModal') {
+        document.getElementById('statusModal').classList.remove('show');
+      }
+    }
+
+    function forceCloseStatusModal() {
+      document.getElementById('statusModal').classList.remove('show');
+    }
+
+    window.openStatusMembers = openStatusMembers;
+    window.closeStatusModal = closeStatusModal;
+    window.forceCloseStatusModal = forceCloseStatusModal;
   </script>
 </body>
 </html>

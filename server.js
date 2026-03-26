@@ -1304,6 +1304,84 @@ app.get('/api/team-stats', auth, async (req, res) => {
   }
 });
 
+app.get('/api/team-status-members', auth, async (req, res) => {
+  try {
+    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
+    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
+    const requestedStatus = String(req.query.status || '').trim();
+
+    if (!spreadsheetId) {
+      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
+    }
+
+    if (!requestedStatus) {
+      return res.status(400).json({ error: 'status query is required' });
+    }
+
+    const sheets = await getSheetsClient();
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A1:Z5000`
+    });
+
+    const values = response.data.values || [];
+    if (!values.length) {
+      return res.json([]);
+    }
+
+    const headers = values[0];
+    const rows = values.slice(1);
+
+    const idx = (name) => headers.indexOf(name);
+    const safeGet = (row, i) => (i >= 0 && i < row.length ? row[i] : '');
+
+    const statusIdx = idx('Актуальный статус кандидата (Hr)');
+    const nameIdx =
+      idx('Имя') >= 0 ? idx('Имя')
+      : idx('Имя / ник') >= 0 ? idx('Имя / ник')
+      : idx('Ник') >= 0 ? idx('Ник')
+      : idx('Username');
+
+    const usernameIdx =
+      idx('Username') >= 0 ? idx('Username')
+      : idx('TG Username') >= 0 ? idx('TG Username')
+      : idx('@username');
+
+    const tgIdx =
+      idx('TG ID') >= 0 ? idx('TG ID')
+      : idx('ID') >= 0 ? idx('ID')
+      : idx('Telegram ID');
+
+    const platformIdx = idx('OnlyFans / Fansly');
+    const startDateIdx = idx('Дата старта');
+    const workDaysIdx = idx('Срок работы, дни');
+
+    const members = rows
+      .filter(row => row.some(cell => String(cell || '').trim() !== ''))
+      .map((row, index) => {
+        const status = String(safeGet(row, statusIdx) || '').trim() || 'Без статуса';
+
+        return {
+          row_number: index + 2,
+          status,
+          name: String(safeGet(row, nameIdx) || '').trim(),
+          username: String(safeGet(row, usernameIdx) || '').trim(),
+          tg_id: String(safeGet(row, tgIdx) || '').trim(),
+          platform: String(safeGet(row, platformIdx) || '').trim(),
+          start_date: String(safeGet(row, startDateIdx) || '').trim(),
+          work_days: String(safeGet(row, workDaysIdx) || '').trim()
+        };
+      })
+      .filter(person => String(person.status).trim() === requestedStatus);
+
+    res.json(members);
+  } catch (err) {
+    console.error('Team status members read error:', err.message);
+    res.status(500).json({ error: 'Failed to read team status members' });
+  }
+});
+
 app.post('/api/interviews/:rowNumber/notify', auth, async (req, res) => {
   try {
     const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
