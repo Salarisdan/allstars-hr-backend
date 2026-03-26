@@ -192,6 +192,23 @@ function normalizeRow(headers, row, rowIndex) {
   };
 }
 
+function columnToLetter(column) {
+  let temp = '';
+  let letter = '';
+
+  while (column > 0) {
+    temp = (column - 1) % 26;
+    letter = String.fromCharCode(temp + 65) + letter;
+    column = (column - temp - 1) / 26;
+  }
+
+  return letter;
+}
+
+function sanitizeTeamFieldLabel(label) {
+  return String(label || '').trim();
+}
+
 const bootstrapSql = `
 CREATE TABLE IF NOT EXISTS agencies (
   id SERIAL PRIMARY KEY,
@@ -1375,6 +1392,122 @@ app.get('/api/team-status-members', auth, async (req, res) => {
   } catch (err) {
     console.error('Team status members read error:', err.message);
     res.status(500).json({ error: 'Failed to read team status members' });
+  }
+});
+
+app.get('/api/team-member/:rowNumber', auth, async (req, res) => {
+  try {
+    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
+    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
+    const rowNumber = Number(req.params.rowNumber);
+
+    if (!spreadsheetId) {
+      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
+    }
+
+    if (!rowNumber || rowNumber < 2) {
+      return res.status(400).json({ error: 'Invalid row number' });
+    }
+
+    const sheets = await getSheetsClient();
+
+    const [headersRes, rowRes] = await Promise.all([
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A1:AU1`
+      }),
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A${rowNumber}:AU${rowNumber}`
+      })
+    ]);
+
+    const headers = headersRes.data.values?.[0] || [];
+    const row = rowRes.data.values?.[0] || [];
+
+    if (!headers.length) {
+      return res.status(500).json({ error: 'Headers not found in team sheet' });
+    }
+
+    const fields = headers
+      .map((header, index) => ({
+        index,
+        label: sanitizeTeamFieldLabel(header) || `Колонка ${index + 1}`,
+        value: row[index] ?? ''
+      }))
+      .filter(field => field.label && field.label !== 'null');
+
+    res.json({
+      row_number: rowNumber,
+      fields
+    });
+  } catch (err) {
+    console.error('Team member read error:', err.message);
+    res.status(500).json({ error: 'Failed to read team member' });
+  }
+});
+
+app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
+  try {
+    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
+    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
+    const rowNumber = Number(req.params.rowNumber);
+    const updates = req.body?.updates || {};
+
+    if (!spreadsheetId) {
+      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
+    }
+
+    if (!rowNumber || rowNumber < 2) {
+      return res.status(400).json({ error: 'Invalid row number' });
+    }
+
+    if (!updates || typeof updates !== 'object') {
+      return res.status(400).json({ error: 'updates object is required' });
+    }
+
+    const sheets = await getSheetsClient();
+
+    const headersRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A1:AU1`
+    });
+
+    const headers = headersRes.data.values?.[0] || [];
+    if (!headers.length) {
+      return res.status(500).json({ error: 'Headers not found in team sheet' });
+    }
+
+    const data = [];
+
+    for (const [label, value] of Object.entries(updates)) {
+      const colIndex = headers.findIndex(h => String(h || '').trim() === String(label || '').trim());
+      if (colIndex === -1) continue;
+
+      const columnLetter = columnToLetter(colIndex + 1);
+
+      data.push({
+        range: `${sheetName}!${columnLetter}${rowNumber}`,
+        values: [[value ?? '']]
+      });
+    }
+
+    if (!data.length) {
+      return res.status(400).json({ error: 'No valid fields to update' });
+    }
+
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        valueInputOption: 'USER_ENTERED',
+        data
+      }
+    });
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Team member update error:', err.message);
+    res.status(500).json({ error: 'Failed to update team member' });
   }
 });
 

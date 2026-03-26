@@ -438,6 +438,7 @@
       border-radius:16px;
       padding:1rem;
       transition:.2s ease;
+      cursor:pointer;
     }
 
     .member-card:hover{
@@ -493,6 +494,56 @@
       background:rgba(168,85,247,.18);
       color:#c084fc;
       border:1px solid rgba(168,85,247,.35);
+    }
+
+    .editor-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+    }
+
+    .editor-field{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:.9rem;
+    }
+
+    .editor-label{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:var(--text3);
+      font-weight:800;
+      margin-bottom:8px;
+    }
+
+    .editor-input,
+    .editor-textarea{
+      width:100%;
+      background:#0f1220;
+      border:1px solid var(--border);
+      border-radius:10px;
+      color:var(--text);
+      padding:.7rem .8rem;
+      font-family:'Manrope',sans-serif;
+      font-size:13px;
+      outline:none;
+    }
+
+    .editor-textarea{
+      min-height:120px;
+      resize:vertical;
+    }
+
+    .editor-field.full{
+      grid-column:1 / -1;
+    }
+
+    @media (max-width:920px){
+      .editor-grid{
+        grid-template-columns:1fr;
+      }
     }
 
     .detail-item.clickable{
@@ -610,6 +661,23 @@
           </div>
           <div class="modal-body" id="statusModalBody">
             <div class="loading">Загружаем...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="memberEditorOverlay" onclick="closeMemberEditor(event)">
+        <div class="modal-sheet" style="width:min(1100px,100%); max-height:90vh;">
+          <div class="modal-head">
+            <div class="modal-title" id="memberEditorTitle">Карточка сотрудника</div>
+            <button class="modal-close" type="button" onclick="forceCloseMemberEditor()">Закрыть</button>
+          </div>
+          <div class="modal-body">
+            <div id="memberEditorContent">
+              <div class="loading">Загружаем данные...</div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; margin-top:14px; gap:10px;">
+              <button class="modal-btn" type="button" onclick="saveMemberEditor()">Сохранить</button>
+            </div>
           </div>
         </div>
       </div>
@@ -822,7 +890,7 @@
             }
 
             return `
-              <div class="member-card">
+              <div class="member-card" onclick="openMemberEditor(${person.row_number})">
                 <div class="member-name">
                   ${person.name || 'Без имени'}
                   ${platformBadge}
@@ -924,6 +992,109 @@
     window.forceCloseStatusModal = forceCloseStatusModal;
     window.filterStatusMembers = filterStatusMembers;
     window.copyStatusTelegrams = copyStatusTelegrams;
+
+    let currentMemberEditorRow = null;
+    let currentMemberFields = [];
+
+    function isLongField(label) {
+      const s = String(label || '').toLowerCase();
+      return (
+        s.includes('комментар') ||
+        s.includes('пометки') ||
+        s.includes('причина') ||
+        s.includes('ссылка') ||
+        s.includes('доступ') ||
+        s.includes('логин') ||
+        s.includes('пароль')
+      );
+    }
+
+    async function openMemberEditor(rowNumber) {
+      currentMemberEditorRow = rowNumber;
+
+      const overlay = document.getElementById('memberEditorOverlay');
+      const title = document.getElementById('memberEditorTitle');
+      const content = document.getElementById('memberEditorContent');
+
+      title.textContent = `Карточка сотрудника · строка ${rowNumber}`;
+      content.innerHTML = `<div class="loading">Загружаем данные...</div>`;
+      overlay.classList.add('show');
+
+      const res = await api(`/api/team-member/${rowNumber}`);
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        content.innerHTML = `<div class="error-box">${data.error || 'Не удалось загрузить сотрудника'}</div>`;
+        return;
+      }
+
+      currentMemberFields = Array.isArray(data.fields) ? data.fields : [];
+
+      content.innerHTML = `
+        <div class="editor-grid">
+          ${currentMemberFields.map((field, idx) => {
+            const long = isLongField(field.label);
+            return `
+              <div class="editor-field ${long ? 'full' : ''}">
+                <div class="editor-label">${field.label}</div>
+                ${
+                  long
+                    ? `<textarea class="editor-textarea" data-field-index="${idx}">${field.value || ''}</textarea>`
+                    : `<input class="editor-input" data-field-index="${idx}" value="${String(field.value || '').replace(/"/g, '&quot;')}">`
+                }
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    async function saveMemberEditor() {
+      if (!currentMemberEditorRow) return;
+
+      const updates = {};
+
+      document.querySelectorAll('[data-field-index]').forEach(el => {
+        const idx = Number(el.dataset.fieldIndex);
+        const field = currentMemberFields[idx];
+        if (!field) return;
+        updates[field.label] = el.value;
+      });
+
+      const res = await api(`/api/team-member/${currentMemberEditorRow}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ updates })
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        alert(data.error || 'Не удалось сохранить сотрудника');
+        return;
+      }
+
+      alert('Сохранено');
+      forceCloseMemberEditor();
+
+      if (currentStatusName) {
+        openStatusMembers(currentStatusName);
+      }
+    }
+
+    function closeMemberEditor(event) {
+      if (event.target.id === 'memberEditorOverlay') {
+        document.getElementById('memberEditorOverlay').classList.remove('show');
+      }
+    }
+
+    function forceCloseMemberEditor() {
+      document.getElementById('memberEditorOverlay').classList.remove('show');
+    }
+
+    window.openMemberEditor = openMemberEditor;
+    window.saveMemberEditor = saveMemberEditor;
+    window.closeMemberEditor = closeMemberEditor;
+    window.forceCloseMemberEditor = forceCloseMemberEditor;
   </script>
 </body>
 </html>
