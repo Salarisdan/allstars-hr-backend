@@ -284,6 +284,21 @@
         grid-template-columns:1fr;
       }
     }
+
+    .status-green {
+      border-color: rgba(34,197,94,0.4);
+      background: rgba(34,197,94,0.08);
+    }
+
+    .status-red {
+      border-color: rgba(239,68,68,0.4);
+      background: rgba(239,68,68,0.08);
+    }
+
+    .status-yellow {
+      border-color: rgba(234,179,8,0.4);
+      background: rgba(234,179,8,0.08);
+    }
   </style>
 </head>
 <body>
@@ -341,6 +356,16 @@
       });
     }
 
+    function getStatusClass(name) {
+      const s = String(name || '').toLowerCase();
+
+      if (s.includes('работает')) return 'status-green';
+      if (s.includes('уволен')) return 'status-red';
+      if (s.includes('не рассчитан')) return 'status-yellow';
+
+      return '';
+    }
+
     function renderTeamStats(data) {
       content.innerHTML = `
         <section class="hero-stats">
@@ -388,7 +413,7 @@
           <div class="details-title">Разбивка по статусам</div>
           <div class="details-grid">
             ${(data.statuses || []).map(item => `
-              <div class="detail-item">
+              <div class="detail-item ${getStatusClass(item.name)}">
                 <div class="detail-name">${item.name}</div>
                 <div class="detail-meta">Кол-во: ${item.count}</div>
               </div>
