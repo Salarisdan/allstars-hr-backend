@@ -1341,17 +1341,14 @@ app.get('/api/team-status-members', auth, async (req, res) => {
       idx('Имя') >= 0 ? idx('Имя')
       : idx('Имя / ник') >= 0 ? idx('Имя / ник')
       : idx('Ник') >= 0 ? idx('Ник')
-      : idx('Username');
+      : -1;
 
-    const usernameIdx =
-      idx('Username') >= 0 ? idx('Username')
+    const telegramIdx =
+      idx('Телеграм') >= 0 ? idx('Телеграм')
+      : idx('Telegram') >= 0 ? idx('Telegram')
+      : idx('Username') >= 0 ? idx('Username')
       : idx('TG Username') >= 0 ? idx('TG Username')
-      : idx('@username');
-
-    const tgIdx =
-      idx('TG ID') >= 0 ? idx('TG ID')
-      : idx('ID') >= 0 ? idx('ID')
-      : idx('Telegram ID');
+      : -1;
 
     const platformIdx = idx('OnlyFans / Fansly');
     const startDateIdx = idx('Дата старта');
@@ -1366,8 +1363,7 @@ app.get('/api/team-status-members', auth, async (req, res) => {
           row_number: index + 2,
           status,
           name: String(safeGet(row, nameIdx) || '').trim(),
-          username: String(safeGet(row, usernameIdx) || '').trim(),
-          tg_id: String(safeGet(row, tgIdx) || '').trim(),
+          telegram: String(safeGet(row, telegramIdx) || '').trim(),
           platform: String(safeGet(row, platformIdx) || '').trim(),
           start_date: String(safeGet(row, startDateIdx) || '').trim(),
           work_days: String(safeGet(row, workDaysIdx) || '').trim()

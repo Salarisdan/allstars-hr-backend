@@ -371,9 +371,10 @@
       background:rgba(10,12,18,.75);
       backdrop-filter:blur(6px);
       display:none;
-      align-items:flex-end;
+      align-items:center;
       justify-content:center;
       z-index:1000;
+      padding:24px;
     }
 
     .modal-overlay.show{
@@ -381,19 +382,19 @@
     }
 
     .modal-sheet{
-      width:min(900px, 100%);
+      width:min(980px, 100%);
       max-height:85vh;
       background:linear-gradient(180deg,#1b1f2c,#141720);
       border:1px solid var(--border);
-      border-radius:22px 22px 0 0;
+      border-radius:22px;
       box-shadow:0 20px 80px rgba(0,0,0,.6);
       overflow:hidden;
-      animation:slideUp .25s ease;
+      animation:fadeScaleIn .22s ease;
     }
 
-    @keyframes slideUp{
-      from{transform:translateY(40px);opacity:0}
-      to{transform:translateY(0);opacity:1}
+    @keyframes fadeScaleIn{
+      from{transform:translateY(8px) scale(.985);opacity:0}
+      to{transform:translateY(0) scale(1);opacity:1}
     }
 
     .modal-head{
@@ -783,9 +784,9 @@
         body.innerHTML = `
           <div class="modal-toolbar">
             <input class="modal-search" id="memberSearchInput" placeholder="Поиск по имени или username..." oninput="filterStatusMembers()" />
-            <div class="modal-toolbar-actions">
-              <button class="modal-btn" type="button" onclick="copyStatusUsernames()">Скопировать usernames</button>
-            </div>
+          <div class="modal-toolbar-actions">
+            <button class="modal-btn" type="button" onclick="copyStatusTelegrams()">Скопировать Telegram</button>
+          </div>
           </div>
           <div class="modal-empty">По этому статусу никого не найдено</div>
         `;
@@ -801,7 +802,7 @@
             oninput="filterStatusMembers()"
           />
           <div class="modal-toolbar-actions">
-            <button class="modal-btn" type="button" onclick="copyStatusUsernames()">Скопировать usernames</button>
+            <button class="modal-btn" type="button" onclick="copyStatusTelegrams()">Скопировать Telegram</button>
           </div>
         </div>
 
@@ -810,36 +811,42 @@
         </div>
 
         <div class="member-grid">
-          ${list.map(person => `
-            <div class="member-card">
-              <div class="member-name">
-                ${person.name || 'Без имени'}
-                ${getPlatformBadge(person.platform)}
+          ${list.map(person => {
+            const platform = String(person.platform || '').toLowerCase();
+
+            let platformBadge = '';
+            if (platform.includes('onlyfans')) {
+              platformBadge = `<span class="badge-platform badge-of">OnlyFans</span>`;
+            } else if (platform.includes('fansly')) {
+              platformBadge = `<span class="badge-platform badge-fansly">Fansly</span>`;
+            }
+
+            return `
+              <div class="member-card">
+                <div class="member-name">
+                  ${person.name || 'Без имени'}
+                  ${platformBadge}
+                </div>
+
+                <div class="member-meta">
+                  <div class="member-row">
+                    <span class="member-label">Telegram</span>
+                    <span class="member-value">${person.telegram || '—'}</span>
+                  </div>
+
+                  <div class="member-row">
+                    <span class="member-label">Дата старта</span>
+                    <span class="member-value">${person.start_date || '—'}</span>
+                  </div>
+
+                  <div class="member-row">
+                    <span class="member-label">Срок работы</span>
+                    <span class="member-value">${person.work_days || '—'} дней</span>
+                  </div>
+                </div>
               </div>
-
-              <div class="member-meta">
-                <div class="member-row">
-                  <span class="member-label">Username</span>
-                  <span class="member-value">${person.username || '—'}</span>
-                </div>
-
-                <div class="member-row">
-                  <span class="member-label">TG ID</span>
-                  <span class="member-value">${person.tg_id || '—'}</span>
-                </div>
-
-                <div class="member-row">
-                  <span class="member-label">Дата старта</span>
-                  <span class="member-value">${person.start_date || '—'}</span>
-                </div>
-
-                <div class="member-row">
-                  <span class="member-label">Срок работы</span>
-                  <span class="member-value">${person.work_days || '—'} дней</span>
-                </div>
-              </div>
-            </div>
-          `).join('')}
+            `;
+          }).join('')}
         </div>
       `;
     }
@@ -876,22 +883,21 @@
       }
     }
 
-    async function copyStatusUsernames() {
-      const usernames = currentStatusMembers
-        .map(x => String(x.username || '').trim())
-        .filter(Boolean)
-        .map(x => x.startsWith('@') ? x : `@${x}`);
+    async function copyStatusTelegrams() {
+      const items = currentStatusMembers
+        .map(x => String(x.telegram || '').trim())
+        .filter(Boolean);
 
-      if (!usernames.length) {
-        alert('В этом списке нет usernames для копирования');
+      if (!items.length) {
+        alert('В этом списке нет Telegram для копирования');
         return;
       }
 
-      const text = usernames.join('\n');
+      const text = items.join('\n');
 
       try {
         await navigator.clipboard.writeText(text);
-        alert(`Скопировано usernames: ${usernames.length}`);
+        alert(`Скопировано Telegram: ${items.length}`);
       } catch (err) {
         const ta = document.createElement('textarea');
         ta.value = text;
@@ -899,7 +905,7 @@
         ta.select();
         document.execCommand('copy');
         document.body.removeChild(ta);
-        alert(`Скопировано usernames: ${usernames.length}`);
+        alert(`Скопировано Telegram: ${items.length}`);
       }
     }
 
@@ -917,7 +923,7 @@
     window.closeStatusModal = closeStatusModal;
     window.forceCloseStatusModal = forceCloseStatusModal;
     window.filterStatusMembers = filterStatusMembers;
-    window.copyStatusUsernames = copyStatusUsernames;
+    window.copyStatusTelegrams = copyStatusTelegrams;
   </script>
 </body>
 </html>
