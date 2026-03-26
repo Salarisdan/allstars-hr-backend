@@ -90,6 +90,19 @@ function parseSheetDate(value) {
   return null;
 }
 
+function normalizeText(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function parseNumberLoose(value) {
+  if (value === null || value === undefined) return 0;
+
+  const s = String(value).trim().replace(',', '.');
+  const n = Number(s);
+
+  return Number.isFinite(n) ? n : 0;
+}
+
 function isInterviewStatus(status) {
   return [
     'Собеседование',
@@ -1160,6 +1173,116 @@ app.get('/api/stats', auth, async (req, res) => {
   } catch (err) {
     console.error('Stats read error:', err.message);
     res.status(500).json({ error: 'Failed to read stats from Google Sheets' });
+  }
+});
+
+app.get('/api/team-stats', auth, async (req, res) => {
+  try {
+    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
+    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
+
+    if (!spreadsheetId) {
+      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
+    }
+
+    const sheets = await getSheetsClient();
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A1:Z5000`
+    });
+
+    const values = response.data.values || [];
+
+    if (!values.length) {
+      return res.json({
+        totals: {
+          total: 0,
+          active: 0,
+          fired: 0,
+          unpaid: 0,
+          onlyfans: 0,
+          fansly: 0
+        },
+        averages: {
+          experience_months: 0,
+          work_days: 0
+        }
+      });
+    }
+
+    const headers = values[0];
+    const rows = values.slice(1);
+
+    const idx = (name) => headers.indexOf(name);
+
+    const statusIdx = idx('Актуальный статус кандидата (Hr)');
+    const platformIdx = idx('OnlyFans / Fansly');
+    const expIdx = idx('Опыт, мес.');
+    const workDaysIdx = idx('Срок работы, дни');
+
+    const safeGet = (row, i) => (i >= 0 && i < row.length ? row[i] : '');
+
+    const dataRows = rows.filter(row =>
+      row.some(cell => String(cell || '').trim() !== '')
+    );
+
+    let total = 0;
+    let active = 0;
+    let fired = 0;
+    let unpaid = 0;
+    let onlyfans = 0;
+    let fansly = 0;
+
+    let expSum = 0;
+    let expCount = 0;
+
+    let workDaysSum = 0;
+    let workDaysCount = 0;
+
+    for (const row of dataRows) {
+      total++;
+
+      const status = normalizeText(safeGet(row, statusIdx));
+      const platform = normalizeText(safeGet(row, platformIdx));
+      const exp = parseNumberLoose(safeGet(row, expIdx));
+      const workDays = parseNumberLoose(safeGet(row, workDaysIdx));
+
+      if (status.includes('работает')) active++;
+      if (status.includes('уволен')) fired++;
+      if (status.includes('не рассчитан')) unpaid++;
+
+      if (platform.includes('onlyfans')) onlyfans++;
+      if (platform.includes('fansly')) fansly++;
+
+      if (exp > 0) {
+        expSum += exp;
+        expCount++;
+      }
+
+      if (workDays > 0) {
+        workDaysSum += workDays;
+        workDaysCount++;
+      }
+    }
+
+    res.json({
+      totals: {
+        total,
+        active,
+        fired,
+        unpaid,
+        onlyfans,
+        fansly
+      },
+      averages: {
+        experience_months: expCount ? Number((expSum / expCount).toFixed(1)) : 0,
+        work_days: workDaysCount ? Number((workDaysSum / workDaysCount).toFixed(1)) : 0
+      }
+    });
+  } catch (err) {
+    console.error('Team stats read error:', err.message);
+    res.status(500).json({ error: 'Failed to read team stats from Google Sheets' });
   }
 });
 
