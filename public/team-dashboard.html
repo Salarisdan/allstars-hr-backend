@@ -536,6 +536,43 @@
       resize:vertical;
     }
 
+    .editor-select{
+      width:100%;
+      background:#0f1220;
+      border:1px solid var(--border);
+      border-radius:10px;
+      color:var(--text);
+      padding:.7rem .8rem;
+      font-family:'Manrope',sans-serif;
+      font-size:13px;
+      outline:none;
+    }
+
+    .editor-checkbox-wrap{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      background:#0f1220;
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:.75rem .9rem;
+      min-height:44px;
+    }
+
+    .editor-checkbox-label{
+      color:var(--text2);
+      font-size:13px;
+      font-weight:600;
+    }
+
+    .editor-checkbox{
+      width:18px;
+      height:18px;
+      accent-color:#4f6ef7;
+      cursor:pointer;
+    }
+
     .editor-field.full{
       grid-column:1 / -1;
     }
@@ -993,6 +1030,90 @@
     window.filterStatusMembers = filterStatusMembers;
     window.copyStatusTelegrams = copyStatusTelegrams;
 
+    const TEAM_FIELD_OPTIONS = {
+      'Актуальный статус кандидата (Hr)': [
+        'Работает',
+        'Ожидание старта',
+        'Верификация',
+        'Ждет тест',
+        'Изучает гайд',
+        'Хочу взять',
+        'Ждет собеседования',
+        'Лист ожидания',
+        'Уволен',
+        'Не рассчитан',
+        'Нет ответа',
+        'Убрать'
+      ],
+
+      'OnlyFans / Fansly': [
+        'OnlyFans',
+        'Fansly',
+        'KM'
+      ],
+
+      'Смены (основные)': [
+        '00-06',
+        '06-12',
+        '12-18',
+        '18-00'
+      ],
+
+      'Верификация (HR)': [
+        'Требуется',
+        'Написал',
+        'Пройдена'
+      ],
+
+      'Соглашение (NDA)': [
+        'Требуется',
+        'Ожидание',
+        'Подписано'
+      ],
+
+      'Доступы Notion': [
+        'Отсутствуют',
+        'Гайд OnlyFans',
+        'Гайд Fansly',
+        'Все доступны OnlyFans',
+        'Все доступны Fansly',
+        'Все доступны'
+      ]
+    };
+
+    const TEAM_BOOLEAN_FIELDS = new Set([
+      'Transaction ending',
+      'Transaction ending (есть/нет в табл.)',
+      'Доступы CRM',
+      'Доступ к табличке с расписанием OF',
+      'Доступ к Telegram чатам OF',
+      'Доступ к табличке с расписанием Fansly',
+      'Доступ к Telegram чатам Fansly'
+    ]);
+
+    function normalizeTeamLabel(label) {
+      return String(label || '').trim().replace(/\s+/g, ' ');
+    }
+
+    function getTeamFieldOptions(label) {
+      const normalized = normalizeTeamLabel(label);
+      return TEAM_FIELD_OPTIONS[normalized] || null;
+    }
+
+    function isTeamBooleanField(label) {
+      const normalized = normalizeTeamLabel(label);
+      return TEAM_BOOLEAN_FIELDS.has(normalized);
+    }
+
+    function booleanFromCellValue(value) {
+      const s = String(value || '').trim().toLowerCase();
+      return ['да', 'есть', 'true', '1', 'yes', 'y'].includes(s);
+    }
+
+    function booleanToCellValue(checked) {
+      return checked ? 'Да' : 'Нет';
+    }
+
     let currentMemberEditorRow = null;
     let currentMemberFields = [];
 
@@ -1034,13 +1155,45 @@
         <div class="editor-grid">
           ${currentMemberFields.map((field, idx) => {
             const long = isLongField(field.label);
+            const options = getTeamFieldOptions(field.label);
+            const isBoolean = isTeamBooleanField(field.label);
+            const safeValue = String(field.value || '').replace(/"/g, '&quot;');
+
             return `
               <div class="editor-field ${long ? 'full' : ''}">
                 <div class="editor-label">${field.label}</div>
                 ${
-                  long
-                    ? `<textarea class="editor-textarea" data-field-index="${idx}">${field.value || ''}</textarea>`
-                    : `<input class="editor-input" data-field-index="${idx}" value="${String(field.value || '').replace(/"/g, '&quot;')}">`
+                  isBoolean
+                    ? `
+                      <div class="editor-checkbox-wrap">
+                        <span class="editor-checkbox-label">Есть доступ</span>
+                        <input
+                          type="checkbox"
+                          class="editor-checkbox"
+                          data-field-index="${idx}"
+                          data-field-type="boolean"
+                          ${booleanFromCellValue(field.value) ? 'checked' : ''}
+                        >
+                      </div>
+                    `
+                    : options
+                      ? `
+                        <select
+                          class="editor-select"
+                          data-field-index="${idx}"
+                          data-field-type="select"
+                        >
+                          <option value="">— выбрать —</option>
+                          ${options.map(opt => `
+                            <option value="${String(opt).replace(/"/g, '&quot;')}" ${String(field.value || '').trim() === String(opt).trim() ? 'selected' : ''}>
+                              ${opt}
+                            </option>
+                          `).join('')}
+                        </select>
+                      `
+                      : long
+                        ? `<textarea class="editor-textarea" data-field-index="${idx}" data-field-type="text">${field.value || ''}</textarea>`
+                        : `<input class="editor-input" data-field-index="${idx}" data-field-type="text" value="${safeValue}">`
                 }
               </div>
             `;
@@ -1058,6 +1211,14 @@
         const idx = Number(el.dataset.fieldIndex);
         const field = currentMemberFields[idx];
         if (!field) return;
+
+        const fieldType = el.dataset.fieldType || 'text';
+
+        if (fieldType === 'boolean') {
+          updates[field.label] = booleanToCellValue(el.checked);
+          return;
+        }
+
         updates[field.label] = el.value;
       });
 
