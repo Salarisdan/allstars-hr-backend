@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AllStars — Действующие</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0d0f14;
+      --surface:#141720;
+      --surface2:#1b1f2c;
+      --surface3:#232840;
+      --border:rgba(255,255,255,.07);
+      --accent:#4f6ef7;
+      --accent2:#7d95ff;
+      --accent-bg:rgba(79,110,247,.12);
+      --accent-border:rgba(79,110,247,.32);
+      --text:#e8eaf0;
+      --text2:#9ba3bd;
+      --text3:#58607c;
+      --shadow:0 10px 40px rgba(0,0,0,.24);
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+
+    body{
+      font-family:'Manrope',sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      min-height:100vh;
+    }
+
+    .layout{
+      display:flex;
+      min-height:100vh;
+    }
+
+    .sidebar{
+      width:230px;
+      flex-shrink:0;
+      position:fixed;
+      left:0;
+      top:0;
+      bottom:0;
+      background:var(--surface);
+      border-right:1px solid var(--border);
+      padding:1.2rem 0 1.5rem;
+      overflow-y:auto;
+      z-index:10;
+    }
+
+    .sidebar-logo{
+      padding:0 1rem 1.15rem;
+      border-bottom:1px solid var(--border);
+      margin-bottom:.7rem;
+    }
+
+    .brand{
+      font-size:16px;
+      font-weight:800;
+      color:var(--text);
+    }
+
+    .sub{
+      font-size:11px;
+      color:var(--text3);
+      margin-top:3px;
+    }
+
+    .sidebar-section{
+      font-size:10px;
+      font-weight:700;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--text3);
+      padding:.45rem 1rem .25rem;
+    }
+
+    .nav-item{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 1rem;
+      text-decoration:none;
+      color:var(--text2);
+      font-size:12px;
+      border-left:2px solid transparent;
+      transition:.15s;
+    }
+
+    .nav-item:hover{
+      color:var(--text);
+      background:rgba(255,255,255,.03);
+    }
+
+    .nav-item.active{
+      color:var(--accent2);
+      border-left-color:var(--accent);
+      background:var(--accent-bg);
+    }
+
+    .main{
+      margin-left:230px;
+      width:100%;
+      padding:1.6rem 1.6rem 3rem;
+    }
+
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      flex-wrap:wrap;
+      margin-bottom:1rem;
+    }
+
+    .title h1{
+      font-size:30px;
+      font-weight:800;
+      line-height:1.1;
+      letter-spacing:-.03em;
+    }
+
+    .title p{
+      color:var(--text2);
+      margin-top:6px;
+      font-size:13px;
+    }
+
+    .btn{
+      border:none;
+      cursor:pointer;
+      font-family:'Manrope',sans-serif;
+      font-weight:700;
+      font-size:13px;
+      border-radius:12px;
+      padding:.78rem 1rem;
+      background:var(--accent-bg);
+      border:1px solid var(--accent-border);
+      color:var(--accent2);
+    }
+
+    .hero-stats{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      margin-bottom:18px;
+    }
+
+    .stat-card,
+    .summary-card{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      padding:1rem;
+    }
+
+    .stat-value{
+      font-size:30px;
+      font-weight:800;
+      line-height:1;
+    }
+
+    .stat-label{
+      margin-top:8px;
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:var(--text3);
+      font-weight:800;
+    }
+
+    .summary-title{
+      font-size:18px;
+      font-weight:800;
+      margin-bottom:12px;
+    }
+
+    .summary-list{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:10px;
+    }
+
+    .summary-item{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:.85rem .9rem;
+    }
+
+    .summary-item .k{
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:var(--text3);
+      font-weight:800;
+      margin-bottom:5px;
+    }
+
+    .summary-item .v{
+      font-size:15px;
+      font-weight:700;
+    }
+
+    .loading,
+    .error-box{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:1.1rem 1rem;
+      color:var(--text2);
+    }
+
+    .error-box{
+      color:#f87171;
+    }
+
+    @media (max-width:1100px){
+      .hero-stats,
+      .summary-list{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+      }
+    }
+
+    @media (max-width:920px){
+      .sidebar{display:none}
+      .main{margin-left:0;padding:1rem}
+      .hero-stats,
+      .summary-list{
+        grid-template-columns:1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="brand">AllStars</div>
+        <div class="sub">Действующие</div>
+      </div>
+
+      <div class="sidebar-section">Навигация</div>
+      <a class="nav-item" href="/index.html">🧑‍💼 Новый кандидат</a>
+      <a class="nav-item" href="/candidates.html">👥 Кандидаты</a>
+      <a class="nav-item" href="/interviews.html">📞 Собеседования</a>
+      <a class="nav-item" href="/dashboard.html">📊 Dashboard</a>
+      <a class="nav-item active" href="/team-dashboard.html">🫂 Действующие</a>
+      <a class="nav-item" href="/team.html">🫂 Команда</a>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="title">
+          <h1>Действующие</h1>
+          <p>Операционная статистика по сотрудникам из отдельной таблицы.</p>
+        </div>
+
+        <button class="btn" id="refreshBtn">Обновить</button>
+      </div>
+
+      <div id="content">
+        <div class="loading">Загружаем статистику...</div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const tokenKey = 'allstars_token';
+    const token = localStorage.getItem(tokenKey);
+
+    if (!token) {
+      location.href = '/login.html';
+    }
+
+    const content = document.getElementById('content');
+    const refreshBtn = document.getElementById('refreshBtn');
+
+    function api(path, options = {}) {
+      return fetch(path, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...(options.headers || {})
+        }
+      });
+    }
+
+    function renderTeamStats(data) {
+      content.innerHTML = `
+        <section class="hero-stats">
+          <div class="stat-card">
+            <div class="stat-value">${data.totals.total}</div>
+            <div class="stat-label">Всего сотрудников</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${data.totals.active}</div>
+            <div class="stat-label">Сейчас работает</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${data.totals.fired}</div>
+            <div class="stat-label">Уволено</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${data.totals.unpaid}</div>
+            <div class="stat-label">Не рассчитан</div>
+          </div>
+        </section>
+
+        <section class="summary-card">
+          <div class="summary-title">Платформы и средние показатели</div>
+          <div class="summary-list">
+            <div class="summary-item">
+              <div class="k">OnlyFans</div>
+              <div class="v">${data.totals.onlyfans}</div>
+            </div>
+            <div class="summary-item">
+              <div class="k">Fansly</div>
+              <div class="v">${data.totals.fansly}</div>
+            </div>
+            <div class="summary-item">
+              <div class="k">Средний опыт, мес.</div>
+              <div class="v">${data.averages.experience_months}</div>
+            </div>
+            <div class="summary-item">
+              <div class="k">Средний срок работы, дни</div>
+              <div class="v">${data.averages.work_days}</div>
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    async function loadTeamStatsPage() {
+      content.innerHTML = `<div class="loading">Загружаем статистику...</div>`;
+
+      const res = await api('/api/team-stats');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Не удалось загрузить статистику команды');
+      }
+
+      const data = await res.json();
+      renderTeamStats(data);
+    }
+
+    refreshBtn.addEventListener('click', loadTeamStatsPage);
+
+    loadTeamStatsPage().catch(err => {
+      console.error(err);
+      content.innerHTML = `<div class="error-box">${err.message || 'Ошибка загрузки статистики команды'}</div>`;
+    });
+  </script>
+</body>
+</html>
