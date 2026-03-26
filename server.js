@@ -1207,7 +1207,8 @@ app.get('/api/team-stats', auth, async (req, res) => {
         averages: {
           experience_months: 0,
           work_days: 0
-        }
+        },
+        statuses: []
       });
     }
 
@@ -1240,13 +1241,22 @@ app.get('/api/team-stats', auth, async (req, res) => {
     let workDaysSum = 0;
     let workDaysCount = 0;
 
-    for (const row of dataRows) {
-      total++;
+    const statusMap = new Map();
 
-      const status = normalizeText(safeGet(row, statusIdx));
+    for (const row of dataRows) {
+      const statusRaw = String(safeGet(row, statusIdx) || '').trim();
+      const status = normalizeText(statusRaw);
       const platform = normalizeText(safeGet(row, platformIdx));
       const exp = parseNumberLoose(safeGet(row, expIdx));
       const workDays = parseNumberLoose(safeGet(row, workDaysIdx));
+
+      total++;
+
+      if (statusRaw) {
+        statusMap.set(statusRaw, (statusMap.get(statusRaw) || 0) + 1);
+      } else {
+        statusMap.set('Без статуса', (statusMap.get('Без статуса') || 0) + 1);
+      }
 
       if (status.includes('работает')) active++;
       if (status.includes('уволен')) fired++;
@@ -1266,6 +1276,13 @@ app.get('/api/team-stats', auth, async (req, res) => {
       }
     }
 
+    const statuses = [...statusMap.entries()]
+      .map(([name, count]) => ({
+        name,
+        count
+      }))
+      .sort((a, b) => b.count - a.count);
+
     res.json({
       totals: {
         total,
@@ -1278,7 +1295,8 @@ app.get('/api/team-stats', auth, async (req, res) => {
       averages: {
         experience_months: expCount ? Number((expSum / expCount).toFixed(1)) : 0,
         work_days: workDaysCount ? Number((workDaysSum / workDaysCount).toFixed(1)) : 0
-      }
+      },
+      statuses
     });
   } catch (err) {
     console.error('Team stats read error:', err.message);
