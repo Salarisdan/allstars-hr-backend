@@ -474,9 +474,9 @@ async function initDb() {
     ALTER TABLE hr_needs
     ADD COLUMN IF NOT EXISTS top_percent TEXT NOT NULL DEFAULT '',
     ADD COLUMN IF NOT EXISTS operator_salary_percent TEXT NOT NULL DEFAULT '',
-    ADD COLUMN IF NOT EXISTS experience_months_required TEXT NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS experience_kd_months TEXT NOT NULL DEFAULT '',
     ADD COLUMN IF NOT EXISTS avg_shift_check TEXT NOT NULL DEFAULT '',
-    ADD COLUMN IF NOT EXISTS revenue_per_month TEXT NOT NULL DEFAULT ''
+    ADD COLUMN IF NOT EXISTS revenue_month_k TEXT NOT NULL DEFAULT ''
   `);
 
   await pool.query(`
@@ -1849,9 +1849,9 @@ app.get('/api/hr-needs', auth, async (req, res) => {
         comment,
         top_percent,
         operator_salary_percent,
-        experience_months_required,
+        experience_kd_months,
         avg_shift_check,
-        revenue_per_month,
+        revenue_month_k,
         created_at,
         updated_at
       FROM hr_needs
@@ -1887,9 +1887,9 @@ app.post('/api/hr-needs', auth, async (req, res) => {
     const comment = String(req.body?.comment || '').trim();
     const topPercent = String(req.body?.top_percent || '').trim();
     const operatorSalaryPercent = String(req.body?.operator_salary_percent || '').trim();
-    const experienceMonthsRequired = String(req.body?.experience_months_required || '').trim();
+    const experienceKdMonths = String(req.body?.experience_kd_months || '').trim();
     const avgShiftCheck = String(req.body?.avg_shift_check || '').trim();
-    const revenuePerMonth = String(req.body?.revenue_per_month || '').trim();
+    const revenueMonthK = String(req.body?.revenue_month_k || '').trim();
 
     if (!modelName) {
       return res.status(400).json({ error: 'model_name is required' });
@@ -1902,9 +1902,9 @@ app.post('/api/hr-needs', auth, async (req, res) => {
         comment,
         top_percent,
         operator_salary_percent,
-        experience_months_required,
+        experience_kd_months,
         avg_shift_check,
-        revenue_per_month
+        revenue_month_k
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
@@ -1914,9 +1914,9 @@ app.post('/api/hr-needs', auth, async (req, res) => {
       comment,
       topPercent,
       operatorSalaryPercent,
-      experienceMonthsRequired,
+      experienceKdMonths,
       avgShiftCheck,
-      revenuePerMonth
+      revenueMonthK
     ]);
 
     res.json(result.rows[0]);
@@ -1962,9 +1962,9 @@ app.patch('/api/hr-needs/:id', auth, async (req, res) => {
       values.push(String(req.body.operator_salary_percent || '').trim());
     }
 
-    if (req.body?.experience_months_required !== undefined) {
-      updates.push(`experience_months_required = $${index++}`);
-      values.push(String(req.body.experience_months_required || '').trim());
+    if (req.body?.experience_kd_months !== undefined) {
+      updates.push(`experience_kd_months = $${index++}`);
+      values.push(String(req.body.experience_kd_months || '').trim());
     }
 
     if (req.body?.avg_shift_check !== undefined) {
@@ -1972,9 +1972,9 @@ app.patch('/api/hr-needs/:id', auth, async (req, res) => {
       values.push(String(req.body.avg_shift_check || '').trim());
     }
 
-    if (req.body?.revenue_per_month !== undefined) {
-      updates.push(`revenue_per_month = $${index++}`);
-      values.push(String(req.body.revenue_per_month || '').trim());
+    if (req.body?.revenue_month_k !== undefined) {
+      updates.push(`revenue_month_k = $${index++}`);
+      values.push(String(req.body.revenue_month_k || '').trim());
     }
 
     if (req.body?.shift_00_06 !== undefined) {

@@ -680,7 +680,7 @@
 
                 <div class="model-stats">
                   <div class="model-stat">
-                    <div class="model-stat-label">Топ, %</div>
+                    <div class="model-stat-label">Топ,%</div>
                     <input class="model-stat-input" id="top-${model.id}" value="${escapeHtml(model.top_percent || '')}" placeholder="Например: 1.5">
                   </div>
 
@@ -690,8 +690,8 @@
                   </div>
 
                   <div class="model-stat">
-                    <div class="model-stat-label">Опыт КЦ, мес</div>
-                    <input class="model-stat-input" id="exp-${model.id}" value="${escapeHtml(model.experience_months_required || '')}" placeholder="Например: 3+">
+                    <div class="model-stat-label">Опыт КД, мес</div>
+                    <input class="model-stat-input" id="exp-${model.id}" value="${escapeHtml(model.experience_kd_months || '')}" placeholder="Например: 3+">
                   </div>
 
                   <div class="model-stat">
@@ -700,8 +700,8 @@
                   </div>
 
                   <div class="model-stat" style="grid-column:1 / -1;">
-                    <div class="model-stat-label">Выручка в месяц, $</div>
-                    <input class="model-stat-input" id="revenue-${model.id}" value="${escapeHtml(model.revenue_per_month || '')}" placeholder="Например: 20">
+                    <div class="model-stat-label">Выручка месяц, к$</div>
+                    <input class="model-stat-input" id="revenue-${model.id}" value="${escapeHtml(model.revenue_month_k || '')}" placeholder="Например: 20">
                   </div>
                 </div>
 
@@ -793,9 +793,9 @@
       const comment = document.getElementById(`comment-${id}`)?.value || '';
       const topPercent = document.getElementById(`top-${id}`)?.value || '';
       const operatorSalaryPercent = document.getElementById(`salary-${id}`)?.value || '';
-      const experienceMonthsRequired = document.getElementById(`exp-${id}`)?.value || '';
+      const experienceKdMonths = document.getElementById(`exp-${id}`)?.value || '';
       const avgShiftCheck = document.getElementById(`avg-${id}`)?.value || '';
-      const revenuePerMonth = document.getElementById(`revenue-${id}`)?.value || '';
+      const revenueMonthK = document.getElementById(`revenue-${id}`)?.value || '';
 
       const section = (currentNeedsData?.sections || []).find(s => s.key === platform);
       const model = section?.models?.find(x => Number(x.id) === Number(id));
@@ -807,9 +807,9 @@
           comment,
           top_percent: topPercent,
           operator_salary_percent: operatorSalaryPercent,
-          experience_months_required: experienceMonthsRequired,
+          experience_kd_months: experienceKdMonths,
           avg_shift_check: avgShiftCheck,
-          revenue_per_month: revenuePerMonth,
+          revenue_month_k: revenueMonthK,
           shift_00_06: model?.shift_00_06 || 'none',
           shift_06_12: model?.shift_06_12 || 'none',
           shift_12_18: model?.shift_12_18 || 'none',
