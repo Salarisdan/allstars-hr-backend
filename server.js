@@ -209,6 +209,86 @@ function sanitizeTeamFieldLabel(label) {
   return String(label || '').trim();
 }
 
+async function moveCandidateToTeamSheet(candidate) {
+  const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
+  const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
+
+  if (!spreadsheetId) {
+    throw new Error('TEAM_SPREADSHEET_ID is missing');
+  }
+
+  const sheets = await getSheetsClient();
+
+  const headersRes = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${sheetName}!A1:AU1`
+  });
+
+  const headers = headersRes.data.values?.[0] || [];
+  if (!headers.length) {
+    throw new Error('Headers not found in team sheet');
+  }
+
+  const rowMap = {
+    'Имя': candidate.name || '',
+    'Телеграм': candidate.tg || '',
+    'Актуальный статус кандидата (Hr)': 'Ждет тест',
+    'OnlyFans / Fansly': candidate.platforms || '',
+    'Смены (основные)': candidate.shift || '',
+    'Опыт, мес.': candidate.exp || '',
+    'Английский': candidate.english || '',
+    'Комментарий': candidate.notes || ''
+  };
+
+  const row = headers.map(h => rowMap[String(h || '').trim()] ?? '');
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: `${sheetName}!A:AU`,
+    valueInputOption: 'USER_ENTERED',
+    insertDataOption: 'INSERT_ROWS',
+    requestBody: {
+      values: [row]
+    }
+  });
+
+  teamStatsCache = {
+    data: null,
+    ts: 0
+  };
+}
+
+async function teamSheetHasCandidateByTelegram(telegram) {
+  const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
+  const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
+
+  if (!spreadsheetId || !telegram) return false;
+
+  const sheets = await getSheetsClient();
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${sheetName}!A1:AU5000`
+  });
+
+  const values = response.data.values || [];
+  if (!values.length) return false;
+
+  const headers = values[0];
+  const rows = values.slice(1);
+
+  const telegramIdx =
+    headers.indexOf('Телеграм') >= 0 ? headers.indexOf('Телеграм')
+    : headers.indexOf('Telegram') >= 0 ? headers.indexOf('Telegram')
+    : -1;
+
+  if (telegramIdx === -1) return false;
+
+  const normalized = String(telegram).trim().toLowerCase();
+
+  return rows.some(row => String(row[telegramIdx] || '').trim().toLowerCase() === normalized);
+}
+
 const bootstrapSql = `
 CREATE TABLE IF NOT EXISTS agencies (
   id SERIAL PRIMARY KEY,
@@ -762,6 +842,18 @@ app.patch('/candidates/:id', auth, async (req, res) => {
        VALUES ($1,$2,$3)`,
       [req.params.id, next.status, req.user.userId]
     );
+
+    if (next.status === 'Тест смена') {
+      try {
+        const alreadyExists = await teamSheetHasCandidateByTelegram(updated.rows[0].tg || updated.rows[0].telegram || '');
+
+        if (!alreadyExists) {
+          await moveCandidateToTeamSheet(updated.rows[0]);
+        }
+      } catch (teamErr) {
+        console.error('Move candidate to team sheet error:', teamErr.message);
+      }
+    }
   }
 
   const ai = buildAiInsight(updated.rows[0]);
