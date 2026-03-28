@@ -466,21 +466,35 @@ async function initDb() {
   `);
 
   await pool.query(`
-    INSERT INTO hr_needs (platform, model_name)
+    INSERT INTO hr_needs (platform, model_name, shift_00_06, shift_06_12, shift_12_18, shift_18_00)
     VALUES
-      ('onlyfans', 'Alyaska'),
-      ('onlyfans', 'Judy'),
-      ('onlyfans', 'Riley'),
-      ('onlyfans', 'Sofia'),
-      ('onlyfans', 'Eva'),
-      ('onlyfans', 'Alyaska 3'),
-      ('fansly', 'Ivanka'),
-      ('fansly', 'Ivy'),
-      ('fansly', 'Луна'),
-      ('fansly', 'Киана'),
-      ('fansly', 'Sia'),
-      ('fansly', 'Kate')
-    ON CONFLICT (platform, model_name) DO NOTHING
+
+    -- ONLYFANS
+    ('onlyfans','Judy','none','none','none','none'),
+    ('onlyfans','Riley','urgent','urgent','none','urgent'),
+    ('onlyfans','Eva','none','none','none','none'),
+    ('onlyfans','Sofia','urgent','urgent','none','none'),
+    ('onlyfans','Ivanka','none','urgent','urgent','none'),
+    ('onlyfans','Ivy','none','none','none','none'),
+    ('onlyfans','Alyaska','none','none','none','none'),
+    ('onlyfans','Alyaska 3','none','none','none','none'),
+    ('onlyfans','Иванка фри','none','none','none','none'),
+
+    -- FANSLY
+    ('fansly','Sofia','none','none','search','none'),
+    ('fansly','Sia','none','none','search','none'),
+    ('fansly','Riley','none','none','search','none'),
+    ('fansly','Ivanka','none','none','none','none'),
+    ('fansly','Eva','none','none','none','none'),
+    ('fansly','Eira','none','none','none','none'),
+    ('fansly','Ivy','none','none','none','none'),
+    ('fansly','Kate','none','none','none','none'),
+    ('fansly','Leia','none','none','none','none'),
+    ('fansly','Kiana','none','none','none','none'),
+    ('fansly','Judy','none','none','none','none'),
+    ('fansly','Alyaska','none','none','none','none')
+
+    ON CONFLICT (platform, model_name) DO NOTHING;
   `);
 }
 
