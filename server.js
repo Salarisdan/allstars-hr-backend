@@ -1511,6 +1511,47 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
   }
 });
 
+app.post('/api/team-member', auth, async (req, res) => {
+  try {
+    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
+    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
+    const values = req.body?.values || {};
+
+    if (!spreadsheetId) {
+      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
+    }
+
+    const sheets = await getSheetsClient();
+
+    const headersRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A1:AU1`
+    });
+
+    const headers = headersRes.data.values?.[0] || [];
+    if (!headers.length) {
+      return res.status(500).json({ error: 'Headers not found in team sheet' });
+    }
+
+    const row = headers.map(h => values[String(h).trim()] ?? '');
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: `${sheetName}!A:AU`,
+      valueInputOption: 'USER_ENTERED',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: {
+        values: [row]
+      }
+    });
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Team member create error:', err.message);
+    res.status(500).json({ error: 'Failed to create team member' });
+  }
+});
+
 app.post('/api/interviews/:rowNumber/notify', auth, async (req, res) => {
   try {
     const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;

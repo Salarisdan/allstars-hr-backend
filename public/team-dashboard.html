@@ -446,6 +446,18 @@
       border-color:rgba(255,255,255,.15);
     }
 
+    .member-card.platform-onlyfans{
+      border-color: rgba(79,110,247,.35);
+      background: linear-gradient(180deg, rgba(79,110,247,.10), rgba(27,31,44,1));
+      box-shadow: inset 0 0 0 1px rgba(79,110,247,.12);
+    }
+
+    .member-card.platform-fansly{
+      border-color: rgba(168,85,247,.35);
+      background: linear-gradient(180deg, rgba(168,85,247,.10), rgba(27,31,44,1));
+      box-shadow: inset 0 0 0 1px rgba(168,85,247,.12);
+    }
+
     .member-name{
       font-size:15px;
       font-weight:800;
@@ -811,7 +823,16 @@
           <p>Операционная статистика по сотрудникам из отдельной таблицы.</p>
         </div>
 
-        <button class="btn" id="refreshBtn">Обновить</button>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <select id="platformFilter" class="modal-btn" style="min-width:180px;">
+            <option value="">Все платформы</option>
+            <option value="onlyfans">OnlyFans</option>
+            <option value="fansly">Fansly</option>
+          </select>
+
+          <button class="btn" id="addEmployeeBtn">Добавить сотрудника</button>
+          <button class="btn" id="refreshBtn">Обновить</button>
+        </div>
       </div>
 
       <div id="content">
@@ -859,6 +880,8 @@
 
     const content = document.getElementById('content');
     const refreshBtn = document.getElementById('refreshBtn');
+    const platformFilter = document.getElementById('platformFilter');
+    let currentTeamStatsData = null;
 
     function api(path, options = {}) {
       return fetch(path, {
@@ -887,7 +910,26 @@
       return '';
     }
 
+    function filterStatusesByPlatform(data) {
+      const mode = String(platformFilter?.value || '').trim().toLowerCase();
+      if (!mode) return data;
+
+      const filteredStatuses = (data.statuses || []).filter(item => {
+        const platform = String(item.platform || '').trim().toLowerCase();
+        return platform.includes(mode);
+      });
+
+      return {
+        ...data,
+        statuses: filteredStatuses
+      };
+    }
+
     function renderTeamStats(data) {
+      currentTeamStatsData = data;
+
+      const filteredData = filterStatusesByPlatform(data);
+
       content.innerHTML = `
         <section class="hero-stats">
           <div class="stat-card">
@@ -933,14 +975,14 @@
         <section class="details-card">
           <div class="details-title">Разбивка по текущим статусам</div>
           <div class="details-grid">
-            ${(data.statuses || []).map(item => `
+            ${(filteredData.statuses || []).map(item => `
               <div class="detail-item clickable ${getStatusClass(item.name)}" onclick="openStatusMembers('${String(item.name).replaceAll("'", "\\'")}')">
                 <div class="detail-top">
                   <span class="detail-dot"></span>
                   <div class="detail-name">${escapeHtml(item.name)}</div>
                 </div>
                 <div class="detail-count">${item.count}</div>
-                <div class="detail-meta">Статус сотрудников</div>
+                <div class="detail-meta">${item.platform ? `Платформа: ${item.platform}` : 'Статус сотрудников'}</div>
               </div>
             `).join('')}
           </div>
@@ -962,6 +1004,12 @@
     }
 
     refreshBtn.addEventListener('click', loadTeamStatsPage);
+
+    platformFilter.addEventListener('change', () => {
+      if (currentTeamStatsData) {
+        renderTeamStats(currentTeamStatsData);
+      }
+    });
 
     loadTeamStatsPage().catch(err => {
       console.error(err);
@@ -1048,14 +1096,18 @@
             const platform = String(person.platform || '').toLowerCase();
 
             let platformBadge = '';
+            let platformCardClass = '';
+
             if (platform.includes('onlyfans')) {
               platformBadge = `<span class="badge-platform badge-of">OnlyFans</span>`;
+              platformCardClass = 'platform-onlyfans';
             } else if (platform.includes('fansly')) {
               platformBadge = `<span class="badge-platform badge-fansly">Fansly</span>`;
+              platformCardClass = 'platform-fansly';
             }
 
             return `
-              <div class="member-card" onclick="openMemberEditor(${person.row_number})">
+              <div class="member-card ${platformCardClass}" onclick="openMemberEditor(${person.row_number})">
                 <div class="member-name">
                   ${person.name || 'Без имени'}
                   ${platformBadge}
@@ -1325,6 +1377,7 @@
 
     let currentMemberEditorRow = null;
     let currentMemberFields = [];
+    let isCreatingMember = false;
 
     function isLongField(label) {
       const s = String(label || '').toLowerCase();
@@ -1422,9 +1475,91 @@
       `;
     }
 
-    async function saveMemberEditor() {
-      if (!currentMemberEditorRow) return;
+    async function openNewMemberEditor() {
+      isCreatingMember = true;
+      currentMemberEditorRow = null;
 
+      const overlay = document.getElementById('memberEditorOverlay');
+      const title = document.getElementById('memberEditorTitle');
+      const content = document.getElementById('memberEditorContent');
+
+      title.textContent = 'Новый сотрудник';
+
+      const res = await api('/api/team-member/2');
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        content.innerHTML = `<div class="error-box">${data.error || 'Не удалось открыть форму'}</div>`;
+        overlay.classList.add('show');
+        return;
+      }
+
+      currentMemberFields = (Array.isArray(data.fields) ? data.fields : []).map(field => ({
+        ...field,
+        value: ''
+      }));
+
+      content.innerHTML = `
+        <div class="editor-grid">
+          ${currentMemberFields.map((field, idx) => {
+            const long = isLongField(field.label);
+            const options = getTeamFieldOptions(field.label);
+            const isBoolean = isTeamBooleanField(field.label);
+
+            return `
+              <div class="editor-field ${long ? 'full' : ''}">
+                <div class="editor-label">${field.label}</div>
+                ${
+                  isBoolean
+                    ? `
+                      <div class="editor-checkbox-wrap">
+                        <span class="editor-checkbox-label">Есть доступ</span>
+                        <input
+                          type="checkbox"
+                          class="editor-checkbox"
+                          data-field-index="${idx}"
+                          data-field-type="boolean"
+                        >
+                      </div>
+                    `
+                    : options
+                      ? `
+                        <div class="editor-dropdown" data-field-index="${idx}" data-field-type="select">
+                          <button
+                            type="button"
+                            class="editor-dropdown-btn"
+                            onclick="toggleEditorDropdown(event)"
+                          >
+                            <span class="editor-chip chip-neutral">— выбрать —</span>
+                          </button>
+
+                          <div class="editor-dropdown-menu">
+                            ${options.map(opt => `
+                              <div
+                                class="editor-option"
+                                onclick="selectEditorOption(event, ${idx}, '${String(opt).replace(/'/g, "\\'")}')"
+                              >
+                                <span class="editor-chip ${getOptionChipClass(field.label, opt)}">${opt}</span>
+                                <span class="editor-option-check">✓</span>
+                              </div>
+                            `).join('')}
+                          </div>
+                        </div>
+                      `
+                      : long
+                        ? `<textarea class="editor-textarea" data-field-index="${idx}" data-field-type="text"></textarea>`
+                        : `<input class="editor-input" data-field-index="${idx}" data-field-type="text" value="">`
+            }
+          </div>
+        `;
+      }).join('')}
+        </div>
+      `;
+
+      overlay.classList.add('show');
+    }
+
+    async function saveMemberEditor() {
       const updates = {};
 
       document.querySelectorAll('[data-field-index]').forEach(el => {
@@ -1447,10 +1582,19 @@
         updates[field.label] = el.value;
       });
 
-      const res = await api(`/api/team-member/${currentMemberEditorRow}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ updates })
-      });
+      let res;
+      if (isCreatingMember) {
+        res = await api('/api/team-member', {
+          method: 'POST',
+          body: JSON.stringify({ values: updates })
+        });
+      } else {
+        if (!currentMemberEditorRow) return;
+        res = await api(`/api/team-member/${currentMemberEditorRow}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ updates })
+        });
+      }
 
       const data = await res.json().catch(() => ({}));
 
@@ -1461,6 +1605,9 @@
 
       alert('Сохранено');
       forceCloseMemberEditor();
+      isCreatingMember = false;
+
+      await loadTeamStatsPage();
 
       if (currentStatusName) {
         openStatusMembers(currentStatusName);
@@ -1475,7 +1622,10 @@
 
     function forceCloseMemberEditor() {
       document.getElementById('memberEditorOverlay').classList.remove('show');
+      isCreatingMember = false;
     }
+
+    document.getElementById('addEmployeeBtn').addEventListener('click', openNewMemberEditor);
 
     window.openMemberEditor = openMemberEditor;
     window.saveMemberEditor = saveMemberEditor;
