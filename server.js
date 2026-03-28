@@ -460,10 +460,15 @@ async function initDb() {
       shift_18_00 TEXT NOT NULL DEFAULT 'none' CHECK (shift_18_00 IN ('none', 'search', 'urgent', 'bg')),
       comment TEXT NOT NULL DEFAULT '',
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      UNIQUE(platform, model_name)
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW()
     );
   `);
+
+  await pool.query(`
+    ALTER TABLE hr_needs
+    ADD CONSTRAINT hr_needs_platform_model_name_unique
+    UNIQUE (platform, model_name)
+  `).catch(() => {});
 
   await pool.query(`
     INSERT INTO hr_needs (platform, model_name, shift_00_06, shift_06_12, shift_12_18, shift_18_00)
