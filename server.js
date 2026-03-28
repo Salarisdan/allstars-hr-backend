@@ -286,6 +286,16 @@ function normalizeTelegramForTeam(value) {
   return `@${s}`;
 }
 
+function normalizeNeedStatus(value) {
+  const s = String(value || '').trim().toLowerCase();
+  return ['none', 'search', 'urgent', 'bg'].includes(s) ? s : 'none';
+}
+
+function normalizeNeedPlatform(value) {
+  const s = String(value || '').trim().toLowerCase();
+  return s === 'fansly' ? 'fansly' : 'onlyfans';
+}
+
 async function moveCandidateToTeamSheet(candidate) {
   const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
   const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
@@ -438,6 +448,21 @@ CREATE INDEX IF NOT EXISTS idx_candidates_agency_owner ON candidates(agency_id, 
 
 async function initDb() {
   await query(bootstrapSql);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS hr_needs (
+      id SERIAL PRIMARY KEY,
+      platform TEXT NOT NULL CHECK (platform IN ('onlyfans', 'fansly')),
+      model_name TEXT NOT NULL,
+      shift_00_06 TEXT NOT NULL DEFAULT 'none' CHECK (shift_00_06 IN ('none', 'search', 'urgent', 'bg')),
+      shift_06_12 TEXT NOT NULL DEFAULT 'none' CHECK (shift_06_12 IN ('none', 'search', 'urgent', 'bg')),
+      shift_12_18 TEXT NOT NULL DEFAULT 'none' CHECK (shift_12_18 IN ('none', 'search', 'urgent', 'bg')),
+      shift_18_00 TEXT NOT NULL DEFAULT 'none' CHECK (shift_18_00 IN ('none', 'search', 'urgent', 'bg')),
+      comment TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+  `);
 }
 
 function signToken(user) {
@@ -1760,6 +1785,168 @@ app.post('/api/team-member', auth, async (req, res) => {
   } catch (err) {
     console.error('Team member create error:', err.message);
     res.status(500).json({ error: 'Failed to create team member' });
+  }
+});
+
+app.get('/api/hr-needs', auth, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        id,
+        platform,
+        model_name,
+        shift_00_06,
+        shift_06_12,
+        shift_12_18,
+        shift_18_00,
+        comment,
+        created_at,
+        updated_at
+      FROM hr_needs
+      ORDER BY platform ASC, model_name ASC, id ASC
+    `);
+
+    const rows = result.rows || [];
+
+    res.json({
+      sections: [
+        {
+          key: 'onlyfans',
+          label: 'OnlyFans',
+          models: rows.filter(x => x.platform === 'onlyfans')
+        },
+        {
+          key: 'fansly',
+          label: 'Fansly',
+          models: rows.filter(x => x.platform === 'fansly')
+        }
+      ]
+    });
+  } catch (err) {
+    console.error('HR needs read error:', err.message);
+    res.status(500).json({ error: 'Failed to load HR needs' });
+  }
+});
+
+app.post('/api/hr-needs', auth, async (req, res) => {
+  try {
+    const platform = normalizeNeedPlatform(req.body?.platform);
+    const modelName = String(req.body?.model_name || '').trim();
+    const comment = String(req.body?.comment || '').trim();
+
+    if (!modelName) {
+      return res.status(400).json({ error: 'model_name is required' });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO hr_needs (
+        platform,
+        model_name,
+        comment
+      )
+      VALUES ($1, $2, $3)
+      RETURNING *
+    `, [platform, modelName, comment]);
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('HR needs create error:', err.message);
+    res.status(500).json({ error: 'Failed to create HR need card' });
+  }
+});
+
+app.patch('/api/hr-needs/:id', auth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) {
+      return res.status(400).json({ error: 'Invalid id' });
+    }
+
+    const updates = [];
+    const values = [];
+    let index = 1;
+
+    if (req.body?.platform !== undefined) {
+      updates.push(`platform = $${index++}`);
+      values.push(normalizeNeedPlatform(req.body.platform));
+    }
+
+    if (req.body?.model_name !== undefined) {
+      updates.push(`model_name = $${index++}`);
+      values.push(String(req.body.model_name || '').trim());
+    }
+
+    if (req.body?.comment !== undefined) {
+      updates.push(`comment = $${index++}`);
+      values.push(String(req.body.comment || '').trim());
+    }
+
+    if (req.body?.shift_00_06 !== undefined) {
+      updates.push(`shift_00_06 = $${index++}`);
+      values.push(normalizeNeedStatus(req.body.shift_00_06));
+    }
+
+    if (req.body?.shift_06_12 !== undefined) {
+      updates.push(`shift_06_12 = $${index++}`);
+      values.push(normalizeNeedStatus(req.body.shift_06_12));
+    }
+
+    if (req.body?.shift_12_18 !== undefined) {
+      updates.push(`shift_12_18 = $${index++}`);
+      values.push(normalizeNeedStatus(req.body.shift_12_18));
+    }
+
+    if (req.body?.shift_18_00 !== undefined) {
+      updates.push(`shift_18_00 = $${index++}`);
+      values.push(normalizeNeedStatus(req.body.shift_18_00));
+    }
+
+    if (!updates.length) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    updates.push(`updated_at = NOW()`);
+    values.push(id);
+
+    const result = await pool.query(`
+      UPDATE hr_needs
+      SET ${updates.join(', ')}
+      WHERE id = $${index}
+      RETURNING *
+    `, values);
+
+    if (!result.rows.length) {
+      return res.status(404).json({ error: 'HR need card not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('HR needs update error:', err.message);
+    res.status(500).json({ error: 'Failed to update HR need card' });
+  }
+});
+
+app.delete('/api/hr-needs/:id', auth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) {
+      return res.status(400).json({ error: 'Invalid id' });
+    }
+
+    const result = await pool.query(`
+      DELETE FROM hr_needs
+      WHERE id = $1
+      RETURNING id
+    `, [id]);
+
+    if (!result.rows.length) {
+      return res.status(404).json({ error: 'HR need card not found' });
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('HR needs delete error:', err.message);
+    res.status(500).json({ error: 'Failed to delete HR need card' });
   }
 });
 
