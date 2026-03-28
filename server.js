@@ -209,6 +209,83 @@ function sanitizeTeamFieldLabel(label) {
   return String(label || '').trim();
 }
 
+function normalizePlatformForTeam(value) {
+  const s = String(value || '').trim().toLowerCase();
+
+  if (!s) return '';
+  if (s.includes('onlyfans') || s === 'of') return 'OnlyFans';
+  if (s.includes('fansly')) return 'Fansly';
+  if (s.includes('обе') || s.includes('оба') || s.includes('both')) return 'OnlyFans / Fansly';
+  if (s.includes('km')) return 'KM';
+
+  return String(value || '').trim();
+}
+
+function normalizeShiftForTeam(value) {
+  const s = String(value || '').trim().toLowerCase();
+  if (!s) return '';
+
+  const shifts = [];
+
+  if (s.includes('00–06') || s.includes('00-06') || s.includes('0-6') || s.includes('0–6')) {
+    shifts.push('00-06');
+  }
+  if (s.includes('06–12') || s.includes('06-12') || s.includes('6-12') || s.includes('6–12')) {
+    shifts.push('06-12');
+  }
+  if (s.includes('12–18') || s.includes('12-18')) {
+    shifts.push('12-18');
+  }
+  if (s.includes('18–00') || s.includes('18-00') || s.includes('18-24')) {
+    shifts.push('18-00');
+  }
+
+  return shifts.join(', ');
+}
+
+function parseExperienceMonthsLoose(value) {
+  const s = String(value || '').trim().toLowerCase().replace(',', '.');
+  if (!s) return '';
+
+  if (
+    s === 'нет' ||
+    s === '0' ||
+    s.includes('нет опыта') ||
+    s.includes('без опыта')
+  ) {
+    return '0';
+  }
+
+  if (s.includes('полгода') || s.includes('пол года')) {
+    return '6';
+  }
+
+  const years = s.match(/(\d+(?:\.\d+)?)\s*(год|года|лет)/);
+  if (years) {
+    return String(Math.round(Number(years[1]) * 12));
+  }
+
+  const months = s.match(/(\d+(?:\.\d+)?)\s*(месяц|месяца|месяцев|мес)/);
+  if (months) {
+    return String(Math.round(Number(months[1])));
+  }
+
+  const plain = s.match(/(\d+(?:\.\d+)?)/);
+  if (plain) {
+    return String(Math.round(Number(plain[1])));
+  }
+
+  return '';
+}
+
+function normalizeTelegramForTeam(value) {
+  const s = String(value || '').trim();
+  if (!s) return '';
+
+  if (s.startsWith('@')) return s;
+  return `@${s}`;
+}
+
 async function moveCandidateToTeamSheet(candidate) {
   const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
   const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
