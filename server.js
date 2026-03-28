@@ -460,8 +460,27 @@ async function initDb() {
       shift_18_00 TEXT NOT NULL DEFAULT 'none' CHECK (shift_18_00 IN ('none', 'search', 'urgent', 'bg')),
       comment TEXT NOT NULL DEFAULT '',
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      UNIQUE(platform, model_name)
     );
+  `);
+
+  await pool.query(`
+    INSERT INTO hr_needs (platform, model_name)
+    VALUES
+      ('onlyfans', 'Alyaska'),
+      ('onlyfans', 'Judy'),
+      ('onlyfans', 'Riley'),
+      ('onlyfans', 'Sofia'),
+      ('onlyfans', 'Eva'),
+      ('onlyfans', 'Alyaska 3'),
+      ('fansly', 'Ivanka'),
+      ('fansly', 'Ivy'),
+      ('fansly', 'Луна'),
+      ('fansly', 'Киана'),
+      ('fansly', 'Sia'),
+      ('fansly', 'Kate')
+    ON CONFLICT (platform, model_name) DO NOTHING
   `);
 }
 
