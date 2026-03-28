@@ -1018,6 +1018,10 @@
 
     let currentStatusMembers = [];
     let currentStatusName = '';
+    let filteredStatusMembers = [];
+    let visibleStatusMembersCount = 40;
+    const STATUS_MEMBERS_PAGE_SIZE = 40;
+    window.__teamMemberSearchQuery = '';
 
     async function openStatusMembers(statusName) {
       const modal = document.getElementById('statusModal');
@@ -1040,7 +1044,10 @@
       }
 
       currentStatusMembers = Array.isArray(data) ? data : [];
-      renderStatusMembersList(currentStatusMembers);
+      filteredStatusMembers = [...currentStatusMembers];
+      visibleStatusMembersCount = STATUS_MEMBERS_PAGE_SIZE;
+      window.__teamMemberSearchQuery = '';
+      renderStatusMembersList(filteredStatusMembers);
     }
 
     function getPlatformBadge(platformValue) {
@@ -1061,13 +1068,17 @@
       const body = document.getElementById('statusModalBody');
       if (!body) return;
 
-      if (!Array.isArray(list) || !list.length) {
+      const safeList = Array.isArray(list) ? list : [];
+      const visibleList = safeList.slice(0, visibleStatusMembersCount);
+      const hasMore = safeList.length > visibleStatusMembersCount;
+
+      if (!safeList.length) {
         body.innerHTML = `
           <div class="modal-toolbar">
-            <input class="modal-search" id="memberSearchInput" placeholder="Поиск по имени или username..." oninput="debouncedFilterStatusMembers()" />
-          <div class="modal-toolbar-actions">
-            <button class="modal-btn" type="button" onclick="copyStatusTelegrams()">Скопировать Telegram</button>
-          </div>
+            <input class="modal-search" id="memberSearchInput" placeholder="Поиск по имени или Telegram..." oninput="debouncedFilterStatusMembers()" />
+            <div class="modal-toolbar-actions">
+              <button class="modal-btn" type="button" onclick="copyStatusTelegrams()">Скопировать Telegram</button>
+            </div>
           </div>
           <div class="modal-empty">По этому статусу никого не найдено</div>
         `;
@@ -1079,7 +1090,7 @@
           <input
             class="modal-search"
             id="memberSearchInput"
-            placeholder="Поиск по имени или username..."
+            placeholder="Поиск по имени или Telegram..."
             oninput="debouncedFilterStatusMembers()"
           />
           <div class="modal-toolbar-actions">
@@ -1088,11 +1099,11 @@
         </div>
 
         <div class="modal-meta-line">
-          Найдено: ${list.length}
+          Найдено: ${safeList.length} · Показано: ${visibleList.length}
         </div>
 
         <div class="member-grid">
-          ${list.map(person => {
+          ${visibleList.map(person => {
             const platform = String(person.platform || '').toLowerCase();
 
             let platformBadge = '';
@@ -1133,7 +1144,25 @@
             `;
           }).join('')}
         </div>
+
+        ${
+          hasMore
+            ? `
+              <div style="display:flex; justify-content:center; margin-top:16px;">
+                <button class="modal-btn" type="button" onclick="showMoreStatusMembers()">
+                  Показать ещё
+                </button>
+              </div>
+            `
+            : ''
+        }
       `;
+
+      const inputAfterRender = document.getElementById('memberSearchInput');
+      const previousQuery = window.__teamMemberSearchQuery || '';
+      if (inputAfterRender) {
+        inputAfterRender.value = previousQuery;
+      }
     }
 
     let memberSearchTimer = null;
@@ -1149,16 +1178,19 @@
       const input = document.getElementById('memberSearchInput');
       const q = String(input?.value || '').trim().toLowerCase();
 
+      window.__teamMemberSearchQuery = q;
+
       if (!q) {
-        renderStatusMembersList(currentStatusMembers);
+        filteredStatusMembers = [...currentStatusMembers];
+        visibleStatusMembersCount = STATUS_MEMBERS_PAGE_SIZE;
+        renderStatusMembersList(filteredStatusMembers);
         return;
       }
 
-      const filtered = currentStatusMembers.filter(person => {
+      filteredStatusMembers = currentStatusMembers.filter(person => {
         const hay = [
           person.name,
-          person.username,
-          person.tg_id,
+          person.telegram,
           person.platform,
           person.start_date,
           person.work_days
@@ -1167,14 +1199,13 @@
         return hay.includes(q);
       });
 
-      renderStatusMembersList(filtered);
+      visibleStatusMembersCount = STATUS_MEMBERS_PAGE_SIZE;
+      renderStatusMembersList(filteredStatusMembers);
+    }
 
-      const inputAfterRender = document.getElementById('memberSearchInput');
-      if (inputAfterRender) {
-        inputAfterRender.value = q;
-        inputAfterRender.focus();
-        inputAfterRender.setSelectionRange(q.length, q.length);
-      }
+    function showMoreStatusMembers() {
+      visibleStatusMembersCount += STATUS_MEMBERS_PAGE_SIZE;
+      renderStatusMembersList(filteredStatusMembers);
     }
 
     async function copyStatusTelegrams() {
@@ -1218,6 +1249,7 @@
     window.forceCloseStatusModal = forceCloseStatusModal;
     window.filterStatusMembers = filterStatusMembers;
     window.copyStatusTelegrams = copyStatusTelegrams;
+    window.showMoreStatusMembers = showMoreStatusMembers;
 
     const TEAM_FIELD_OPTIONS = {
       'Актуальный статус кандидата (Hr)': [
