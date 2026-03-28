@@ -1193,8 +1193,21 @@ app.get('/api/stats', auth, async (req, res) => {
   }
 });
 
+let teamStatsCache = {
+  data: null,
+  ts: 0
+};
+
+const TEAM_STATS_CACHE_TTL = 60 * 1000;
+
 app.get('/api/team-stats', auth, async (req, res) => {
   try {
+    const now = Date.now();
+
+    if (teamStatsCache.data && now - teamStatsCache.ts < TEAM_STATS_CACHE_TTL) {
+      return res.json(teamStatsCache.data);
+    }
+
     const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
     const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
 
@@ -1300,7 +1313,7 @@ app.get('/api/team-stats', auth, async (req, res) => {
       }))
       .sort((a, b) => b.count - a.count);
 
-    res.json({
+    const payload = {
       totals: {
         total,
         active,
@@ -1314,7 +1327,14 @@ app.get('/api/team-stats', auth, async (req, res) => {
         work_days: workDaysCount ? Number((workDaysSum / workDaysCount).toFixed(1)) : 0
       },
       statuses
-    });
+    };
+
+    teamStatsCache = {
+      data: payload,
+      ts: now
+    };
+
+    res.json(payload);
   } catch (err) {
     console.error('Team stats read error:', err.message);
     res.status(500).json({ error: 'Failed to read team stats from Google Sheets' });
@@ -1504,6 +1524,11 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       }
     });
 
+    teamStatsCache = {
+      data: null,
+      ts: 0
+    };
+
     res.json({ ok: true });
   } catch (err) {
     console.error('Team member update error:', err.message);
@@ -1544,6 +1569,11 @@ app.post('/api/team-member', auth, async (req, res) => {
         values: [row]
       }
     });
+
+    teamStatsCache = {
+      data: null,
+      ts: 0
+    };
 
     res.json({ ok: true });
   } catch (err) {

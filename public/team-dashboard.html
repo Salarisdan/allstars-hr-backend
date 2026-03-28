@@ -1064,7 +1064,7 @@
       if (!Array.isArray(list) || !list.length) {
         body.innerHTML = `
           <div class="modal-toolbar">
-            <input class="modal-search" id="memberSearchInput" placeholder="Поиск по имени или username..." oninput="filterStatusMembers()" />
+            <input class="modal-search" id="memberSearchInput" placeholder="Поиск по имени или username..." oninput="debouncedFilterStatusMembers()" />
           <div class="modal-toolbar-actions">
             <button class="modal-btn" type="button" onclick="copyStatusTelegrams()">Скопировать Telegram</button>
           </div>
@@ -1080,7 +1080,7 @@
             class="modal-search"
             id="memberSearchInput"
             placeholder="Поиск по имени или username..."
-            oninput="filterStatusMembers()"
+            oninput="debouncedFilterStatusMembers()"
           />
           <div class="modal-toolbar-actions">
             <button class="modal-btn" type="button" onclick="copyStatusTelegrams()">Скопировать Telegram</button>
@@ -1134,6 +1134,15 @@
           }).join('')}
         </div>
       `;
+    }
+
+    let memberSearchTimer = null;
+
+    function debouncedFilterStatusMembers() {
+      clearTimeout(memberSearchTimer);
+      memberSearchTimer = setTimeout(() => {
+        filterStatusMembers();
+      }, 180);
     }
 
     function filterStatusMembers() {
@@ -1607,10 +1616,8 @@
       forceCloseMemberEditor();
       isCreatingMember = false;
 
-      await loadTeamStatsPage();
-
       if (currentStatusName) {
-        openStatusMembers(currentStatusName);
+        await openStatusMembers(currentStatusName);
       }
     }
 
@@ -1633,6 +1640,7 @@
     window.forceCloseMemberEditor = forceCloseMemberEditor;
     window.toggleEditorDropdown = toggleEditorDropdown;
     window.selectEditorOption = selectEditorOption;
+    window.debouncedFilterStatusMembers = debouncedFilterStatusMembers;
   </script>
 </body>
 </html>
