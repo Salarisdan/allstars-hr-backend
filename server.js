@@ -1441,21 +1441,26 @@ app.get('/api/team-stats', auth, async (req, res) => {
     let workDaysCount = 0;
 
     const statusMap = new Map();
+    const statusPlatformMap = new Map();
 
     for (const row of dataRows) {
       const statusRaw = String(safeGet(row, statusIdx) || '').trim();
       const status = normalizeText(statusRaw);
       const platform = normalizeText(safeGet(row, platformIdx));
+      const normalizedStatusName = statusRaw || 'Без статуса';
+      const platformName =
+        platform.includes('onlyfans') ? 'onlyfans'
+        : platform.includes('fansly') ? 'fansly'
+        : '';
       const exp = parseNumberLoose(safeGet(row, expIdx));
       const workDays = parseNumberLoose(safeGet(row, workDaysIdx));
 
       total++;
 
-      if (statusRaw) {
-        statusMap.set(statusRaw, (statusMap.get(statusRaw) || 0) + 1);
-      } else {
-        statusMap.set('Без статуса', (statusMap.get('Без статуса') || 0) + 1);
-      }
+      statusMap.set(normalizedStatusName, (statusMap.get(normalizedStatusName) || 0) + 1);
+
+      const statusPlatformKey = `${normalizedStatusName}__${platformName}`;
+      statusPlatformMap.set(statusPlatformKey, (statusPlatformMap.get(statusPlatformKey) || 0) + 1);
 
       if (status.includes('работает')) active++;
       if (status.includes('уволен')) fired++;
@@ -1476,10 +1481,17 @@ app.get('/api/team-stats', auth, async (req, res) => {
     }
 
     const statuses = [...statusMap.entries()]
-      .map(([name, count]) => ({
-        name,
-        count
-      }))
+      .map(([name, count]) => {
+        const onlyfansCount = statusPlatformMap.get(`${name}__onlyfans`) || 0;
+        const fanslyCount = statusPlatformMap.get(`${name}__fansly`) || 0;
+
+        return {
+          name,
+          count,
+          onlyfans: onlyfansCount,
+          fansly: fanslyCount
+        };
+      })
       .sort((a, b) => b.count - a.count);
 
     const payload = {

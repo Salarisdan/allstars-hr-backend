@@ -882,6 +882,7 @@
     const refreshBtn = document.getElementById('refreshBtn');
     const platformFilter = document.getElementById('platformFilter');
     let currentTeamStatsData = null;
+    let currentPlatformFilter = String(platformFilter?.value || '').trim().toLowerCase();
 
     function api(path, options = {}) {
       return fetch(path, {
@@ -911,13 +912,22 @@
     }
 
     function filterStatusesByPlatform(data) {
-      const mode = String(platformFilter?.value || '').trim().toLowerCase();
+      const mode = String(currentPlatformFilter || '').trim().toLowerCase();
       if (!mode) return data;
 
-      const filteredStatuses = (data.statuses || []).filter(item => {
-        const platform = String(item.platform || '').trim().toLowerCase();
-        return platform.includes(mode);
-      });
+      const filteredStatuses = (data.statuses || [])
+        .map(item => {
+          const filteredCount =
+            mode === 'onlyfans' ? Number(item.onlyfans || 0)
+            : mode === 'fansly' ? Number(item.fansly || 0)
+            : Number(item.count || 0);
+
+          return {
+            ...item,
+            count: filteredCount
+          };
+        })
+        .filter(item => item.count > 0);
 
       return {
         ...data,
@@ -1006,6 +1016,7 @@
     refreshBtn.addEventListener('click', loadTeamStatsPage);
 
     platformFilter.addEventListener('change', () => {
+      currentPlatformFilter = String(platformFilter?.value || '').trim().toLowerCase();
       if (currentTeamStatsData) {
         renderTeamStats(currentTeamStatsData);
       }
@@ -1273,6 +1284,21 @@
         'KM'
       ],
 
+      'Актуальная модель': [
+        'Alyaska',
+        'Judy',
+        'Riley',
+        'Sofia',
+        'Eva',
+        'Alyaska 3',
+        'Ivanka',
+        'Ivy',
+        'Луна',
+        'Киана',
+        'Sia',
+        'Kate'
+      ],
+
       'Смены (основные)': [
         '00-06',
         '06-12',
@@ -1305,6 +1331,7 @@
     const TEAM_BOOLEAN_FIELDS = new Set([
       'Transaction ending',
       'Transaction ending (есть/нет в табл.)',
+      'Замена',
       'Доступы CRM',
       'Доступ к табличке с расписанием OF',
       'Доступ к Telegram чатам OF',
@@ -1328,7 +1355,7 @@
 
     function booleanFromCellValue(value) {
       const s = String(value || '').trim().toLowerCase();
-      return ['да', 'есть', 'true', '1', 'yes', 'y'].includes(s);
+      return ['true', '1', 'yes', 'y', 'да', 'есть'].includes(s);
     }
 
     function booleanToCellValue(checked) {
@@ -1338,6 +1365,10 @@
     function getOptionChipClass(fieldLabel, value) {
       const label = normalizeTeamLabel(fieldLabel).toLowerCase();
       const v = String(value || '').trim().toLowerCase();
+
+      if (label.includes('модель')) {
+        return 'chip-blue';
+      }
 
       if (label === 'актуальный статус кандидата (hr)') {
         if (v.includes('работает') || v.includes('верификация')) return 'chip-green';
