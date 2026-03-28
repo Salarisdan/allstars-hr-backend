@@ -564,6 +564,67 @@
       position:relative;
     }
 
+    .editor-multiselect{
+      position:relative;
+    }
+
+    .editor-multiselect-btn{
+      width:100%;
+      min-height:48px;
+      background:#0f1220;
+      border:1px solid var(--border);
+      border-radius:10px;
+      color:var(--text);
+      padding:.6rem .75rem;
+      font-family:'Manrope',sans-serif;
+      font-size:13px;
+      cursor:pointer;
+      text-align:left;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .editor-multiselect-btn::after{
+      content:'▾';
+      color:var(--text3);
+      font-size:12px;
+      align-self:flex-start;
+      margin-top:4px;
+    }
+
+    .editor-multiselect-values{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      flex:1;
+    }
+
+    .editor-multiselect-placeholder{
+      color:var(--text3);
+    }
+
+    .editor-multiselect-menu{
+      position:absolute;
+      top:calc(100% + 6px);
+      left:0;
+      right:0;
+      z-index:35;
+      background:#171b28;
+      border:1px solid var(--border);
+      border-radius:12px;
+      box-shadow:0 16px 40px rgba(0,0,0,.4);
+      padding:8px;
+      display:none;
+      max-height:280px;
+      overflow:auto;
+    }
+
+    .editor-multiselect.open .editor-multiselect-menu{
+      display:block;
+    }
+
     .editor-dropdown-btn{
       width:100%;
       background:#0f1220;
@@ -1284,6 +1345,21 @@
         'KM'
       ],
 
+      'Модели (основные)': [
+        'Alyaska',
+        'Judy',
+        'Riley',
+        'Sofia',
+        'Eva',
+        'Alyaska 3',
+        'Ivanka',
+        'Ivy',
+        'Луна',
+        'Киана',
+        'Sia',
+        'Kate'
+      ],
+
       'Актуальная модель': [
         'Alyaska',
         'Judy',
@@ -1328,10 +1404,15 @@
       ]
     };
 
+    const TEAM_MULTISELECT_FIELDS = new Set([
+      'Модели (основные)'
+    ]);
+
     const TEAM_BOOLEAN_FIELDS = new Set([
       'Transaction ending',
       'Transaction ending (есть/нет в табл.)',
       'Замена',
+      'Замены (да/нет)',
       'Доступы CRM',
       'Доступ к табличке с расписанием OF',
       'Доступ к Telegram чатам OF',
@@ -1353,6 +1434,24 @@
       return TEAM_BOOLEAN_FIELDS.has(normalized);
     }
 
+    function isTeamMultiselectField(label) {
+      return TEAM_MULTISELECT_FIELDS.has(normalizeTeamLabel(label));
+    }
+
+    function splitMultiValue(value) {
+      return String(value || '')
+        .split(',')
+        .map(x => x.trim())
+        .filter(Boolean);
+    }
+
+    function joinMultiValue(values) {
+      return (Array.isArray(values) ? values : [])
+        .map(x => String(x || '').trim())
+        .filter(Boolean)
+        .join(', ');
+    }
+
     function booleanFromCellValue(value) {
       const s = String(value || '').trim().toLowerCase();
       return ['true', '1', 'yes', 'y', 'да', 'есть'].includes(s);
@@ -1365,6 +1464,22 @@
     function getOptionChipClass(fieldLabel, value) {
       const label = normalizeTeamLabel(fieldLabel).toLowerCase();
       const v = String(value || '').trim().toLowerCase();
+
+      if (label.includes('модели')) {
+        if (v === 'alyaska') return 'chip-blue';
+        if (v === 'judy') return 'chip-yellow';
+        if (v === 'riley') return 'chip-green';
+        if (v === 'sofia') return 'chip-purple';
+        if (v === 'eva') return 'chip-neutral';
+        if (v === 'alyaska 3') return 'chip-blue';
+        if (v === 'ivanka') return 'chip-neutral';
+        if (v === 'ivy') return 'chip-red';
+        if (v === 'луна') return 'chip-green';
+        if (v === 'киана') return 'chip-blue';
+        if (v === 'sia') return 'chip-purple';
+        if (v === 'kate') return 'chip-neutral';
+        return 'chip-blue';
+      }
 
       if (label.includes('модель')) {
         return 'chip-blue';
@@ -1441,8 +1556,58 @@
       dropdown.classList.remove('open');
     }
 
+    function toggleEditorMultiselect(event) {
+      event.stopPropagation();
+      const multiselect = event.currentTarget.closest('.editor-multiselect');
+      if (!multiselect) return;
+
+      document.querySelectorAll('.editor-multiselect.open').forEach(el => {
+        if (el !== multiselect) el.classList.remove('open');
+      });
+
+      multiselect.classList.toggle('open');
+    }
+
+    function toggleEditorMultiselectOption(event, fieldIndex, value) {
+      event.stopPropagation();
+
+      const multiselect = event.currentTarget.closest('.editor-multiselect');
+      if (!multiselect) return;
+
+      const field = currentMemberFields[fieldIndex];
+      if (!field) return;
+
+      const raw = multiselect.dataset.selectedValues || '';
+      const selected = raw ? raw.split('||').filter(Boolean) : [];
+
+      const nextValues = selected.includes(value)
+        ? selected.filter(x => x !== value)
+        : [...selected, value];
+
+      multiselect.dataset.selectedValues = nextValues.join('||');
+
+      const valuesWrap = multiselect.querySelector('.editor-multiselect-values');
+      if (valuesWrap) {
+        valuesWrap.innerHTML = nextValues.length
+          ? nextValues.map(opt => `
+              <span class="editor-chip ${getOptionChipClass(field.label, opt)}">${opt}</span>
+            `).join('')
+          : `<span class="editor-multiselect-placeholder">— выбрать модели —</span>`;
+      }
+
+      multiselect.querySelectorAll('.editor-option').forEach(optEl => {
+        const chip = optEl.querySelector('.editor-chip');
+        const text = chip ? chip.textContent.trim() : '';
+        optEl.classList.toggle('active', nextValues.includes(text));
+      });
+    }
+
     document.addEventListener('click', () => {
       document.querySelectorAll('.editor-dropdown.open').forEach(el => {
+        el.classList.remove('open');
+      });
+
+      document.querySelectorAll('.editor-multiselect.open').forEach(el => {
         el.classList.remove('open');
       });
     });
@@ -1490,8 +1655,54 @@
           ${currentMemberFields.map((field, idx) => {
             const long = isLongField(field.label);
             const options = getTeamFieldOptions(field.label);
+            const isMultiselect = isTeamMultiselectField(field.label);
             const isBoolean = isTeamBooleanField(field.label);
             const safeValue = String(field.value || '').replace(/"/g, '&quot;');
+
+            if (isMultiselect) {
+              return `
+                <div class="editor-field full">
+                  <div class="editor-label">${field.label}</div>
+                  <div
+                    class="editor-multiselect"
+                    data-field-index="${idx}"
+                    data-field-type="multiselect"
+                    data-selected-values="${splitMultiValue(field.value).join('||')}"
+                  >
+                    <button
+                      type="button"
+                      class="editor-multiselect-btn"
+                      onclick="toggleEditorMultiselect(event)"
+                    >
+                      <div class="editor-multiselect-values">
+                        ${
+                          splitMultiValue(field.value).length
+                            ? splitMultiValue(field.value).map(opt => `
+                                <span class="editor-chip ${getOptionChipClass(field.label, opt)}">${opt}</span>
+                              `).join('')
+                            : `<span class="editor-multiselect-placeholder">— выбрать модели —</span>`
+                        }
+                      </div>
+                    </button>
+
+                    <div class="editor-multiselect-menu">
+                      ${(options || []).map(opt => {
+                        const selected = splitMultiValue(field.value).includes(opt);
+                        return `
+                          <div
+                            class="editor-option ${selected ? 'active' : ''}"
+                            onclick="toggleEditorMultiselectOption(event, ${idx}, '${String(opt).replace(/'/g, "\\'")}')"
+                          >
+                            <span class="editor-chip ${getOptionChipClass(field.label, opt)}">${opt}</span>
+                            <span class="editor-option-check">✓</span>
+                          </div>
+                        `;
+                      }).join('')}
+                    </div>
+                  </div>
+                </div>
+              `;
+            }
 
             return `
               <div class="editor-field ${long ? 'full' : ''}">
@@ -1576,7 +1787,53 @@
           ${currentMemberFields.map((field, idx) => {
             const long = isLongField(field.label);
             const options = getTeamFieldOptions(field.label);
+            const isMultiselect = isTeamMultiselectField(field.label);
             const isBoolean = isTeamBooleanField(field.label);
+
+            if (isMultiselect) {
+              return `
+                <div class="editor-field full">
+                  <div class="editor-label">${field.label}</div>
+                  <div
+                    class="editor-multiselect"
+                    data-field-index="${idx}"
+                    data-field-type="multiselect"
+                    data-selected-values="${splitMultiValue(field.value).join('||')}"
+                  >
+                    <button
+                      type="button"
+                      class="editor-multiselect-btn"
+                      onclick="toggleEditorMultiselect(event)"
+                    >
+                      <div class="editor-multiselect-values">
+                        ${
+                          splitMultiValue(field.value).length
+                            ? splitMultiValue(field.value).map(opt => `
+                                <span class="editor-chip ${getOptionChipClass(field.label, opt)}">${opt}</span>
+                              `).join('')
+                            : `<span class="editor-multiselect-placeholder">— выбрать модели —</span>`
+                        }
+                      </div>
+                    </button>
+
+                    <div class="editor-multiselect-menu">
+                      ${(options || []).map(opt => {
+                        const selected = splitMultiValue(field.value).includes(opt);
+                        return `
+                          <div
+                            class="editor-option ${selected ? 'active' : ''}"
+                            onclick="toggleEditorMultiselectOption(event, ${idx}, '${String(opt).replace(/'/g, "\\'")}')"
+                          >
+                            <span class="editor-chip ${getOptionChipClass(field.label, opt)}">${opt}</span>
+                            <span class="editor-option-check">✓</span>
+                          </div>
+                        `;
+                      }).join('')}
+                    </div>
+                  </div>
+                </div>
+              `;
+            }
 
             return `
               <div class="editor-field ${long ? 'full' : ''}">
@@ -1646,6 +1903,13 @@
           return;
         }
 
+        if (fieldType === 'multiselect') {
+          const raw = el.dataset.selectedValues || '';
+          const values = raw ? raw.split('||').filter(Boolean) : [];
+          updates[field.label] = joinMultiValue(values);
+          return;
+        }
+
         if (fieldType === 'select') {
           updates[field.label] = el.dataset.selectedValue || '';
           return;
@@ -1703,6 +1967,8 @@
     window.forceCloseMemberEditor = forceCloseMemberEditor;
     window.toggleEditorDropdown = toggleEditorDropdown;
     window.selectEditorOption = selectEditorOption;
+    window.toggleEditorMultiselect = toggleEditorMultiselect;
+    window.toggleEditorMultiselectOption = toggleEditorMultiselectOption;
     window.debouncedFilterStatusMembers = debouncedFilterStatusMembers;
   </script>
 </body>
