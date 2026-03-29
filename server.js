@@ -154,6 +154,16 @@ const TEAM_STATUSES = [
   'Отказ'
 ];
 
+const TEAM_STATUSES_CLEAR_TRANSACTION_ENDING = new Set([
+  'Уволен',
+  'Нет ответа',
+  'Убрать'
+]);
+
+function shouldClearTransactionEndingByStatus(status) {
+  return TEAM_STATUSES_CLEAR_TRANSACTION_ENDING.has(String(status || '').trim());
+}
+
 function normalizeCandidateStatus(value) {
   const s = String(value || '').trim();
   return CANDIDATE_STATUSES.includes(s) ? s : '';
@@ -2139,6 +2149,19 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       return res.status(500).json({ error: 'Headers not found in team sheet' });
     }
 
+    const statusLabel = 'Актуальный статус кандидата (Hr)';
+    const transactionEndingLabel = 'Transaction ending';
+    const transactionEndingCheckboxLabel = 'Transaction ending (есть/нет в табл.)@dvedenis';
+
+    if (Object.prototype.hasOwnProperty.call(updates, statusLabel)) {
+      const nextStatus = String(updates[statusLabel] || '').trim();
+
+      if (shouldClearTransactionEndingByStatus(nextStatus)) {
+        updates[transactionEndingLabel] = '';
+        updates[transactionEndingCheckboxLabel] = '';
+      }
+    }
+
     const data = [];
 
     for (const [label, value] of Object.entries(updates)) {
@@ -2149,7 +2172,7 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       const normalizedLabel = String(label || '').trim();
       let nextValue = value ?? '';
 
-      if (normalizedLabel === 'Актуальный статус кандидата (Hr)') {
+      if (normalizedLabel === statusLabel) {
         nextValue = normalizeTeamStatus(value);
       }
 
@@ -2163,7 +2186,6 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       return res.status(400).json({ error: 'No valid fields to update' });
     }
 
-    const transactionEndingLabel = 'Transaction ending';
     if (Object.prototype.hasOwnProperty.call(updates, transactionEndingLabel)) {
       const nextValue = String(updates[transactionEndingLabel] || '').trim();
 
