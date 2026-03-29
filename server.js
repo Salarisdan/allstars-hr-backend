@@ -1686,36 +1686,107 @@ app.get('/api/team-transaction-endings', auth, async (req, res) => {
 
     const values = response.data.values || [];
     if (!values.length) {
-      return res.json({ used: [] });
+      return res.json({
+        used: [],
+        used_count: 0,
+        free_count: 99
+      });
     }
 
     const headers = values[0];
     const rows = values.slice(1);
 
-    const transactionIdx = headers.findIndex(
-      h => String(h || '').trim() === 'Transaction ending'
-    );
+    const idx = (name) => headers.findIndex(h => String(h || '').trim() === name);
+    const safeGet = (row, i) => (i >= 0 && i < row.length ? row[i] : '');
 
-    if (transactionIdx === -1) {
-      return res.json({ used: [] });
+    const txIdx = idx('Transaction ending');
+    const nameIdx = idx('Имя');
+    const telegramIdx =
+      idx('Телеграм') >= 0 ? idx('Телеграм')
+      : idx('Telegram') >= 0 ? idx('Telegram')
+      : -1;
+
+    if (txIdx === -1) {
+      return res.json({
+        used: [],
+        used_count: 0,
+        free_count: 99
+      });
     }
 
     const used = rows
       .map((row, index) => ({
         row_number: index + 2,
-        value: String(row[transactionIdx] || '').trim()
+        value: String(safeGet(row, txIdx) || '').trim(),
+        name: String(safeGet(row, nameIdx) || '').trim(),
+        telegram: String(safeGet(row, telegramIdx) || '').trim()
       }))
       .filter(x => /^\d+$/.test(x.value))
       .map(x => ({
         row_number: x.row_number,
-        value: Number(x.value)
+        value: Number(x.value),
+        name: x.name,
+        telegram: x.telegram
       }))
-      .filter(x => x.value >= 1 && x.value <= 99);
+      .filter(x => x.value >= 1 && x.value <= 99)
+      .sort((a, b) => a.value - b.value);
 
-    res.json({ used });
+    res.json({
+      used,
+      used_count: used.length,
+      free_count: 99 - used.length
+    });
   } catch (err) {
     console.error('Transaction endings read error:', err.message);
     res.status(500).json({ error: 'Failed to read transaction endings' });
+  }
+});
+
+app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
+  try {
+    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
+    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
+    const rowNumber = Number(req.body?.row_number);
+
+    if (!spreadsheetId) {
+      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
+    }
+
+    if (!rowNumber || rowNumber < 2) {
+      return res.status(400).json({ error: 'Некорректный row_number' });
+    }
+
+    const sheets = await getSheetsClient();
+
+    const headersRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A1:AU1`
+    });
+
+    const headers = headersRes.data.values?.[0] || [];
+    const txIdx = headers.findIndex(
+      h => String(h || '').trim() === 'Transaction ending'
+    );
+
+    if (txIdx === -1) {
+      return res.status(400).json({ error: 'Колонка Transaction ending не найдена' });
+    }
+
+    const colLetter = columnToLetter(txIdx + 1);
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `${sheetName}!${colLetter}${rowNumber}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [['']]
+      }
+    });
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Transaction ending clear error:', err.message);
+    res.status(500).json({ error: 'Не удалось очистить ending' });
   }
 });
 

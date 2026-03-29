@@ -919,8 +919,110 @@
       padding:.5rem 0;
     }
 
+    .tx-summary{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:14px;
+    }
+
+    .tx-box{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:.9rem 1rem;
+      min-width:160px;
+    }
+
+    .tx-box-k{
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:var(--text3);
+      font-weight:800;
+      margin-bottom:6px;
+    }
+
+    .tx-box-v{
+      font-size:24px;
+      font-weight:800;
+    }
+
+    .tx-list{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;
+    }
+
+    .tx-item{
+      background:linear-gradient(180deg,#232840,#1b1f2c);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:1rem;
+    }
+
+    .tx-item-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:8px;
+    }
+
+    .tx-value-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:44px;
+      height:32px;
+      padding:0 12px;
+      border-radius:999px;
+      background:rgba(251,191,36,.14);
+      color:#fde68a;
+      border:1px solid rgba(251,191,36,.24);
+      font-size:13px;
+      font-weight:800;
+    }
+
+    .tx-name{
+      font-size:15px;
+      font-weight:800;
+    }
+
+    .tx-meta{
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+      font-size:12px;
+      color:var(--text2);
+    }
+
+    .tx-clear-btn{
+      border:none;
+      cursor:pointer;
+      border-radius:10px;
+      padding:.6rem .85rem;
+      font-family:'Manrope',sans-serif;
+      font-weight:800;
+      font-size:12px;
+      background:rgba(248,113,113,.12);
+      border:1px solid rgba(248,113,113,.24);
+      color:#fca5a5;
+      margin-top:10px;
+    }
+
+    .tx-clear-btn:hover{
+      color:#fecaca;
+    }
+
     @media (max-width:900px){
       .member-grid{
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media (max-width:920px){
+      .tx-list{
         grid-template-columns:1fr;
       }
     }
@@ -958,6 +1060,7 @@
             <option value="fansly">Fansly</option>
           </select>
 
+          <button class="btn" id="transactionEndingBtn" type="button">Центы</button>
           <button class="btn" id="addEmployeeBtn">Добавить сотрудника</button>
           <button class="btn" id="refreshBtn">Обновить</button>
         </div>
@@ -974,6 +1077,18 @@
             <button class="modal-close" type="button" onclick="forceCloseStatusModal()">Закрыть</button>
           </div>
           <div class="modal-body" id="statusModalBody">
+            <div class="loading">Загружаем...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="transactionEndingModal" onclick="closeTransactionEndingModal(event)">
+        <div class="modal-sheet" style="width:min(920px,100%); max-height:88vh;">
+          <div class="modal-head">
+            <div class="modal-title">Центы</div>
+            <button class="modal-close" type="button" onclick="forceCloseTransactionEndingModal()">Закрыть</button>
+          </div>
+          <div class="modal-body" id="transactionEndingModalBody">
             <div class="loading">Загружаем...</div>
           </div>
         </div>
@@ -1381,6 +1496,95 @@
 
     function forceCloseStatusModal() {
       document.getElementById('statusModal').classList.remove('show');
+    }
+
+    async function openTransactionEndingModal() {
+      const modal = document.getElementById('transactionEndingModal');
+      const body = document.getElementById('transactionEndingModalBody');
+
+      body.innerHTML = `<div class="loading">Загружаем центы...</div>`;
+      modal.classList.add('show');
+
+      const res = await api('/api/team-transaction-endings');
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        body.innerHTML = `<div class="error-box">${data.error || 'Не удалось загрузить центы'}</div>`;
+        return;
+      }
+
+      const used = Array.isArray(data.used) ? data.used : [];
+
+      body.innerHTML = `
+        <div class="tx-summary">
+          <div class="tx-box">
+            <div class="tx-box-k">Занято</div>
+            <div class="tx-box-v">${data.used_count || 0}</div>
+          </div>
+          <div class="tx-box">
+            <div class="tx-box-k">Свободно</div>
+            <div class="tx-box-v">${data.free_count || 0}</div>
+          </div>
+        </div>
+
+        ${
+          used.length
+            ? `
+              <div class="tx-list">
+                ${used.map(item => `
+                  <div class="tx-item">
+                    <div class="tx-item-head">
+                      <div class="tx-name">${item.name || 'Без имени'}</div>
+                      <div class="tx-value-badge">${item.value}</div>
+                    </div>
+
+                    <div class="tx-meta">
+                      <div><strong>Telegram:</strong> ${item.telegram || '—'}</div>
+                      <div><strong>Строка:</strong> ${item.row_number}</div>
+                    </div>
+
+                    <button
+                      class="tx-clear-btn"
+                      type="button"
+                      onclick="clearTransactionEnding(${item.row_number})"
+                    >
+                      Удалить цент
+                    </button>
+                  </div>
+                `).join('')}
+              </div>
+            `
+            : `<div class="empty">Сейчас нет занятых центов</div>`
+        }
+      `;
+    }
+
+    async function clearTransactionEnding(rowNumber) {
+      if (!confirm('Удалить цент у этого сотрудника?')) return;
+
+      const res = await api('/api/team-transaction-endings/clear', {
+        method: 'PATCH',
+        body: JSON.stringify({ row_number: rowNumber })
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        alert(data.error || 'Не удалось удалить цент');
+        return;
+      }
+
+      await openTransactionEndingModal();
+    }
+
+    function closeTransactionEndingModal(event) {
+      if (event.target.id === 'transactionEndingModal') {
+        forceCloseTransactionEndingModal();
+      }
+    }
+
+    function forceCloseTransactionEndingModal() {
+      document.getElementById('transactionEndingModal').classList.remove('show');
     }
 
     window.openStatusMembers = openStatusMembers;
@@ -2192,6 +2396,7 @@
     }
 
     document.getElementById('addEmployeeBtn').addEventListener('click', openNewMemberEditor);
+    document.getElementById('transactionEndingBtn').addEventListener('click', openTransactionEndingModal);
 
     window.openMemberEditor = openMemberEditor;
     window.saveMemberEditor = saveMemberEditor;
@@ -2203,6 +2408,10 @@
     window.toggleEditorMultiselectOption = toggleEditorMultiselectOption;
     window.assignRandomTransactionEnding = assignRandomTransactionEnding;
     window.debouncedFilterStatusMembers = debouncedFilterStatusMembers;
+    window.openTransactionEndingModal = openTransactionEndingModal;
+    window.clearTransactionEnding = clearTransactionEnding;
+    window.closeTransactionEndingModal = closeTransactionEndingModal;
+    window.forceCloseTransactionEndingModal = forceCloseTransactionEndingModal;
   </script>
 </body>
 </html>
