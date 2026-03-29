@@ -1668,6 +1668,57 @@ app.get('/api/team-status-members', auth, async (req, res) => {
   }
 });
 
+app.get('/api/team-transaction-endings', auth, async (req, res) => {
+  try {
+    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
+    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
+
+    if (!spreadsheetId) {
+      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
+    }
+
+    const sheets = await getSheetsClient();
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A1:AU5000`
+    });
+
+    const values = response.data.values || [];
+    if (!values.length) {
+      return res.json({ used: [] });
+    }
+
+    const headers = values[0];
+    const rows = values.slice(1);
+
+    const transactionIdx = headers.findIndex(
+      h => String(h || '').trim() === 'Transaction ending'
+    );
+
+    if (transactionIdx === -1) {
+      return res.json({ used: [] });
+    }
+
+    const used = rows
+      .map((row, index) => ({
+        row_number: index + 2,
+        value: String(row[transactionIdx] || '').trim()
+      }))
+      .filter(x => /^\d+$/.test(x.value))
+      .map(x => ({
+        row_number: x.row_number,
+        value: Number(x.value)
+      }))
+      .filter(x => x.value >= 1 && x.value <= 99);
+
+    res.json({ used });
+  } catch (err) {
+    console.error('Transaction endings read error:', err.message);
+    res.status(500).json({ error: 'Failed to read transaction endings' });
+  }
+});
+
 app.get('/api/team-member/:rowNumber', auth, async (req, res) => {
   try {
     const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
@@ -1767,6 +1818,47 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
 
     if (!data.length) {
       return res.status(400).json({ error: 'No valid fields to update' });
+    }
+
+    const transactionEndingLabel = 'Transaction ending';
+    if (Object.prototype.hasOwnProperty.call(updates, transactionEndingLabel)) {
+      const nextValue = String(updates[transactionEndingLabel] || '').trim();
+
+      if (nextValue) {
+        if (!/^\d+$/.test(nextValue)) {
+          return res.status(400).json({ error: 'Transaction ending должен быть числом от 1 до 99' });
+        }
+
+        const num = Number(nextValue);
+        if (num < 1 || num > 99) {
+          return res.status(400).json({ error: 'Transaction ending должен быть в диапазоне 1–99' });
+        }
+
+        const allRowsRes = await sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range: `${sheetName}!A1:AU5000`
+        });
+
+        const allValues = allRowsRes.data.values || [];
+        const allHeaders = allValues[0] || [];
+        const allRows = allValues.slice(1);
+
+        const txIdx = allHeaders.findIndex(
+          h => String(h || '').trim() === transactionEndingLabel
+        );
+
+        if (txIdx >= 0) {
+          const duplicate = allRows.some((row, idx) => {
+            const realRowNumber = idx + 2;
+            if (realRowNumber === rowNumber) return false;
+            return String(row[txIdx] || '').trim() === nextValue;
+          });
+
+          if (duplicate) {
+            return res.status(400).json({ error: `Transaction ending ${nextValue} уже занят у другого сотрудника` });
+          }
+        }
+      }
     }
 
     await sheets.spreadsheets.values.batchUpdate({

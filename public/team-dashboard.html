@@ -560,6 +560,37 @@
       outline:none;
     }
 
+    .editor-field.transaction-ending-highlight{
+      border-color: rgba(251,191,36,.28);
+      background: rgba(251,191,36,.07);
+      box-shadow: inset 0 0 0 1px rgba(251,191,36,.08);
+    }
+
+    .transaction-ending-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:4px 10px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:800;
+      background:rgba(251,191,36,.14);
+      color:#fde68a;
+      border:1px solid rgba(251,191,36,.24);
+      margin-bottom:8px;
+    }
+
+    .editor-select.warning-select{
+      border-color: rgba(251,191,36,.24);
+      background: rgba(15,18,32,.96);
+    }
+
+    .transaction-help{
+      margin-top:8px;
+      font-size:11px;
+      color: var(--text3);
+    }
+
     .editor-dropdown{
       position:relative;
     }
@@ -1437,6 +1468,45 @@
       return TEAM_MULTISELECT_FIELDS.has(normalizeTeamLabel(label));
     }
 
+    function isTransactionEndingField(label) {
+      return normalizeTeamLabel(label) === 'Transaction ending';
+    }
+
+    async function loadUsedTransactionEndings() {
+      const res = await api('/api/team-transaction-endings');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Не удалось загрузить занятые центы');
+      usedTransactionEndings = Array.isArray(data.used) ? data.used : [];
+    }
+
+    function buildTransactionEndingOptions(currentRowNumber, currentValue) {
+      const currentNumeric = /^\d+$/.test(String(currentValue || '').trim())
+        ? Number(currentValue)
+        : null;
+
+      const usedSet = new Set(
+        usedTransactionEndings
+          .filter(item => Number(item.row_number) !== Number(currentRowNumber))
+          .map(item => Number(item.value))
+          .filter(n => Number.isInteger(n) && n >= 1 && n <= 99)
+      );
+
+      const options = [];
+      options.push({ value: '', label: '— не выбрано —', disabled: false });
+
+      for (let i = 1; i <= 99; i++) {
+        const isUsed = usedSet.has(i);
+        const isCurrent = currentNumeric === i;
+        options.push({
+          value: String(i),
+          label: isUsed && !isCurrent ? `${i} · занято` : String(i),
+          disabled: isUsed && !isCurrent
+        });
+      }
+
+      return options;
+    }
+
     function splitMultiValue(value) {
       return String(value || '')
         .split(',')
@@ -1614,6 +1684,7 @@
     let currentMemberEditorRow = null;
     let currentMemberFields = [];
     let isCreatingMember = false;
+    let usedTransactionEndings = [];
 
     function isLongField(label) {
       const s = String(label || '').toLowerCase();
@@ -1630,6 +1701,7 @@
 
     async function openMemberEditor(rowNumber) {
       currentMemberEditorRow = rowNumber;
+      await loadUsedTransactionEndings();
 
       const overlay = document.getElementById('memberEditorOverlay');
       const title = document.getElementById('memberEditorTitle');
@@ -1656,7 +1728,34 @@
             const options = getTeamFieldOptions(field.label);
             const isMultiselect = isTeamMultiselectField(field.label);
             const isBoolean = isTeamBooleanField(field.label);
+            const isTransactionEnding = isTransactionEndingField(field.label);
+            const transactionOptions = isTransactionEnding
+              ? buildTransactionEndingOptions(currentMemberEditorRow, field.value)
+              : null;
             const safeValue = String(field.value || '').replace(/"/g, '&quot;');
+
+            if (isTransactionEnding) {
+              return `
+                <div class="editor-field transaction-ending-highlight">
+                  <div class="editor-label">${field.label}</div>
+                  <div class="transaction-ending-badge">Центы / ending</div>
+                  <select
+                    class="editor-select warning-select"
+                    data-field-index="${idx}"
+                    data-field-type="transaction-ending"
+                  >
+                    ${transactionOptions.map(opt => `
+                      <option
+                        value="${opt.value}"
+                        ${String(field.value || '') === String(opt.value) ? 'selected' : ''}
+                        ${opt.disabled ? 'disabled' : ''}
+                      >${opt.label}</option>
+                    `).join('')}
+                  </select>
+                  <div class="transaction-help">Можно выбрать только свободный ending от 1 до 99.</div>
+                </div>
+              `;
+            }
 
             if (isMultiselect) {
               return `
@@ -1781,6 +1880,8 @@
         value: ''
       }));
 
+      await loadUsedTransactionEndings();
+
       content.innerHTML = `
         <div class="editor-grid">
           ${currentMemberFields.map((field, idx) => {
@@ -1788,6 +1889,32 @@
             const options = getTeamFieldOptions(field.label);
             const isMultiselect = isTeamMultiselectField(field.label);
             const isBoolean = isTeamBooleanField(field.label);
+            const isTransactionEnding = isTransactionEndingField(field.label);
+            const transactionOptions = isTransactionEnding
+              ? buildTransactionEndingOptions(null, '')
+              : null;
+
+            if (isTransactionEnding) {
+              return `
+                <div class="editor-field transaction-ending-highlight">
+                  <div class="editor-label">${field.label}</div>
+                  <div class="transaction-ending-badge">Центы / ending</div>
+                  <select
+                    class="editor-select warning-select"
+                    data-field-index="${idx}"
+                    data-field-type="transaction-ending"
+                  >
+                    ${transactionOptions.map(opt => `
+                      <option
+                        value="${opt.value}"
+                        ${opt.disabled ? 'disabled' : ''}
+                      >${opt.label}</option>
+                    `).join('')}
+                  </select>
+                  <div class="transaction-help">Можно выбрать только свободный ending от 1 до 99.</div>
+                </div>
+              `;
+            }
 
             if (isMultiselect) {
               return `
@@ -1899,6 +2026,11 @@
 
         if (fieldType === 'boolean') {
           updates[field.label] = booleanToCellValue(el.checked);
+          return;
+        }
+
+        if (fieldType === 'transaction-ending') {
+          updates[field.label] = el.value;
           return;
         }
 
