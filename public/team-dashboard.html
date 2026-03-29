@@ -591,6 +591,41 @@
       color: var(--text3);
     }
 
+    .transaction-toolbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:8px;
+    }
+
+    .transaction-free-counter{
+      font-size:11px;
+      font-weight:800;
+      color:var(--text2);
+      background:rgba(79,110,247,.10);
+      border:1px solid rgba(79,110,247,.18);
+      padding:5px 10px;
+      border-radius:999px;
+    }
+
+    .transaction-random-btn{
+      cursor:pointer;
+      border-radius:10px;
+      padding:.55rem .8rem;
+      font-family:'Manrope',sans-serif;
+      font-weight:800;
+      font-size:12px;
+      background:rgba(251,191,36,.12);
+      border:1px solid rgba(251,191,36,.22);
+      color:#fde68a;
+    }
+
+    .transaction-random-btn:hover{
+      background:rgba(251,191,36,.18);
+    }
+
     .editor-dropdown{
       position:relative;
     }
@@ -1479,6 +1514,61 @@
       usedTransactionEndings = Array.isArray(data.used) ? data.used : [];
     }
 
+    function getFreeTransactionEndingCount(currentRowNumber, currentValue) {
+      const currentNumeric = /^\d+$/.test(String(currentValue || '').trim())
+        ? Number(currentValue)
+        : null;
+
+      const usedSet = new Set(
+        usedTransactionEndings
+          .filter(item => Number(item.row_number) !== Number(currentRowNumber))
+          .map(item => Number(item.value))
+          .filter(n => Number.isInteger(n) && n >= 1 && n <= 99)
+      );
+
+      let freeCount = 0;
+      for (let i = 1; i <= 99; i++) {
+        if (!usedSet.has(i) || i === currentNumeric) freeCount++;
+      }
+      return freeCount;
+    }
+
+    function getFreeTransactionEndingValues(currentRowNumber, currentValue) {
+      const currentNumeric = /^\d+$/.test(String(currentValue || '').trim())
+        ? Number(currentValue)
+        : null;
+
+      const usedSet = new Set(
+        usedTransactionEndings
+          .filter(item => Number(item.row_number) !== Number(currentRowNumber))
+          .map(item => Number(item.value))
+          .filter(n => Number.isInteger(n) && n >= 1 && n <= 99)
+      );
+
+      const result = [];
+      for (let i = 1; i <= 99; i++) {
+        if (!usedSet.has(i) || i === currentNumeric) result.push(i);
+      }
+      return result;
+    }
+
+    function assignRandomTransactionEnding(fieldIndex) {
+      const select = document.querySelector(
+        `[data-field-index="${fieldIndex}"][data-field-type="transaction-ending"]`
+      );
+      if (!select) return;
+
+      const currentValue = select.value || '';
+      const freeValues = getFreeTransactionEndingValues(currentMemberEditorRow, currentValue);
+
+      if (!freeValues.length) {
+        alert('Свободных ending сейчас нет');
+        return;
+      }
+
+      select.value = String(freeValues[Math.floor(Math.random() * freeValues.length)]);
+    }
+
     function buildTransactionEndingOptions(currentRowNumber, currentValue) {
       const currentNumeric = /^\d+$/.test(String(currentValue || '').trim())
         ? Number(currentValue)
@@ -1735,10 +1825,14 @@
             const safeValue = String(field.value || '').replace(/"/g, '&quot;');
 
             if (isTransactionEnding) {
+              const freeCount = getFreeTransactionEndingCount(currentMemberEditorRow, field.value);
               return `
                 <div class="editor-field transaction-ending-highlight">
                   <div class="editor-label">${field.label}</div>
-                  <div class="transaction-ending-badge">Центы / ending</div>
+                  <div class="transaction-toolbar">
+                    <div class="transaction-ending-badge">Центы / ending</div>
+                    <div class="transaction-free-counter">Свободно: ${freeCount} / 99</div>
+                  </div>
                   <select
                     class="editor-select warning-select"
                     data-field-index="${idx}"
@@ -1753,6 +1847,13 @@
                     `).join('')}
                   </select>
                   <div class="transaction-help">Можно выбрать только свободный ending от 1 до 99.</div>
+                  <div style="margin-top:10px;">
+                    <button
+                      type="button"
+                      class="transaction-random-btn"
+                      onclick="assignRandomTransactionEnding(${idx})"
+                    >Назначить случайный свободный</button>
+                  </div>
                 </div>
               `;
             }
@@ -2100,6 +2201,7 @@
     window.selectEditorOption = selectEditorOption;
     window.toggleEditorMultiselect = toggleEditorMultiselect;
     window.toggleEditorMultiselectOption = toggleEditorMultiselectOption;
+    window.assignRandomTransactionEnding = assignRandomTransactionEnding;
     window.debouncedFilterStatusMembers = debouncedFilterStatusMembers;
   </script>
 </body>
