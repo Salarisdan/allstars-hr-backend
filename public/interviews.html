@@ -609,6 +609,32 @@
     const refreshBtn = document.getElementById('refreshBtn');
 
     let allCandidates = [];
+    let STATUS_OPTIONS = [];
+
+    async function loadStatusOptions() {
+      const res = await api('/api/status-options');
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Не удалось загрузить статусы');
+      }
+
+      STATUS_OPTIONS = Array.isArray(data.interviews) ? data.interviews : [];
+      renderInterviewStatusFilter();
+    }
+
+    function renderInterviewStatusFilter() {
+      statusFilter.innerHTML = `
+        <option value="">Все статусы</option>
+        ${STATUS_OPTIONS.map(status => `<option value="${escapeHtml(status)}">${escapeHtml(status)}</option>`).join('')}
+      `;
+    }
+
+    function buildInterviewStatusOptions(currentStatus) {
+      return STATUS_OPTIONS.map(status => `
+        <option value="${escapeHtml(status)}" ${currentStatus === status ? 'selected' : ''}>${escapeHtml(status)}</option>
+      `).join('');
+    }
 
     function api(path, options = {}) {
       return fetch(path, {
@@ -1074,12 +1100,7 @@
                 <div>
                   <div class="small-label">Статус</div>
                   <select class="input" id="status-${candidate.id}">
-                    <option value="Отписал" ${candidate.status === 'Отписал' ? 'selected' : ''}>Отписал</option>
-                    <option value="Собеседование" ${candidate.status === 'Собеседование' ? 'selected' : ''}>Собеседование</option>
-                    <option value="Изучает гайд" ${candidate.status === 'Изучает гайд' ? 'selected' : ''}>Изучает гайд</option>
-                    <option value="Не пришел на собес" ${candidate.status === 'Не пришел на собес' ? 'selected' : ''}>Не пришел на собес</option>
-                    <option value="Отказ" ${candidate.status === 'Отказ' ? 'selected' : ''}>Отказ</option>
-                    <option value="Тест смена" ${candidate.status === 'Тест смена' ? 'selected' : ''}>Тест смена</option>
+                    ${buildInterviewStatusOptions(candidate.status)}
                   </select>
                 </div>
 
@@ -1194,7 +1215,12 @@
 
     window.quickSetStatus = quickSetStatus;
 
-    loadCandidates().catch(err => {
+    async function initInterviewsPage() {
+      await loadStatusOptions();
+      await loadCandidates();
+    }
+
+    initInterviewsPage().catch(err => {
       console.error(err);
       grid.innerHTML = `<div class="empty">Не удалось загрузить страницу собеседований</div>`;
     });

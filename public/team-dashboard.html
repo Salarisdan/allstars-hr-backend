@@ -1146,8 +1146,20 @@
     const platformFilter = document.getElementById('platformFilter');
     let currentTeamStatsData = null;
     let currentPlatformFilter = String(platformFilter?.value || '').trim().toLowerCase();
+    let STATUS_OPTIONS = [];
     const autosaveTimers = new Map();
     const autosaveStateTimers = new Map();
+
+    async function loadStatusOptions() {
+      const res = await api('/api/status-options');
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Не удалось загрузить статусы');
+      }
+
+      STATUS_OPTIONS = Array.isArray(data.team) ? data.team : [];
+    }
 
     function setAutosaveStatus(el, text, type = '') {
       if (!el) return;
@@ -1322,7 +1334,12 @@
       }
     });
 
-    loadTeamStatsPage().catch(err => {
+    async function initTeamDashboardPage() {
+      await loadStatusOptions();
+      await loadTeamStatsPage();
+    }
+
+    initTeamDashboardPage().catch(err => {
       console.error(err);
       content.innerHTML = `<div class="error-box">${err.message || 'Ошибка загрузки статистики команды'}</div>`;
     });
@@ -1752,6 +1769,11 @@
 
     function getTeamFieldOptions(label) {
       const normalized = normalizeTeamLabel(label);
+
+      if (normalized === 'Актуальный статус кандидата (Hr)') {
+        return STATUS_OPTIONS;
+      }
+
       return TEAM_FIELD_OPTIONS[normalized] || null;
     }
 

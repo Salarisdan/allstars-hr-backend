@@ -98,6 +98,77 @@ function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
 }
 
+const CANDIDATE_STATUSES = [
+  'Изучает гайд',
+  'Тест смена',
+  'Принятый',
+  'Отказ',
+  'Работает',
+  'Ожидание старта',
+  'Верификация',
+  'Ждет тест',
+  'Хочу взять',
+  'Ждет собеседования',
+  'Лист ожидания',
+  'Уволен',
+  'Не рассчитан',
+  'Нет ответа',
+  'Убрать'
+];
+
+const INTERVIEW_STATUSES = [
+  'Отписал',
+  'Собеседование',
+  'Изучает гайд',
+  'Не пришел на собес',
+  'Отказ',
+  'Тест смена',
+  'Работает',
+  'Ожидание старта',
+  'Верификация',
+  'Ждет тест',
+  'Хочу взять',
+  'Ждет собеседования',
+  'Лист ожидания',
+  'Уволен',
+  'Не рассчитан',
+  'Нет ответа',
+  'Убрать'
+];
+
+const TEAM_STATUSES = [
+  'Работает',
+  'Ожидание старта',
+  'Верификация',
+  'Ждет тест',
+  'Изучает гайд',
+  'Хочу взять',
+  'Ждет собеседования',
+  'Лист ожидания',
+  'Уволен',
+  'Не рассчитан',
+  'Нет ответа',
+  'Убрать',
+  'Тест смена',
+  'Принятый',
+  'Отказ'
+];
+
+function normalizeCandidateStatus(value) {
+  const s = String(value || '').trim();
+  return CANDIDATE_STATUSES.includes(s) ? s : '';
+}
+
+function normalizeInterviewStatus(value) {
+  const s = String(value || '').trim();
+  return INTERVIEW_STATUSES.includes(s) ? s : '';
+}
+
+function normalizeTeamStatus(value) {
+  const s = String(value || '').trim();
+  return TEAM_STATUSES.includes(s) ? s : '';
+}
+
 function parseNumberLoose(value) {
   if (value === null || value === undefined) return 0;
 
@@ -105,16 +176,6 @@ function parseNumberLoose(value) {
   const n = Number(s);
 
   return Number.isFinite(n) ? n : 0;
-}
-
-function isInterviewStatus(status) {
-  return [
-    'Собеседование',
-    'Изучает гайд',
-    'Не пришел на собес',
-    'Отказ',
-    'Тест смена'
-  ].includes(String(status || '').trim());
 }
 
 function countByPeriod(rows, dateField, predicate, days = null) {
@@ -911,6 +972,14 @@ app.get('/auth/me', auth, async (req, res) => {
   res.json(user.rows[0] || null);
 });
 
+app.get('/api/status-options', auth, async (_req, res) => {
+  res.json({
+    candidates: CANDIDATE_STATUSES,
+    interviews: INTERVIEW_STATUSES,
+    team: TEAM_STATUSES
+  });
+});
+
 app.get('/users', auth, requireRole('owner', 'teamlead'), async (req, res) => {
   const users = await query(
     `SELECT id, full_name, email, role, is_active, created_at
@@ -1065,6 +1134,7 @@ app.get('/candidates', auth, async (req, res) => {
 
 app.post('/candidates', auth, async (req, res) => {
   const { fields = {}, ratings = {}, total = 0, ownerUserId } = req.body || {};
+  const normalizedCandidateStatus = normalizeCandidateStatus(fields.status);
 
   const candidate = await query(
     `INSERT INTO candidates(
@@ -1089,7 +1159,7 @@ app.post('/candidates', auth, async (req, res) => {
       fields.top || '',
       fields.avgcheck || '',
       fields.job || '',
-      fields.status || '',
+      normalizedCandidateStatus,
       fields.source || 'manual',
       fields.notes || '',
       JSON.stringify(ratings),
@@ -1097,11 +1167,11 @@ app.post('/candidates', auth, async (req, res) => {
     ]
   );
 
-  if (fields.status) {
+  if (normalizedCandidateStatus) {
     await query(
       `INSERT INTO candidate_status_history(candidate_id, status, changed_by_user_id)
        VALUES ($1,$2,$3)`,
-      [candidate.rows[0].id, fields.status, req.user.userId]
+      [candidate.rows[0].id, normalizedCandidateStatus, req.user.userId]
     );
   }
 
@@ -1153,7 +1223,7 @@ app.patch('/candidates/:id', auth, async (req, res) => {
     top_pages: fields.top ?? row.top_pages,
     avg_check: fields.avgcheck ?? row.avg_check,
     job: fields.job ?? row.job,
-    status: fields.status ?? row.status,
+    status: fields.status !== undefined ? normalizeCandidateStatus(fields.status) : row.status,
     source: fields.source ?? row.source,
     notes: fields.notes ?? row.notes,
     ratings: ratings ?? row.ratings,
@@ -1497,13 +1567,11 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid row number' });
     }
 
-    const {
-      status = '',
-      interviewer_name = '',
-      interview_date = '',
-      interview_time = '',
-      comments = ''
-    } = req.body || {};
+    const status = normalizeInterviewStatus(req.body?.status);
+    const interviewer_name = String(req.body?.interviewer_name || '');
+    const interview_date = String(req.body?.interview_date || '');
+    const interview_time = String(req.body?.interview_time || '');
+    const comments = String(req.body?.comments || '');
 
     const sheets = await getSheetsClient();
 
@@ -2078,10 +2146,16 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       if (colIndex === -1) continue;
 
       const columnLetter = columnToLetter(colIndex + 1);
+      const normalizedLabel = String(label || '').trim();
+      let nextValue = value ?? '';
+
+      if (normalizedLabel === 'Актуальный статус кандидата (Hr)') {
+        nextValue = normalizeTeamStatus(value);
+      }
 
       data.push({
         range: `${sheetName}!${columnLetter}${rowNumber}`,
-        values: [[value ?? '']]
+        values: [[nextValue]]
       });
     }
 

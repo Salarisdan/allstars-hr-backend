@@ -957,6 +957,43 @@
 
     let allCandidates = [];
     let currentEditId = null;
+    let STATUS_OPTIONS = [];
+
+    async function loadStatusOptions() {
+      const res = await api('/api/status-options');
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Не удалось загрузить статусы');
+      }
+
+      STATUS_OPTIONS = Array.isArray(data.candidates) ? data.candidates : [];
+      renderStatusControls();
+    }
+
+    function renderStatusControls() {
+      statusFilter.innerHTML = `
+        <option value="">Все статусы</option>
+        ${STATUS_OPTIONS.map(status => `<option value="${escapeAttr(status)}">${escapeHtml(status)}</option>`).join('')}
+      `;
+
+      const modalStatus = document.getElementById('m-status');
+      if (modalStatus) {
+        modalStatus.innerHTML = `
+          <option value="">Без статуса</option>
+          ${STATUS_OPTIONS.map(status => `<option value="${escapeAttr(status)}">${escapeHtml(status)}</option>`).join('')}
+        `;
+      }
+    }
+
+    function buildStatusOptionsHtml(currentStatus) {
+      return `
+        <option value="" ${!currentStatus ? 'selected' : ''}>Без статуса</option>
+        ${STATUS_OPTIONS.map(status => `
+          <option value="${escapeAttr(status)}" ${currentStatus === status ? 'selected' : ''}>${escapeHtml(status)}</option>
+        `).join('')}
+      `;
+    }
 
     function api(path, options = {}) {
       return fetch(path, {
@@ -1483,11 +1520,7 @@
               <div class="status-edit">
                 <label>Быстро изменить статус</label>
                 <select class="status-select" onchange="changeStatus(${candidate.id}, this.value)">
-                  <option value="" ${!candidate.status ? 'selected' : ''}>Без статуса</option>
-                  <option value="Изучает гайд" ${candidate.status === 'Изучает гайд' ? 'selected' : ''}>Изучает гайд</option>
-                  <option value="Тест-смена" ${candidate.status === 'Тест-смена' ? 'selected' : ''}>Тест-смена</option>
-                  <option value="Принят" ${candidate.status === 'Принят' ? 'selected' : ''}>Принят</option>
-                  <option value="Отказ" ${candidate.status === 'Отказ' ? 'selected' : ''}>Отказ</option>
+                  ${buildStatusOptionsHtml(candidate.status)}
                 </select>
               </div>
 
@@ -1547,7 +1580,12 @@
     window.saveEdit = saveEdit;
     window.toggleDetails = toggleDetails;
 
-    loadCandidates().catch(err => {
+    async function initCandidatesPage() {
+      await loadStatusOptions();
+      await loadCandidates();
+    }
+
+    initCandidatesPage().catch(err => {
       console.error(err);
       grid.innerHTML = `<div class="empty">Не удалось загрузить кандидатов</div>`;
     });
