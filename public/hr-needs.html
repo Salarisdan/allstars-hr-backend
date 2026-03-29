@@ -250,13 +250,6 @@
       margin-bottom:12px;
     }
 
-    .model-head-main{
-      flex:1;
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-    }
-
     .model-name-input{
       width:100%;
       background:#0f1220;
@@ -423,6 +416,7 @@
       font-weight:700;
       color:var(--text3);
       min-height:16px;
+      margin-top:6px;
     }
 
     .autosave-status.ok{
@@ -730,7 +724,7 @@
             ${section.models.map(model => `
               <div class="model-card">
                 <div class="model-head">
-                  <div class="model-head-main">
+                  <div style="flex:1;">
                     <input
                       class="model-name-input"
                       id="model-name-${model.id}"
@@ -740,6 +734,7 @@
                     />
                     <div class="autosave-status" id="name-status-${model.id}"></div>
                   </div>
+
                   <div class="platform-badge ${section.key === 'onlyfans' ? 'platform-of' : 'platform-fansly'}">
                     ${section.label}
                   </div>
@@ -748,43 +743,45 @@
                 <div class="model-stats">
                   <div class="model-stat">
                     <div class="model-stat-label">Топ,%</div>
-                    <input class="model-stat-input" id="top-${model.id}" value="${escapeHtml(model.top_percent || '')}" placeholder="Например: 1.5">
+                    <input class="model-stat-input" id="top-${model.id}" value="${escapeHtml(model.top_percent || '')}" placeholder="Например: 1.5" oninput="autosaveNeedMeta(${model.id}, 'top_percent')">
                   </div>
 
                   <div class="model-stat">
                     <div class="model-stat-label">ЗП оператора, %</div>
-                    <input class="model-stat-input" id="salary-${model.id}" value="${escapeHtml(model.operator_salary_percent || '')}" placeholder="Например: 20">
+                    <input class="model-stat-input" id="salary-${model.id}" value="${escapeHtml(model.operator_salary_percent || '')}" placeholder="Например: 20" oninput="autosaveNeedMeta(${model.id}, 'operator_salary_percent')">
                   </div>
 
                   <div class="model-stat">
                     <div class="model-stat-label">Опыт КД, мес</div>
-                    <input class="model-stat-input" id="exp-${model.id}" value="${escapeHtml(model.experience_kd_months || '')}" placeholder="Например: 3+">
+                    <input class="model-stat-input" id="exp-${model.id}" value="${escapeHtml(model.experience_kd_months || '')}" placeholder="Например: 3+" oninput="autosaveNeedMeta(${model.id}, 'experience_kd_months')">
                   </div>
 
                   <div class="model-stat">
                     <div class="model-stat-label">Ср. чек смены</div>
-                    <input class="model-stat-input" id="avg-${model.id}" value="${escapeHtml(model.avg_shift_check || '')}" placeholder="Например: 150">
+                    <input class="model-stat-input" id="avg-${model.id}" value="${escapeHtml(model.avg_shift_check || '')}" placeholder="Например: 150" oninput="autosaveNeedMeta(${model.id}, 'avg_shift_check')">
                   </div>
 
                   <div class="model-stat" style="grid-column:1 / -1;">
                     <div class="model-stat-label">Выручка месяц, к$</div>
-                    <input class="model-stat-input" id="revenue-${model.id}" value="${escapeHtml(model.revenue_month_k || '')}" placeholder="Например: 20">
+                    <input class="model-stat-input" id="revenue-${model.id}" value="${escapeHtml(model.revenue_month_k || '')}" placeholder="Например: 20" oninput="autosaveNeedMeta(${model.id}, 'revenue_month_k')">
                   </div>
                 </div>
 
+                <div class="autosave-status" id="meta-status-${model.id}"></div>
+
                 <div class="shift-list">
                   ${[
-                    ['00-06', model.shift_00_06],
-                    ['06-12', model.shift_06_12],
-                    ['12-18', model.shift_12_18],
-                    ['18-00', model.shift_18_00]
-                  ].map(([label, status]) => `
+                    ['00-06', 'shift_00_06', model.shift_00_06],
+                    ['06-12', 'shift_06_12', model.shift_06_12],
+                    ['12-18', 'shift_12_18', model.shift_12_18],
+                    ['18-00', 'shift_18_00', model.shift_18_00]
+                  ].map(([label, field, status]) => `
                     <div class="shift-row">
                       <div class="shift-label">${label}</div>
                       <button
                         class="shift-btn ${getStatusClass(status)}"
                         type="button"
-                        onclick="openStatusMenu(${model.id}, '${fieldNameFromLabel(label)}', '${status}', event)"
+                        onclick="openStatusMenu(${model.id}, '${field}', '${status}', event)"
                       >
                         ${STATUS_LABELS[status] || 'Не требуется'}
                       </button>
@@ -797,16 +794,13 @@
                   <textarea
                     class="comment-textarea"
                     id="comment-${model.id}"
-                    oninput="autosaveNeedComment(${model.id})"
                     placeholder="Комментарий по модели, сменам, срочности, пожеланиям..."
+                    oninput="autosaveNeedComment(${model.id})"
                   >${escapeHtml(model.comment || '')}</textarea>
                   <div class="autosave-status" id="comment-status-${model.id}"></div>
                 </div>
 
                 <div class="card-actions">
-                  <button class="save-btn" type="button" onclick="saveNeedCard(${model.id}, '${section.key}')">
-                    Сохранить
-                  </button>
                   <button class="delete-btn" type="button" onclick="deleteNeedCard(${model.id})">
                     Удалить
                   </button>
@@ -895,6 +889,18 @@
       alert('Сохранено');
     }
 
+    function updateNeedInMemory(id, patch) {
+      const sections = currentNeedsData?.sections || [];
+      for (const section of sections) {
+        const item = section.models.find(x => Number(x.id) === Number(id));
+        if (item) {
+          Object.assign(item, patch);
+          return item;
+        }
+      }
+      return null;
+    }
+
     function autosaveNeedComment(id) {
       const textarea = document.getElementById(`comment-${id}`);
       const statusEl = document.getElementById(`comment-status-${id}`);
@@ -915,16 +921,7 @@
           return;
         }
 
-        if (currentNeedsData?.sections) {
-          for (const section of currentNeedsData.sections) {
-            const item = section.models.find(x => Number(x.id) === Number(id));
-            if (item) {
-              item.comment = comment;
-              break;
-            }
-          }
-        }
-
+        updateNeedInMemory(id, { comment });
         setAutosaveStatus(statusEl, 'Сохранено', 'ok');
       }, 500);
     }
@@ -954,16 +951,41 @@
           return;
         }
 
-        if (currentNeedsData?.sections) {
-          for (const section of currentNeedsData.sections) {
-            const item = section.models.find(x => Number(x.id) === Number(id));
-            if (item) {
-              item.model_name = modelName;
-              break;
-            }
-          }
+        updateNeedInMemory(id, { model_name: modelName });
+        setAutosaveStatus(statusEl, 'Сохранено', 'ok');
+      }, 500);
+    }
+
+    function autosaveNeedMeta(id, field) {
+      const fieldMap = {
+        top_percent: `top-${id}`,
+        operator_salary_percent: `salary-${id}`,
+        experience_kd_months: `exp-${id}`,
+        avg_shift_check: `avg-${id}`,
+        revenue_month_k: `revenue-${id}`
+      };
+
+      const inputId = fieldMap[field];
+      const input = document.getElementById(inputId);
+      const statusEl = document.getElementById(`meta-status-${id}`);
+      const value = input?.value || '';
+
+      setAutosaveStatus(statusEl, 'Сохранение...', 'saving');
+
+      queueAutosave(`need-meta-${id}-${field}`, async () => {
+        const res = await api(`/api/hr-needs/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ [field]: value })
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          setAutosaveStatus(statusEl, data.error || 'Ошибка', 'err');
+          return;
         }
 
+        updateNeedInMemory(id, { [field]: value });
         setAutosaveStatus(statusEl, 'Сохранено', 'ok');
       }, 500);
     }
@@ -1012,22 +1034,10 @@
         return;
       }
 
-      const sections = currentNeedsData?.sections || [];
-      for (const section of sections) {
-        const model = section.models.find(x => Number(x.id) === Number(id));
-        if (model) {
-          model[field] = status;
-          break;
-        }
-      }
+      const updated = updateNeedInMemory(id, { [field]: status });
+      if (!updated) return;
 
-      const targetBtn = activeStatusMenu?.triggerEl;
-      if (targetBtn) {
-        targetBtn.className = `shift-btn ${getStatusClass(status)}`;
-        targetBtn.textContent = STATUS_LABELS[status] || 'Не требуется';
-      }
-
-      activeStatusMenu = null;
+      renderHrNeeds(currentNeedsData);
     }
 
     document.addEventListener('click', (e) => {
@@ -1052,7 +1062,11 @@
         return;
       }
 
-      await loadHrNeedsPage();
+      for (const section of currentNeedsData?.sections || []) {
+        section.models = section.models.filter(x => Number(x.id) !== Number(id));
+      }
+
+      renderHrNeeds(currentNeedsData);
     }
 
     window.addNeedCard = addNeedCard;
@@ -1063,6 +1077,7 @@
     window.deleteNeedCard = deleteNeedCard;
     window.autosaveNeedComment = autosaveNeedComment;
     window.autosaveNeedModelName = autosaveNeedModelName;
+    window.autosaveNeedMeta = autosaveNeedMeta;
 
     refreshBtn.addEventListener('click', loadHrNeedsPage);
 
