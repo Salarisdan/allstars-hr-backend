@@ -94,6 +94,10 @@ function normalizeText(value) {
   return String(value || '').trim().toLowerCase();
 }
 
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
 function parseNumberLoose(value) {
   if (value === null || value === undefined) return 0;
 
@@ -450,6 +454,16 @@ async function initDb() {
   await query(bootstrapSql);
 
   await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE
+  `).catch(() => {});
+
+  await pool.query(`
+    ALTER TABLE users
+    ADD CONSTRAINT users_email_unique UNIQUE (email)
+  `).catch(() => {});
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS hr_needs (
       id SERIAL PRIMARY KEY,
       platform TEXT NOT NULL CHECK (platform IN ('onlyfans', 'fansly')),
@@ -526,16 +540,41 @@ function signToken(user) {
   );
 }
 
-function auth(req, res, next) {
-  const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
-
-  if (!token) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
+async function auth(req, res, next) {
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
+    const header = req.headers.authorization || '';
+    const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    const result = await pool.query(
+      `SELECT id, agency_id, full_name, email, role, is_active
+       FROM users
+       WHERE id = $1
+       LIMIT 1`,
+      [decoded.id || decoded.userId]
+    );
+
+    const user = result.rows[0];
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    if (!user.is_active) {
+      return res.status(401).json({ error: 'Доступ отключён' });
+    }
+
+    req.user = {
+      ...user,
+      userId: user.id,
+      agencyId: user.agency_id
+    };
+
     next();
   } catch {
     return res.status(401).json({ error: 'Invalid token' });
@@ -663,12 +702,19 @@ app.post('/auth/register', async (req, res) => {
 
 app.post('/auth/login', async (req, res) => {
   try {
-    const { email, password } = req.body || {};
-    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const email = normalizeEmail(req.body?.email);
+    const password = String(req.body?.password || '');
 
-    const result = await query(
-      'SELECT * FROM users WHERE email = $1 AND is_active = TRUE LIMIT 1',
-      [normalizedEmail]
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Введите email и пароль' });
+    }
+
+    const result = await pool.query(
+      `SELECT id, agency_id, email, password_hash, full_name, role, is_active
+       FROM users
+       WHERE email = $1
+       LIMIT 1`,
+      [email]
     );
 
     const user = result.rows[0];
@@ -677,27 +723,179 @@ app.post('/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Неверный email или пароль' });
     }
 
-    const ok = await bcrypt.compare(password || '', user.password_hash);
+    if (!user.is_active) {
+      return res.status(403).json({ error: 'Доступ отключён' });
+    }
+
+    const ok = await bcrypt.compare(password, user.password_hash);
 
     if (!ok) {
       return res.status(401).json({ error: 'Неверный email или пароль' });
     }
 
-    const token = signToken(user);
+    const token = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
 
     res.json({
       token,
+      me: {
+        id: user.id,
+        email: user.email,
+        name: user.full_name,
+        role: user.role,
+        is_active: user.is_active
+      },
       user: {
         id: user.id,
         agency_id: user.agency_id,
         full_name: user.full_name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        is_active: user.is_active
       }
     });
   } catch (err) {
     console.error('Login error:', err.message);
-    res.status(500).json({ error: 'Login failed' });
+    res.status(500).json({ error: 'Ошибка входа' });
+  }
+});
+
+app.get('/api/users', auth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT
+         id,
+         email,
+         full_name AS name,
+         role,
+         is_active,
+         created_at
+       FROM users
+       WHERE agency_id = $1
+       ORDER BY created_at DESC, id DESC`,
+      [req.user.agencyId]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Users list error:', err.message);
+    res.status(500).json({ error: 'Не удалось загрузить пользователей' });
+  }
+});
+
+app.post('/api/users', auth, async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    const password = String(req.body?.password || '');
+    const name = String(req.body?.name || '').trim();
+    const role = String(req.body?.role || 'hr').trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email обязателен' });
+    }
+
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: 'Пароль должен быть не короче 6 символов' });
+    }
+
+    if (!name) {
+      return res.status(400).json({ error: 'Имя обязательно' });
+    }
+
+    if (!['owner', 'teamlead', 'hr'].includes(role)) {
+      return res.status(400).json({ error: 'Некорректная роль' });
+    }
+
+    const exists = await pool.query(
+      `SELECT id FROM users WHERE email = $1 LIMIT 1`,
+      [email]
+    );
+
+    if (exists.rows.length) {
+      return res.status(400).json({ error: 'Пользователь с таким email уже существует' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const result = await pool.query(
+      `INSERT INTO users (
+        agency_id,
+        full_name,
+        email,
+        password_hash,
+        role,
+        is_active
+      )
+      VALUES ($1, $2, $3, $4, $5, TRUE)
+      RETURNING id, email, full_name AS name, role, is_active, created_at`,
+      [req.user.agencyId, name, email, passwordHash, role]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Create user error:', err.message);
+    res.status(500).json({ error: 'Не удалось создать пользователя' });
+  }
+});
+
+app.patch('/api/users/:id/status', auth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const isActive = Boolean(req.body?.is_active);
+
+    if (!id) {
+      return res.status(400).json({ error: 'Некорректный id' });
+    }
+
+    const result = await pool.query(
+      `UPDATE users
+       SET is_active = $1
+       WHERE id = $2 AND agency_id = $3
+       RETURNING id, email, full_name AS name, role, is_active`,
+      [isActive, id, req.user.agencyId]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('User status update error:', err.message);
+    res.status(500).json({ error: 'Не удалось обновить статус пользователя' });
+  }
+});
+
+app.delete('/api/users/:id', auth, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!id) {
+      return res.status(400).json({ error: 'Некорректный id' });
+    }
+
+    const result = await pool.query(
+      `DELETE FROM users
+       WHERE id = $1 AND agency_id = $2
+       RETURNING id`,
+      [id, req.user.agencyId]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Delete user error:', err.message);
+    res.status(500).json({ error: 'Не удалось удалить пользователя' });
   }
 });
 
