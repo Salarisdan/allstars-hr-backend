@@ -218,6 +218,25 @@
       color:#f87171;
     }
 
+    .autosave-status{
+      font-size:11px;
+      font-weight:700;
+      color:var(--text3);
+      min-height:16px;
+    }
+
+    .autosave-status.ok{
+      color:#86efac;
+    }
+
+    .autosave-status.err{
+      color:#fca5a5;
+    }
+
+    .autosave-status.saving{
+      color:#9db2ff;
+    }
+
     @media (max-width:1100px){
       .hero-stats,
       .summary-list{
@@ -1104,8 +1123,9 @@
             <div id="memberEditorContent">
               <div class="loading">Загружаем данные...</div>
             </div>
+            <div class="autosave-status" id="memberEditorSaveStatus"></div>
             <div style="display:flex; justify-content:flex-end; margin-top:14px; gap:10px;">
-              <button class="modal-btn" type="button" onclick="saveMemberEditor()">Сохранить</button>
+              <button class="modal-btn" id="memberEditorCreateBtn" type="button" onclick="saveMemberEditor()" style="display:none;">Создать сотрудника</button>
             </div>
           </div>
         </div>
@@ -1126,6 +1146,43 @@
     const platformFilter = document.getElementById('platformFilter');
     let currentTeamStatsData = null;
     let currentPlatformFilter = String(platformFilter?.value || '').trim().toLowerCase();
+    const autosaveTimers = new Map();
+    const autosaveStateTimers = new Map();
+
+    function setAutosaveStatus(el, text, type = '') {
+      if (!el) return;
+
+      el.textContent = text;
+      el.className = `autosave-status ${type}`.trim();
+
+      if (autosaveStateTimers.has(el)) {
+        clearTimeout(autosaveStateTimers.get(el));
+      }
+
+      if (text === 'Сохранено') {
+        const t = setTimeout(() => {
+          el.textContent = '';
+          el.className = 'autosave-status';
+        }, 1200);
+        autosaveStateTimers.set(el, t);
+      }
+    }
+
+    function queueAutosave(key, fn, delay = 500) {
+      if (autosaveTimers.has(key)) {
+        clearTimeout(autosaveTimers.get(key));
+      }
+
+      const t = setTimeout(async () => {
+        try {
+          await fn();
+        } finally {
+          autosaveTimers.delete(key);
+        }
+      }, delay);
+
+      autosaveTimers.set(key, t);
+    }
 
     function api(path, options = {}) {
       return fetch(path, {
@@ -1771,6 +1828,7 @@
       }
 
       select.value = String(freeValues[Math.floor(Math.random() * freeValues.length)]);
+      autosaveMemberEditor();
     }
 
     function buildTransactionEndingOptions(currentRowNumber, currentValue) {
@@ -1917,6 +1975,7 @@
 
       event.currentTarget.classList.add('active');
       dropdown.classList.remove('open');
+      autosaveMemberEditor();
     }
 
     function toggleEditorMultiselect(event) {
@@ -1963,6 +2022,8 @@
         const text = chip ? chip.textContent.trim() : '';
         optEl.classList.toggle('active', nextValues.includes(text));
       });
+
+      autosaveMemberEditor();
     }
 
     document.addEventListener('click', () => {
@@ -2000,9 +2061,13 @@
       const overlay = document.getElementById('memberEditorOverlay');
       const title = document.getElementById('memberEditorTitle');
       const content = document.getElementById('memberEditorContent');
+      const createBtn = document.getElementById('memberEditorCreateBtn');
+      const statusEl = document.getElementById('memberEditorSaveStatus');
 
       title.textContent = `Карточка сотрудника · строка ${rowNumber}`;
       content.innerHTML = `<div class="loading">Загружаем данные...</div>`;
+      if (createBtn) createBtn.style.display = 'none';
+      setAutosaveStatus(statusEl, '');
       overlay.classList.add('show');
 
       const res = await api(`/api/team-member/${rowNumber}`);
@@ -2126,7 +2191,12 @@
                     `
                     : options
                       ? `
-                        <div class="editor-dropdown" data-field-index="${idx}" data-field-type="select">
+                        <div
+                          class="editor-dropdown"
+                          data-field-index="${idx}"
+                          data-field-type="select"
+                          data-selected-value="${safeValue}"
+                        >
                           <button
                             type="button"
                             class="editor-dropdown-btn"
@@ -2159,6 +2229,8 @@
           }).join('')}
         </div>
       `;
+
+      bindMemberEditorAutosave();
     }
 
     async function openNewMemberEditor() {
@@ -2168,8 +2240,12 @@
       const overlay = document.getElementById('memberEditorOverlay');
       const title = document.getElementById('memberEditorTitle');
       const content = document.getElementById('memberEditorContent');
+      const createBtn = document.getElementById('memberEditorCreateBtn');
+      const statusEl = document.getElementById('memberEditorSaveStatus');
 
       title.textContent = 'Новый сотрудник';
+      if (createBtn) createBtn.style.display = 'inline-flex';
+      setAutosaveStatus(statusEl, '');
 
       const res = await api('/api/team-member/2');
       const data = await res.json().catch(() => ({}));
@@ -2284,7 +2360,12 @@
                     `
                     : options
                       ? `
-                        <div class="editor-dropdown" data-field-index="${idx}" data-field-type="select">
+                        <div
+                          class="editor-dropdown"
+                          data-field-index="${idx}"
+                          data-field-type="select"
+                          data-selected-value=""
+                        >
                           <button
                             type="button"
                             class="editor-dropdown-btn"
@@ -2317,6 +2398,71 @@
       `;
 
       overlay.classList.add('show');
+    }
+
+    function autosaveMemberEditor() {
+      if (!currentMemberEditorRow || isCreatingMember) return;
+
+      const statusEl = document.getElementById('memberEditorSaveStatus');
+      if (statusEl) setAutosaveStatus(statusEl, 'Сохранение...', 'saving');
+
+      queueAutosave(`member-editor-${currentMemberEditorRow}`, async () => {
+        const updates = {};
+
+        document.querySelectorAll('[data-field-index]').forEach(el => {
+          const idx = Number(el.dataset.fieldIndex);
+          const field = currentMemberFields[idx];
+          if (!field) return;
+
+          const fieldType = el.dataset.fieldType || 'text';
+
+          if (fieldType === 'boolean') {
+            updates[field.label] = booleanToCellValue(el.checked);
+            return;
+          }
+
+          if (fieldType === 'select') {
+            updates[field.label] = el.dataset.selectedValue || '';
+            return;
+          }
+
+          if (fieldType === 'multiselect') {
+            const raw = el.dataset.selectedValues || '';
+            const values = raw ? raw.split('||').filter(Boolean) : [];
+            updates[field.label] = joinMultiValue(values);
+            return;
+          }
+
+          if (fieldType === 'transaction-ending') {
+            updates[field.label] = el.value || '';
+            return;
+          }
+
+          updates[field.label] = el.value || '';
+        });
+
+        const res = await api(`/api/team-member/${currentMemberEditorRow}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ updates })
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          if (statusEl) setAutosaveStatus(statusEl, data.error || 'Ошибка', 'err');
+          return;
+        }
+
+        if (statusEl) setAutosaveStatus(statusEl, 'Сохранено', 'ok');
+      }, 700);
+    }
+
+    function bindMemberEditorAutosave() {
+      document.querySelectorAll('[data-field-index]').forEach(el => {
+        const type = el.dataset.fieldType || 'text';
+        const eventName = type === 'text' ? 'input' : 'change';
+        el.addEventListener(eventName, autosaveMemberEditor);
+      });
     }
 
     async function saveMemberEditor() {
@@ -2392,6 +2538,7 @@
 
     function forceCloseMemberEditor() {
       document.getElementById('memberEditorOverlay').classList.remove('show');
+      setAutosaveStatus(document.getElementById('memberEditorSaveStatus'), '');
       isCreatingMember = false;
     }
 

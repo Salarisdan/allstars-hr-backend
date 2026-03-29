@@ -250,6 +250,13 @@
       margin-bottom:12px;
     }
 
+    .model-head-main{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
     .model-name-input{
       width:100%;
       background:#0f1220;
@@ -409,6 +416,25 @@
 
     .delete-btn:hover{
       color:#fecaca;
+    }
+
+    .autosave-status{
+      font-size:11px;
+      font-weight:700;
+      color:var(--text3);
+      min-height:16px;
+    }
+
+    .autosave-status.ok{
+      color:#86efac;
+    }
+
+    .autosave-status.err{
+      color:#fca5a5;
+    }
+
+    .autosave-status.saving{
+      color:#9db2ff;
     }
 
     .empty-state,
@@ -608,6 +634,43 @@
 
     let currentNeedsData = null;
     let activeStatusMenu = null;
+    const autosaveTimers = new Map();
+    const autosaveStateTimers = new Map();
+
+    function setAutosaveStatus(el, text, type = '') {
+      if (!el) return;
+
+      el.textContent = text;
+      el.className = `autosave-status ${type}`.trim();
+
+      if (autosaveStateTimers.has(el)) {
+        clearTimeout(autosaveStateTimers.get(el));
+      }
+
+      if (text === 'Сохранено') {
+        const t = setTimeout(() => {
+          el.textContent = '';
+          el.className = 'autosave-status';
+        }, 1200);
+        autosaveStateTimers.set(el, t);
+      }
+    }
+
+    function queueAutosave(key, fn, delay = 500) {
+      if (autosaveTimers.has(key)) {
+        clearTimeout(autosaveTimers.get(key));
+      }
+
+      const t = setTimeout(async () => {
+        try {
+          await fn();
+        } finally {
+          autosaveTimers.delete(key);
+        }
+      }, delay);
+
+      autosaveTimers.set(key, t);
+    }
 
     async function api(path, options = {}) {
       const res = await fetch(path, {
@@ -667,12 +730,16 @@
             ${section.models.map(model => `
               <div class="model-card">
                 <div class="model-head">
-                  <input
-                    class="model-name-input"
-                    id="model-name-${model.id}"
-                    value="${escapeHtml(model.model_name)}"
-                    placeholder="Название модели"
-                  />
+                  <div class="model-head-main">
+                    <input
+                      class="model-name-input"
+                      id="model-name-${model.id}"
+                      value="${escapeHtml(model.model_name)}"
+                      placeholder="Название модели"
+                      oninput="autosaveNeedModelName(${model.id})"
+                    />
+                    <div class="autosave-status" id="name-status-${model.id}"></div>
+                  </div>
                   <div class="platform-badge ${section.key === 'onlyfans' ? 'platform-of' : 'platform-fansly'}">
                     ${section.label}
                   </div>
@@ -730,8 +797,10 @@
                   <textarea
                     class="comment-textarea"
                     id="comment-${model.id}"
+                    oninput="autosaveNeedComment(${model.id})"
                     placeholder="Комментарий по модели, сменам, срочности, пожеланиям..."
                   >${escapeHtml(model.comment || '')}</textarea>
+                  <div class="autosave-status" id="comment-status-${model.id}"></div>
                 </div>
 
                 <div class="card-actions">
@@ -826,6 +895,79 @@
       alert('Сохранено');
     }
 
+    function autosaveNeedComment(id) {
+      const textarea = document.getElementById(`comment-${id}`);
+      const statusEl = document.getElementById(`comment-status-${id}`);
+      const comment = textarea?.value || '';
+
+      setAutosaveStatus(statusEl, 'Сохранение...', 'saving');
+
+      queueAutosave(`need-comment-${id}`, async () => {
+        const res = await api(`/api/hr-needs/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ comment })
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          setAutosaveStatus(statusEl, data.error || 'Ошибка', 'err');
+          return;
+        }
+
+        if (currentNeedsData?.sections) {
+          for (const section of currentNeedsData.sections) {
+            const item = section.models.find(x => Number(x.id) === Number(id));
+            if (item) {
+              item.comment = comment;
+              break;
+            }
+          }
+        }
+
+        setAutosaveStatus(statusEl, 'Сохранено', 'ok');
+      }, 500);
+    }
+
+    function autosaveNeedModelName(id) {
+      const input = document.getElementById(`model-name-${id}`);
+      const statusEl = document.getElementById(`name-status-${id}`);
+      const modelName = String(input?.value || '').trim();
+
+      setAutosaveStatus(statusEl, 'Сохранение...', 'saving');
+
+      queueAutosave(`need-name-${id}`, async () => {
+        if (!modelName) {
+          setAutosaveStatus(statusEl, 'Пустое название', 'err');
+          return;
+        }
+
+        const res = await api(`/api/hr-needs/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ model_name: modelName })
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          setAutosaveStatus(statusEl, data.error || 'Ошибка', 'err');
+          return;
+        }
+
+        if (currentNeedsData?.sections) {
+          for (const section of currentNeedsData.sections) {
+            const item = section.models.find(x => Number(x.id) === Number(id));
+            if (item) {
+              item.model_name = modelName;
+              break;
+            }
+          }
+        }
+
+        setAutosaveStatus(statusEl, 'Сохранено', 'ok');
+      }, 500);
+    }
+
     async function cycleCardShift(id, field, currentStatus) {
       openStatusMenu(id, field, currentStatus);
     }
@@ -834,7 +976,7 @@
       const menu = document.getElementById('statusMenu');
       if (!menu) return;
 
-      activeStatusMenu = { id, field, currentStatus };
+      activeStatusMenu = { id, field, currentStatus, triggerEl: event?.currentTarget || null };
 
       menu.innerHTML = STATUS_MENU_OPTIONS.map(item => `
         <button class="status-option" type="button" onclick="applyShiftStatus('${id}','${field}','${item.key}')">
@@ -879,7 +1021,13 @@
         }
       }
 
-      renderHrNeeds(currentNeedsData);
+      const targetBtn = activeStatusMenu?.triggerEl;
+      if (targetBtn) {
+        targetBtn.className = `shift-btn ${getStatusClass(status)}`;
+        targetBtn.textContent = STATUS_LABELS[status] || 'Не требуется';
+      }
+
+      activeStatusMenu = null;
     }
 
     document.addEventListener('click', (e) => {
@@ -913,6 +1061,8 @@
     window.openStatusMenu = openStatusMenu;
     window.applyShiftStatus = applyShiftStatus;
     window.deleteNeedCard = deleteNeedCard;
+    window.autosaveNeedComment = autosaveNeedComment;
+    window.autosaveNeedModelName = autosaveNeedModelName;
 
     refreshBtn.addEventListener('click', loadHrNeedsPage);
 
