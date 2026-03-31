@@ -624,7 +624,10 @@
       margin-bottom:6px;
     }
 
-    .pipeline-count{font-size:22px;font-weight:800;}
+    .pipeline-count{
+      font-size:22px;
+      font-weight:800;
+    }
 
     .card-status-badge{
       display:inline-flex;
@@ -637,12 +640,50 @@
       border:1px solid transparent;
     }
 
-    .badge-green{background:rgba(34,197,94,.14);color:#86efac;border-color:rgba(34,197,94,.24);}
-    .badge-blue{background:rgba(79,110,247,.14);color:#9db2ff;border-color:rgba(79,110,247,.24);}
-    .badge-yellow{background:rgba(251,191,36,.14);color:#fde68a;border-color:rgba(251,191,36,.24);}
-    .badge-orange{background:rgba(245,158,11,.14);color:#fdba74;border-color:rgba(245,158,11,.24);}
-    .badge-red{background:rgba(248,113,113,.14);color:#fca5a5;border-color:rgba(248,113,113,.24);}
-    .badge-gray{background:rgba(255,255,255,.08);color:#cbd5e1;border-color:rgba(255,255,255,.12);}
+    .badge-green{
+      background:rgba(34,197,94,.14);
+      color:#86efac;
+      border-color:rgba(34,197,94,.24);
+    }
+
+    .badge-blue{
+      background:rgba(79,110,247,.14);
+      color:#9db2ff;
+      border-color:rgba(79,110,247,.24);
+    }
+
+    .badge-yellow{
+      background:rgba(251,191,36,.14);
+      color:#fde68a;
+      border-color:rgba(251,191,36,.24);
+    }
+
+    .badge-orange{
+      background:rgba(245,158,11,.14);
+      color:#fdba74;
+      border-color:rgba(245,158,11,.24);
+    }
+
+    .badge-red{
+      background:rgba(248,113,113,.14);
+      color:#fca5a5;
+      border-color:rgba(248,113,113,.24);
+    }
+
+    .badge-gray{
+      background:rgba(255,255,255,.08);
+      color:#cbd5e1;
+      border-color:rgba(255,255,255,.12);
+    }
+
+    .crm-card-top{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
 
     .crm-next-action{
       margin-top:10px;
@@ -654,14 +695,6 @@
     .crm-problem{
       border-color:rgba(248,113,113,.24) !important;
       box-shadow:inset 0 0 0 1px rgba(248,113,113,.08), var(--shadow);
-    }
-
-    .crm-card-top{
-      display:flex;
-      justify-content:space-between;
-      gap:10px;
-      align-items:flex-start;
-      flex-wrap:wrap;
     }
 
     .crm-meta-hints{
@@ -683,6 +716,39 @@
 
     .candidate-name{font-size:15px;font-weight:800;line-height:1.2;}
     .candidate-telegram{color:var(--accent2);font-size:13px;margin-top:3px;}
+
+    .quick-actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:12px;
+    }
+
+    .quick-btn{
+      border:none;
+      background:var(--surface3);
+      border:1px solid var(--border);
+      color:var(--text2);
+      padding:.55rem .8rem;
+      border-radius:10px;
+      cursor:pointer;
+      font-family:'Manrope',sans-serif;
+      font-weight:800;
+      font-size:11px;
+    }
+
+    .q-btn{
+      border:none;
+      background:var(--surface3);
+      border:1px solid var(--border);
+      color:var(--text2);
+      padding:.55rem .8rem;
+      border-radius:10px;
+      cursor:pointer;
+      font-family:'Manrope',sans-serif;
+      font-weight:800;
+      font-size:11px;
+    }
   </style>
 </head>
 <body>
@@ -744,18 +810,16 @@
         </select>
       </div>
 
-      <div class="crm-hint" style="margin-bottom:12px;">
-        Здесь ты видишь активный интервью-цикл. Нажми на этап сверху, чтобы быстро отфильтровать нужных людей.
-      </div>
-
       <div class="sticky-tools">
         <div class="tools-card">
+          <div class="crm-hint" style="margin-bottom:12px;">
+            Здесь видны все собеседования и ближайшие действия. Нажми на этап сверху, чтобы быстро отфильтровать нужных людей.
+          </div>
+
           <div class="tools-row">
             <input id="crmSearch" class="crm-search" placeholder="Поиск по имени, Telegram, статусу..." />
-            <button class="crm-filter-btn" id="filterOfBtn" type="button" onclick="setCrmPlatform('onlyfans')">OnlyFans</button>
-            <button class="crm-filter-btn" id="filterFanslyBtn" type="button" onclick="setCrmPlatform('fansly')">Fansly</button>
             <button class="crm-filter-btn" id="filterProblemsBtn" type="button" onclick="toggleCrmFilter('onlyProblems')">Проблемные</button>
-            <button class="crm-filter-btn" id="filterNoEndingBtn" type="button" onclick="toggleCrmFilter('noEnding')">Без ending</button>
+            <button class="crm-filter-btn" id="filterNoActionBtn" type="button" onclick="toggleCrmFilter('noAction')">Без действия</button>
           </div>
           <div class="pipeline" id="pipeline"></div>
         </div>
@@ -784,32 +848,32 @@
 
     /* ─── CRM JS (общий блок) ──────────────────────────────────── */
     const CRM_STATUS_GROUPS = [
-      { key: 'no_response', label: 'Нет ответа', values: ['Нет ответа'] },
-      { key: 'interview', label: 'Собеседование', values: ['Ждет собеседования', 'Собеседование', 'Отписал'] },
+      { key: 'contacted', label: 'Отписал', values: ['Отписал'] },
+      { key: 'interview', label: 'Собеседование', values: ['Собеседование', 'Ждет собеседования'] },
       { key: 'guide', label: 'Гайд', values: ['Изучает гайд'] },
-      { key: 'test', label: 'Тест', values: ['Ждет тест', 'Тест смена'] },
-      { key: 'start', label: 'Старт', values: ['Ожидание старта', 'Хочу взять', 'Верификация'] },
+      { key: 'test', label: 'Тест', values: ['Тест смена', 'Ждет тест'] },
       { key: 'work', label: 'Работает', values: ['Работает', 'Принятый'] },
-      { key: 'fired', label: 'Уволен', values: ['Уволен', 'Не рассчитан', 'Убрать', 'Отказ', 'Не пришел на собес'] }
+      { key: 'missed', label: 'Не пришел', values: ['Не пришел на собес'] },
+      { key: 'rejected', label: 'Отказ', values: ['Отказ', 'Уволен', 'Убрать', 'Нет ответа'] }
     ];
 
     const crmFilters = {
       q: '',
-      platform: '',
       onlyProblems: false,
-      onlyUrgent: false,
-      noEnding: false,
+      noAction: false,
       pipeline: ''
     };
 
     function getStatusTone(status) {
       const s = String(status || '').trim().toLowerCase();
+
       if (s.includes('работает') || s.includes('принятый')) return 'green';
       if (s.includes('изучает')) return 'blue';
       if (s.includes('ждет тест') || s.includes('тест')) return 'yellow';
       if (s.includes('собесед') || s.includes('отписал')) return 'orange';
+      if (s.includes('не пришел') || s.includes('отказ') || s.includes('уволен')) return 'red';
       if (s.includes('нет ответа')) return 'gray';
-      if (s.includes('уволен') || s.includes('не рассчитан') || s.includes('убрать') || s.includes('отказ') || s.includes('не пришел')) return 'red';
+
       return 'gray';
     }
 
@@ -819,52 +883,64 @@
 
     function getNextAction(item) {
       const status = String(item.status || '').trim();
-      if (status === 'Ждет собеседования' || status === 'Собеседование' || status === 'Отписал') return '⚡ Провести собеседование';
+
+      if (status === 'Отписал') return '⚡ Назначить собеседование';
+      if (status === 'Ждет собеседования' || status === 'Собеседование') return '⚡ Провести собеседование';
       if (status === 'Изучает гайд') return '⚡ Проверить прохождение гайда';
-      if (status === 'Ждет тест' || status === 'Тест смена') return '⚡ Назначить тест смену';
-      if (status === 'Верификация') return '⚡ Завершить верификацию';
-      if (status === 'Ожидание старта') return '⚡ Выдать доступы и назначить старт';
-      if (status === 'Работает' && !item.transactionEnding) return '⚡ Назначить цент / ending';
+      if (status === 'Тест смена' || status === 'Ждет тест') return '⚡ Назначить тест смену';
+      if (status === 'Не пришел на собес') return '⚡ Связаться повторно';
       if (status === 'Хочу взять') return '⚡ Перевести в следующий этап';
-      if (status === 'Лист ожидания') return '⚡ Следить за освобождением мест';
+
       return '';
     }
 
     function isProblemItem(item) {
       const status = String(item.status || '').trim();
+
       if (!status) return true;
-      if ((status === 'Работает' || status === 'Принятый') && !String(item.transactionEnding || '').trim()) return true;
-      if (!String(item.platform || '').trim()) return true;
+      if (status === 'Не пришел на собес') return true;
+      if (status === 'Отписал') return true;
+
       return false;
     }
 
     function applyCrmFilters(items) {
       let out = [...items];
+
       if (crmFilters.q) {
         const q = crmFilters.q.toLowerCase();
         out = out.filter(item => {
-          const hay = [item.name, item.telegram, item.username, item.status, item.platform].join(' ').toLowerCase();
+          const hay = [
+            item.name,
+            item.telegram,
+            item.tg,
+            item.username,
+            item.status
+          ].join(' ').toLowerCase();
           return hay.includes(q);
         });
       }
-      if (crmFilters.platform) {
-        out = out.filter(item => String(item.platform || '').toLowerCase().includes(crmFilters.platform));
-      }
+
       if (crmFilters.pipeline) {
         const group = CRM_STATUS_GROUPS.find(x => x.key === crmFilters.pipeline);
-        if (group) out = out.filter(item => group.values.includes(item.status));
+        if (group) {
+          out = out.filter(item => group.values.includes(item.status));
+        }
       }
-      if (crmFilters.noEnding) {
-        out = out.filter(item => !String(item.transactionEnding || '').trim());
-      }
+
       if (crmFilters.onlyProblems) {
         out = out.filter(isProblemItem);
       }
+
+      if (crmFilters.noAction) {
+        out = out.filter(item => !getNextAction(item));
+      }
+
       return out;
     }
 
-    function renderPipelineBlock(items, containerId = 'pipeline') {
-      const el = document.getElementById(containerId);
+    function renderPipelineBlock(items) {
+      const el = document.getElementById('pipeline');
       if (!el) return;
       el.innerHTML = CRM_STATUS_GROUPS.map(group => {
         const count = items.filter(item => group.values.includes(item.status)).length;
@@ -873,17 +949,13 @@
                onclick="setCrmPipeline('${group.key}')">
             <div class="pipeline-label">${group.label}</div>
             <div class="pipeline-count">${count}</div>
-          </div>`;
+          </div>
+        `;
       }).join('');
     }
 
     function setCrmPipeline(key) {
       crmFilters.pipeline = crmFilters.pipeline === key ? '' : key;
-      rerenderCrmPage();
-    }
-
-    function setCrmPlatform(platform) {
-      crmFilters.platform = crmFilters.platform === platform ? '' : platform;
       rerenderCrmPage();
     }
 
@@ -893,40 +965,26 @@
     }
 
     window.setCrmPipeline = setCrmPipeline;
-    window.setCrmPlatform = setCrmPlatform;
     window.toggleCrmFilter = toggleCrmFilter;
 
-    function syncCrmItems() {
-      allCrmItems = allCandidates.map(c => ({
-        id: c.id,
-        name: c.name,
-        telegram: c.tg,
-        username: c.tg,
-        status: c.status,
-        platform: c.platforms,
-        transactionEnding: ''
-      }));
+    function updateCrmFilterButtons() {
+      document.getElementById('filterProblemsBtn')?.classList.toggle('active', crmFilters.onlyProblems);
+      document.getElementById('filterNoActionBtn')?.classList.toggle('active', crmFilters.noAction);
     }
 
     function rerenderCrmPage() {
       const searchEl = document.getElementById('crmSearch');
       if (searchEl) crmFilters.q = String(searchEl.value || '').trim();
 
-      renderPipelineBlock(allCrmItems);
-
-      document.getElementById('filterOfBtn')?.classList.toggle('active', crmFilters.platform === 'onlyfans');
-      document.getElementById('filterFanslyBtn')?.classList.toggle('active', crmFilters.platform === 'fansly');
-      document.getElementById('filterProblemsBtn')?.classList.toggle('active', crmFilters.onlyProblems);
-      document.getElementById('filterNoEndingBtn')?.classList.toggle('active', crmFilters.noEnding);
-
       const filtered = applyCrmFilters(allCrmItems);
-      const filteredIds = new Set(filtered.map(x => x.id));
-      const candidateRows = allCandidates.filter(c => filteredIds.has(c.id));
-      render(candidateRows);
+
+      renderPipelineBlock(allCrmItems);
+      updateCrmFilterButtons();
+
+      render(filtered);
     }
 
     document.getElementById('crmSearch')?.addEventListener('input', () => {
-      crmFilters.q = document.getElementById('crmSearch').value.trim();
       rerenderCrmPage();
     });
 
@@ -1283,7 +1341,7 @@
       }));
 
       renderStats();
-      syncCrmItems();
+      allCrmItems = Array.isArray(allCandidates) ? allCandidates : [];
       rerenderCrmPage();
     }
 
@@ -1372,28 +1430,22 @@
         return;
       }
 
-      grid.innerHTML = rows.map(candidate => {
-        const crmItem = {
-          id: candidate.id,
-          name: candidate.name,
-          telegram: candidate.tg,
-          username: candidate.tg,
-          status: candidate.status,
-          platform: candidate.platforms,
-          transactionEnding: ''
-        };
+      grid.innerHTML = rows.map(item => {
+        item.telegram = item.telegram || item.tg || item.username || '';
+        item.interviewer = item.interviewer || item.owner_name || '';
+
         return `
-        <article class="card card-status ${getStatusClass(candidate.status)} ${isProblemItem(crmItem) ? 'crm-problem' : ''}">
+        <article class="card card-status interview-card ${getStatusClass(item.status)} ${isProblemItem(item) ? 'crm-problem' : ''}">
           <div class="card-head">
             <div class="card-main">
-              <div class="avatar">${initials(candidate.name || '')}</div>
+              <div class="avatar">${initials(item.name || '')}</div>
               <div>
-                <div class="name">${escapeHtml(candidate.name || 'Без имени')}</div>
+                <div class="name">${escapeHtml(item.name || 'Без имени')}</div>
                 <div style="margin-top:4px;">
-                  ${getExperienceBadge(candidate.exp)}
+                  ${getExperienceBadge(item.exp)}
                 </div>
-                <div class="tg">${escapeHtml(candidate.tg || '—')}</div>
-                <div class="sub">Дата заявки: ${escapeHtml(candidate.created_at || '—')}</div>
+                <div class="tg">${escapeHtml(item.tg || '—')}</div>
+                <div class="sub">Дата заявки: ${escapeHtml(item.created_at || '—')}</div>
               </div>
             </div>
           </div>
@@ -1401,50 +1453,52 @@
           <div class="card-body">
             <div class="crm-card-top">
               <div>
-                <div class="candidate-name">${escapeHtml(candidate.name || 'Без имени')}</div>
-                <div class="candidate-telegram">${escapeHtml(candidate.tg || '—')}</div>
+                <div class="candidate-name">${escapeHtml(item.name || 'Без имени')}</div>
+                <div class="candidate-telegram">${escapeHtml(item.telegram || item.tg || item.username || '—')}</div>
               </div>
-              <div class="card-status-badge ${getStatusBadgeClass(candidate.status)}">
-                ${escapeHtml(candidate.status || 'Без статуса')}
+
+              <div class="card-status-badge ${getStatusBadgeClass(item.status)}">
+                ${escapeHtml(item.status || 'Без статуса')}
               </div>
             </div>
 
             <div class="crm-next-action">
-              ${getNextAction(crmItem) || '⚡ Действие не требуется'}
+              ${getNextAction(item) || '⚡ Действие не требуется'}
             </div>
 
             <div class="crm-meta-hints">
-              ${candidate.platforms ? `<div class="crm-hint">${escapeHtml(candidate.platforms)}</div>` : ''}
-              ${isProblemItem(crmItem) ? `<div class="crm-hint">Проблемный кейс</div>` : ''}
+              ${item.interview_date ? `<div class="crm-hint">Дата: ${escapeHtml(item.interview_date)}</div>` : ''}
+              ${item.interviewer ? `<div class="crm-hint">Интервьюер: ${escapeHtml(item.interviewer)}</div>` : ''}
+              ${isProblemItem(item) ? `<div class="crm-hint">Проблемный кейс</div>` : ''}
             </div>
 
             <div class="row">
-              <span class="badge ${statusBadge(candidate.status || '')}">${escapeHtml(candidate.status || 'Без статуса')}</span>
-              ${candidate.platforms ? `<span class="badge blue">${escapeHtml(candidate.platforms)}</span>` : ''}
-              ${candidate.shift ? `<span class="badge purple">${escapeHtml(candidate.shift)}</span>` : ''}
-              ${candidate.english ? `<span class="badge yellow">${escapeHtml(candidate.english)}</span>` : ''}
+              <span class="badge ${statusBadge(item.status || '')}">${escapeHtml(item.status || 'Без статуса')}</span>
+              ${item.platforms ? `<span class="badge blue">${escapeHtml(item.platforms)}</span>` : ''}
+              ${item.shift ? `<span class="badge purple">${escapeHtml(item.shift)}</span>` : ''}
+              ${item.english ? `<span class="badge yellow">${escapeHtml(item.english)}</span>` : ''}
             </div>
 
             <div class="meta-grid">
               <div class="meta">
                 <div class="k">Дата заявки</div>
-                <div class="v">${escapeHtml(candidate.created_at || '—')}</div>
+                <div class="v">${escapeHtml(item.created_at || '—')}</div>
               </div>
               <div class="meta">
                 <div class="k">Опыт</div>
-                <div class="v">${escapeHtml(candidate.exp || '—')}</div>
+                <div class="v">${escapeHtml(item.exp || '—')}</div>
               </div>
               <div class="meta">
                 <div class="k">Средний чек</div>
-                <div class="v">${escapeHtml(candidate.avg_check || '—')}</div>
+                <div class="v">${escapeHtml(item.avg_check || '—')}</div>
               </div>
               <div class="meta">
                 <div class="k">Владелец</div>
-                <div class="v">${escapeHtml(candidate.owner_name || '—')}</div>
+                <div class="v">${escapeHtml(item.owner_name || '—')}</div>
               </div>
               <div class="meta">
                 <div class="k">Балл</div>
-                <div class="v">${escapeHtml(String(candidate.total || 0))} / 50</div>
+                <div class="v">${escapeHtml(String(item.total || 0))} / 50</div>
               </div>
             </div>
 
@@ -1452,8 +1506,8 @@
               <div class="schedule-grid-3">
                 <div>
                   <div class="small-label">Статус</div>
-                  <select class="input" id="status-${candidate.id}">
-                    ${buildInterviewStatusOptions(candidate.status)}
+                  <select class="input" id="status-${item.id}">
+                    ${buildInterviewStatusOptions(item.status)}
                   </select>
                 </div>
 
@@ -1462,8 +1516,8 @@
                   <input
                     class="input"
                     type="date"
-                    id="date-${candidate.id}"
-                    value="${toDateInputValue(candidate.interview_date)}"
+                    id="date-${item.id}"
+                    value="${toDateInputValue(item.interview_date)}"
                   />
                 </div>
 
@@ -1472,8 +1526,8 @@
                   <input
                     class="input"
                     type="time"
-                    id="time-${candidate.id}"
-                    value="${escapeHtml(candidate.interview_time || '')}"
+                    id="time-${item.id}"
+                    value="${escapeHtml(item.interview_time || '')}"
                   />
                 </div>
               </div>
@@ -1483,9 +1537,9 @@
                   <div class="small-label">Кто проводит</div>
                   <input
                     class="input"
-                    id="interviewer-${candidate.id}"
+                    id="interviewer-${item.id}"
                     placeholder="Имя HR / интервьюера"
-                    value="${escapeHtml(candidate.owner_name || '')}"
+                    value="${escapeHtml(item.owner_name || '')}"
                   />
                 </div>
 
@@ -1493,30 +1547,29 @@
                   <div class="small-label">Комментарий</div>
                   <input
                     class="input"
-                    id="comments-${candidate.id}"
+                    id="comments-${item.id}"
                     placeholder="Комментарий по заявке / собеседованию"
-                    value="${escapeHtml(candidate.notes || '')}"
+                    value="${escapeHtml(item.notes || '')}"
                   />
                 </div>
               </div>
 
               <div class="quick-actions">
-                <button class="q-btn green" onclick="quickSetStatus(${candidate.id}, 'Собеседование')">Собес</button>
-                <button class="q-btn yellow" onclick="quickSetStatus(${candidate.id}, 'Изучает гайд')">Гайд</button>
-                <button class="q-btn red" onclick="quickSetStatus(${candidate.id}, 'Не пришел на собес')">Не пришел</button>
-                <button class="q-btn red" onclick="quickSetStatus(${candidate.id}, 'Отказ')">Отказ</button>
-                <button class="q-btn yellow" onclick="quickSetStatus(${candidate.id}, 'Тест смена')">Тест</button>
+                <button class="quick-btn" type="button" onclick="quickSetInterviewStatus(${item.id}, 'Собеседование')">Собес</button>
+                <button class="quick-btn" type="button" onclick="quickSetInterviewStatus(${item.id}, 'Изучает гайд')">Гайд</button>
+                <button class="quick-btn" type="button" onclick="quickSetInterviewStatus(${item.id}, 'Тест смена')">Тест</button>
+                <button class="quick-btn" type="button" onclick="quickSetInterviewStatus(${item.id}, 'Отказ')">Отказ</button>
               </div>
             </div>
 
             <div class="actions">
-              <button class="action-btn" onclick="saveInterviewRow(${candidate.id})">Сохранить</button>
-              <button class="action-btn" onclick="sendInterviewNotification(${candidate.id})">Отправить уведомление</button>
-              <button class="action-btn" onclick="startInterview(${candidate.id})">Провести собеседование</button>
-              <button class="action-btn" onclick="location.href='/candidate.html?id=${candidate.id}'">Открыть</button>
+              <button class="action-btn" onclick="saveInterviewRow(${item.id})">Сохранить</button>
+              <button class="action-btn" onclick="sendInterviewNotification(${item.id})">Отправить уведомление</button>
+              <button class="action-btn" onclick="startInterview(${item.id})">Провести собеседование</button>
+              <button class="action-btn" onclick="location.href='/candidate.html?id=${item.id}'">Открыть</button>
             </div>
 
-            <div class="save-state" id="save-state-${candidate.id}"></div>
+            <div class="save-state" id="save-state-${item.id}"></div>
           </div>
         </article>
       `}).join('');
@@ -1566,7 +1619,26 @@
       }, 1200);
     }
 
+    async function quickSetInterviewStatus(rowNumber, status) {
+      const res = await api(`/api/interviews/${rowNumber}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || 'Не удалось обновить статус');
+        return;
+      }
+
+      const item = allCrmItems.find(x => Number(x.id) === Number(rowNumber));
+      if (item) item.status = status;
+
+      rerenderCrmPage();
+    }
+
     window.quickSetStatus = quickSetStatus;
+    window.quickSetInterviewStatus = quickSetInterviewStatus;
 
     async function initInterviewsPage() {
       await loadStatusOptions();
