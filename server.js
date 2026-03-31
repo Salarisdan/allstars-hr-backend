@@ -1944,6 +1944,58 @@ app.get('/api/team-status-members', auth, async (req, res) => {
   }
 });
 
+app.get('/api/team-all-members', auth, async (req, res) => {
+  try {
+    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
+    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
+
+    if (!spreadsheetId) {
+      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
+    }
+
+    const sheets = await getSheetsClient();
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A1:Z5000`
+    });
+
+    const values = response.data.values || [];
+    if (!values.length) return res.json([]);
+
+    const headers = values[0];
+    const rows = values.slice(1);
+
+    const idx = (name) => headers.indexOf(name);
+    const safeGet = (row, i) => (i >= 0 && i < row.length ? String(row[i] || '').trim() : '');
+
+    const statusIdx = idx('Актуальный статус кандидата (Hr)');
+    const nameIdx = idx('Имя') >= 0 ? idx('Имя') : idx('Имя / ник') >= 0 ? idx('Имя / ник') : idx('Ник');
+    const telegramIdx = idx('Телеграм') >= 0 ? idx('Телеграм') : idx('Telegram') >= 0 ? idx('Telegram') : idx('TG Username');
+    const platformIdx = idx('OnlyFans / Fansly');
+    const transactionEndingIdx = idx('Transaction ending');
+    const startDateIdx = idx('Дата старта');
+    const workDaysIdx = idx('Срок работы, дни');
+
+    const members = rows
+      .filter(row => row.some(cell => String(cell || '').trim() !== ''))
+      .map((row, index) => ({
+        row_number: index + 2,
+        name: safeGet(row, nameIdx),
+        telegram: safeGet(row, telegramIdx),
+        status: safeGet(row, statusIdx) || 'Без статуса',
+        platform: safeGet(row, platformIdx),
+        transactionEnding: safeGet(row, transactionEndingIdx),
+        start_date: safeGet(row, startDateIdx),
+        work_days: safeGet(row, workDaysIdx)
+      }));
+
+    res.json(members);
+  } catch (err) {
+    console.error('Team all members read error:', err.message);
+    res.status(500).json({ error: 'Failed to read team members' });
+  }
+});
+
 app.get('/api/team-transaction-endings', auth, async (req, res) => {
   try {
     const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;

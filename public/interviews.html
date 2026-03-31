@@ -530,6 +530,159 @@
     .q-btn.green{color:var(--green);border-color:var(--green-border);background:var(--green-bg);}
     .q-btn.red{color:var(--red);border-color:var(--red-border);background:var(--red-bg);}
     .q-btn.yellow{color:var(--yellow);border-color:var(--yellow-border);background:var(--yellow-bg);}
+
+    /* ─── CRM TOOLS ───────────────────────────────────────────── */
+    .sticky-tools{
+      position:sticky;
+      top:0;
+      z-index:20;
+      background:rgba(13,15,20,.92);
+      backdrop-filter:blur(8px);
+      padding:12px 0 14px;
+      margin-bottom:16px;
+    }
+
+    .tools-card{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:14px;
+      box-shadow:var(--shadow);
+    }
+
+    .tools-row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .crm-search{
+      flex:1;
+      min-width:220px;
+      background:#0f1220;
+      border:1px solid var(--border);
+      color:var(--text);
+      border-radius:12px;
+      padding:.82rem .95rem;
+      font-family:'Manrope',sans-serif;
+      font-size:13px;
+      outline:none;
+    }
+
+    .crm-filter-btn{
+      border:none;
+      background:var(--surface3);
+      border:1px solid var(--border);
+      color:var(--text2);
+      padding:.75rem .95rem;
+      border-radius:12px;
+      cursor:pointer;
+      font-family:'Manrope',sans-serif;
+      font-weight:800;
+      font-size:12px;
+      transition:.15s;
+    }
+
+    .crm-filter-btn:hover{color:var(--text);}
+
+    .crm-filter-btn.active{
+      background:var(--accent-bg);
+      border-color:var(--accent-border);
+      color:var(--accent2);
+    }
+
+    .pipeline{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .pipeline-item{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+      cursor:pointer;
+      transition:.15s ease;
+    }
+
+    .pipeline-item:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.16);}
+
+    .pipeline-item.active{
+      background:var(--accent-bg);
+      border-color:var(--accent-border);
+    }
+
+    .pipeline-label{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:var(--text3);
+      font-weight:800;
+      margin-bottom:6px;
+    }
+
+    .pipeline-count{font-size:22px;font-weight:800;}
+
+    .card-status-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:5px 10px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:800;
+      border:1px solid transparent;
+    }
+
+    .badge-green{background:rgba(34,197,94,.14);color:#86efac;border-color:rgba(34,197,94,.24);}
+    .badge-blue{background:rgba(79,110,247,.14);color:#9db2ff;border-color:rgba(79,110,247,.24);}
+    .badge-yellow{background:rgba(251,191,36,.14);color:#fde68a;border-color:rgba(251,191,36,.24);}
+    .badge-orange{background:rgba(245,158,11,.14);color:#fdba74;border-color:rgba(245,158,11,.24);}
+    .badge-red{background:rgba(248,113,113,.14);color:#fca5a5;border-color:rgba(248,113,113,.24);}
+    .badge-gray{background:rgba(255,255,255,.08);color:#cbd5e1;border-color:rgba(255,255,255,.12);}
+
+    .crm-next-action{
+      margin-top:10px;
+      font-size:12px;
+      font-weight:800;
+      color:var(--text2);
+    }
+
+    .crm-problem{
+      border-color:rgba(248,113,113,.24) !important;
+      box-shadow:inset 0 0 0 1px rgba(248,113,113,.08), var(--shadow);
+    }
+
+    .crm-card-top{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+    }
+
+    .crm-meta-hints{
+      margin-top:10px;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .crm-hint{
+      font-size:11px;
+      font-weight:700;
+      color:var(--text2);
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:999px;
+      padding:5px 9px;
+    }
+
+    .candidate-name{font-size:15px;font-weight:800;line-height:1.2;}
+    .candidate-telegram{color:var(--accent2);font-size:13px;margin-top:3px;}
   </style>
 </head>
 <body>
@@ -591,6 +744,23 @@
         </select>
       </div>
 
+      <div class="crm-hint" style="margin-bottom:12px;">
+        Здесь ты видишь активный интервью-цикл. Нажми на этап сверху, чтобы быстро отфильтровать нужных людей.
+      </div>
+
+      <div class="sticky-tools">
+        <div class="tools-card">
+          <div class="tools-row">
+            <input id="crmSearch" class="crm-search" placeholder="Поиск по имени, Telegram, статусу..." />
+            <button class="crm-filter-btn" id="filterOfBtn" type="button" onclick="setCrmPlatform('onlyfans')">OnlyFans</button>
+            <button class="crm-filter-btn" id="filterFanslyBtn" type="button" onclick="setCrmPlatform('fansly')">Fansly</button>
+            <button class="crm-filter-btn" id="filterProblemsBtn" type="button" onclick="toggleCrmFilter('onlyProblems')">Проблемные</button>
+            <button class="crm-filter-btn" id="filterNoEndingBtn" type="button" onclick="toggleCrmFilter('noEnding')">Без ending</button>
+          </div>
+          <div class="pipeline" id="pipeline"></div>
+        </div>
+      </div>
+
       <div class="grid" id="grid"></div>
     </main>
   </div>
@@ -609,7 +779,160 @@
     const refreshBtn = document.getElementById('refreshBtn');
 
     let allCandidates = [];
+    let allCrmItems = [];
     let STATUS_OPTIONS = [];
+
+    /* ─── CRM JS (общий блок) ──────────────────────────────────── */
+    const CRM_STATUS_GROUPS = [
+      { key: 'no_response', label: 'Нет ответа', values: ['Нет ответа'] },
+      { key: 'interview', label: 'Собеседование', values: ['Ждет собеседования', 'Собеседование', 'Отписал'] },
+      { key: 'guide', label: 'Гайд', values: ['Изучает гайд'] },
+      { key: 'test', label: 'Тест', values: ['Ждет тест', 'Тест смена'] },
+      { key: 'start', label: 'Старт', values: ['Ожидание старта', 'Хочу взять', 'Верификация'] },
+      { key: 'work', label: 'Работает', values: ['Работает', 'Принятый'] },
+      { key: 'fired', label: 'Уволен', values: ['Уволен', 'Не рассчитан', 'Убрать', 'Отказ', 'Не пришел на собес'] }
+    ];
+
+    const crmFilters = {
+      q: '',
+      platform: '',
+      onlyProblems: false,
+      onlyUrgent: false,
+      noEnding: false,
+      pipeline: ''
+    };
+
+    function getStatusTone(status) {
+      const s = String(status || '').trim().toLowerCase();
+      if (s.includes('работает') || s.includes('принятый')) return 'green';
+      if (s.includes('изучает')) return 'blue';
+      if (s.includes('ждет тест') || s.includes('тест')) return 'yellow';
+      if (s.includes('собесед') || s.includes('отписал')) return 'orange';
+      if (s.includes('нет ответа')) return 'gray';
+      if (s.includes('уволен') || s.includes('не рассчитан') || s.includes('убрать') || s.includes('отказ') || s.includes('не пришел')) return 'red';
+      return 'gray';
+    }
+
+    function getStatusBadgeClass(status) {
+      return `badge-${getStatusTone(status)}`;
+    }
+
+    function getNextAction(item) {
+      const status = String(item.status || '').trim();
+      if (status === 'Ждет собеседования' || status === 'Собеседование' || status === 'Отписал') return '⚡ Провести собеседование';
+      if (status === 'Изучает гайд') return '⚡ Проверить прохождение гайда';
+      if (status === 'Ждет тест' || status === 'Тест смена') return '⚡ Назначить тест смену';
+      if (status === 'Верификация') return '⚡ Завершить верификацию';
+      if (status === 'Ожидание старта') return '⚡ Выдать доступы и назначить старт';
+      if (status === 'Работает' && !item.transactionEnding) return '⚡ Назначить цент / ending';
+      if (status === 'Хочу взять') return '⚡ Перевести в следующий этап';
+      if (status === 'Лист ожидания') return '⚡ Следить за освобождением мест';
+      return '';
+    }
+
+    function isProblemItem(item) {
+      const status = String(item.status || '').trim();
+      if (!status) return true;
+      if ((status === 'Работает' || status === 'Принятый') && !String(item.transactionEnding || '').trim()) return true;
+      if (!String(item.platform || '').trim()) return true;
+      return false;
+    }
+
+    function applyCrmFilters(items) {
+      let out = [...items];
+      if (crmFilters.q) {
+        const q = crmFilters.q.toLowerCase();
+        out = out.filter(item => {
+          const hay = [item.name, item.telegram, item.username, item.status, item.platform].join(' ').toLowerCase();
+          return hay.includes(q);
+        });
+      }
+      if (crmFilters.platform) {
+        out = out.filter(item => String(item.platform || '').toLowerCase().includes(crmFilters.platform));
+      }
+      if (crmFilters.pipeline) {
+        const group = CRM_STATUS_GROUPS.find(x => x.key === crmFilters.pipeline);
+        if (group) out = out.filter(item => group.values.includes(item.status));
+      }
+      if (crmFilters.noEnding) {
+        out = out.filter(item => !String(item.transactionEnding || '').trim());
+      }
+      if (crmFilters.onlyProblems) {
+        out = out.filter(isProblemItem);
+      }
+      return out;
+    }
+
+    function renderPipelineBlock(items, containerId = 'pipeline') {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      el.innerHTML = CRM_STATUS_GROUPS.map(group => {
+        const count = items.filter(item => group.values.includes(item.status)).length;
+        return `
+          <div class="pipeline-item ${crmFilters.pipeline === group.key ? 'active' : ''}"
+               onclick="setCrmPipeline('${group.key}')">
+            <div class="pipeline-label">${group.label}</div>
+            <div class="pipeline-count">${count}</div>
+          </div>`;
+      }).join('');
+    }
+
+    function setCrmPipeline(key) {
+      crmFilters.pipeline = crmFilters.pipeline === key ? '' : key;
+      rerenderCrmPage();
+    }
+
+    function setCrmPlatform(platform) {
+      crmFilters.platform = crmFilters.platform === platform ? '' : platform;
+      rerenderCrmPage();
+    }
+
+    function toggleCrmFilter(name) {
+      crmFilters[name] = !crmFilters[name];
+      rerenderCrmPage();
+    }
+
+    window.setCrmPipeline = setCrmPipeline;
+    window.setCrmPlatform = setCrmPlatform;
+    window.toggleCrmFilter = toggleCrmFilter;
+
+    function syncCrmItems() {
+      allCrmItems = allCandidates.map(c => ({
+        id: c.id,
+        name: c.name,
+        telegram: c.tg,
+        username: c.tg,
+        status: c.status,
+        platform: c.platforms,
+        transactionEnding: ''
+      }));
+    }
+
+    function rerenderCrmPage() {
+      const searchEl = document.getElementById('crmSearch');
+      if (searchEl) crmFilters.q = String(searchEl.value || '').trim();
+
+      renderPipelineBlock(allCrmItems);
+
+      document.getElementById('filterOfBtn')?.classList.toggle('active', crmFilters.platform === 'onlyfans');
+      document.getElementById('filterFanslyBtn')?.classList.toggle('active', crmFilters.platform === 'fansly');
+      document.getElementById('filterProblemsBtn')?.classList.toggle('active', crmFilters.onlyProblems);
+      document.getElementById('filterNoEndingBtn')?.classList.toggle('active', crmFilters.noEnding);
+
+      const filtered = applyCrmFilters(allCrmItems);
+      const filteredIds = new Set(filtered.map(x => x.id));
+      const candidateRows = allCandidates.filter(c => filteredIds.has(c.id));
+      render(candidateRows);
+    }
+
+    document.getElementById('crmSearch')?.addEventListener('input', () => {
+      crmFilters.q = document.getElementById('crmSearch').value.trim();
+      rerenderCrmPage();
+    });
+
+    window.rerenderCrmPage = rerenderCrmPage;
+    /* ─── конец CRM JS ─────────────────────────────────────────── */
+
 
     async function loadStatusOptions() {
       const res = await api('/api/status-options');
@@ -960,7 +1283,8 @@
       }));
 
       renderStats();
-      render();
+      syncCrmItems();
+      rerenderCrmPage();
     }
 
     async function saveInterviewRow(rowNumber) {
@@ -1040,16 +1364,26 @@
       }, 2000);
     }
 
-    function render() {
-      const rows = getFiltered();
+    function render(items) {
+      const rows = items !== undefined ? items : getFiltered();
 
       if (!rows.length) {
         grid.innerHTML = `<div class="empty">Собеседований по текущим фильтрам не найдено</div>`;
         return;
       }
 
-      grid.innerHTML = rows.map(candidate => `
-        <article class="card card-status ${getStatusClass(candidate.status)}">
+      grid.innerHTML = rows.map(candidate => {
+        const crmItem = {
+          id: candidate.id,
+          name: candidate.name,
+          telegram: candidate.tg,
+          username: candidate.tg,
+          status: candidate.status,
+          platform: candidate.platforms,
+          transactionEnding: ''
+        };
+        return `
+        <article class="card card-status ${getStatusClass(candidate.status)} ${isProblemItem(crmItem) ? 'crm-problem' : ''}">
           <div class="card-head">
             <div class="card-main">
               <div class="avatar">${initials(candidate.name || '')}</div>
@@ -1065,6 +1399,25 @@
           </div>
 
           <div class="card-body">
+            <div class="crm-card-top">
+              <div>
+                <div class="candidate-name">${escapeHtml(candidate.name || 'Без имени')}</div>
+                <div class="candidate-telegram">${escapeHtml(candidate.tg || '—')}</div>
+              </div>
+              <div class="card-status-badge ${getStatusBadgeClass(candidate.status)}">
+                ${escapeHtml(candidate.status || 'Без статуса')}
+              </div>
+            </div>
+
+            <div class="crm-next-action">
+              ${getNextAction(crmItem) || '⚡ Действие не требуется'}
+            </div>
+
+            <div class="crm-meta-hints">
+              ${candidate.platforms ? `<div class="crm-hint">${escapeHtml(candidate.platforms)}</div>` : ''}
+              ${isProblemItem(crmItem) ? `<div class="crm-hint">Проблемный кейс</div>` : ''}
+            </div>
+
             <div class="row">
               <span class="badge ${statusBadge(candidate.status || '')}">${escapeHtml(candidate.status || 'Без статуса')}</span>
               ${candidate.platforms ? `<span class="badge blue">${escapeHtml(candidate.platforms)}</span>` : ''}
@@ -1154,25 +1507,25 @@
                 <button class="q-btn red" onclick="quickSetStatus(${candidate.id}, 'Отказ')">Отказ</button>
                 <button class="q-btn yellow" onclick="quickSetStatus(${candidate.id}, 'Тест смена')">Тест</button>
               </div>
-
-              <div class="actions">
-                <button class="action-btn" onclick="saveInterviewRow(${candidate.id})">Сохранить</button>
-                <button class="action-btn" onclick="sendInterviewNotification(${candidate.id})">Отправить уведомление</button>
-                <button class="action-btn" onclick="startInterview(${candidate.id})">Провести собеседование</button>
-                <button class="action-btn" onclick="location.href='/candidate.html?id=${candidate.id}'">Открыть</button>
-              </div>
-
-              <div class="save-state" id="save-state-${candidate.id}"></div>
             </div>
+
+            <div class="actions">
+              <button class="action-btn" onclick="saveInterviewRow(${candidate.id})">Сохранить</button>
+              <button class="action-btn" onclick="sendInterviewNotification(${candidate.id})">Отправить уведомление</button>
+              <button class="action-btn" onclick="startInterview(${candidate.id})">Провести собеседование</button>
+              <button class="action-btn" onclick="location.href='/candidate.html?id=${candidate.id}'">Открыть</button>
+            </div>
+
+            <div class="save-state" id="save-state-${candidate.id}"></div>
           </div>
         </article>
-      `).join('');
+      `}).join('');
     }
 
-    searchInput.addEventListener('input', render);
-    statusFilter.addEventListener('change', render);
-    dateFilter.addEventListener('change', render);
-    experienceFilter.addEventListener('change', render);
+    searchInput.addEventListener('input', rerenderCrmPage);
+    statusFilter.addEventListener('change', rerenderCrmPage);
+    dateFilter.addEventListener('change', rerenderCrmPage);
+    experienceFilter.addEventListener('change', rerenderCrmPage);
     refreshBtn.addEventListener('click', loadCandidates);
 
     window.saveInterviewRow = saveInterviewRow;
