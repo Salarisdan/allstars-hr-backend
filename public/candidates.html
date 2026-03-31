@@ -843,7 +843,9 @@
       transition:.15s;
     }
 
-    .crm-filter-btn:hover{color:var(--text);}
+      .crm-filter-btn:hover{
+        color:var(--text);
+      }
 
     .crm-filter-btn.active{
       background:var(--accent-bg);
@@ -883,7 +885,10 @@
       margin-bottom:6px;
     }
 
-    .pipeline-count{font-size:22px;font-weight:800;}
+    .pipeline-count{
+      font-size:22px;
+      font-weight:800;
+    }
 
     .card-status-badge{
       display:inline-flex;
@@ -896,12 +901,50 @@
       border:1px solid transparent;
     }
 
-    .badge-green{background:rgba(34,197,94,.14);color:#86efac;border-color:rgba(34,197,94,.24);}
-    .badge-blue{background:rgba(79,110,247,.14);color:#9db2ff;border-color:rgba(79,110,247,.24);}
-    .badge-yellow{background:rgba(251,191,36,.14);color:#fde68a;border-color:rgba(251,191,36,.24);}
-    .badge-orange{background:rgba(245,158,11,.14);color:#fdba74;border-color:rgba(245,158,11,.24);}
-    .badge-red{background:rgba(248,113,113,.14);color:#fca5a5;border-color:rgba(248,113,113,.24);}
-    .badge-gray{background:rgba(255,255,255,.08);color:#cbd5e1;border-color:rgba(255,255,255,.12);}
+    .badge-green{
+      background:rgba(34,197,94,.14);
+      color:#86efac;
+      border-color:rgba(34,197,94,.24);
+    }
+
+    .badge-blue{
+      background:rgba(79,110,247,.14);
+      color:#9db2ff;
+      border-color:rgba(79,110,247,.24);
+    }
+
+    .badge-yellow{
+      background:rgba(251,191,36,.14);
+      color:#fde68a;
+      border-color:rgba(251,191,36,.24);
+    }
+
+    .badge-orange{
+      background:rgba(245,158,11,.14);
+      color:#fdba74;
+      border-color:rgba(245,158,11,.24);
+    }
+
+    .badge-red{
+      background:rgba(248,113,113,.14);
+      color:#fca5a5;
+      border-color:rgba(248,113,113,.24);
+    }
+
+    .badge-gray{
+      background:rgba(255,255,255,.08);
+      color:#cbd5e1;
+      border-color:rgba(255,255,255,.12);
+    }
+
+    .crm-card-top{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
 
     .crm-next-action{
       margin-top:10px;
@@ -913,14 +956,6 @@
     .crm-problem{
       border-color:rgba(248,113,113,.24) !important;
       box-shadow:inset 0 0 0 1px rgba(248,113,113,.08), var(--shadow);
-    }
-
-    .crm-card-top{
-      display:flex;
-      justify-content:space-between;
-      gap:10px;
-      align-items:flex-start;
-      flex-wrap:wrap;
     }
 
     .crm-meta-hints{
@@ -945,22 +980,35 @@
 
     .quick-actions{
       display:flex;
+      gap:8px;
       flex-wrap:wrap;
-      gap:6px;
-      margin-top:8px;
+      margin-top:12px;
+    }
+
+    .quick-btn{
+      border:none;
+      background:var(--surface3);
+      border:1px solid var(--border);
+      color:var(--text2);
+      padding:.55rem .8rem;
+      border-radius:10px;
+      cursor:pointer;
+      font-family:'Manrope',sans-serif;
+      font-weight:800;
+      font-size:11px;
     }
 
     .q-btn{
-      font-size:11px;
-      padding:5px 9px;
-      border-radius:8px;
-      border:1px solid var(--border);
+      border:none;
       background:var(--surface3);
+      border:1px solid var(--border);
       color:var(--text2);
+      padding:.55rem .8rem;
+      border-radius:10px;
       cursor:pointer;
-      transition:.15s;
       font-family:'Manrope',sans-serif;
-      font-weight:700;
+      font-weight:800;
+      font-size:11px;
     }
 
     .q-btn:hover{color:var(--text);border-color:var(--accent-border);}
@@ -1032,16 +1080,14 @@
         </select>
       </div>
 
-      <div class="crm-hint" style="margin-bottom:12px;">
-        Здесь ты видишь активную воронку кандидатов в обработке. Нажми на этап сверху, чтобы быстро отфильтровать нужных людей.
-      </div>
-
       <div class="sticky-tools">
         <div class="tools-card">
+          <div class="crm-hint" style="margin-bottom:12px;">
+            Здесь видна воронка кандидатов. Нажми на этап сверху, чтобы быстро отфильтровать нужных людей.
+          </div>
+
           <div class="tools-row">
             <input id="crmSearch" class="crm-search" placeholder="Поиск по имени, Telegram, статусу..." />
-            <button class="crm-filter-btn" id="filterOfBtn" type="button" onclick="setCrmPlatform('onlyfans')">OnlyFans</button>
-            <button class="crm-filter-btn" id="filterFanslyBtn" type="button" onclick="setCrmPlatform('fansly')">Fansly</button>
             <button class="crm-filter-btn" id="filterProblemsBtn" type="button" onclick="toggleCrmFilter('onlyProblems')">Проблемные</button>
             <button class="crm-filter-btn" id="filterNoEndingBtn" type="button" onclick="toggleCrmFilter('noEnding')">Без ending</button>
           </div>
@@ -1165,9 +1211,7 @@
 
     const crmFilters = {
       q: '',
-      platform: '',
       onlyProblems: false,
-      onlyUrgent: false,
       noEnding: false,
       pipeline: ''
     };
@@ -1193,18 +1237,14 @@
       if (status === 'Изучает гайд') return '⚡ Проверить прохождение гайда';
       if (status === 'Ждет тест' || status === 'Тест смена') return '⚡ Назначить тест смену';
       if (status === 'Верификация') return '⚡ Завершить верификацию';
-      if (status === 'Ожидание старта') return '⚡ Выдать доступы и назначить старт';
-      if (status === 'Работает' && !item.transactionEnding) return '⚡ Назначить цент / ending';
+      if (status === 'Ожидание старта') return '⚡ Подготовить старт';
       if (status === 'Хочу взять') return '⚡ Перевести в следующий этап';
-      if (status === 'Лист ожидания') return '⚡ Следить за освобождением мест';
       return '';
     }
 
     function isProblemItem(item) {
       const status = String(item.status || '').trim();
       if (!status) return true;
-      if ((status === 'Работает' || status === 'Принятый') && !String(item.transactionEnding || '').trim()) return true;
-      if (!String(item.platform || '').trim()) return true;
       return false;
     }
 
@@ -1213,28 +1253,33 @@
       if (crmFilters.q) {
         const q = crmFilters.q.toLowerCase();
         out = out.filter(item => {
-          const hay = [item.name, item.telegram, item.username, item.status, item.platform].join(' ').toLowerCase();
+          const hay = [
+            item.name,
+            item.telegram,
+            item.tg,
+            item.username,
+            item.status
+          ].join(' ').toLowerCase();
           return hay.includes(q);
         });
       }
-      if (crmFilters.platform) {
-        out = out.filter(item => String(item.platform || '').toLowerCase().includes(crmFilters.platform));
-      }
       if (crmFilters.pipeline) {
         const group = CRM_STATUS_GROUPS.find(x => x.key === crmFilters.pipeline);
-        if (group) out = out.filter(item => group.values.includes(item.status));
-      }
-      if (crmFilters.noEnding) {
-        out = out.filter(item => !String(item.transactionEnding || '').trim());
+        if (group) {
+          out = out.filter(item => group.values.includes(item.status));
+        }
       }
       if (crmFilters.onlyProblems) {
         out = out.filter(isProblemItem);
       }
+      if (crmFilters.noEnding) {
+        out = out.filter(item => !String(item.transactionEnding || '').trim());
+      }
       return out;
     }
 
-    function renderPipelineBlock(items, containerId = 'pipeline') {
-      const el = document.getElementById(containerId);
+    function renderPipelineBlock(items) {
+      const el = document.getElementById('pipeline');
       if (!el) return;
       el.innerHTML = CRM_STATUS_GROUPS.map(group => {
         const count = items.filter(item => group.values.includes(item.status)).length;
@@ -1243,17 +1288,13 @@
                onclick="setCrmPipeline('${group.key}')">
             <div class="pipeline-label">${group.label}</div>
             <div class="pipeline-count">${count}</div>
-          </div>`;
+          </div>
+        `;
       }).join('');
     }
 
     function setCrmPipeline(key) {
       crmFilters.pipeline = crmFilters.pipeline === key ? '' : key;
-      rerenderCrmPage();
-    }
-
-    function setCrmPlatform(platform) {
-      crmFilters.platform = crmFilters.platform === platform ? '' : platform;
       rerenderCrmPage();
     }
 
@@ -1263,54 +1304,44 @@
     }
 
     window.setCrmPipeline = setCrmPipeline;
-    window.setCrmPlatform = setCrmPlatform;
     window.toggleCrmFilter = toggleCrmFilter;
 
-    function syncCrmItems() {
-      allCrmItems = allCandidates.map(c => ({
-        ...c,
-        telegram: c.tg,
-        username: c.tg,
-        platform: c.platforms,
-        transactionEnding: ''
-      }));
-    }
-
-    function toCrmItem(candidate) {
-      return {
-        id: candidate.id,
-        name: candidate.name,
-        telegram: candidate.tg,
-        username: candidate.tg,
-        status: candidate.status,
-        platform: candidate.platforms,
-        transactionEnding: ''
-      };
+    function updateCrmFilterButtons() {
+      document.getElementById('filterProblemsBtn')?.classList.toggle('active', crmFilters.onlyProblems);
+      document.getElementById('filterNoEndingBtn')?.classList.toggle('active', crmFilters.noEnding);
     }
 
     async function quickSetStatus(id, status) {
-      await changeStatus(id, status);
+      const res = await api(`/candidates/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || 'Не удалось обновить статус');
+        return;
+      }
+
+      const item = allCrmItems.find(x => Number(x.id) === Number(id));
+      if (item) item.status = status;
+
+      rerenderCrmPage();
     }
 
     function rerenderCrmPage() {
       const searchEl = document.getElementById('crmSearch');
       if (searchEl) crmFilters.q = String(searchEl.value || '').trim();
 
-      renderPipelineBlock(allCrmItems);
-
-      document.getElementById('filterOfBtn')?.classList.toggle('active', crmFilters.platform === 'onlyfans');
-      document.getElementById('filterFanslyBtn')?.classList.toggle('active', crmFilters.platform === 'fansly');
-      document.getElementById('filterProblemsBtn')?.classList.toggle('active', crmFilters.onlyProblems);
-      document.getElementById('filterNoEndingBtn')?.classList.toggle('active', crmFilters.noEnding);
-
       const filtered = applyCrmFilters(allCrmItems);
-      const filteredIds = new Set(filtered.map(x => x.id));
-      const candidateRows = allCandidates.filter(c => filteredIds.has(c.id));
-      render(candidateRows);
+
+      renderPipelineBlock(allCrmItems);
+      updateCrmFilterButtons();
+
+      render(filtered);
     }
 
     document.getElementById('crmSearch')?.addEventListener('input', () => {
-      crmFilters.q = document.getElementById('crmSearch').value.trim();
       rerenderCrmPage();
     });
 
@@ -1524,7 +1555,7 @@
       const res = await api('/candidates');
       if (!res.ok) throw new Error('Не удалось загрузить кандидатов');
       allCandidates = await res.json();
-      syncCrmItems();
+      allCrmItems = Array.isArray(allCandidates) ? allCandidates : [];
       renderStats();
       rerenderCrmPage();
     }
@@ -1842,10 +1873,9 @@
       grid.innerHTML = rows.map(candidate => {
         const verdict = verdictMeta(Number(candidate.total || 0));
         const pipeline = pipelineMeta(candidate.source || '');
-        const crmItem = toCrmItem(candidate);
 
         return `
-          <article class="cand ${isProblemItem(crmItem) ? 'crm-problem' : ''}">
+          <article class="cand candidate-card ${isProblemItem(candidate) ? 'crm-problem' : ''}">
             <div class="cand-head">
               <div class="cand-main">
                 <div class="avatar">${initials(candidate.name || '')}</div>
@@ -1867,20 +1897,21 @@
               <div class="crm-card-top">
                 <div>
                   <div class="candidate-name">${escapeHtml(candidate.name || 'Без имени')}</div>
-                  <div class="candidate-telegram">${escapeHtml(candidate.tg || '—')}</div>
+                  <div class="candidate-telegram">${escapeHtml(candidate.telegram || candidate.tg || candidate.username || '—')}</div>
                 </div>
+
                 <div class="card-status-badge ${getStatusBadgeClass(candidate.status)}">
                   ${escapeHtml(candidate.status || 'Без статуса')}
                 </div>
               </div>
 
               <div class="crm-next-action">
-                ${getNextAction(crmItem) || '⚡ Действие не требуется'}
+                ${getNextAction(candidate) || '⚡ Действие не требуется'}
               </div>
 
               <div class="crm-meta-hints">
-                ${candidate.platforms ? `<div class="crm-hint">${escapeHtml(candidate.platforms)}</div>` : ''}
-                ${isProblemItem(crmItem) ? `<div class="crm-hint">Проблемный кейс</div>` : ''}
+                ${(candidate.platform || candidate.platforms) ? `<div class="crm-hint">${escapeHtml(candidate.platform || candidate.platforms)}</div>` : ''}
+                ${isProblemItem(candidate) ? `<div class="crm-hint">Проблемный кейс</div>` : ''}
               </div>
 
               <div class="row">
@@ -1931,10 +1962,10 @@
               </div>
 
               <div class="quick-actions">
-                <button class="q-btn" onclick="quickSetStatus(${candidate.id}, 'Ждет собеседования')">Собес</button>
-                <button class="q-btn" onclick="quickSetStatus(${candidate.id}, 'Изучает гайд')">Гайд</button>
-                <button class="q-btn" onclick="quickSetStatus(${candidate.id}, 'Тест смена')">Тест</button>
-                <button class="q-btn" onclick="quickSetStatus(${candidate.id}, 'Работает')">Работает</button>
+                <button class="quick-btn" type="button" onclick="quickSetStatus(${candidate.id}, 'Ждет собеседования')">Собес</button>
+                <button class="quick-btn" type="button" onclick="quickSetStatus(${candidate.id}, 'Изучает гайд')">Гайд</button>
+                <button class="quick-btn" type="button" onclick="quickSetStatus(${candidate.id}, 'Тест смена')">Тест</button>
+                <button class="quick-btn" type="button" onclick="quickSetStatus(${candidate.id}, 'Работает')">Работает</button>
               </div>
 
               <div id="details-${candidate.id}" hidden></div>
