@@ -217,6 +217,50 @@
       overflow:hidden;
     }
 
+    .interviews-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+      gap:14px;
+    }
+
+    .interview-card{
+      background:linear-gradient(180deg,#232840,#1b1f2c);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:1rem;
+      box-shadow:var(--shadow);
+    }
+
+    .interview-card.status-green{
+      background:linear-gradient(180deg, rgba(34,197,94,.14), #1b1f2c);
+      border-color:rgba(34,197,94,.28);
+    }
+
+    .interview-card.status-blue{
+      background:linear-gradient(180deg, rgba(79,110,247,.14), #1b1f2c);
+      border-color:rgba(79,110,247,.28);
+    }
+
+    .interview-card.status-yellow{
+      background:linear-gradient(180deg, rgba(251,191,36,.14), #1b1f2c);
+      border-color:rgba(251,191,36,.28);
+    }
+
+    .interview-card.status-orange{
+      background:linear-gradient(180deg, rgba(245,158,11,.14), #1b1f2c);
+      border-color:rgba(245,158,11,.28);
+    }
+
+    .interview-card.status-red{
+      background:linear-gradient(180deg, rgba(248,113,113,.14), #1b1f2c);
+      border-color:rgba(248,113,113,.28);
+    }
+
+    .interview-card.status-gray{
+      background:linear-gradient(180deg, rgba(148,163,184,.12), #1b1f2c);
+      border-color:rgba(148,163,184,.22);
+    }
+
     .card-status{
       border:1px solid var(--border);
       position:relative;
@@ -829,7 +873,9 @@
         </div>
       </div>
 
-      <div class="grid" id="grid"></div>
+      <div id="content">
+        <div class="loading">Загружаем собеседования...</div>
+      </div>
     </main>
   </div>
 
@@ -838,12 +884,6 @@
     const token = localStorage.getItem(tokenKey);
     if (!token) location.href = '/login.html';
 
-    const stats = document.getElementById('stats');
-    const grid = document.getElementById('grid');
-    const searchInput = document.getElementById('searchInput');
-    const statusFilter = document.getElementById('statusFilter');
-    const dateFilter = document.getElementById('dateFilter');
-    const experienceFilter = document.getElementById('experienceFilter');
     const refreshBtn = document.getElementById('refreshBtn');
 
     let allCandidates = [];
@@ -1432,135 +1472,36 @@
     }
 
     function render(items) {
-      const rows = items !== undefined ? items : getFiltered();
+      const content = document.getElementById('content');
+      if (!content) return;
 
-      if (!rows.length) {
-        grid.innerHTML = `<div class="empty">Собеседований по текущим фильтрам не найдено</div>`;
+      if (!Array.isArray(items) || !items.length) {
+        content.innerHTML = `<div class="empty-state">Собеседований по этому фильтру нет</div>`;
         return;
       }
 
-      grid.innerHTML = rows.map(item => {
-        item.telegram = item.telegram || item.tg || item.username || '';
-        item.interviewer = item.interviewer || item.owner_name || '';
-
-        return `
-        <article class="card card-status interview-card ${getInterviewCardClass(item.status)}">
-          <div class="card-head">
-            <div class="card-main">
-              <div class="avatar">${initials(item.name || '')}</div>
-              <div>
-                <div class="name">${escapeHtml(item.name || 'Без имени')}</div>
-                <div style="margin-top:4px;">
-                  ${getExperienceBadge(item.exp)}
-                </div>
-                <div class="tg">${escapeHtml(item.tg || '—')}</div>
-                <div class="sub">Дата заявки: ${escapeHtml(item.created_at || '—')}</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card-body">
-            <div class="crm-card-top">
-              <div>
-                <div class="candidate-name">${escapeHtml(item.name || 'Без имени')}</div>
-                <div class="candidate-telegram">${escapeHtml(item.telegram || item.tg || item.username || '—')}</div>
-              </div>
-
-              <div class="card-status-badge ${getStatusBadgeClass(item.status)}">
-                ${escapeHtml(item.status || 'Без статуса')}
-              </div>
-            </div>
-
-            <div class="crm-next-action">
-              ${getNextAction(item) || '⚡ Действие не требуется'}
-            </div>
-
-            <div class="crm-meta-hints">
-              ${item.interview_date ? `<div class="crm-hint">Дата: ${escapeHtml(item.interview_date)}</div>` : ''}
-              ${item.interviewer ? `<div class="crm-hint">Интервьюер: ${escapeHtml(item.interviewer)}</div>` : ''}
-              ${isProblemItem(item) ? `<div class="crm-hint">Проблемный кейс</div>` : ''}
-            </div>
-
-            <div class="row">
-              <span class="badge ${statusBadge(item.status || '')}">${escapeHtml(item.status || 'Без статуса')}</span>
-              ${item.platforms ? `<span class="badge blue">${escapeHtml(item.platforms)}</span>` : ''}
-              ${item.shift ? `<span class="badge purple">${escapeHtml(item.shift)}</span>` : ''}
-              ${item.english ? `<span class="badge yellow">${escapeHtml(item.english)}</span>` : ''}
-            </div>
-
-            <div class="meta-grid">
-              <div class="meta">
-                <div class="k">Дата заявки</div>
-                <div class="v">${escapeHtml(item.created_at || '—')}</div>
-              </div>
-              <div class="meta">
-                <div class="k">Опыт</div>
-                <div class="v">${escapeHtml(item.exp || '—')}</div>
-              </div>
-              <div class="meta">
-                <div class="k">Средний чек</div>
-                <div class="v">${escapeHtml(item.avg_check || '—')}</div>
-              </div>
-              <div class="meta">
-                <div class="k">Владелец</div>
-                <div class="v">${escapeHtml(item.owner_name || '—')}</div>
-              </div>
-              <div class="meta">
-                <div class="k">Балл</div>
-                <div class="v">${escapeHtml(String(item.total || 0))} / 50</div>
-              </div>
-            </div>
-
-            <div class="schedule-box">
-              <div class="schedule-grid-3">
+      content.innerHTML = `
+        <div class="interviews-grid">
+          ${items.map(item => `
+            <div class="interview-card ${getInterviewCardClass(item.status)}">
+              <div class="crm-card-top">
                 <div>
-                  <div class="small-label">Статус</div>
-                  <select class="input" id="status-${item.id}">
-                    ${buildInterviewStatusOptions(item.status)}
-                  </select>
+                  <div class="candidate-name">${escapeHtml(item.name || 'Без имени')}</div>
+                  <div class="candidate-telegram">${escapeHtml(item.telegram || item.tg || item.username || '—')}</div>
                 </div>
 
-                <div>
-                  <div class="small-label">Дата собеседования</div>
-                  <input
-                    class="input"
-                    type="date"
-                    id="date-${item.id}"
-                    value="${toDateInputValue(item.interview_date)}"
-                  />
-                </div>
-
-                <div>
-                  <div class="small-label">Время</div>
-                  <input
-                    class="input"
-                    type="time"
-                    id="time-${item.id}"
-                    value="${escapeHtml(item.interview_time || '')}"
-                  />
+                <div class="card-status-badge ${getStatusBadgeClass(item.status)}">
+                  ${escapeHtml(item.status || 'Без статуса')}
                 </div>
               </div>
 
-              <div class="schedule-grid">
-                <div>
-                  <div class="small-label">Кто проводит</div>
-                  <input
-                    class="input"
-                    id="interviewer-${item.id}"
-                    placeholder="Имя HR / интервьюера"
-                    value="${escapeHtml(item.owner_name || '')}"
-                  />
-                </div>
+              <div class="crm-next-action">
+                ${getNextAction(item) || '⚡ Действие не требуется'}
+              </div>
 
-                <div>
-                  <div class="small-label">Комментарий</div>
-                  <input
-                    class="input"
-                    id="comments-${item.id}"
-                    placeholder="Комментарий по заявке / собеседованию"
-                    value="${escapeHtml(item.notes || '')}"
-                  />
-                </div>
+              <div class="crm-meta-hints">
+                ${item.interview_date ? `<div class="crm-hint">Дата: ${escapeHtml(item.interview_date)}</div>` : ''}
+                ${item.interviewer ? `<div class="crm-hint">Интервьюер: ${escapeHtml(item.interviewer)}</div>` : ''}
               </div>
 
               <div class="quick-actions">
@@ -1570,24 +1511,12 @@
                 <button class="quick-btn" type="button" onclick="quickSetInterviewStatus(${item.id}, 'Отказ')">Отказ</button>
               </div>
             </div>
-
-            <div class="actions">
-              <button class="action-btn" onclick="saveInterviewRow(${item.id})">Сохранить</button>
-              <button class="action-btn" onclick="sendInterviewNotification(${item.id})">Отправить уведомление</button>
-              <button class="action-btn" onclick="startInterview(${item.id})">Провести собеседование</button>
-              <button class="action-btn" onclick="location.href='/candidate.html?id=${item.id}'">Открыть</button>
-            </div>
-
-            <div class="save-state" id="save-state-${item.id}"></div>
-          </div>
-        </article>
-      `}).join('');
+          `).join('')}
+        </div>
+      `;
     }
 
     searchInput.addEventListener('input', rerenderCrmPage);
-    statusFilter.addEventListener('change', rerenderCrmPage);
-    dateFilter.addEventListener('change', rerenderCrmPage);
-    experienceFilter.addEventListener('change', rerenderCrmPage);
     refreshBtn.addEventListener('click', loadCandidates);
 
     window.saveInterviewRow = saveInterviewRow;
@@ -1656,7 +1585,8 @@
 
     initInterviewsPage().catch(err => {
       console.error(err);
-      grid.innerHTML = `<div class="empty">Не удалось загрузить страницу собеседований</div>`;
+      const content = document.getElementById('content');
+      if (content) content.innerHTML = `<div class="empty-state">Не удалось загрузить страницу собеседований</div>`;
     });
   </script>
 </body>
