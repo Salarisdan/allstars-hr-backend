@@ -1516,8 +1516,9 @@
       `;
     }
 
-    searchInput.addEventListener('input', rerenderCrmPage);
-    refreshBtn.addEventListener('click', loadCandidates);
+    document.getElementById('crmSearch')?.addEventListener('input', () => {
+      rerenderCrmPage();
+    });
 
     window.saveInterviewRow = saveInterviewRow;
     window.sendInterviewNotification = sendInterviewNotification;
