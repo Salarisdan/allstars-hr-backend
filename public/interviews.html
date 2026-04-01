@@ -823,6 +823,135 @@
       font-weight:800;
       font-size:11px;
     }
+
+    .modal-overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(10,12,18,.66);
+      backdrop-filter:blur(4px);
+      z-index:70;
+      display:none;
+      align-items:flex-start;
+      justify-content:center;
+      padding:24px 14px;
+    }
+
+    .modal-overlay.show{
+      display:flex;
+    }
+
+    .modal-sheet{
+      width:min(980px,100%);
+      max-height:90vh;
+      background:linear-gradient(180deg,#1b1f2c,#141720);
+      border:1px solid var(--border2);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .modal-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:1rem;
+      border-bottom:1px solid var(--border);
+    }
+
+    .modal-title{
+      font-size:18px;
+      font-weight:800;
+      letter-spacing:-.02em;
+    }
+
+    .modal-close{
+      border:none;
+      background:var(--surface3);
+      border:1px solid var(--border);
+      color:var(--text2);
+      padding:.55rem .8rem;
+      border-radius:10px;
+      cursor:pointer;
+      font-family:'Manrope',sans-serif;
+      font-weight:800;
+      font-size:12px;
+    }
+
+    .modal-body{
+      padding:1rem;
+      overflow:auto;
+      max-height:calc(90vh - 78px);
+    }
+
+    .interview-view-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:14px;
+    }
+
+    .interview-view-field{
+      background:linear-gradient(180deg,#232840,#1b1f2c);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:1rem;
+      min-width:0;
+    }
+
+    .interview-view-field.full{
+      grid-column:1 / -1;
+    }
+
+    .interview-view-label{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:var(--text3);
+      font-weight:800;
+      margin-bottom:8px;
+    }
+
+    .interview-view-value{
+      color:var(--text);
+      font-size:14px;
+      line-height:1.5;
+      word-break:break-word;
+    }
+
+    .interview-view-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:16px;
+    }
+
+    .interview-main-btn{
+      border:none;
+      cursor:pointer;
+      border-radius:12px;
+      padding:.8rem 1rem;
+      font-family:'Manrope',sans-serif;
+      font-weight:800;
+      font-size:13px;
+    }
+
+    .interview-main-btn.primary{
+      background:var(--accent-bg);
+      border:1px solid var(--accent-border);
+      color:var(--accent2);
+    }
+
+    .interview-main-btn.secondary{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      color:var(--text2);
+    }
+
+    @media (max-width:920px){
+      .interview-view-grid{
+        grid-template-columns:1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -877,6 +1006,21 @@
         <div class="loading">Загружаем собеседования...</div>
       </div>
     </main>
+  </div>
+
+  <div class="modal-overlay" id="interviewCardOverlay" onclick="closeInterviewCard(event)">
+    <div class="modal-sheet" style="width:min(980px,100%); max-height:90vh;">
+      <div class="modal-head">
+        <div class="modal-title" id="interviewCardTitle">Карточка кандидата</div>
+        <button class="modal-close" type="button" onclick="forceCloseInterviewCard()">Закрыть</button>
+      </div>
+
+      <div class="modal-body" style="overflow:auto; max-height:calc(90vh - 78px);">
+        <div id="interviewCardContent">
+          <div class="loading">Загружаем данные...</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -1256,29 +1400,35 @@
       const res = await api('/api/interviews');
       if (!res.ok) throw new Error('Не удалось загрузить заявки из таблицы');
 
-      const rows = await res.json();
+      const allInterviews = await res.json();
 
-      allCandidates = rows.map(x => ({
-        id: x.row_number,
-        name: x.name || '',
-        tg: x.telegram_username || '',
-        created_at: x.created_at || '',
-        platforms: x.platform || '',
-        shift: x.shift || '',
-        english: x.english || '',
-        exp: x.experience || '',
-        avg_check: '',
-        owner_name: x.interviewer_name || '',
-        total: 0,
-        notes: x.comments || '',
-        status: x.status || 'Новая заявка',
-        interview_date: x.interview_date || '',
-        interview_time: x.interview_time || '',
-        telegram_user_id: x.telegram_user_id || '',
-        source: x.source || ''
+      allCrmItems = (Array.isArray(allInterviews) ? allInterviews : []).map(item => ({
+        ...item,
+        id: item.id || item.row_number,
+        name: item.name || '',
+        telegram: item.telegram || item.telegram_username || item.tg || item.username || '',
+        tg: item.tg || item.telegram_username || item.telegram || '',
+        username: item.username || item.telegram_username || '',
+        phone: item.phone || '',
+        age: item.age || '',
+        city: item.city || '',
+        country: item.country || '',
+        platform: item.platform || item.platforms || '',
+        platforms: item.platforms || item.platform || '',
+        status: item.status || '',
+        interview_date: item.interview_date || '',
+        interviewer: item.interviewer || item.interviewer_name || item.owner_name || '',
+        owner_name: item.owner_name || item.interviewer_name || item.interviewer || '',
+        notes: item.notes || item.comments || '',
+        interview_time: item.interview_time || '',
+        shift: item.shift || '',
+        english: item.english || '',
+        exp: item.exp || item.experience || '',
+        created_at: item.created_at || '',
+        source: item.source || ''
       }));
 
-      allCrmItems = Array.isArray(allCandidates) ? allCandidates : [];
+      allCandidates = [...allCrmItems];
       rerenderCrmPage();
     }
 
@@ -1371,7 +1521,7 @@
       content.innerHTML = `
         <div class="interviews-grid">
           ${items.map(item => `
-            <div class="interview-card ${getInterviewCardClass(item.status)}">
+            <div class="interview-card ${getInterviewCardClass(item.status)}" onclick="openInterviewCard(${item.id})">
               <div class="crm-card-top">
                 <div>
                   <div class="candidate-name">${escapeHtml(item.name || 'Без имени')}</div>
@@ -1445,6 +1595,113 @@
       window.location.href = '/index.html';
     }
 
+    function findInterviewItemById(id) {
+      return allCrmItems.find(x => Number(x.id) === Number(id)) || null;
+    }
+
+    function renderInterviewCardModal(item) {
+      const content = document.getElementById('interviewCardContent');
+      const title = document.getElementById('interviewCardTitle');
+
+      if (!content || !title) return;
+
+      title.textContent = item.name ? `Карточка — ${item.name}` : 'Карточка кандидата';
+
+      content.innerHTML = `
+        <div class="interview-view-grid">
+          <div class="interview-view-field">
+            <div class="interview-view-label">Имя</div>
+            <div class="interview-view-value">${escapeHtml(item.name || '—')}</div>
+          </div>
+
+          <div class="interview-view-field">
+            <div class="interview-view-label">Статус</div>
+            <div class="interview-view-value">
+              <span class="card-status-badge ${getStatusBadgeClass(item.status)}">
+                ${escapeHtml(item.status || 'Без статуса')}
+              </span>
+            </div>
+          </div>
+
+          <div class="interview-view-field">
+            <div class="interview-view-label">Telegram / username</div>
+            <div class="interview-view-value">${escapeHtml(item.telegram || item.tg || item.username || '—')}</div>
+          </div>
+
+          <div class="interview-view-field">
+            <div class="interview-view-label">Платформа</div>
+            <div class="interview-view-value">${escapeHtml(item.platform || item.platforms || '—')}</div>
+          </div>
+
+          <div class="interview-view-field">
+            <div class="interview-view-label">Телефон</div>
+            <div class="interview-view-value">${escapeHtml(item.phone || '—')}</div>
+          </div>
+
+          <div class="interview-view-field">
+            <div class="interview-view-label">Возраст</div>
+            <div class="interview-view-value">${escapeHtml(item.age || '—')}</div>
+          </div>
+
+          <div class="interview-view-field">
+            <div class="interview-view-label">Город</div>
+            <div class="interview-view-value">${escapeHtml(item.city || '—')}</div>
+          </div>
+
+          <div class="interview-view-field">
+            <div class="interview-view-label">Страна</div>
+            <div class="interview-view-value">${escapeHtml(item.country || '—')}</div>
+          </div>
+
+          <div class="interview-view-field">
+            <div class="interview-view-label">Дата собеседования</div>
+            <div class="interview-view-value">${escapeHtml(item.interview_date || '—')}</div>
+          </div>
+
+          <div class="interview-view-field">
+            <div class="interview-view-label">Кто проводит</div>
+            <div class="interview-view-value">${escapeHtml(item.interviewer || item.owner_name || '—')}</div>
+          </div>
+
+          <div class="interview-view-field full">
+            <div class="interview-view-label">Заметки</div>
+            <div class="interview-view-value">${escapeHtml(item.notes || '—')}</div>
+          </div>
+        </div>
+
+        <div class="interview-view-actions">
+          <button class="interview-main-btn primary" type="button" onclick="startInterviewFromCard(${item.id})">
+            Провести собеседование
+          </button>
+
+          <button class="interview-main-btn secondary" type="button" onclick="forceCloseInterviewCard()">
+            Закрыть
+          </button>
+        </div>
+      `;
+    }
+
+    function openInterviewCard(id) {
+      const item = findInterviewItemById(id);
+      if (!item) {
+        alert('Не удалось найти карточку кандидата');
+        return;
+      }
+
+      renderInterviewCardModal(item);
+      document.getElementById('interviewCardOverlay')?.classList.add('show');
+    }
+
+    function closeInterviewCard(event) {
+      if (event.target.id === 'interviewCardOverlay') {
+        forceCloseInterviewCard();
+      }
+    }
+
+    function forceCloseInterviewCard() {
+      document.getElementById('interviewCardOverlay')?.classList.remove('show');
+    }
+
     async function quickSetStatus(rowNumber, status) {
       const statusEl = document.getElementById(`status-${rowNumber}`);
       if (statusEl) {
@@ -1496,6 +1753,9 @@
     window.quickSetStatus = quickSetStatus;
     window.quickSetInterviewStatus = quickSetInterviewStatus;
     window.startInterviewFromCard = startInterviewFromCard;
+    window.openInterviewCard = openInterviewCard;
+    window.closeInterviewCard = closeInterviewCard;
+    window.forceCloseInterviewCard = forceCloseInterviewCard;
 
     async function initInterviewsPage() {
       await loadStatusOptions();
