@@ -1050,14 +1050,6 @@
       }
 
       STATUS_OPTIONS = Array.isArray(data.interviews) ? data.interviews : [];
-      renderInterviewStatusFilter();
-    }
-
-    function renderInterviewStatusFilter() {
-      statusFilter.innerHTML = `
-        <option value="">Все статусы</option>
-        ${STATUS_OPTIONS.map(status => `<option value="${escapeHtml(status)}">${escapeHtml(status)}</option>`).join('')}
-      `;
     }
 
     function buildInterviewStatusOptions(currentStatus) {
@@ -1260,109 +1252,6 @@
       return '';
     }
 
-    function renderStats() {
-      const total = allCandidates.length;
-      const interview = allCandidates.filter(x => x.status === 'Собеседование').length;
-      const noShow = allCandidates.filter(x => x.status === 'Не пришел на собес').length;
-      const rejected = allCandidates.filter(x => x.status === 'Отказ').length;
-      const test = allCandidates.filter(x => x.status === 'Тест смена').length;
-      const guide = allCandidates.filter(x => x.status === 'Изучает гайд').length;
-
-      document.getElementById('stat-total').textContent = total;
-      document.getElementById('stat-interview').textContent = interview;
-      document.getElementById('stat-no-show').textContent = noShow;
-      document.getElementById('stat-rejected').textContent = rejected;
-      document.getElementById('stat-test').textContent = test;
-      document.getElementById('stat-guide').textContent = guide;
-    }
-
-    function parseCandidateDate(value) {
-      const s = String(value || '').trim();
-      if (!s) return 0;
-
-      // Формат: 22.03.2026 14:55 или 22.03.2026 9:58
-      let m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:[ ,]+(\d{1,2}):(\d{2}))?$/);
-      if (m) {
-        const [, dd, mm, yyyy, hh = '00', min = '00'] = m;
-        return new Date(
-          `${yyyy}-${mm}-${dd}T${String(hh).padStart(2, '0')}:${String(min).padStart(2, '0')}:00`
-        ).getTime();
-      }
-
-      const native = Date.parse(s);
-      return Number.isNaN(native) ? 0 : native;
-    }
-
-    function getFiltered() {
-      let rows = [...allCandidates];
-      const q = searchInput.value.trim().toLowerCase();
-      const status = statusFilter.value;
-      const interviewDate = dateFilter.value;
-      const expMode = experienceFilter.value;
-
-      if (q) {
-        rows = rows.filter(x => {
-          const hay = [
-            x.name,
-            x.tg,
-            x.platforms,
-            x.shift,
-            x.english,
-            x.notes,
-            x.status,
-            x.owner_name,
-            x.interview_date,
-            x.interview_time,
-            x.created_at,
-            x.exp
-          ].join(' ').toLowerCase();
-
-          return hay.includes(q);
-        });
-      }
-
-      if (status) {
-        rows = rows.filter(x => (x.status || '') === status);
-      }
-
-      if (interviewDate) {
-        const normalizeToInputDate = (value) => {
-          const s = String(value || '').trim();
-          if (!s) return '';
-
-          if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-
-          const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-          if (m) {
-            const [, dd, mm, yyyy] = m;
-            return `${yyyy}-${mm}-${dd}`;
-          }
-
-          return '';
-        };
-
-        rows = rows.filter(x => normalizeToInputDate(x.interview_date) === interviewDate);
-      }
-
-      if (expMode === 'no_exp') {
-        rows = rows.filter(x => isNoExperience(x.exp));
-      }
-
-      if (expMode === 'has_exp') {
-        rows = rows.filter(x => hasExperience(x.exp));
-      }
-
-      // Новые заявки сверху
-      rows.sort((a, b) => {
-        const diff = parseCandidateDate(b.created_at) - parseCandidateDate(a.created_at);
-        if (diff !== 0) return diff;
-
-        return Number(b.id || 0) - Number(a.id || 0);
-      });
-
-      return rows;
-    }
-
     async function loadCandidates() {
       const res = await api('/api/interviews');
       if (!res.ok) throw new Error('Не удалось загрузить заявки из таблицы');
@@ -1389,7 +1278,6 @@
         source: x.source || ''
       }));
 
-      renderStats();
       allCrmItems = Array.isArray(allCandidates) ? allCandidates : [];
       rerenderCrmPage();
     }
