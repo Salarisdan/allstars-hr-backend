@@ -1100,11 +1100,6 @@
       color:var(--text2);
     }
 
-    .crm-problem{
-      border-color:rgba(248,113,113,.24) !important;
-      box-shadow:inset 0 0 0 1px rgba(248,113,113,.08), var(--shadow);
-    }
-
     .crm-card-top{
       display:flex;
       justify-content:space-between;
@@ -1259,7 +1254,6 @@
             <input id="crmSearch" class="crm-search" placeholder="Поиск по имени, Telegram, статусу..." />
             <button class="crm-filter-btn" id="filterOfBtn" type="button" onclick="setCrmPlatform('onlyfans')">OnlyFans</button>
             <button class="crm-filter-btn" id="filterFanslyBtn" type="button" onclick="setCrmPlatform('fansly')">Fansly</button>
-            <button class="crm-filter-btn" id="filterProblemsBtn" type="button" onclick="toggleCrmFilter('onlyProblems')">Проблемные</button>
             <button class="crm-filter-btn" id="filterNoEndingBtn" type="button" onclick="toggleCrmFilter('noEnding')">Без ending</button>
           </div>
           <div class="pipeline" id="pipeline"></div>
@@ -1338,20 +1332,23 @@
     let allCrmItems = [];
 
     const CRM_STATUS_GROUPS = [
-      { key: 'no_response', label: 'Нет ответа', values: ['Нет ответа'] },
-      { key: 'interview', label: 'Собеседование', values: ['Ждет собеседования', 'Собеседование', 'Отписал'] },
-      { key: 'guide', label: 'Гайд', values: ['Изучает гайд'] },
-      { key: 'test', label: 'Тест', values: ['Ждет тест', 'Тест смена'] },
-      { key: 'start', label: 'Старт', values: ['Ожидание старта', 'Хочу взять', 'Верификация'] },
-      { key: 'work', label: 'Работает', values: ['Работает', 'Принятый'] },
-      { key: 'fired', label: 'Уволен', values: ['Уволен', 'Не рассчитан', 'Убрать', 'Отказ', 'Не пришел на собес'] }
+      { key: 'Работает', label: 'Работает', values: ['Работает'] },
+      { key: 'Ожидание старта', label: 'Ожидание старта', values: ['Ожидание старта'] },
+      { key: 'Верификация', label: 'Верификация', values: ['Верификация'] },
+      { key: 'Ждет тест', label: 'Ждет тест', values: ['Ждет тест'] },
+      { key: 'Изучает гайд', label: 'Изучает гайд', values: ['Изучает гайд'] },
+      { key: 'Хочу взять', label: 'Хочу взять', values: ['Хочу взять'] },
+      { key: 'Ждет собеседования', label: 'Ждет собеседования', values: ['Ждет собеседования'] },
+      { key: 'Лист ожидания', label: 'Лист ожидания', values: ['Лист ожидания'] },
+      { key: 'Уволен', label: 'Уволен', values: ['Уволен'] },
+      { key: 'Не рассчитан', label: 'Не рассчитан', values: ['Не рассчитан'] },
+      { key: 'Нет ответа', label: 'Нет ответа', values: ['Нет ответа'] },
+      { key: 'Убрать', label: 'Убрать', values: ['Убрать'] }
     ];
 
     const crmFilters = {
       q: '',
       platform: '',
-      onlyProblems: false,
-      onlyUrgent: false,
       noEnding: false,
       pipeline: ''
     };
@@ -1384,14 +1381,6 @@
       return '';
     }
 
-    function isProblemItem(item) {
-      const status = String(item.status || '').trim();
-      if (!status) return true;
-      if ((status === 'Работает' || status === 'Принятый') && !String(item.transactionEnding || '').trim()) return true;
-      if (!String(item.platform || '').trim()) return true;
-      return false;
-    }
-
     function applyCrmFilters(items) {
       let out = [...items];
       if (crmFilters.q) {
@@ -1410,9 +1399,6 @@
       }
       if (crmFilters.noEnding) {
         out = out.filter(item => !String(item.transactionEnding || '').trim());
-      }
-      if (crmFilters.onlyProblems) {
-        out = out.filter(isProblemItem);
       }
       return out;
     }
@@ -1474,7 +1460,6 @@
     function updateCrmFilterButtons() {
       document.getElementById('filterOfBtn')?.classList.toggle('active', crmFilters.platform === 'onlyfans');
       document.getElementById('filterFanslyBtn')?.classList.toggle('active', crmFilters.platform === 'fansly');
-      document.getElementById('filterProblemsBtn')?.classList.toggle('active', crmFilters.onlyProblems);
       document.getElementById('filterNoEndingBtn')?.classList.toggle('active', crmFilters.noEnding);
     }
 
@@ -1504,20 +1489,20 @@
             }
 
             return `
-              <div class="member-card ${platformCardClass} ${isProblemItem(item) ? 'crm-problem' : ''}" onclick="openMemberEditor(${item.row_number})">
+              <div class="member-card ${platformCardClass}" onclick="openMemberEditor(${item.row_number})">
                 <div class="crm-card-top">
                   <div>
                     <div class="member-name">
-                      ${escapeHtml(item.name || 'Без имени')}
+                      ${item.name || 'Без имени'}
                       ${platformBadge}
                     </div>
                     <div class="member-meta">
-                      <div>${escapeHtml(item.telegram || '—')}</div>
+                      <div>${item.telegram || '—'}</div>
                     </div>
                   </div>
 
                   <div class="card-status-badge ${getStatusBadgeClass(item.status)}">
-                    ${escapeHtml(item.status || 'Без статуса')}
+                    ${item.status || 'Без статуса'}
                   </div>
                 </div>
 
@@ -1526,8 +1511,8 @@
                 </div>
 
                 <div class="crm-meta-hints">
-                  ${item.transactionEnding ? `<div class="crm-hint">Цент: ${escapeHtml(item.transactionEnding)}</div>` : `<div class="crm-hint">Без ending</div>`}
-                  ${isProblemItem(item) ? `<div class="crm-hint">Проблемный кейс</div>` : ''}
+                  ${item.transactionEnding ? `<div class="crm-hint">Цент: ${item.transactionEnding}</div>` : `<div class="crm-hint">Без ending</div>`}
+                  ${item.platform ? `<div class="crm-hint">${item.platform}</div>` : ''}
                 </div>
 
                 <div class="quick-actions">
@@ -1550,7 +1535,7 @@
         return;
       }
       crmGrid.innerHTML = items.map(item => `
-        <div class="crm-member-card ${isProblemItem(item) ? 'crm-problem' : ''}" onclick="openMemberEditor(${item.id})">
+        <div class="crm-member-card" onclick="openMemberEditor(${item.id})">
           <div class="crm-card-top">
             <div>
               <div class="candidate-name">${escapeHtml(item.name || 'Без имени')}</div>
@@ -1568,7 +1553,6 @@
           <div class="crm-meta-hints">
             ${item.platform ? `<div class="crm-hint">${escapeHtml(item.platform)}</div>` : ''}
             ${item.transactionEnding ? `<div class="crm-hint">Цент: ${escapeHtml(item.transactionEnding)}</div>` : `<div class="crm-hint">Без ending</div>`}
-            ${isProblemItem(item) ? `<div class="crm-hint">Проблемный кейс</div>` : ''}
           </div>
 
           <div class="crm-quick-actions" onclick="event.stopPropagation()">
@@ -1595,16 +1579,17 @@
     async function loadAllCrmMembers() {
       const res = await api('/api/team-all-members');
       if (!res.ok) return;
-      const data = await res.json().catch(() => []);
-      allCrmItems = (Array.isArray(data) ? data : []).map(m => ({
-        id: m.row_number,
-        row_number: m.row_number,
-        name: m.name,
-        telegram: m.telegram,
-        username: m.telegram,
-        status: m.status,
-        platform: m.platform,
-        transactionEnding: m.transactionEnding || ''
+      const allCandidates = await res.json().catch(() => []);
+      allCrmItems = (Array.isArray(allCandidates) ? allCandidates : []).map(item => ({
+        ...item,
+        id: item.row_number,
+        row_number: item.row_number,
+        name: item.name || '',
+        telegram: item.telegram || '',
+        username: item.telegram || '',
+        status: item.status || item.hr_status || item['Актуальный статус кандидата (Hr)'] || '',
+        platform: item.platform || '',
+        transactionEnding: item.transactionEnding || item['Transaction ending'] || ''
       }));
       rerenderCrmPage();
     }
@@ -2103,6 +2088,7 @@
         return;
       }
 
+      await loadUsedTransactionEndings();
       await openTransactionEndingModal();
     }
 
@@ -2930,6 +2916,11 @@
           return;
         }
 
+        await loadUsedTransactionEndings();
+        if (document.getElementById('transactionEndingModal')?.classList.contains('show')) {
+          await openTransactionEndingModal();
+        }
+
         if (statusEl) setAutosaveStatus(statusEl, 'Сохранено', 'ok');
       }, 700);
     }
@@ -2996,6 +2987,11 @@
       if (!res.ok) {
         alert(data.error || 'Не удалось сохранить сотрудника');
         return;
+      }
+
+      await loadUsedTransactionEndings();
+      if (document.getElementById('transactionEndingModal')?.classList.contains('show')) {
+        await openTransactionEndingModal();
       }
 
       alert('Сохранено');
