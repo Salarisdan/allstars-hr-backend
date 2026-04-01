@@ -253,57 +253,6 @@
       }
     }
 
-    .details-card{
-      background:var(--surface2);
-      border:1px solid var(--border);
-      border-radius:18px;
-      box-shadow:var(--shadow);
-      padding:1rem;
-      margin-top:18px;
-    }
-
-    .details-title{
-      font-size:18px;
-      font-weight:800;
-      margin-bottom:12px;
-    }
-
-    .details-grid{
-      display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:10px;
-    }
-
-    .detail-item{
-      background:var(--surface3);
-      border:1px solid var(--border);
-      border-radius:14px;
-      padding:.9rem;
-    }
-
-    .detail-name{
-      font-size:13px;
-      font-weight:800;
-      margin-bottom:8px;
-    }
-
-    .detail-meta{
-      color:var(--text2);
-      font-size:12px;
-    }
-
-    @media (max-width:1100px){
-      .details-grid{
-        grid-template-columns:repeat(2,minmax(0,1fr));
-      }
-    }
-
-    @media (max-width:920px){
-      .details-grid{
-        grid-template-columns:1fr;
-      }
-    }
-
     .detail-item{
       background:var(--surface3);
       border:1px solid var(--border);
@@ -698,21 +647,6 @@
       z-index:35;
       background:#171b28;
       border:1px solid var(--border);
-      border-radius:12px;
-      box-shadow:0 16px 40px rgba(0,0,0,.4);
-      padding:8px;
-      display:none;
-      max-height:280px;
-      overflow:auto;
-    }
-
-    .editor-multiselect.open .editor-multiselect-menu{
-      display:block;
-    }
-
-    .editor-dropdown-btn{
-      width:100%;
-      background:#0f1220;
       border:1px solid var(--border);
       border-radius:10px;
       color:var(--text);
@@ -1227,6 +1161,40 @@
       margin-top:10px;
     }
 
+    .quick-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-top:12px;
+    }
+
+    .quick-btn{
+      font-size:11px;
+      padding:5px 9px;
+      border-radius:8px;
+      border:1px solid var(--border);
+      background:var(--surface3);
+      color:var(--text2);
+      cursor:pointer;
+      transition:.15s;
+      font-family:'Manrope',sans-serif;
+      font-weight:700;
+    }
+
+    .quick-btn:hover{
+      color:var(--text);
+      border-color:var(--accent-border);
+    }
+
+    .empty-state{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:1rem;
+      color:var(--text2);
+      box-shadow:var(--shadow);
+    }
+
     .crm-q-btn{
       font-size:11px;
       padding:5px 9px;
@@ -1497,6 +1465,84 @@
 
     window.teamQuickSetStatus = teamQuickSetStatus;
 
+    async function quickSetTeamStatus(rowNumber, status) {
+      await teamQuickSetStatus(rowNumber, status);
+    }
+
+    window.quickSetTeamStatus = quickSetTeamStatus;
+
+    function updateCrmFilterButtons() {
+      document.getElementById('filterOfBtn')?.classList.toggle('active', crmFilters.platform === 'onlyfans');
+      document.getElementById('filterFanslyBtn')?.classList.toggle('active', crmFilters.platform === 'fansly');
+      document.getElementById('filterProblemsBtn')?.classList.toggle('active', crmFilters.onlyProblems);
+      document.getElementById('filterNoEndingBtn')?.classList.toggle('active', crmFilters.noEnding);
+    }
+
+    function renderTeamCards(items) {
+      const el = document.getElementById('teamCards');
+      if (!el) return;
+
+      if (!items.length) {
+        el.innerHTML = `<div class="empty-state">По этому фильтру сотрудников нет</div>`;
+        return;
+      }
+
+      el.innerHTML = `
+        <div class="member-grid">
+          ${items.map(item => {
+            const platform = String(item.platform || '').toLowerCase();
+
+            let platformBadge = '';
+            let platformCardClass = '';
+
+            if (platform.includes('onlyfans')) {
+              platformBadge = `<span class="badge-platform badge-of">OnlyFans</span>`;
+              platformCardClass = 'platform-onlyfans';
+            } else if (platform.includes('fansly')) {
+              platformBadge = `<span class="badge-platform badge-fansly">Fansly</span>`;
+              platformCardClass = 'platform-fansly';
+            }
+
+            return `
+              <div class="member-card ${platformCardClass} ${isProblemItem(item) ? 'crm-problem' : ''}" onclick="openMemberEditor(${item.row_number})">
+                <div class="crm-card-top">
+                  <div>
+                    <div class="member-name">
+                      ${escapeHtml(item.name || 'Без имени')}
+                      ${platformBadge}
+                    </div>
+                    <div class="member-meta">
+                      <div>${escapeHtml(item.telegram || '—')}</div>
+                    </div>
+                  </div>
+
+                  <div class="card-status-badge ${getStatusBadgeClass(item.status)}">
+                    ${escapeHtml(item.status || 'Без статуса')}
+                  </div>
+                </div>
+
+                <div class="crm-next-action">
+                  ${getNextAction(item) || '⚡ Действие не требуется'}
+                </div>
+
+                <div class="crm-meta-hints">
+                  ${item.transactionEnding ? `<div class="crm-hint">Цент: ${escapeHtml(item.transactionEnding)}</div>` : `<div class="crm-hint">Без ending</div>`}
+                  ${isProblemItem(item) ? `<div class="crm-hint">Проблемный кейс</div>` : ''}
+                </div>
+
+                <div class="quick-actions">
+                  <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetTeamStatus(${item.row_number}, 'Верификация')">Верификация</button>
+                  <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetTeamStatus(${item.row_number}, 'Ждет тест')">Ждет тест</button>
+                  <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetTeamStatus(${item.row_number}, 'Ожидание старта')">Старт</button>
+                  <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetTeamStatus(${item.row_number}, 'Работает')">Работает</button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
     function renderCrmGrid(items) {
       if (!crmGrid) return;
       if (!items.length) {
@@ -1539,15 +1585,11 @@
       const searchEl = document.getElementById('crmSearch');
       if (searchEl) crmFilters.q = String(searchEl.value || '').trim();
 
-      renderPipelineBlock(allCrmItems);
-
-      document.getElementById('filterOfBtn')?.classList.toggle('active', crmFilters.platform === 'onlyfans');
-      document.getElementById('filterFanslyBtn')?.classList.toggle('active', crmFilters.platform === 'fansly');
-      document.getElementById('filterProblemsBtn')?.classList.toggle('active', crmFilters.onlyProblems);
-      document.getElementById('filterNoEndingBtn')?.classList.toggle('active', crmFilters.noEnding);
-
       const filtered = applyCrmFilters(allCrmItems);
-      renderCrmGrid(filtered);
+
+      renderPipelineBlock(allCrmItems);
+      updateCrmFilterButtons();
+      renderTeamCards(filtered);
     }
 
     async function loadAllCrmMembers() {
@@ -1556,6 +1598,7 @@
       const data = await res.json().catch(() => []);
       allCrmItems = (Array.isArray(data) ? data : []).map(m => ({
         id: m.row_number,
+        row_number: m.row_number,
         name: m.name,
         telegram: m.telegram,
         username: m.telegram,
@@ -1675,8 +1718,6 @@
     function renderTeamStats(data) {
       currentTeamStatsData = data;
 
-      const filteredData = filterStatusesByPlatform(data);
-
       content.innerHTML = `
         <section class="hero-stats">
           <div class="stat-card">
@@ -1719,21 +1760,7 @@
           </div>
         </section>
 
-        <section class="details-card">
-          <div class="details-title">Разбивка по текущим статусам</div>
-          <div class="details-grid">
-            ${(filteredData.statuses || []).map(item => `
-              <div class="detail-item clickable ${getStatusClass(item.name)}" onclick="openStatusMembers('${String(item.name).replaceAll("'", "\\'")}')">
-                <div class="detail-top">
-                  <span class="detail-dot"></span>
-                  <div class="detail-name">${escapeHtml(item.name)}</div>
-                </div>
-                <div class="detail-count">${item.count}</div>
-                <div class="detail-meta">${item.platform ? `Платформа: ${item.platform}` : 'Статус сотрудников'}</div>
-              </div>
-            `).join('')}
-          </div>
-        </section>
+        <div id="teamCards" style="margin-top:18px;"></div>
       `;
     }
 
