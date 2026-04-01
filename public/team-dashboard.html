@@ -479,14 +479,22 @@
     .editor-grid{
       display:grid;
       grid-template-columns:repeat(2,minmax(0,1fr));
-      gap:12px;
+      gap:14px;
+      align-items:start;
     }
 
     .editor-field{
-      background:var(--surface3);
+      position:relative;
+      background:linear-gradient(180deg,#232840,#1b1f2c);
       border:1px solid var(--border);
-      border-radius:14px;
-      padding:.9rem;
+      border-radius:16px;
+      padding:1rem;
+      min-width:0;
+      overflow:visible;
+    }
+
+    .editor-field.full{
+      grid-column:1 / -1;
     }
 
     .editor-label{
@@ -495,20 +503,29 @@
       letter-spacing:.08em;
       color:var(--text3);
       font-weight:800;
-      margin-bottom:8px;
+      margin-bottom:10px;
     }
 
     .editor-input,
-    .editor-textarea{
+    .editor-textarea,
+    .editor-select{
       width:100%;
       background:#0f1220;
-      border:1px solid var(--border);
-      border-radius:10px;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;
       color:var(--text);
-      padding:.7rem .8rem;
+      padding:.82rem .9rem;
       font-family:'Manrope',sans-serif;
       font-size:13px;
       outline:none;
+      box-shadow:none;
+    }
+
+    .editor-input:focus,
+    .editor-textarea:focus,
+    .editor-select:focus{
+      border-color:rgba(79,110,247,.32);
+      box-shadow:0 0 0 3px rgba(79,110,247,.10);
     }
 
     .editor-textarea{
@@ -517,15 +534,10 @@
     }
 
     .editor-select{
-      width:100%;
-      background:#0f1220;
-      border:1px solid var(--border);
-      border-radius:10px;
-      color:var(--text);
-      padding:.7rem .8rem;
-      font-family:'Manrope',sans-serif;
-      font-size:13px;
-      outline:none;
+      appearance:none;
+      -webkit-appearance:none;
+      -moz-appearance:none;
+      background-image:none;
     }
 
     .editor-field.transaction-ending-highlight{
@@ -594,97 +606,90 @@
       background:rgba(251,191,36,.18);
     }
 
-    .editor-dropdown{
-      position:relative;
+    .editor-checkbox-wrap{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      background:#0f1220;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;
+      padding:.82rem .9rem;
+      min-height:48px;
     }
 
+    .editor-checkbox-label{
+      color:var(--text2);
+      font-size:13px;
+      font-weight:700;
+    }
+
+    .editor-checkbox{
+      width:18px;
+      height:18px;
+      accent-color:#4f6ef7;
+      cursor:pointer;
+    }
+
+    .editor-dropdown,
     .editor-multiselect{
       position:relative;
+      min-width:0;
     }
 
+    .editor-dropdown-btn,
     .editor-multiselect-btn{
       width:100%;
       min-height:48px;
       background:#0f1220;
-      border:1px solid var(--border);
-      border-radius:10px;
-      color:var(--text);
-      padding:.6rem .75rem;
-      font-family:'Manrope',sans-serif;
-      font-size:13px;
-      cursor:pointer;
-      text-align:left;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-
-    .editor-multiselect-btn::after{
-      content:'▾';
-      color:var(--text3);
-      font-size:12px;
-      align-self:flex-start;
-      margin-top:4px;
-    }
-
-    .editor-multiselect-values{
-      display:flex;
-      flex-wrap:wrap;
-      gap:6px;
-      flex:1;
-    }
-
-    .editor-multiselect-placeholder{
-      color:var(--text3);
-    }
-
-    .editor-multiselect-menu{
-      position:absolute;
-      top:calc(100% + 6px);
-      left:0;
-      right:0;
-      z-index:35;
-      background:#171b28;
-      border:1px solid var(--border);
-      border:1px solid var(--border);
-      border-radius:10px;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;
       color:var(--text);
       padding:.75rem .9rem;
       font-family:'Manrope',sans-serif;
       font-size:13px;
-      outline:none;
       cursor:pointer;
       text-align:left;
       display:flex;
-      align-items:center;
+      align-items:flex-start;
       justify-content:space-between;
       gap:10px;
+      min-width:0;
     }
 
-    .editor-dropdown-btn::after{
+    .editor-dropdown-btn:hover,
+    .editor-multiselect-btn:hover{
+      border-color:rgba(255,255,255,.14);
+    }
+
+    .editor-dropdown-btn::after,
+    .editor-multiselect-btn::after{
       content:'▾';
       color:var(--text3);
       font-size:12px;
+      flex-shrink:0;
+      margin-top:2px;
     }
 
-    .editor-dropdown-menu{
+    .editor-dropdown-menu,
+    .editor-multiselect-menu{
       position:absolute;
-      top:calc(100% + 6px);
+      top:calc(100% + 8px);
       left:0;
       right:0;
-      z-index:30;
+      z-index:100;
       background:#171b28;
-      border:1px solid var(--border);
-      border-radius:12px;
-      box-shadow:0 16px 40px rgba(0,0,0,.4);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;
+      box-shadow:0 18px 46px rgba(0,0,0,.42);
       padding:8px;
       display:none;
       max-height:260px;
       overflow:auto;
     }
 
-    .editor-dropdown.open .editor-dropdown-menu{
+    .editor-dropdown.open .editor-dropdown-menu,
+    .editor-multiselect.open .editor-multiselect-menu{
       display:block;
     }
 
@@ -693,12 +698,13 @@
       align-items:center;
       justify-content:space-between;
       gap:10px;
-      padding:8px 10px;
+      padding:9px 10px;
       border-radius:10px;
       cursor:pointer;
       color:var(--text2);
       font-size:13px;
       transition:.12s;
+      min-width:0;
     }
 
     .editor-option:hover{
@@ -715,6 +721,7 @@
       color:var(--accent2);
       font-size:12px;
       visibility:hidden;
+      flex-shrink:0;
     }
 
     .editor-option.active .editor-option-check{
@@ -725,11 +732,26 @@
       display:inline-flex;
       align-items:center;
       gap:6px;
-      padding:4px 10px;
+      padding:5px 10px;
       border-radius:999px;
       font-size:12px;
-      font-weight:700;
+      font-weight:800;
       border:1px solid transparent;
+      max-width:100%;
+      white-space:nowrap;
+    }
+
+    .editor-multiselect-values{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      flex:1;
+      min-width:0;
+    }
+
+    .editor-multiselect-placeholder{
+      color:var(--text3);
+      line-height:1.4;
     }
 
     .chip-green{
@@ -768,33 +790,10 @@
       border-color:rgba(255,255,255,.1);
     }
 
-    .editor-checkbox-wrap{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      background:#0f1220;
-      border:1px solid var(--border);
-      border-radius:10px;
-      padding:.75rem .9rem;
-      min-height:44px;
-    }
-
-    .editor-checkbox-label{
-      color:var(--text2);
-      font-size:13px;
-      font-weight:600;
-    }
-
-    .editor-checkbox{
-      width:18px;
-      height:18px;
-      accent-color:#4f6ef7;
-      cursor:pointer;
-    }
-
-    .editor-field.full{
-      grid-column:1 / -1;
+    .chip-orange{
+      background:rgba(245,158,11,.15);
+      color:#fdba74;
+      border-color:rgba(245,158,11,.25);
     }
 
     @media (max-width:920px){
@@ -1291,18 +1290,19 @@
       </div>
 
       <div class="modal-overlay" id="memberEditorOverlay" onclick="closeMemberEditor(event)">
-        <div class="modal-sheet" style="width:min(1100px,100%); max-height:90vh;">
+        <div class="modal-sheet" style="width:min(1100px,100%); max-height:90vh; overflow:visible;">
           <div class="modal-head">
             <div class="modal-title" id="memberEditorTitle">Карточка сотрудника</div>
             <button class="modal-close" type="button" onclick="forceCloseMemberEditor()">Закрыть</button>
           </div>
-          <div class="modal-body">
+
+          <div class="modal-body" style="overflow:auto; max-height:calc(90vh - 78px);">
             <div id="memberEditorContent">
               <div class="loading">Загружаем данные...</div>
             </div>
-            <div class="autosave-status" id="memberEditorSaveStatus"></div>
-            <div style="display:flex; justify-content:flex-end; margin-top:14px; gap:10px;">
-              <button class="modal-btn" id="memberEditorCreateBtn" type="button" onclick="saveMemberEditor()" style="display:none;">Создать сотрудника</button>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; gap:10px; flex-wrap:wrap;">
+              <div class="autosave-status" id="memberEditorSaveStatus"></div>
             </div>
           </div>
         </div>
@@ -2370,10 +2370,18 @@
       }
 
       if (label === 'актуальный статус кандидата (hr)') {
-        if (v.includes('работает') || v.includes('верификация')) return 'chip-green';
-        if (v.includes('уволен') || v.includes('не рассчитан') || v.includes('нет ответа') || v.includes('убрать')) return 'chip-red';
-        if (v.includes('ожидание') || v.includes('ждет')) return 'chip-yellow';
-        if (v.includes('изучает гайд') || v.includes('хочу взять')) return 'chip-blue';
+        if (v.includes('работает')) return 'chip-green';
+        if (v.includes('ожидание старта')) return 'chip-yellow';
+        if (v.includes('верификация')) return 'chip-blue';
+        if (v.includes('ждет тест')) return 'chip-yellow';
+        if (v.includes('изучает гайд')) return 'chip-blue';
+        if (v.includes('хочу взять')) return 'chip-purple';
+        if (v.includes('ждет собеседования')) return 'chip-orange';
+        if (v.includes('лист ожидания')) return 'chip-neutral';
+        if (v.includes('уволен')) return 'chip-red';
+        if (v.includes('не рассчитан')) return 'chip-red';
+        if (v.includes('нет ответа')) return 'chip-red';
+        if (v.includes('убрать')) return 'chip-red';
       }
 
       if (label === 'onlyfans / fansly') {
@@ -2546,9 +2554,9 @@
       content.innerHTML = `
         <div class="editor-grid">
           ${currentMemberFields.map((field, idx) => {
-            const long = isLongField(field.label);
-            const options = getTeamFieldOptions(field.label);
             const isMultiselect = isTeamMultiselectField(field.label);
+            const long = isLongField(field.label) || isMultiselect;
+            const options = getTeamFieldOptions(field.label);
             const isBoolean = isTeamBooleanField(field.label);
             const isTransactionEnding = isTransactionEndingField(field.label);
             const transactionOptions = isTransactionEnding
@@ -2729,9 +2737,9 @@
       content.innerHTML = `
         <div class="editor-grid">
           ${currentMemberFields.map((field, idx) => {
-            const long = isLongField(field.label);
-            const options = getTeamFieldOptions(field.label);
             const isMultiselect = isTeamMultiselectField(field.label);
+            const long = isLongField(field.label) || isMultiselect;
+            const options = getTeamFieldOptions(field.label);
             const isBoolean = isTeamBooleanField(field.label);
             const isTransactionEnding = isTransactionEndingField(field.label);
             const transactionOptions = isTransactionEnding
