@@ -820,6 +820,8 @@
               <span class="mini-note">Заполняется по ходу созвона</span>
             </div>
 
+            <span class="pill" id="interviewSourceBadge" style="display:none;margin-bottom:.9rem;cursor:default;">Кандидат загружен из Собеседований</span>
+
             <div class="stack">
               <div class="grid-2">
                 <div class="field">
@@ -951,7 +953,7 @@
           </section>
         </div>
 
-        <div class="script-wrap">
+        <div class="script-wrap" id="interviewScriptBlock">
           <section class="section" id="opening">
             <div class="section-header">
               <div class="section-num">1</div>
@@ -1293,6 +1295,53 @@
       window.currentInterviewSheetRow = candidate.row_number || null;
     }
 
+    function fillCandidateFromInterviewStorage() {
+      const raw = sessionStorage.getItem('allstars_interview_candidate');
+      if (!raw) return;
+
+      let data = null;
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        return;
+      }
+
+      const setValue = (id, value) => {
+        const el = document.getElementById(id);
+        if (el && value !== undefined && value !== null) {
+          el.value = value;
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      };
+
+      setValue('f-name', data.name || '');
+      setValue('f-tg', data.telegram || data.username || '');
+      setValue('f-age', data.age || '');
+      setValue('f-notes', data.notes || '');
+
+      if (data.platform) {
+        selectSinglePillByValue('pills-platforms', data.platform);
+      }
+
+      const statusSelect = document.getElementById('f-status-select');
+      if (statusSelect && data.status) {
+        const hasOption = [...statusSelect.options].some(option => option.value === data.status);
+        if (hasOption) {
+          statusSelect.value = data.status;
+          statusSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+
+      const sourceBadge = document.getElementById('interviewSourceBadge');
+      if (sourceBadge) {
+        sourceBadge.textContent = 'Кандидат загружен из Собеседований';
+        sourceBadge.style.display = 'inline-flex';
+      }
+
+      sessionStorage.removeItem('allstars_interview_candidate');
+    }
+
     async function generateAISummary() {
       const notes = document.getElementById('f-notes')?.value || '';
       const status = document.getElementById('f-status-select')?.value || '';
@@ -1462,6 +1511,16 @@
     initPills('pills-schedule');
 
     loadCandidateFromSheetRow();
+    fillCandidateFromInterviewStorage();
+
+    if (sessionStorage.getItem('allstars_open_interview_script') === '1') {
+      sessionStorage.removeItem('allstars_open_interview_script');
+
+      const scriptBlock = document.getElementById('interviewScriptBlock');
+      if (scriptBlock) {
+        scriptBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
 
     const criteria = [
       {

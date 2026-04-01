@@ -1393,10 +1393,11 @@
               </div>
 
               <div class="quick-actions">
-                <button class="quick-btn" type="button" onclick="quickSetInterviewStatus(${item.id}, 'Собеседование')">Собес</button>
-                <button class="quick-btn" type="button" onclick="quickSetInterviewStatus(${item.id}, 'Изучает гайд')">Гайд</button>
-                <button class="quick-btn" type="button" onclick="quickSetInterviewStatus(${item.id}, 'Тест смена')">Тест</button>
-                <button class="quick-btn" type="button" onclick="quickSetInterviewStatus(${item.id}, 'Отказ')">Отказ</button>
+                <button class="quick-btn" type="button" onclick="event.stopPropagation(); startInterviewFromCard(${item.id})">Провести собеседование</button>
+                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Собеседование')">Собес</button>
+                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Изучает гайд')">Гайд</button>
+                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Тест смена')">Тест</button>
+                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Отказ')">Отказ</button>
               </div>
             </div>
           `).join('')}
@@ -1414,6 +1415,34 @@
 
     function startInterview(rowNumber) {
       location.href = `/index.html?sheetRow=${rowNumber}`;
+    }
+
+    function startInterviewFromCard(id) {
+      const item = allCrmItems.find(x => Number(x.id) === Number(id));
+      if (!item) {
+        alert('Не удалось найти карточку кандидата');
+        return;
+      }
+
+      const payload = {
+        source: 'interviews',
+        interview_id: item.id,
+        name: item.name || '',
+        telegram: item.telegram || item.tg || item.username || '',
+        username: item.username || '',
+        phone: item.phone || '',
+        age: item.age || '',
+        city: item.city || '',
+        country: item.country || '',
+        platform: item.platform || item.platforms || '',
+        status: item.status || '',
+        notes: item.notes || '',
+        script_mode: 'interview'
+      };
+
+      sessionStorage.setItem('allstars_interview_candidate', JSON.stringify(payload));
+      sessionStorage.setItem('allstars_open_interview_script', '1');
+      window.location.href = '/index.html';
     }
 
     async function quickSetStatus(rowNumber, status) {
@@ -1466,6 +1495,7 @@
 
     window.quickSetStatus = quickSetStatus;
     window.quickSetInterviewStatus = quickSetInterviewStatus;
+    window.startInterviewFromCard = startInterviewFromCard;
 
     async function initInterviewsPage() {
       await loadStatusOptions();
