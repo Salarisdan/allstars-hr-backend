@@ -697,6 +697,36 @@
       box-shadow:inset 0 0 0 1px rgba(248,113,113,.08), var(--shadow);
     }
 
+    .interview-card.status-green{
+      background:linear-gradient(180deg, rgba(34,197,94,.14), #1b1f2c);
+      border-color:rgba(34,197,94,.28);
+    }
+
+    .interview-card.status-blue{
+      background:linear-gradient(180deg, rgba(79,110,247,.14), #1b1f2c);
+      border-color:rgba(79,110,247,.28);
+    }
+
+    .interview-card.status-yellow{
+      background:linear-gradient(180deg, rgba(251,191,36,.14), #1b1f2c);
+      border-color:rgba(251,191,36,.28);
+    }
+
+    .interview-card.status-orange{
+      background:linear-gradient(180deg, rgba(245,158,11,.14), #1b1f2c);
+      border-color:rgba(245,158,11,.28);
+    }
+
+    .interview-card.status-red{
+      background:linear-gradient(180deg, rgba(248,113,113,.14), #1b1f2c);
+      border-color:rgba(248,113,113,.28);
+    }
+
+    .interview-card.status-gray{
+      background:linear-gradient(180deg, rgba(148,163,184,.12), #1b1f2c);
+      border-color:rgba(148,163,184,.22);
+    }
+
     .crm-meta-hints{
       margin-top:10px;
       display:flex;
@@ -782,33 +812,7 @@
         </div>
       </div>
 
-      <div class="stats">
-        <div class="stat"><div class="val" id="stat-total">0</div><div class="label">Всего</div></div>
-        <div class="stat"><div class="val" id="stat-interview">0</div><div class="label">На собеседовании</div></div>
-        <div class="stat"><div class="val" id="stat-guide">0</div><div class="label">Изучает гайд</div></div>
-        <div class="stat"><div class="val" id="stat-test">0</div><div class="label">Тест смена</div></div>
-        <div class="stat"><div class="val" id="stat-no-show">0</div><div class="label">Не пришел</div></div>
-        <div class="stat"><div class="val" id="stat-rejected">0</div><div class="label">Отказ</div></div>
-      </div>
 
-      <div class="toolbar">
-        <input class="search" id="searchInput" placeholder="Поиск по имени, Telegram, платформе, заметкам..." />
-        <input class="input filter-date" type="date" id="dateFilter" />
-        <select class="select" id="statusFilter">
-          <option value="">Все статусы</option>
-          <option value="Отписал">Отписал</option>
-          <option value="Собеседование">Собеседование</option>
-          <option value="Изучает гайд">Изучает гайд</option>
-          <option value="Не пришел на собес">Не пришел на собес</option>
-          <option value="Отказ">Отказ</option>
-          <option value="Тест смена">Тест смена</option>
-        </select>
-        <select class="select" id="experienceFilter">
-          <option value="">Любой опыт</option>
-          <option value="no_exp">Без опыта</option>
-          <option value="has_exp">С опытом</option>
-        </select>
-      </div>
 
       <div class="sticky-tools">
         <div class="tools-card">
@@ -871,10 +875,15 @@
       if (s.includes('изучает')) return 'blue';
       if (s.includes('ждет тест') || s.includes('тест')) return 'yellow';
       if (s.includes('собесед') || s.includes('отписал')) return 'orange';
-      if (s.includes('не пришел') || s.includes('отказ') || s.includes('уволен')) return 'red';
+      if (s.includes('не пришел') || s.includes('отказ') || s.includes('уволен') || s.includes('убрать')) return 'red';
       if (s.includes('нет ответа')) return 'gray';
 
       return 'gray';
+    }
+
+    function getInterviewCardClass(status) {
+      const tone = getStatusTone(status);
+      return `status-${tone}`;
     }
 
     function getStatusBadgeClass(status) {
@@ -1435,7 +1444,7 @@
         item.interviewer = item.interviewer || item.owner_name || '';
 
         return `
-        <article class="card card-status interview-card ${getStatusClass(item.status)} ${isProblemItem(item) ? 'crm-problem' : ''}">
+        <article class="card card-status interview-card ${getInterviewCardClass(item.status)}">
           <div class="card-head">
             <div class="card-main">
               <div class="avatar">${initials(item.name || '')}</div>
