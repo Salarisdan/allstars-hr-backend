@@ -761,6 +761,16 @@ async function initDb() {
 
     ON CONFLICT (platform, model_name) DO NOTHING;
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS transaction_endings (
+      id SERIAL PRIMARY KEY,
+      ending INT UNIQUE NOT NULL,
+      assigned_to TEXT DEFAULT NULL,
+      assigned_user_id INT DEFAULT NULL,
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
 }
 
 function signToken(user) {
@@ -2231,8 +2241,20 @@ app.get('/api/team-all-members', auth, async (req, res) => {
 
 app.get('/api/team-transaction-endings', auth, async (req, res) => {
   try {
-    const data = await readSexterEndingMap();
-    res.json(data);
+    const result = await pool.query(`
+      SELECT * FROM transaction_endings ORDER BY ending ASC
+    `);
+
+    const rows = result.rows || [];
+    const used = rows.filter(x => String(x.assigned_to || '').trim());
+    const free = rows.filter(x => !String(x.assigned_to || '').trim());
+
+    res.json({
+      used,
+      free,
+      used_count: used.length,
+      free_count: free.length
+    });
   } catch (err) {
     console.error('Team transaction endings read error:', err.message);
     res.status(500).json({ error: 'Failed to read transaction endings' });
@@ -2246,6 +2268,86 @@ app.get('/api/sexter-endings', auth, async (req, res) => {
   } catch (err) {
     console.error('Sexter endings read error:', err.message);
     res.status(500).json({ error: 'Failed to read sexter endings' });
+  }
+});
+
+app.post('/api/init-endings', async (req, res) => {
+  try {
+    for (let i = 1; i <= 99; i++) {
+      await pool.query(`
+        INSERT INTO transaction_endings (ending)
+        VALUES ($1)
+        ON CONFLICT (ending) DO NOTHING
+      `, [i]);
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Init endings error:', err.message);
+    res.status(500).json({ error: 'Failed to initialize endings' });
+  }
+});
+
+app.get('/api/endings', auth, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT * FROM transaction_endings ORDER BY ending ASC
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Endings read error:', err.message);
+    res.status(500).json({ error: 'Failed to read endings' });
+  }
+});
+
+app.post('/api/endings/assign', auth, async (req, res) => {
+  try {
+    const { ending, user_id, name } = req.body || {};
+
+    const check = await pool.query(`
+      SELECT * FROM transaction_endings WHERE ending = $1
+    `, [ending]);
+
+    if (!check.rows.length) {
+      return res.status(404).json({ error: 'Ending not found' });
+    }
+
+    if (check.rows[0].assigned_to) {
+      return res.status(400).json({ error: 'Ending already taken' });
+    }
+
+    await pool.query(`
+      UPDATE transaction_endings
+      SET assigned_to = $1,
+          assigned_user_id = $2,
+          updated_at = NOW()
+      WHERE ending = $3
+    `, [String(name || '').trim(), Number(user_id) || null, ending]);
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Ending assign error:', err.message);
+    res.status(500).json({ error: 'Failed to assign ending' });
+  }
+});
+
+app.post('/api/endings/free', auth, async (req, res) => {
+  try {
+    const { ending } = req.body || {};
+
+    await pool.query(`
+      UPDATE transaction_endings
+      SET assigned_to = NULL,
+          assigned_user_id = NULL,
+          updated_at = NOW()
+      WHERE ending = $1
+    `, [ending]);
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Ending free error:', err.message);
+    res.status(500).json({ error: 'Failed to free ending' });
   }
 });
 

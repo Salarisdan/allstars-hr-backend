@@ -918,6 +918,78 @@
       max-height:calc(90vh - 78px);
     }
 
+    .interview-modal-shell{
+      width:min(980px,100%);
+      max-height:90vh;
+    }
+
+    .interview-modal-body{
+      overflow:auto;
+      max-height:calc(90vh - 78px);
+    }
+
+    .interview-editor{
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+
+    .interview-editor-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      padding:14px 16px;
+      border-radius:18px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg,#232840,#1b1f2c);
+      transition:.18s ease;
+    }
+
+    .interview-editor-head.status-green{
+      background:linear-gradient(180deg, rgba(34,197,94,.18), #1b1f2c);
+      border-color:rgba(34,197,94,.28);
+    }
+
+    .interview-editor-head.status-blue{
+      background:linear-gradient(180deg, rgba(79,110,247,.18), #1b1f2c);
+      border-color:rgba(79,110,247,.28);
+    }
+
+    .interview-editor-head.status-yellow{
+      background:linear-gradient(180deg, rgba(251,191,36,.18), #1b1f2c);
+      border-color:rgba(251,191,36,.28);
+    }
+
+    .interview-editor-head.status-orange{
+      background:linear-gradient(180deg, rgba(245,158,11,.18), #1b1f2c);
+      border-color:rgba(245,158,11,.28);
+    }
+
+    .interview-editor-head.status-red{
+      background:linear-gradient(180deg, rgba(248,113,113,.18), #1b1f2c);
+      border-color:rgba(248,113,113,.28);
+    }
+
+    .interview-editor-head.status-gray{
+      background:linear-gradient(180deg, rgba(148,163,184,.14), #1b1f2c);
+      border-color:rgba(148,163,184,.22);
+    }
+
+    .interview-editor-name{
+      font-size:22px;
+      font-weight:800;
+      line-height:1.1;
+      color:var(--text);
+    }
+
+    .interview-editor-sub{
+      margin-top:6px;
+      color:var(--text2);
+      font-size:13px;
+    }
+
     .interview-view-grid{
       display:grid;
       grid-template-columns:repeat(2,minmax(0,1fr));
@@ -945,28 +1017,23 @@
       margin-bottom:8px;
     }
 
-    .interview-view-value{
-      color:var(--text);
-      font-size:14px;
-      line-height:1.5;
-      word-break:break-word;
-    }
-
     .interview-view-actions{
       display:flex;
+      justify-content:flex-end;
       gap:10px;
       flex-wrap:wrap;
-      margin-top:16px;
+      margin-top:4px;
     }
 
     .interview-main-btn{
       border:none;
       cursor:pointer;
       border-radius:12px;
-      padding:.8rem 1rem;
+      padding:.82rem 1rem;
       font-family:'Manrope',sans-serif;
       font-weight:800;
       font-size:13px;
+      transition:.15s;
     }
 
     .interview-main-btn.primary{
@@ -981,9 +1048,51 @@
       color:var(--text2);
     }
 
+    .interview-main-btn:hover{
+      transform:translateY(-1px);
+    }
+
+    .interview-status-select.status-green{
+      border-color:rgba(34,197,94,.28);
+      box-shadow:0 0 0 3px rgba(34,197,94,.08);
+    }
+
+    .interview-status-select.status-blue{
+      border-color:rgba(79,110,247,.28);
+      box-shadow:0 0 0 3px rgba(79,110,247,.08);
+    }
+
+    .interview-status-select.status-yellow{
+      border-color:rgba(251,191,36,.28);
+      box-shadow:0 0 0 3px rgba(251,191,36,.08);
+    }
+
+    .interview-status-select.status-orange{
+      border-color:rgba(245,158,11,.28);
+      box-shadow:0 0 0 3px rgba(245,158,11,.08);
+    }
+
+    .interview-status-select.status-red{
+      border-color:rgba(248,113,113,.28);
+      box-shadow:0 0 0 3px rgba(248,113,113,.08);
+    }
+
+    .interview-status-select.status-gray{
+      border-color:rgba(148,163,184,.22);
+      box-shadow:0 0 0 3px rgba(148,163,184,.06);
+    }
+
     @media (max-width:920px){
       .interview-view-grid{
         grid-template-columns:1fr;
+      }
+
+      .interview-view-actions{
+        justify-content:stretch;
+      }
+
+      .interview-main-btn{
+        width:100%;
       }
     }
   </style>
@@ -1043,13 +1152,13 @@
   </div>
 
   <div class="modal-overlay" id="interviewCardOverlay" onclick="closeInterviewCard(event)">
-    <div class="modal-sheet" style="width:min(980px,100%); max-height:90vh;">
+    <div class="modal-sheet interview-modal-shell">
       <div class="modal-head">
         <div class="modal-title" id="interviewCardTitle">Карточка кандидата</div>
         <button class="modal-close" type="button" onclick="forceCloseInterviewCard()">Закрыть</button>
       </div>
 
-      <div class="modal-body" style="overflow:auto; max-height:calc(90vh - 78px);">
+      <div class="modal-body interview-modal-body">
         <div id="interviewCardContent">
           <div class="loading">Загружаем данные...</div>
         </div>
@@ -1115,9 +1224,8 @@
       if (s.includes('работает') || s.includes('принятый')) return 'green';
       if (s.includes('изучает')) return 'blue';
       if (s.includes('ждет тест') || s.includes('тест')) return 'yellow';
-      if (s.includes('собесед') || s.includes('отписал')) return 'orange';
-      if (s.includes('не пришел') || s.includes('отказ') || s.includes('уволен') || s.includes('убрать')) return 'red';
-      if (s.includes('нет ответа')) return 'gray';
+      if (s.includes('верификация') || s.includes('ожидание старта') || s.includes('хочу взять') || s.includes('собесед')) return 'orange';
+      if (s.includes('уволен') || s.includes('не рассчитан') || s.includes('нет ответа') || s.includes('убрать') || s.includes('отказ')) return 'red';
 
       return 'gray';
     }
@@ -1663,82 +1771,115 @@
 
       if (!content || !title) return;
 
+      const tone = getStatusTone(item.status);
       title.textContent = item.name ? `Карточка — ${item.name}` : 'Карточка кандидата';
 
       content.innerHTML = `
-        <div class="interview-view-grid">
-          <div class="interview-view-field">
-            <div class="interview-view-label">Имя</div>
-            <input class="editor-input" id="iv-name" value="${escapeHtml(item.name || '')}">
-          </input>
+        <div class="interview-editor">
+          <div class="interview-editor-head status-${tone}" id="interviewEditorHead">
+            <div>
+              <div class="interview-editor-name">${escapeHtml(item.name || 'Без имени')}</div>
+              <div class="interview-editor-sub">
+                ${escapeHtml(item.telegram || item.username || '—')}
+              </div>
+            </div>
 
-          <div class="interview-view-field">
-            <div class="interview-view-label">Актуальный статус</div>
-            <select class="editor-select" id="iv-status">
-              ${INTERVIEW_STATUSES.map(status => `
-                <option value="${status}" ${item.status === status ? 'selected' : ''}>
-                  ${status}
-                </option>
-              `).join('')}
-            </select>
+            <div class="card-status-badge ${getStatusBadgeClass(item.status)}" id="interviewStatusBadge">
+              ${escapeHtml(item.status || 'Без статуса')}
+            </div>
           </div>
 
-          <div class="interview-view-field">
-            <div class="interview-view-label">Telegram / username</div>
-            <input class="editor-input" id="iv-telegram" value="${escapeHtml(item.telegram || item.username || '')}">
+          <div class="interview-view-grid">
+            <div class="interview-view-field">
+              <div class="interview-view-label">Имя</div>
+              <input class="editor-input" id="iv-name" value="${escapeHtml(item.name || '')}">
+            </div>
+
+            <div class="interview-view-field">
+              <div class="interview-view-label">Актуальный статус</div>
+              <select class="editor-select interview-status-select status-${tone}" id="iv-status" onchange="previewInterviewStatusColor()">
+                ${INTERVIEW_STATUSES.map(status => `
+                  <option value="${status}" ${item.status === status ? 'selected' : ''}>${status}</option>
+                `).join('')}
+              </select>
+            </div>
+
+            <div class="interview-view-field">
+              <div class="interview-view-label">Telegram / username</div>
+              <input class="editor-input" id="iv-telegram" value="${escapeHtml(item.telegram || item.username || '')}">
+            </div>
+
+            <div class="interview-view-field">
+              <div class="interview-view-label">Возраст</div>
+              <input class="editor-input" id="iv-age" value="${escapeHtml(item.age || '')}">
+            </div>
+
+            <div class="interview-view-field">
+              <div class="interview-view-label">Платформа</div>
+              <input class="editor-input" id="iv-platform" value="${escapeHtml(item.platform || '')}">
+            </div>
+
+            <div class="interview-view-field">
+              <div class="interview-view-label">Топ анкеты</div>
+              <input class="editor-input" id="iv-top-profile" value="${escapeHtml(item.top_profile || '')}">
+            </div>
+
+            <div class="interview-view-field">
+              <div class="interview-view-label">Опыт</div>
+              <input class="editor-input" id="iv-experience" value="${escapeHtml(item.experience || '')}">
+            </div>
+
+            <div class="interview-view-field">
+              <div class="interview-view-label">Выбранная смена</div>
+              <input class="editor-input" id="iv-shift" value="${escapeHtml(item.shift || '')}">
+            </div>
+
+            <div class="interview-view-field">
+              <div class="interview-view-label">Знание английского</div>
+              <input class="editor-input" id="iv-english" value="${escapeHtml(item.english_level || '')}">
+            </div>
+
+            <div class="interview-view-field full">
+              <div class="interview-view-label">Заметки</div>
+              <textarea class="editor-textarea" id="iv-notes">${escapeHtml(item.notes || '')}</textarea>
+            </div>
           </div>
 
-          <div class="interview-view-field">
-            <div class="interview-view-label">Возраст</div>
-            <input class="editor-input" id="iv-age" value="${escapeHtml(item.age || '')}">
+          <div class="interview-view-actions">
+            <button class="interview-main-btn secondary" type="button" onclick="forceCloseInterviewCard()">
+              Закрыть
+            </button>
+
+            <button class="interview-main-btn primary" type="button" onclick="saveInterviewCard(${item.id})">
+              Сохранить изменения
+            </button>
+
+            <button class="interview-main-btn primary" type="button" onclick="startInterviewFromCard(${item.id})">
+              Провести собеседование
+            </button>
           </div>
-
-          <div class="interview-view-field">
-            <div class="interview-view-label">Платформа</div>
-            <input class="editor-input" id="iv-platform" value="${escapeHtml(item.platform || '')}">
-          </div>
-
-          <div class="interview-view-field">
-            <div class="interview-view-label">Топ анкеты</div>
-            <input class="editor-input" id="iv-top-profile" value="${escapeHtml(item.top_profile || '')}">
-          </div>
-
-          <div class="interview-view-field">
-            <div class="interview-view-label">Опыт</div>
-            <input class="editor-input" id="iv-experience" value="${escapeHtml(item.experience || '')}">
-          </div>
-
-          <div class="interview-view-field">
-            <div class="interview-view-label">Выбранная смена</div>
-            <input class="editor-input" id="iv-shift" value="${escapeHtml(item.shift || '')}">
-          </div>
-
-          <div class="interview-view-field">
-            <div class="interview-view-label">Знание английского</div>
-            <input class="editor-input" id="iv-english" value="${escapeHtml(item.english_level || '')}">
-          </div>
-
-          <div class="interview-view-field full">
-            <div class="interview-view-label">Заметки</div>
-            <textarea class="editor-textarea" id="iv-notes">${escapeHtml(item.notes || '')}</textarea>
-          </div>
-        </div>
-
-        <div class="interview-view-actions">
-          <button class="interview-main-btn primary" type="button" onclick="saveInterviewCard(${item.id})">
-            Сохранить изменения
-          </button>
-
-          <button class="interview-main-btn primary" type="button" onclick="startInterviewFromCard(${item.id})">
-            Провести собеседование
-          </button>
-
-          <button class="interview-main-btn secondary" type="button" onclick="forceCloseInterviewCard()">
-            Закрыть
-          </button>
         </div>
       `;
     }
+
+    function previewInterviewStatusColor() {
+      const select = document.getElementById('iv-status');
+      const head = document.getElementById('interviewEditorHead');
+      const badge = document.getElementById('interviewStatusBadge');
+
+      if (!select || !head || !badge) return;
+
+      const status = select.value || '';
+      const tone = getStatusTone(status);
+
+      head.className = `interview-editor-head status-${tone}`;
+      badge.className = `card-status-badge ${getStatusBadgeClass(status)}`;
+      badge.textContent = status || 'Без статуса';
+
+      select.className = `editor-select interview-status-select status-${tone}`;
+    }
+
+    window.previewInterviewStatusColor = previewInterviewStatusColor;
 
     function openInterviewCard(id) {
       const item = findInterviewItemById(id);
