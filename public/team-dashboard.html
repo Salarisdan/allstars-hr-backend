@@ -1455,7 +1455,6 @@
           </select>
 
           <button class="btn" id="transactionEndingBtn" type="button">Центы</button>
-          <button class="btn" id="openEndingsBtn" type="button">Центы</button>
           <button class="btn" id="addEmployeeBtn">Добавить сотрудника</button>
           <button class="btn" id="refreshBtn">Обновить</button>
         </div>
@@ -1526,39 +1525,6 @@
         </div>
       </div>
 
-      <div class="modal-overlay" id="endingsModal" onclick="closeEndingsModal(event)">
-        <div class="modal-sheet endings-sheet">
-          <div class="modal-head">
-            <div class="modal-title">Центы</div>
-            <button class="modal-close" type="button" onclick="forceCloseEndingsModal()">Закрыть</button>
-          </div>
-
-          <div class="modal-body endings-body">
-            <div class="endings-top">
-              <div class="endings-summary" id="endingsSummary"></div>
-
-              <div class="endings-toolbar">
-                <input
-                  id="endingsSearch"
-                  class="endings-search"
-                  placeholder="Поиск по центу или имени..."
-                  oninput="rerenderEndingsModal()"
-                />
-
-                <div class="endings-filters">
-                  <button class="endings-filter-btn active" id="endingsFilterAll" type="button" onclick="setEndingsFilter('all')">Все</button>
-                  <button class="endings-filter-btn" id="endingsFilterFree" type="button" onclick="setEndingsFilter('free')">Свободные</button>
-                  <button class="endings-filter-btn" id="endingsFilterBusy" type="button" onclick="setEndingsFilter('busy')">Занятые</button>
-                </div>
-              </div>
-            </div>
-
-            <div id="endingsGrid" class="endings-grid">
-              <div class="loading">Загружаем центы...</div>
-            </div>
-          </div>
-        </div>
-      </div>
     </main>
   </div>
 
@@ -1582,33 +1548,6 @@
 
     /* ─── CRM JS (общий блок) ──────────────────────────────────── */
     let allCrmItems = [];
-    let endingsData = [];
-    let endingsFilter = 'all';
-    let endings = [];
-    let sexterEndingData = {
-      used: [],
-      free: [],
-      used_count: 0,
-      free_count: 99
-    };
-
-    async function loadSexterEndings() {
-      const res = await api('/api/endings');
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Не удалось загрузить ending');
-      }
-
-      endings = Array.isArray(data) ? data : [];
-
-      sexterEndingData = {
-        used: endings.filter(x => String(x.assigned_to || '').trim()),
-        free: endings.filter(x => !String(x.assigned_to || '').trim()),
-        used_count: endings.filter(x => String(x.assigned_to || '').trim()).length,
-        free_count: endings.filter(x => !String(x.assigned_to || '').trim()).length
-      };
-    }
 
     function normalizePersonKey(value) {
       return String(value || '')
@@ -1627,207 +1566,6 @@
       return x === y || x.startsWith(y) || y.startsWith(x);
     }
 
-    function findSexterEndingForPerson(name) {
-      return sexterEndingData.used.find(item => namesLooselyMatch(name, item.name)) || null;
-    }
-
-    function findEndingForMember(rowNumber, name) {
-      return endings.find(x => Number(x.assigned_user_id) === Number(rowNumber))
-        || endings.find(x => namesLooselyMatch(name, x.assigned_to));
-    }
-
-    let endingsOptionsCache = [];
-
-    async function loadEndingsOptions() {
-      const res = await api('/api/endings');
-      const data = await res.json().catch(() => ([]));
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Не удалось загрузить список центов');
-      }
-
-      endingsOptionsCache = Array.isArray(data) ? data : [];
-    }
-
-    function buildEndingOptions(currentValue) {
-      const current = String(currentValue || '').trim();
-
-      return endingsOptionsCache
-        .filter(item => !item.assigned_to || String(item.ending) === current)
-        .map(item => ({
-          value: String(item.ending),
-          label: item.assigned_to && String(item.ending) === current
-            ? `${item.ending} · текущий`
-            : String(item.ending)
-        }));
-    }
-
-    function setEndingsFilter(mode) {
-      endingsFilter = mode;
-      rerenderEndingsModal();
-    }
-
-    function updateEndingsFilterButtons() {
-      document.getElementById('endingsFilterAll')?.classList.toggle('active', endingsFilter === 'all');
-      document.getElementById('endingsFilterFree')?.classList.toggle('active', endingsFilter === 'free');
-      document.getElementById('endingsFilterBusy')?.classList.toggle('active', endingsFilter === 'busy');
-    }
-
-    async function loadEndingsData() {
-      const res = await api('/api/endings');
-      const data = await res.json().catch(() => ([]));
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Не удалось загрузить центы');
-      }
-
-      endingsData = Array.isArray(data) ? data : [];
-    }
-
-    function renderEndingsSummary(items) {
-      const total = 99;
-      const busy = items.filter(x => x.assigned_to).length;
-      const free = total - busy;
-
-      const el = document.getElementById('endingsSummary');
-      if (!el) return;
-
-      el.innerHTML = `
-        <div class="endings-stat">
-          <div class="endings-stat-k">Всего</div>
-          <div class="endings-stat-v">${total}</div>
-        </div>
-        <div class="endings-stat">
-          <div class="endings-stat-k">Свободно</div>
-          <div class="endings-stat-v">${free}</div>
-        </div>
-        <div class="endings-stat">
-          <div class="endings-stat-k">Занято</div>
-          <div class="endings-stat-v">${busy}</div>
-        </div>
-      `;
-    }
-
-    function rerenderEndingsModal() {
-      const grid = document.getElementById('endingsGrid');
-      const search = String(document.getElementById('endingsSearch')?.value || '').trim().toLowerCase();
-
-      if (!grid) return;
-
-      updateEndingsFilterButtons();
-      renderEndingsSummary(endingsData);
-
-      let items = [...endingsData];
-
-      if (endingsFilter === 'free') {
-        items = items.filter(x => !x.assigned_to);
-      }
-
-      if (endingsFilter === 'busy') {
-        items = items.filter(x => !!x.assigned_to);
-      }
-
-      if (search) {
-        items = items.filter(x => {
-          const hay = [
-            x.ending,
-            x.assigned_to || ''
-          ].join(' ').toLowerCase();
-
-          return hay.includes(search);
-        });
-      }
-
-      if (!items.length) {
-        grid.innerHTML = `<div class="ending-empty">Ничего не найдено</div>`;
-        return;
-      }
-
-      grid.innerHTML = items.map(item => `
-        <div class="ending-card ${item.assigned_to ? 'busy' : 'free'}">
-          <div class="ending-card-head">
-            <div class="ending-number">${item.ending}</div>
-            <div class="ending-badge ${item.assigned_to ? 'busy' : 'free'}">
-              ${item.assigned_to ? 'Занят' : 'Свободен'}
-            </div>
-          </div>
-
-          <div class="ending-meta">
-            ${
-              item.assigned_to
-                ? `<div><strong>Назначен:</strong> ${escapeHtml(item.assigned_to)}</div>`
-                : `<div><strong>Назначен:</strong> —</div>`
-            }
-          </div>
-
-          <div class="ending-actions">
-            ${
-              item.assigned_to
-                ? `<button class="ending-btn clear" type="button" onclick="freeEnding(${item.ending})">Освободить</button>`
-                : `<button class="ending-btn free" type="button" disabled>Свободен</button>`
-            }
-          </div>
-        </div>
-      `).join('');
-    }
-
-    async function openEndingsModal() {
-      const modal = document.getElementById('endingsModal');
-      const grid = document.getElementById('endingsGrid');
-
-      if (grid) {
-        grid.innerHTML = `<div class="loading">Загружаем центы...</div>`;
-      }
-
-      modal?.classList.add('show');
-
-      try {
-        await loadEndingsData();
-        rerenderEndingsModal();
-      } catch (err) {
-        if (grid) {
-          grid.innerHTML = `<div class="ending-empty">${err.message || 'Не удалось загрузить центы'}</div>`;
-        }
-      }
-    }
-
-    function closeEndingsModal(event) {
-      if (event.target.id === 'endingsModal') {
-        forceCloseEndingsModal();
-      }
-    }
-
-    function forceCloseEndingsModal() {
-      document.getElementById('endingsModal')?.classList.remove('show');
-    }
-
-    async function freeEnding(ending) {
-      if (!confirm(`Освободить cent ${ending}?`)) return;
-
-      const res = await api('/api/endings/free', {
-        method: 'POST',
-        body: JSON.stringify({ ending })
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        alert(data.error || 'Не удалось освободить cent');
-        return;
-      }
-
-      await loadEndingsData();
-      await loadSexterEndings();
-      rerenderEndingsModal();
-
-      if (typeof loadAllCrmMembers === 'function') {
-        await loadAllCrmMembers();
-      }
-    }
-
-    function isEndingFreeStatus(status) {
-      const s = String(status || '').trim();
-      return s === 'Уволен' || s === 'Нет ответа' || s === 'Убрать';
-    }
 
     const CRM_STATUS_GROUPS = [
       { key: 'Работает', label: 'Работает', values: ['Работает'] },
@@ -1935,8 +1673,6 @@
     window.toggleCrmFilter = toggleCrmFilter;
 
     async function teamQuickSetStatus(rowNumber, status) {
-      const currentItem = allCrmItems.find(x => Number(x.row_number) === Number(rowNumber));
-
       const res = await api(`/api/team-member/${rowNumber}`, {
         method: 'PATCH',
         body: JSON.stringify({ updates: { 'Актуальный статус кандидата (Hr)': status } })
@@ -1946,15 +1682,6 @@
         alert(err.error || 'Не удалось обновить статус');
         return;
       }
-
-      if (isEndingFreeStatus(status) && currentItem?.transactionEnding) {
-        await api('/api/endings/free', {
-          method: 'POST',
-          body: JSON.stringify({ ending: Number(currentItem.transactionEnding) })
-        });
-      }
-
-      await loadSexterEndings();
       await loadAllCrmMembers();
     }
 
@@ -2089,23 +1816,17 @@
       const res = await api('/api/team-all-members');
       if (!res.ok) return;
       const allCandidates = await res.json().catch(() => []);
-      allCrmItems = (Array.isArray(allCandidates) ? allCandidates : []).map(item => {
-        const matchedEnding = findEndingForMember(item.row_number, item.name || '');
-
-        return {
-          ...item,
-          id: item.row_number,
-          row_number: item.row_number,
-          name: item.name || '',
-          telegram: item.telegram || '',
-          username: item.telegram || '',
-          status: item.status || item.hr_status || item['Актуальный статус кандидата (Hr)'] || '',
-          platform: item.platform || '',
-          transactionEnding: matchedEnding ? String(matchedEnding.ending) : '',
-          transactionEndingRaw: matchedEnding ? matchedEnding.ending_raw : '',
-          transactionEndingOwner: matchedEnding ? matchedEnding.name : ''
-        };
-      });
+      allCrmItems = (Array.isArray(allCandidates) ? allCandidates : []).map(item => ({
+        ...item,
+        id: item.row_number,
+        row_number: item.row_number,
+        name: item.name || '',
+        telegram: item.telegram || '',
+        username: item.telegram || '',
+        status: item.status || item.hr_status || item['Актуальный статус кандидата (Hr)'] || '',
+        platform: item.platform || '',
+        transactionEnding: item.transactionEnding || item['Transaction ending'] || ''
+      }));
       rerenderCrmPage();
     }
 
@@ -2279,7 +2000,7 @@
 
     refreshBtn.addEventListener('click', () => {
       loadTeamStatsPage();
-      loadSexterEndings().then(() => loadAllCrmMembers());
+      loadAllCrmMembers();
     });
 
     platformFilter.addEventListener('change', () => {
@@ -2291,7 +2012,6 @@
 
     async function initTeamDashboardPage() {
       await loadStatusOptions();
-      await loadSexterEndings();
       await Promise.all([loadTeamStatsPage(), loadAllCrmMembers()]);
     }
 
@@ -2591,9 +2311,9 @@
     async function clearTransactionEnding(ending) {
       if (!confirm('Удалить цент у этого сотрудника?')) return;
 
-      const res = await api('/api/endings/free', {
-        method: 'POST',
-        body: JSON.stringify({ ending: Number(ending) })
+      const res = await api('/api/team-transaction-endings/clear', {
+        method: 'PATCH',
+        body: JSON.stringify({ row_number: Number(ending) })
       });
 
       const data = await res.json().catch(() => ({}));
@@ -2603,7 +2323,6 @@
         return;
       }
 
-      await loadSexterEndings();
       await loadUsedTransactionEndings();
       await loadAllCrmMembers();
       await openTransactionEndingModal();
@@ -2745,12 +2464,11 @@
     }
 
     function isTransactionEndingField(label) {
-      return normalizeTeamLabel(label) === 'Transaction ending';
+      return false;
     }
 
     async function loadUsedTransactionEndings() {
-      await loadEndingsOptions();
-      usedTransactionEndings = endingsOptionsCache.filter(x => String(x.assigned_to || '').trim());
+      usedTransactionEndings = [];
     }
 
     function getFreeTransactionEndingCount(currentRowNumber, currentValue) {
@@ -2797,102 +2515,9 @@
       return result;
     }
 
-    function assignRandomTransactionEnding(fieldIndex) {
-      const select = document.querySelector(
-        `[data-field-index="${fieldIndex}"][data-field-type="transaction-ending"]`
-      );
-      if (!select) return;
-
-      const currentValue = select.value || '';
-      const freeValues = getFreeTransactionEndingValues(currentMemberEditorRow, currentValue);
-
-      if (!freeValues.length) {
-        alert('Свободных ending сейчас нет');
-        return;
-      }
-
-      select.value = String(freeValues[Math.floor(Math.random() * freeValues.length)]);
-      autosaveMemberEditor();
-    }
-
-    function buildTransactionEndingOptions(currentRowNumber, currentValue) {
-      const currentNumeric = /^\d+$/.test(String(currentValue || '').trim())
-        ? Number(currentValue)
-        : null;
-
-      const options = [];
-      options.push({ value: '', label: '— не выбрано —', disabled: false });
-
-      buildEndingOptions(currentNumeric).forEach(item => {
-        options.push({
-          value: String(item.value),
-          label: String(item.label),
-          disabled: false
-        });
-      });
-
-      if (currentNumeric && !options.some(opt => Number(opt.value) === currentNumeric)) {
-        options.push({ value: String(currentNumeric), label: String(currentNumeric), disabled: false });
-      }
-
-      return options;
-    }
-
     function getFieldValueByLabel(label) {
       const found = currentMemberFields.find(field => normalizeTeamLabel(field.label) === normalizeTeamLabel(label));
       return found ? found.value : '';
-    }
-
-    async function syncEndingAssignment(updates, rowNumber) {
-      const statusLabel = 'Актуальный статус кандидата (Hr)';
-      const endingLabel = 'Transaction ending';
-      const nameLabel = 'Имя';
-
-      const oldEnding = String(getFieldValueByLabel(endingLabel) || '').trim();
-      const nextStatus = String(
-        Object.prototype.hasOwnProperty.call(updates, statusLabel)
-          ? updates[statusLabel]
-          : getFieldValueByLabel(statusLabel)
-      ).trim();
-
-      let nextEnding = String(
-        Object.prototype.hasOwnProperty.call(updates, endingLabel)
-          ? updates[endingLabel]
-          : getFieldValueByLabel(endingLabel)
-      ).trim();
-
-      const personName = String(
-        Object.prototype.hasOwnProperty.call(updates, nameLabel)
-          ? updates[nameLabel]
-          : getFieldValueByLabel(nameLabel)
-      ).trim();
-
-      if (isEndingFreeStatus(nextStatus)) {
-        nextEnding = '';
-      }
-
-      if (oldEnding && oldEnding !== nextEnding) {
-        await api('/api/endings/free', {
-          method: 'POST',
-          body: JSON.stringify({ ending: Number(oldEnding) })
-        });
-      }
-
-      if (nextEnding && nextEnding !== oldEnding) {
-        const assignRes = await api('/api/endings/assign', {
-          method: 'POST',
-          body: JSON.stringify({
-            ending: Number(nextEnding),
-            user_id: Number(rowNumber),
-            name: personName
-          })
-        });
-
-        if (!assignRes.ok) {
-          const assignErr = await assignRes.json().catch(() => ({}));
-          throw new Error(assignErr.error || 'Не удалось назначить ending');
-        }
-      }
     }
 
     function splitMultiValue(value) {
@@ -3131,45 +2756,7 @@
             const long = isLongField(field.label) || isMultiselect;
             const options = getTeamFieldOptions(field.label);
             const isBoolean = isTeamBooleanField(field.label);
-            const isTransactionEnding = isTransactionEndingField(field.label);
-            const transactionOptions = isTransactionEnding
-              ? buildTransactionEndingOptions(currentMemberEditorRow, field.value)
-              : null;
             const safeValue = String(field.value || '').replace(/"/g, '&quot;');
-
-            if (isTransactionEnding) {
-              const freeCount = getFreeTransactionEndingCount(currentMemberEditorRow, field.value);
-              return `
-                <div class="editor-field transaction-ending-highlight">
-                  <div class="editor-label">${field.label}</div>
-                  <div class="transaction-toolbar">
-                    <div class="transaction-ending-badge">Центы / ending</div>
-                    <div class="transaction-free-counter">Свободно: ${freeCount} / 99</div>
-                  </div>
-                  <select
-                    class="editor-select warning-select"
-                    data-field-index="${idx}"
-                    data-field-type="transaction-ending"
-                  >
-                    ${transactionOptions.map(opt => `
-                      <option
-                        value="${opt.value}"
-                        ${String(field.value || '') === String(opt.value) ? 'selected' : ''}
-                        ${opt.disabled ? 'disabled' : ''}
-                      >${opt.label}</option>
-                    `).join('')}
-                  </select>
-                  <div class="transaction-help">Можно выбрать только свободный ending от 1 до 99.</div>
-                  <div style="margin-top:10px;">
-                    <button
-                      type="button"
-                      class="transaction-random-btn"
-                      onclick="assignRandomTransactionEnding(${idx})"
-                    >Назначить случайный свободный</button>
-                  </div>
-                </div>
-              `;
-            }
 
             if (isMultiselect) {
               return `
@@ -3314,32 +2901,6 @@
             const long = isLongField(field.label) || isMultiselect;
             const options = getTeamFieldOptions(field.label);
             const isBoolean = isTeamBooleanField(field.label);
-            const isTransactionEnding = isTransactionEndingField(field.label);
-            const transactionOptions = isTransactionEnding
-              ? buildTransactionEndingOptions(null, '')
-              : null;
-
-            if (isTransactionEnding) {
-              return `
-                <div class="editor-field transaction-ending-highlight">
-                  <div class="editor-label">${field.label}</div>
-                  <div class="transaction-ending-badge">Центы / ending</div>
-                  <select
-                    class="editor-select warning-select"
-                    data-field-index="${idx}"
-                    data-field-type="transaction-ending"
-                  >
-                    ${transactionOptions.map(opt => `
-                      <option
-                        value="${opt.value}"
-                        ${opt.disabled ? 'disabled' : ''}
-                      >${opt.label}</option>
-                    `).join('')}
-                  </select>
-                  <div class="transaction-help">Можно выбрать только свободный ending от 1 до 99.</div>
-                </div>
-              `;
-            }
 
             if (isMultiselect) {
               return `
@@ -3477,11 +3038,6 @@
             return;
           }
 
-          if (fieldType === 'transaction-ending') {
-            updates[field.label] = el.value || '';
-            return;
-          }
-
           updates[field.label] = el.value || '';
         });
 
@@ -3497,13 +3053,6 @@
           return;
         }
 
-        try {
-          await syncEndingAssignment(updates, currentMemberEditorRow);
-        } catch (syncErr) {
-          if (statusEl) setAutosaveStatus(statusEl, syncErr.message || 'Ошибка ending', 'err');
-          return;
-        }
-
         currentMemberFields = currentMemberFields.map(field => {
           const next = Object.prototype.hasOwnProperty.call(updates, field.label)
             ? updates[field.label]
@@ -3511,7 +3060,6 @@
           return { ...field, value: next };
         });
 
-        await loadSexterEndings();
         await loadUsedTransactionEndings();
         await loadAllCrmMembers();
         if (document.getElementById('transactionEndingModal')?.classList.contains('show')) {
@@ -3542,11 +3090,6 @@
 
         if (fieldType === 'boolean') {
           updates[field.label] = booleanToCellValue(el.checked);
-          return;
-        }
-
-        if (fieldType === 'transaction-ending') {
-          updates[field.label] = el.value;
           return;
         }
 
@@ -3586,12 +3129,6 @@
         return;
       }
 
-      try {
-        await syncEndingAssignment(updates, currentMemberEditorRow);
-      } catch (syncErr) {
-        alert(syncErr.message || 'Не удалось обновить ending');
-      }
-
       currentMemberFields = currentMemberFields.map(field => {
         const next = Object.prototype.hasOwnProperty.call(updates, field.label)
           ? updates[field.label]
@@ -3599,7 +3136,6 @@
         return { ...field, value: next };
       });
 
-      await loadSexterEndings();
       await loadUsedTransactionEndings();
       await loadAllCrmMembers();
       if (document.getElementById('transactionEndingModal')?.classList.contains('show')) {
@@ -3629,7 +3165,6 @@
 
     document.getElementById('addEmployeeBtn').addEventListener('click', openNewMemberEditor);
     document.getElementById('transactionEndingBtn').addEventListener('click', openTransactionEndingModal);
-    document.getElementById('openEndingsBtn')?.addEventListener('click', openEndingsModal);
 
     window.openMemberEditor = openMemberEditor;
     window.saveMemberEditor = saveMemberEditor;
@@ -3645,11 +3180,6 @@
     window.clearTransactionEnding = clearTransactionEnding;
     window.closeTransactionEndingModal = closeTransactionEndingModal;
     window.forceCloseTransactionEndingModal = forceCloseTransactionEndingModal;
-    window.setEndingsFilter = setEndingsFilter;
-    window.openEndingsModal = openEndingsModal;
-    window.closeEndingsModal = closeEndingsModal;
-    window.forceCloseEndingsModal = forceCloseEndingsModal;
-    window.freeEnding = freeEnding;
   </script>
 </body>
 </html>

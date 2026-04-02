@@ -2483,41 +2483,6 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
     }
 
     const statusLabel = 'Актуальный статус кандидата (Hr)';
-    const transactionEndingLabel = 'Transaction ending';
-    const transactionEndingCheckboxLabel = 'Transaction ending (есть/нет в табл.)@dvedenis';
-    const nameLabel = 'Имя';
-    const currentRowMap = {};
-
-    const currentRowRes = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${sheetName}!A${rowNumber}:AU${rowNumber}`
-    });
-
-    const currentRow = currentRowRes.data.values?.[0] || [];
-    headers.forEach((header, index) => {
-      const key = String(header || '').trim();
-      if (!key) return;
-      currentRowMap[key] = currentRow[index] ?? '';
-    });
-
-    if (Object.prototype.hasOwnProperty.call(updates, statusLabel)) {
-      const nextStatus = String(updates[statusLabel] || '').trim();
-
-      if (shouldClearTransactionEndingByStatus(nextStatus)) {
-        updates[transactionEndingLabel] = '';
-        updates[transactionEndingCheckboxLabel] = '';
-
-        const personName =
-          String(updates[nameLabel] || '').trim() ||
-          String(currentRowMap?.[nameLabel] || '').trim();
-
-        if (personName) {
-          await clearSexterEndingByName(personName).catch(err => {
-            console.error('Clear sexter ending by name error:', err.message);
-          });
-        }
-      }
-    }
 
     const data = [];
 
@@ -2541,46 +2506,6 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
 
     if (!data.length) {
       return res.status(400).json({ error: 'No valid fields to update' });
-    }
-
-    if (Object.prototype.hasOwnProperty.call(updates, transactionEndingLabel)) {
-      const nextValue = String(updates[transactionEndingLabel] || '').trim();
-
-      if (nextValue) {
-        if (!/^\d+$/.test(nextValue)) {
-          return res.status(400).json({ error: 'Transaction ending должен быть числом от 1 до 99' });
-        }
-
-        const num = Number(nextValue);
-        if (num < 1 || num > 99) {
-          return res.status(400).json({ error: 'Transaction ending должен быть в диапазоне 1–99' });
-        }
-
-        const allRowsRes = await sheets.spreadsheets.values.get({
-          spreadsheetId,
-          range: `${sheetName}!A1:AU5000`
-        });
-
-        const allValues = allRowsRes.data.values || [];
-        const allHeaders = allValues[0] || [];
-        const allRows = allValues.slice(1);
-
-        const txIdx = allHeaders.findIndex(
-          h => String(h || '').trim() === transactionEndingLabel
-        );
-
-        if (txIdx >= 0) {
-          const duplicate = allRows.some((row, idx) => {
-            const realRowNumber = idx + 2;
-            if (realRowNumber === rowNumber) return false;
-            return String(row[txIdx] || '').trim() === nextValue;
-          });
-
-          if (duplicate) {
-            return res.status(400).json({ error: `Transaction ending ${nextValue} уже занят у другого сотрудника` });
-          }
-        }
-      }
     }
 
     await sheets.spreadsheets.values.batchUpdate({
