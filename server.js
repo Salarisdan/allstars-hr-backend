@@ -117,13 +117,14 @@ const CANDIDATE_STATUSES = [
 ];
 
 const INTERVIEW_STATUSES = [
+  'Назначено собеседование',
+  'Ждет собеседования',
   'Работает',
   'Ожидание старта',
   'Верификация',
   'Ждет тест',
   'Изучает гайд',
   'Хочу взять',
-  'Ждет собеседования',
   'Лист ожидания',
   'Уволен',
   'Не рассчитан',
@@ -771,6 +772,12 @@ async function initDb() {
       updated_at TIMESTAMP DEFAULT NOW()
     );
   `);
+
+  await pool.query(`
+    ALTER TABLE interviews
+    ADD COLUMN IF NOT EXISTS interview_date TEXT NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS interview_time TEXT NOT NULL DEFAULT ''
+  `).catch(() => {});
 }
 
 function signToken(user) {

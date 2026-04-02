@@ -1157,6 +1157,7 @@
 
           <div class="tools-row">
             <input id="crmSearch" class="crm-search" placeholder="Поиск по имени, Telegram, статусу..." />
+            <input id="interviewDateFilter" class="crm-search" type="date" style="max-width:200px;" />
             <button class="crm-filter-btn" id="filterProblemsBtn" type="button" onclick="toggleCrmFilter('onlyProblems')">Проблемные</button>
             <button class="crm-filter-btn" id="filterNoActionBtn" type="button" onclick="toggleCrmFilter('noAction')">Без действия</button>
           </div>
@@ -1200,13 +1201,14 @@
 
     // Unified interview statuses
     const INTERVIEW_STATUSES = [
+      'Назначено собеседование',
+      'Ждет собеседования',
       'Работает',
       'Ожидание старта',
       'Верификация',
       'Ждет тест',
       'Изучает гайд',
       'Хочу взять',
-      'Ждет собеседования',
       'Лист ожидания',
       'Уволен',
       'Не рассчитан',
@@ -1219,6 +1221,7 @@
 
     /* ─── CRM JS (общий блок) ──────────────────────────────────── */
     const CRM_STATUS_GROUPS = [
+      { key: 'Назначено собеседование', label: 'Назначено собеседование', values: ['Назначено собеседование'] },
       { key: 'Ждет собеседования', label: 'Ждет собеседования', values: ['Ждет собеседования'] },
       { key: 'Изучает гайд', label: 'Изучает гайд', values: ['Изучает гайд'] },
       { key: 'Ждет тест', label: 'Ждет тест', values: ['Ждет тест'] },
@@ -1236,7 +1239,8 @@
       q: '',
       onlyProblems: false,
       noAction: false,
-      pipeline: ''
+      pipeline: '',
+      interviewDate: ''
     };
 
     function getStatusTone(status) {
@@ -1315,6 +1319,10 @@
         out = out.filter(item => !getNextAction(item));
       }
 
+      if (crmFilters.interviewDate) {
+        out = out.filter(item => String(item.interview_date || '').trim() === crmFilters.interviewDate);
+      }
+
       return out;
     }
 
@@ -1355,6 +1363,9 @@
       const searchEl = document.getElementById('crmSearch');
       if (searchEl) crmFilters.q = String(searchEl.value || '').trim();
 
+      const dateEl = document.getElementById('interviewDateFilter');
+      if (dateEl) crmFilters.interviewDate = String(dateEl.value || '').trim();
+
       const filtered = applyCrmFilters(allCrmItems);
 
       renderPipelineBlock(allCrmItems);
@@ -1364,6 +1375,10 @@
     }
 
     document.getElementById('crmSearch')?.addEventListener('input', () => {
+      rerenderCrmPage();
+    });
+
+    document.getElementById('interviewDateFilter')?.addEventListener('change', () => {
       rerenderCrmPage();
     });
 
@@ -1760,6 +1775,7 @@
 
               <div class="crm-meta-hints">
                 ${item.interview_date ? `<div class="crm-hint">Дата: ${escapeHtml(item.interview_date)}</div>` : ''}
+                ${item.interview_time ? `<div class="crm-hint">Время: ${escapeHtml(item.interview_time)}</div>` : ''}
                 ${item.interviewer ? `<div class="crm-hint">Интервьюер: ${escapeHtml(item.interviewer)}</div>` : ''}
               </div>
 
@@ -1858,6 +1874,16 @@
                   <option value="${status}" ${item.status === status ? 'selected' : ''}>${status}</option>
                 `).join('')}
               </select>
+            </div>
+
+            <div class="interview-view-field">
+              <div class="interview-view-label">Дата собеседования</div>
+              <input class="editor-input" id="iv-date" type="date" value="${escapeHtml(toDateInputValue(item.interview_date || ''))}">
+            </div>
+
+            <div class="interview-view-field">
+              <div class="interview-view-label">Время собеседования</div>
+              <input class="editor-input" id="iv-time" type="time" value="${escapeHtml(item.interview_time || '')}">
             </div>
 
             <div class="interview-view-field">
@@ -1963,6 +1989,8 @@
         experience: document.getElementById('iv-experience')?.value || '',
         shift: document.getElementById('iv-shift')?.value || '',
         english_level: document.getElementById('iv-english')?.value || '',
+        interview_date: document.getElementById('iv-date')?.value || '',
+        interview_time: document.getElementById('iv-time')?.value || '',
         notes: document.getElementById('iv-notes')?.value || ''
       };
     }
@@ -2013,6 +2041,8 @@
         'iv-experience',
         'iv-shift',
         'iv-english',
+        'iv-date',
+        'iv-time',
         'iv-notes'
       ];
 
