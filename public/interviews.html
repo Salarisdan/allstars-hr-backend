@@ -582,6 +582,25 @@
       color:var(--red);
     }
 
+    .autosave-status{
+      font-size:11px;
+      font-weight:700;
+      color:var(--text3);
+      min-height:16px;
+    }
+
+    .autosave-status.ok{
+      color:#86efac;
+    }
+
+    .autosave-status.err{
+      color:#fca5a5;
+    }
+
+    .autosave-status.saving{
+      color:#9db2ff;
+    }
+
     .quick-actions{
       display:flex;
       flex-wrap:wrap;
@@ -1172,6 +1191,8 @@
     if (!token) location.href = '/login.html';
 
     const refreshBtn = document.getElementById('refreshBtn');
+    const autosaveTimers = new Map();
+    const autosaveStateTimers = new Map();
 
     let allCandidates = [];
     let allCrmItems = [];
@@ -1515,6 +1536,41 @@
       el.textContent = text;
     }
 
+    function setAutosaveStatus(el, text, type = '') {
+      if (!el) return;
+
+      el.textContent = text;
+      el.className = `autosave-status ${type}`.trim();
+
+      if (autosaveStateTimers.has(el)) {
+        clearTimeout(autosaveStateTimers.get(el));
+      }
+
+      if (text === 'Сохранено') {
+        const t = setTimeout(() => {
+          el.textContent = '';
+          el.className = 'autosave-status';
+        }, 1200);
+        autosaveStateTimers.set(el, t);
+      }
+    }
+
+    function queueAutosave(key, fn, delay = 500) {
+      if (autosaveTimers.has(key)) {
+        clearTimeout(autosaveTimers.get(key));
+      }
+
+      const t = setTimeout(async () => {
+        try {
+          await fn();
+        } finally {
+          autosaveTimers.delete(key);
+        }
+      }, delay);
+
+      autosaveTimers.set(key, t);
+    }
+
     function initials(name = '') {
       return name.trim().split(/\s+/).map(x => x[0]).join('').slice(0,2).toUpperCase() || '?';
     }
@@ -1846,6 +1902,8 @@
           </div>
 
           <div class="interview-view-actions">
+            <div class="autosave-status" id="interviewCardSaveStatus" style="flex:1;"></div>
+
             <button class="interview-main-btn secondary" type="button" onclick="forceCloseInterviewCard()">
               Закрыть
             </button>
@@ -1860,6 +1918,8 @@
           </div>
         </div>
       `;
+
+      bindInterviewCardAutosave(item.id);
     }
 
     function previewInterviewStatusColor() {
@@ -1892,8 +1952,8 @@
       document.getElementById('interviewCardOverlay')?.classList.add('show');
     }
 
-    async function saveInterviewCard(id) {
-      const payload = {
+    function collectInterviewCardPayload() {
+      return {
         name: document.getElementById('iv-name')?.value || '',
         status: document.getElementById('iv-status')?.value || '',
         telegram: document.getElementById('iv-telegram')?.value || '',
@@ -1905,6 +1965,78 @@
         english_level: document.getElementById('iv-english')?.value || '',
         notes: document.getElementById('iv-notes')?.value || ''
       };
+    }
+
+    function autosaveInterviewCard(id, immediate = false) {
+      const statusEl = document.getElementById('interviewCardSaveStatus');
+      const payload = collectInterviewCardPayload();
+
+      setAutosaveStatus(statusEl, 'Сохранение...', 'saving');
+
+      const run = async () => {
+        const res = await api(`/api/interviews/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          setAutosaveStatus(statusEl, data.error || 'Ошибка', 'err');
+          return;
+        }
+
+        const idx = allCrmItems.findIndex(x => Number(x.id) === Number(id));
+        if (idx >= 0) {
+          allCrmItems[idx] = { ...allCrmItems[idx], ...payload };
+        }
+
+        setAutosaveStatus(statusEl, 'Сохранено', 'ok');
+        rerenderCrmPage();
+      };
+
+      if (immediate) {
+        run();
+        return;
+      }
+
+      queueAutosave(`interview-card-${id}`, run, 500);
+    }
+
+    function bindInterviewCardAutosave(id) {
+      const inputIds = [
+        'iv-name',
+        'iv-telegram',
+        'iv-age',
+        'iv-platform',
+        'iv-top-profile',
+        'iv-experience',
+        'iv-shift',
+        'iv-english',
+        'iv-notes'
+      ];
+
+      inputIds.forEach(fieldId => {
+        const el = document.getElementById(fieldId);
+        if (!el) return;
+
+        el.addEventListener('input', () => autosaveInterviewCard(id, false));
+      });
+
+      const statusEl = document.getElementById('iv-status');
+      if (statusEl) {
+        statusEl.addEventListener('change', () => {
+          previewInterviewStatusColor();
+          autosaveInterviewCard(id, true);
+        });
+      }
+    }
+
+    async function saveInterviewCard(id) {
+      const statusEl = document.getElementById('interviewCardSaveStatus');
+      const payload = collectInterviewCardPayload();
+
+      setAutosaveStatus(statusEl, 'Сохранение...', 'saving');
 
       const res = await api(`/api/interviews/${id}`, {
         method: 'PATCH',
@@ -1914,7 +2046,7 @@
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        alert(data.error || 'Не удалось сохранить карточку');
+        setAutosaveStatus(statusEl, data.error || 'Ошибка', 'err');
         return;
       }
 
@@ -1923,7 +2055,7 @@
         allCrmItems[idx] = { ...allCrmItems[idx], ...payload };
       }
 
-      forceCloseInterviewCard();
+      setAutosaveStatus(statusEl, 'Сохранено', 'ok');
       rerenderCrmPage();
     }
 
