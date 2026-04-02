@@ -533,6 +533,40 @@
       }
     }
 
+    .editor-input,
+    .editor-select,
+    .editor-textarea {
+      width:100%;
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:.7rem .75rem;
+      color:var(--text);
+      font-family:'Manrope',sans-serif;
+      font-size:13px;
+      outline:none;
+    }
+
+    .editor-input::placeholder,
+    .editor-select::placeholder,
+    .editor-textarea::placeholder {
+      color:var(--text3);
+    }
+
+    .editor-input:focus,
+    .editor-select:focus,
+    .editor-textarea:focus {
+      border-color:var(--accent-border);
+      background:var(--surface2);
+    }
+
+    .editor-textarea {
+      min-height:120px;
+      resize:vertical;
+      font-size:13px;
+      line-height:1.5;
+    }
+
     .save-state{
       font-size:12px;
       color:var(--text3);
@@ -1034,15 +1068,38 @@
     let allCrmItems = [];
     let STATUS_OPTIONS = [];
 
+    // Unified interview statuses
+    const INTERVIEW_STATUSES = [
+      'Работает',
+      'Ожидание старта',
+      'Верификация',
+      'Ждет тест',
+      'Изучает гайд',
+      'Хочу взять',
+      'Ждет собеседования',
+      'Лист ожидания',
+      'Уволен',
+      'Не рассчитан',
+      'Нет ответа',
+      'Убрать',
+      'Тест смена',
+      'Принятый',
+      'Отказ'
+    ];
+
     /* ─── CRM JS (общий блок) ──────────────────────────────────── */
     const CRM_STATUS_GROUPS = [
-      { key: 'contacted', label: 'Отписал', values: ['Отписал'] },
-      { key: 'interview', label: 'Собеседование', values: ['Собеседование', 'Ждет собеседования'] },
-      { key: 'guide', label: 'Гайд', values: ['Изучает гайд'] },
-      { key: 'test', label: 'Тест', values: ['Тест смена', 'Ждет тест'] },
-      { key: 'work', label: 'Работает', values: ['Работает', 'Принятый'] },
-      { key: 'missed', label: 'Не пришел', values: ['Не пришел на собес'] },
-      { key: 'rejected', label: 'Отказ', values: ['Отказ', 'Уволен', 'Убрать', 'Нет ответа'] }
+      { key: 'Ждет собеседования', label: 'Ждет собеседования', values: ['Ждет собеседования'] },
+      { key: 'Изучает гайд', label: 'Изучает гайд', values: ['Изучает гайд'] },
+      { key: 'Ждет тест', label: 'Ждет тест', values: ['Ждет тест'] },
+      { key: 'Тест смена', label: 'Тест смена', values: ['Тест смена'] },
+      { key: 'Хочу взять', label: 'Хочу взять', values: ['Хочу взять'] },
+      { key: 'Принятый', label: 'Принятый', values: ['Принятый'] },
+      { key: 'Отказ', label: 'Отказ', values: ['Отказ'] },
+      { key: 'Нет ответа', label: 'Нет ответа', values: ['Нет ответа'] },
+      { key: 'Уволен', label: 'Уволен', values: ['Уволен'] },
+      { key: 'Не рассчитан', label: 'Не рассчитан', values: ['Не рассчитан'] },
+      { key: 'Убрать', label: 'Убрать', values: ['Убрать'] }
     ];
 
     const crmFilters = {
@@ -1077,12 +1134,12 @@
     function getNextAction(item) {
       const status = String(item.status || '').trim();
 
-      if (status === 'Отписал') return '⚡ Назначить собеседование';
-      if (status === 'Ждет собеседования' || status === 'Собеседование') return '⚡ Провести собеседование';
+      if (status === 'Ждет собеседования') return '⚡ Провести собеседование';
       if (status === 'Изучает гайд') return '⚡ Проверить прохождение гайда';
-      if (status === 'Тест смена' || status === 'Ждет тест') return '⚡ Назначить тест смену';
-      if (status === 'Не пришел на собес') return '⚡ Связаться повторно';
+      if (status === 'Ждет тест') return '⚡ Назначить тест смену';
+      if (status === 'Тест смена') return '⚡ Проверить результат теста';
       if (status === 'Хочу взять') return '⚡ Перевести в следующий этап';
+      if (status === 'Нет ответа') return '⚡ Связаться повторно';
 
       return '';
     }
@@ -1091,8 +1148,8 @@
       const status = String(item.status || '').trim();
 
       if (!status) return true;
-      if (status === 'Не пришел на собес') return true;
-      if (status === 'Отписал') return true;
+      if (status === 'Нет ответа') return true;
+      if (status === 'Отказ') return true;
 
       return false;
     }
@@ -1543,10 +1600,11 @@
               </div>
 
               <div class="quick-actions">
-                <button class="quick-btn" type="button" onclick="event.stopPropagation(); startInterviewFromCard(${item.id})">Провести собеседование</button>
-                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Собеседование')">Собес</button>
+                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Ждет собеседования')">Собес</button>
                 <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Изучает гайд')">Гайд</button>
-                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Тест смена')">Тест</button>
+                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Ждет тест')">Ждет тест</button>
+                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Тест смена')">Тест смена</button>
+                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Принятый')">Принят</button>
                 <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Отказ')">Отказ</button>
               </div>
             </div>
@@ -1611,65 +1669,66 @@
         <div class="interview-view-grid">
           <div class="interview-view-field">
             <div class="interview-view-label">Имя</div>
-            <div class="interview-view-value">${escapeHtml(item.name || '—')}</div>
-          </div>
+            <input class="editor-input" id="iv-name" value="${escapeHtml(item.name || '')}">
+          </input>
 
           <div class="interview-view-field">
-            <div class="interview-view-label">Статус</div>
-            <div class="interview-view-value">
-              <span class="card-status-badge ${getStatusBadgeClass(item.status)}">
-                ${escapeHtml(item.status || 'Без статуса')}
-              </span>
-            </div>
+            <div class="interview-view-label">Актуальный статус</div>
+            <select class="editor-select" id="iv-status">
+              ${INTERVIEW_STATUSES.map(status => `
+                <option value="${status}" ${item.status === status ? 'selected' : ''}>
+                  ${status}
+                </option>
+              `).join('')}
+            </select>
           </div>
 
           <div class="interview-view-field">
             <div class="interview-view-label">Telegram / username</div>
-            <div class="interview-view-value">${escapeHtml(item.telegram || item.tg || item.username || '—')}</div>
-          </div>
-
-          <div class="interview-view-field">
-            <div class="interview-view-label">Платформа</div>
-            <div class="interview-view-value">${escapeHtml(item.platform || item.platforms || '—')}</div>
-          </div>
-
-          <div class="interview-view-field">
-            <div class="interview-view-label">Телефон</div>
-            <div class="interview-view-value">${escapeHtml(item.phone || '—')}</div>
+            <input class="editor-input" id="iv-telegram" value="${escapeHtml(item.telegram || item.username || '')}">
           </div>
 
           <div class="interview-view-field">
             <div class="interview-view-label">Возраст</div>
-            <div class="interview-view-value">${escapeHtml(item.age || '—')}</div>
+            <input class="editor-input" id="iv-age" value="${escapeHtml(item.age || '')}">
           </div>
 
           <div class="interview-view-field">
-            <div class="interview-view-label">Город</div>
-            <div class="interview-view-value">${escapeHtml(item.city || '—')}</div>
+            <div class="interview-view-label">Платформа</div>
+            <input class="editor-input" id="iv-platform" value="${escapeHtml(item.platform || '')}">
           </div>
 
           <div class="interview-view-field">
-            <div class="interview-view-label">Страна</div>
-            <div class="interview-view-value">${escapeHtml(item.country || '—')}</div>
+            <div class="interview-view-label">Топ анкеты</div>
+            <input class="editor-input" id="iv-top-profile" value="${escapeHtml(item.top_profile || '')}">
           </div>
 
           <div class="interview-view-field">
-            <div class="interview-view-label">Дата собеседования</div>
-            <div class="interview-view-value">${escapeHtml(item.interview_date || '—')}</div>
+            <div class="interview-view-label">Опыт</div>
+            <input class="editor-input" id="iv-experience" value="${escapeHtml(item.experience || '')}">
           </div>
 
           <div class="interview-view-field">
-            <div class="interview-view-label">Кто проводит</div>
-            <div class="interview-view-value">${escapeHtml(item.interviewer || item.owner_name || '—')}</div>
+            <div class="interview-view-label">Выбранная смена</div>
+            <input class="editor-input" id="iv-shift" value="${escapeHtml(item.shift || '')}">
+          </div>
+
+          <div class="interview-view-field">
+            <div class="interview-view-label">Знание английского</div>
+            <input class="editor-input" id="iv-english" value="${escapeHtml(item.english_level || '')}">
           </div>
 
           <div class="interview-view-field full">
             <div class="interview-view-label">Заметки</div>
-            <div class="interview-view-value">${escapeHtml(item.notes || '—')}</div>
+            <textarea class="editor-textarea" id="iv-notes">${escapeHtml(item.notes || '')}</textarea>
           </div>
         </div>
 
         <div class="interview-view-actions">
+          <button class="interview-main-btn primary" type="button" onclick="saveInterviewCard(${item.id})">
+            Сохранить изменения
+          </button>
+
           <button class="interview-main-btn primary" type="button" onclick="startInterviewFromCard(${item.id})">
             Провести собеседование
           </button>
@@ -1691,6 +1750,43 @@
       renderInterviewCardModal(item);
       document.getElementById('interviewCardOverlay')?.classList.add('show');
     }
+
+    async function saveInterviewCard(id) {
+      const payload = {
+        name: document.getElementById('iv-name')?.value || '',
+        status: document.getElementById('iv-status')?.value || '',
+        telegram: document.getElementById('iv-telegram')?.value || '',
+        age: document.getElementById('iv-age')?.value || '',
+        platform: document.getElementById('iv-platform')?.value || '',
+        top_profile: document.getElementById('iv-top-profile')?.value || '',
+        experience: document.getElementById('iv-experience')?.value || '',
+        shift: document.getElementById('iv-shift')?.value || '',
+        english_level: document.getElementById('iv-english')?.value || '',
+        notes: document.getElementById('iv-notes')?.value || ''
+      };
+
+      const res = await api(`/api/interviews/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        alert(data.error || 'Не удалось сохранить карточку');
+        return;
+      }
+
+      const idx = allCrmItems.findIndex(x => Number(x.id) === Number(id));
+      if (idx >= 0) {
+        allCrmItems[idx] = { ...allCrmItems[idx], ...payload };
+      }
+
+      forceCloseInterviewCard();
+      rerenderCrmPage();
+    }
+
+    window.saveInterviewCard = saveInterviewCard;
 
     function closeInterviewCard(event) {
       if (event.target.id === 'interviewCardOverlay') {

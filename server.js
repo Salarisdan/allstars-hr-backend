@@ -117,23 +117,21 @@ const CANDIDATE_STATUSES = [
 ];
 
 const INTERVIEW_STATUSES = [
-  'Отписал',
-  'Собеседование',
-  'Изучает гайд',
-  'Не пришел на собес',
-  'Отказ',
-  'Тест смена',
   'Работает',
   'Ожидание старта',
   'Верификация',
   'Ждет тест',
+  'Изучает гайд',
   'Хочу взять',
   'Ждет собеседования',
   'Лист ожидания',
   'Уволен',
   'Не рассчитан',
   'Нет ответа',
-  'Убрать'
+  'Убрать',
+  'Тест смена',
+  'Принятый',
+  'Отказ'
 ];
 
 const TEAM_STATUSES = [
@@ -246,23 +244,34 @@ function normalizeRow(headers, row, rowIndex) {
   };
 
   return {
+    id: rowIndex,
     row_number: rowIndex,
     created_at: get('Дата'),
     telegram_username: get('TG Username', 'Username'),
+    telegram: get('TG Username', 'Username'),
+    username: get('TG Username', 'Username'),
     telegram_user_id: get('TG ID', 'ID'),
+    tg: get('TG Username', 'Username'),
     source: get('Источник', 'Откуда вы о нас узнали?'),
     name: get('Имя', 'Как вас зовут?'),
     age: get('Возраст'),
     english: get('Английский', 'Уровень английского'),
+    english_level: get('Английский', 'Уровень английского'),
     platform: get('Платформа'),
+    platforms: get('Платформа'),
     shift: get('Смены', 'Смена'),
     experience: get('Опыт'),
+    exp: get('Опыт'),
     profiles: get('Анкеты', 'С какими анкетами работал-а (топ, %)'),
+    top_profile: get('Анкеты', 'С какими анкетами работал-а (топ, %)'),
     verification: get('Верификация', 'Вериф'),
     status: get('Статус') || 'Новая заявка',
+    interviewer: get('Кто проводит собеседование'),
     interviewer_name: get('Кто проводит собеседование'),
+    owner_name: get('Кто проводит собеседование'),
     interview_date: get('Дата собеседования'),
     interview_time: get('Время собеседования'),
+    notes: get('Комментарии'),
     comments: get('Комментарии')
   };
 }
@@ -1481,7 +1490,7 @@ app.get('/api/interviews', auth, async (req, res) => {
     const sheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
     const sheets = await getSheetsClient();
 
-    const range = `${sheetName}!A1:Q5000`;
+    const range = `${sheetName}!A1:AU5000`;
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
@@ -1540,11 +1549,11 @@ app.get('/api/interviews/:rowNumber', auth, async (req, res) => {
     const [headersRes, rowRes] = await Promise.all([
       sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: `${sheetName}!A1:Q1`
+        range: `${sheetName}!A1:AU1`
       }),
       sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: `${sheetName}!A${rowNumber}:Q${rowNumber}`
+        range: `${sheetName}!A${rowNumber}:AU${rowNumber}`
       })
     ]);
 
@@ -1577,37 +1586,104 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid row number' });
     }
 
-    const status = normalizeInterviewStatus(req.body?.status);
-    const interviewer_name = String(req.body?.interviewer_name || '');
-    const interview_date = String(req.body?.interview_date || '');
-    const interview_time = String(req.body?.interview_time || '');
-    const comments = String(req.body?.comments || '');
-
     const sheets = await getSheetsClient();
 
-    // M = Статус
-    // N = Кто проводит собеседование
-    // O = Дата собеседования
-    // P = Время собеседования
-    // Q = Комментарии
+    // Get headers first
+    const headersRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A1:AU1`
+    });
+
+    const headers = headersRes.data.values?.[0] || [];
+
+    // Helper to find column index by field names
+    const findColumnIndex = (...names) => {
+      for (const name of names) {
+        const idx = headers.indexOf(name);
+        if (idx >= 0) return idx + 1; // Column numbers are 1-indexed
+      }
+      return -1;
+    };
+
+    // Helper to convert column number to letter
+    const columnToLetter = (col) => {
+      let temp = '';
+      let letter = '';
+      while (col > 0) {
+        temp = (col - 1) % 26;
+        letter = String.fromCharCode(temp + 65) + letter;
+        col = (col - temp - 1) / 26;
+      }
+      return letter;
+    };
+
+    const updates = [];
+
+    // Map request body fields to sheet columns
+    const fieldMappings = [
+      { field: 'name', names: ['Имя', 'Как вас зовут?'] },
+      { field: 'telegram', names: ['TG Username', 'Username'] },
+      { field: 'username', names: ['TG Username', 'Username'] },
+      { field: 'age', names: ['Возраст'] },
+      { field: 'platform', names: ['Платформа'] },
+      { field: 'top_profile', names: ['Анкеты', 'С какими анкетами работал-а (топ, %)'] },
+      { field: 'experience', names: ['Опыт'] },
+      { field: 'shift', names: ['Смены', 'Смена'] },
+      { field: 'english_level', names: ['Английский', 'Уровень английского'] },
+      { field: 'notes', names: ['Комментарии'] },
+      { field: 'status', names: ['Статус'] },
+      { field: 'interviewer_name', names: ['Кто проводит собеседование'] },
+      { field: 'interview_date', names: ['Дата собеседования'] },
+      { field: 'interview_time', names: ['Время собеседования'] },
+      { field: 'comments', names: ['Комментарии'] }
+    ];
+
+    for (const mapping of fieldMappings) {
+      if (req.body?.[mapping.field] !== undefined) {
+        const colIdx = findColumnIndex(...mapping.names);
+        if (colIdx > 0) {
+          const colLetter = columnToLetter(colIdx);
+          let value = String(req.body[mapping.field] || '').trim();
+
+          // Validate status
+          if (mapping.field === 'status') {
+            value = normalizeInterviewStatus(value);
+          }
+
+          updates.push({
+            range: `${sheetName}!${colLetter}${rowNumber}`,
+            values: [[value]]
+          });
+        }
+      }
+    }
+
+    if (!updates.length) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    // Apply updates
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId,
       requestBody: {
         valueInputOption: 'USER_ENTERED',
-        data: [
-          { range: `${sheetName}!M${rowNumber}`, values: [[status]] },
-          { range: `${sheetName}!N${rowNumber}`, values: [[interviewer_name]] },
-          { range: `${sheetName}!O${rowNumber}`, values: [[interview_date]] },
-          { range: `${sheetName}!P${rowNumber}`, values: [[interview_time]] },
-          { range: `${sheetName}!Q${rowNumber}`, values: [[comments]] }
-        ]
+        data: updates
       }
     });
 
-    res.json({ ok: true });
+    // Get updated row and return it
+    const updatedRowRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A${rowNumber}:AU${rowNumber}`
+    });
+
+    const updatedRow = updatedRowRes.data.values?.[0] || [];
+    const candidate = normalizeRow(headers, updatedRow, rowNumber);
+
+    res.json(candidate);
   } catch (err) {
-    console.error('Google Sheets write error:', err.message);
-    res.status(500).json({ error: 'Failed to update Google Sheet' });
+    console.error('Interview update error:', err.message);
+    res.status(500).json({ error: 'Failed to update interview' });
   }
 });
 
