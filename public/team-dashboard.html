@@ -1330,6 +1330,49 @@
 
     /* ─── CRM JS (общий блок) ──────────────────────────────────── */
     let allCrmItems = [];
+    let sexterEndingData = {
+      used: [],
+      free: [],
+      used_count: 0,
+      free_count: 99
+    };
+
+    async function loadSexterEndings() {
+      const res = await api('/api/sexter-endings');
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Не удалось загрузить ending из # sexter');
+      }
+
+      sexterEndingData = {
+        used: Array.isArray(data.used) ? data.used : [],
+        free: Array.isArray(data.free) ? data.free : [],
+        used_count: Number(data.used_count || 0),
+        free_count: Number(data.free_count || 0)
+      };
+    }
+
+    function normalizePersonKey(value) {
+      return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\(f\)/gi, '')
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function namesLooselyMatch(a, b) {
+      const x = normalizePersonKey(a);
+      const y = normalizePersonKey(b);
+      if (!x || !y) return false;
+      return x === y || x.startsWith(y) || y.startsWith(x);
+    }
+
+    function findSexterEndingForPerson(name) {
+      return sexterEndingData.used.find(item => namesLooselyMatch(name, item.name)) || null;
+    }
 
     const CRM_STATUS_GROUPS = [
       { key: 'Работает', label: 'Работает', values: ['Работает'] },
@@ -1446,6 +1489,8 @@
         alert(err.error || 'Не удалось обновить статус');
         return;
       }
+
+      await loadSexterEndings();
       await loadAllCrmMembers();
     }
 
@@ -1580,17 +1625,23 @@
       const res = await api('/api/team-all-members');
       if (!res.ok) return;
       const allCandidates = await res.json().catch(() => []);
-      allCrmItems = (Array.isArray(allCandidates) ? allCandidates : []).map(item => ({
-        ...item,
-        id: item.row_number,
-        row_number: item.row_number,
-        name: item.name || '',
-        telegram: item.telegram || '',
-        username: item.telegram || '',
-        status: item.status || item.hr_status || item['Актуальный статус кандидата (Hr)'] || '',
-        platform: item.platform || '',
-        transactionEnding: item.transactionEnding || item['Transaction ending'] || ''
-      }));
+      allCrmItems = (Array.isArray(allCandidates) ? allCandidates : []).map(item => {
+        const matchedEnding = findSexterEndingForPerson(item.name || '');
+
+        return {
+          ...item,
+          id: item.row_number,
+          row_number: item.row_number,
+          name: item.name || '',
+          telegram: item.telegram || '',
+          username: item.telegram || '',
+          status: item.status || item.hr_status || item['Актуальный статус кандидата (Hr)'] || '',
+          platform: item.platform || '',
+          transactionEnding: matchedEnding ? String(matchedEnding.ending) : '',
+          transactionEndingRaw: matchedEnding ? matchedEnding.ending_raw : '',
+          transactionEndingOwner: matchedEnding ? matchedEnding.name : ''
+        };
+      });
       rerenderCrmPage();
     }
 
@@ -1764,7 +1815,7 @@
 
     refreshBtn.addEventListener('click', () => {
       loadTeamStatsPage();
-      loadAllCrmMembers();
+      loadSexterEndings().then(() => loadAllCrmMembers());
     });
 
     platformFilter.addEventListener('change', () => {
@@ -1776,6 +1827,7 @@
 
     async function initTeamDashboardPage() {
       await loadStatusOptions();
+      await loadSexterEndings();
       await Promise.all([loadTeamStatsPage(), loadAllCrmMembers()]);
     }
 
@@ -2049,26 +2101,17 @@
                   <div class="tx-item">
                     <div class="tx-item-head">
                       <div class="tx-name">${item.name || 'Без имени'}</div>
-                      <div class="tx-value-badge">${item.value}</div>
+                      <div class="tx-value-badge">${item.ending}</div>
                     </div>
 
                     <div class="tx-meta">
-                      <div><strong>Telegram:</strong> ${item.telegram || '—'}</div>
-                      <div><strong>Строка:</strong> ${item.row_number}</div>
+                      <div><strong>Ending:</strong> ${item.ending_raw || item.ending}</div>
                     </div>
-
-                    <button
-                      class="tx-clear-btn"
-                      type="button"
-                      onclick="clearTransactionEnding(${item.row_number})"
-                    >
-                      Удалить цент
-                    </button>
                   </div>
                 `).join('')}
               </div>
             `
-            : `<div class="empty">Сейчас нет занятых центов</div>`
+            : `<div class="empty">Сейчас нет занятых ending</div>`
         }
       `;
     }
@@ -2088,7 +2131,9 @@
         return;
       }
 
+      await loadSexterEndings();
       await loadUsedTransactionEndings();
+      await loadAllCrmMembers();
       await openTransactionEndingModal();
     }
 
@@ -2245,8 +2290,7 @@
 
       const usedSet = new Set(
         usedTransactionEndings
-          .filter(item => Number(item.row_number) !== Number(currentRowNumber))
-          .map(item => Number(item.value))
+          .map(item => Number(item.ending))
           .filter(n => Number.isInteger(n) && n >= 1 && n <= 99)
       );
 
@@ -2264,8 +2308,7 @@
 
       const usedSet = new Set(
         usedTransactionEndings
-          .filter(item => Number(item.row_number) !== Number(currentRowNumber))
-          .map(item => Number(item.value))
+          .map(item => Number(item.ending))
           .filter(n => Number.isInteger(n) && n >= 1 && n <= 99)
       );
 
@@ -2301,8 +2344,7 @@
 
       const usedSet = new Set(
         usedTransactionEndings
-          .filter(item => Number(item.row_number) !== Number(currentRowNumber))
-          .map(item => Number(item.value))
+          .map(item => Number(item.ending))
           .filter(n => Number.isInteger(n) && n >= 1 && n <= 99)
       );
 
@@ -2924,7 +2966,9 @@
           return;
         }
 
+        await loadSexterEndings();
         await loadUsedTransactionEndings();
+        await loadAllCrmMembers();
         if (document.getElementById('transactionEndingModal')?.classList.contains('show')) {
           await openTransactionEndingModal();
         }
@@ -2997,7 +3041,9 @@
         return;
       }
 
+      await loadSexterEndings();
       await loadUsedTransactionEndings();
+      await loadAllCrmMembers();
       if (document.getElementById('transactionEndingModal')?.classList.contains('show')) {
         await openTransactionEndingModal();
       }

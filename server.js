@@ -162,6 +162,163 @@ function shouldClearTransactionEndingByStatus(status) {
   return TEAM_STATUSES_CLEAR_TRANSACTION_ENDING.has(String(status || '').trim());
 }
 
+function normalizePersonKey(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\(f\)/gi, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractSexterEnding(value) {
+  const s = String(value || '').trim();
+  const match = s.match(/5[,.](\d{2})$/);
+  if (!match) return null;
+
+  const n = Number(match[1]);
+  return n >= 1 && n <= 99 ? n : null;
+}
+
+function namesLooselyMatch(a, b) {
+  const x = normalizePersonKey(a);
+  const y = normalizePersonKey(b);
+
+  if (!x || !y) return false;
+  return x === y || x.startsWith(y) || y.startsWith(x);
+}
+
+async function readSexterEndingMap() {
+  const spreadsheetId = process.env.SHELL_OF_SPREADSHEET_ID;
+  const sheetName = process.env.SHELL_OF_SEXTER_SHEET_NAME || '# sexter';
+
+  if (!spreadsheetId) {
+    throw new Error('SHELL_OF_SPREADSHEET_ID is missing');
+  }
+
+  const sheets = await getSheetsClient();
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${sheetName}!A1:Z200`
+  });
+
+  const values = response.data.values || [];
+  const used = [];
+
+  for (const row of values) {
+    let ending = null;
+    let endingRaw = '';
+    let name = '';
+
+    for (const cell of row) {
+      const n = extractSexterEnding(cell);
+      if (n !== null) {
+        ending = n;
+        endingRaw = String(cell || '').trim();
+        break;
+      }
+    }
+
+    if (ending === null) continue;
+
+    for (const cell of row) {
+      const text = String(cell || '').trim();
+      if (!text) continue;
+      if (extractSexterEnding(text) !== null) continue;
+      if (/^\d+$/.test(text)) continue;
+      if (text.toLowerCase() === 'number example') continue;
+
+      name = text;
+      break;
+    }
+
+    used.push({
+      ending,
+      ending_raw: endingRaw,
+      name,
+      person_key: normalizePersonKey(name)
+    });
+  }
+
+  used.sort((a, b) => a.ending - b.ending);
+
+  const usedSet = new Set(used.map(x => x.ending));
+  const free = [];
+  for (let i = 1; i <= 99; i++) {
+    if (!usedSet.has(i)) free.push(i);
+  }
+
+  return {
+    used,
+    free,
+    used_count: used.length,
+    free_count: free.length
+  };
+}
+
+async function clearSexterEndingByName(personName) {
+  const spreadsheetId = process.env.SHELL_OF_SPREADSHEET_ID;
+  const sheetName = process.env.SHELL_OF_SEXTER_SHEET_NAME || '# sexter';
+
+  if (!spreadsheetId || !personName) return false;
+
+  const sheets = await getSheetsClient();
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${sheetName}!A1:Z200`
+  });
+
+  const values = response.data.values || [];
+  if (!values.length) return false;
+
+  let matchedRow = -1;
+  let matchedCol = -1;
+
+  for (let r = 0; r < values.length; r++) {
+    const row = values[r] || [];
+
+    let rowName = '';
+    let rowEndingCol = -1;
+
+    for (let c = 0; c < row.length; c++) {
+      const text = String(row[c] || '').trim();
+      if (!text) continue;
+
+      if (extractSexterEnding(text) !== null) {
+        rowEndingCol = c;
+      } else if (!/^\d+$/.test(text) && text.toLowerCase() !== 'number example' && !rowName) {
+        rowName = text;
+      }
+    }
+
+    if (!rowName || rowEndingCol === -1) continue;
+
+    if (namesLooselyMatch(personName, rowName)) {
+      matchedRow = r + 1;
+      matchedCol = rowEndingCol + 1;
+      break;
+    }
+  }
+
+  if (matchedRow === -1 || matchedCol === -1) return false;
+
+  const colLetter = columnToLetter(matchedCol);
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: `${sheetName}!${colLetter}${matchedRow}`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: {
+      values: [['']]
+    }
+  });
+
+  return true;
+}
+
 function normalizeCandidateStatus(value) {
   const s = String(value || '').trim();
   return CANDIDATE_STATUSES.includes(s) ? s : '';
@@ -2074,75 +2231,21 @@ app.get('/api/team-all-members', auth, async (req, res) => {
 
 app.get('/api/team-transaction-endings', auth, async (req, res) => {
   try {
-    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
-    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
-
-    if (!spreadsheetId) {
-      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
-    }
-
-    const sheets = await getSheetsClient();
-
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${sheetName}!A1:AU5000`
-    });
-
-    const values = response.data.values || [];
-    if (!values.length) {
-      return res.json({
-        used: [],
-        used_count: 0,
-        free_count: 99
-      });
-    }
-
-    const headers = values[0];
-    const rows = values.slice(1);
-
-    const idx = (name) => headers.findIndex(h => String(h || '').trim() === name);
-    const safeGet = (row, i) => (i >= 0 && i < row.length ? row[i] : '');
-
-    const txIdx = idx('Transaction ending');
-    const nameIdx = idx('Имя');
-    const telegramIdx =
-      idx('Телеграм') >= 0 ? idx('Телеграм')
-      : idx('Telegram') >= 0 ? idx('Telegram')
-      : -1;
-
-    if (txIdx === -1) {
-      return res.json({
-        used: [],
-        used_count: 0,
-        free_count: 99
-      });
-    }
-
-    const used = rows
-      .map((row, index) => ({
-        row_number: index + 2,
-        value: String(safeGet(row, txIdx) || '').trim(),
-        name: String(safeGet(row, nameIdx) || '').trim(),
-        telegram: String(safeGet(row, telegramIdx) || '').trim()
-      }))
-      .filter(x => /^\d+$/.test(x.value))
-      .map(x => ({
-        row_number: x.row_number,
-        value: Number(x.value),
-        name: x.name,
-        telegram: x.telegram
-      }))
-      .filter(x => x.value >= 1 && x.value <= 99)
-      .sort((a, b) => a.value - b.value);
-
-    res.json({
-      used,
-      used_count: used.length,
-      free_count: 99 - used.length
-    });
+    const data = await readSexterEndingMap();
+    res.json(data);
   } catch (err) {
-    console.error('Transaction endings read error:', err.message);
+    console.error('Team transaction endings read error:', err.message);
     res.status(500).json({ error: 'Failed to read transaction endings' });
+  }
+});
+
+app.get('/api/sexter-endings', auth, async (req, res) => {
+  try {
+    const data = await readSexterEndingMap();
+    res.json(data);
+  } catch (err) {
+    console.error('Sexter endings read error:', err.message);
+    res.status(500).json({ error: 'Failed to read sexter endings' });
   }
 });
 
@@ -2280,6 +2383,20 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
     const statusLabel = 'Актуальный статус кандидата (Hr)';
     const transactionEndingLabel = 'Transaction ending';
     const transactionEndingCheckboxLabel = 'Transaction ending (есть/нет в табл.)@dvedenis';
+    const nameLabel = 'Имя';
+    const currentRowMap = {};
+
+    const currentRowRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A${rowNumber}:AU${rowNumber}`
+    });
+
+    const currentRow = currentRowRes.data.values?.[0] || [];
+    headers.forEach((header, index) => {
+      const key = String(header || '').trim();
+      if (!key) return;
+      currentRowMap[key] = currentRow[index] ?? '';
+    });
 
     if (Object.prototype.hasOwnProperty.call(updates, statusLabel)) {
       const nextStatus = String(updates[statusLabel] || '').trim();
@@ -2287,6 +2404,16 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       if (shouldClearTransactionEndingByStatus(nextStatus)) {
         updates[transactionEndingLabel] = '';
         updates[transactionEndingCheckboxLabel] = '';
+
+        const personName =
+          String(updates[nameLabel] || '').trim() ||
+          String(currentRowMap?.[nameLabel] || '').trim();
+
+        if (personName) {
+          await clearSexterEndingByName(personName).catch(err => {
+            console.error('Clear sexter ending by name error:', err.message);
+          });
+        }
       }
     }
 
