@@ -2275,6 +2275,88 @@
       font-size:11px;
     }
 
+    .crm-filter-btn{
+      border:none;
+      background:var(--surface3);
+      border:1px solid var(--border);
+      color:var(--text2);
+      padding:.75rem .95rem;
+      border-radius:12px;
+      cursor:pointer;
+      font-family:'Manrope',sans-serif;
+      font-weight:800;
+      font-size:12px;
+      transition:.18s ease;
+    }
+
+    .crm-filter-btn:hover{
+      color:var(--text);
+      transform:translateY(-1px);
+    }
+
+      .crm-filter-btn.of.active{
+        background:linear-gradient(135deg, rgba(79,110,247,.45), rgba(34,197,94,.28));
+        border-color:rgba(79,110,247,.65);
+        color:#e0f2fe;
+
+        box-shadow:
+          0 0 0 1px rgba(79,110,247,.18),
+          0 0 22px rgba(79,110,247,.22),
+          0 0 32px rgba(34,197,94,.12);
+
+        animation:btnPulseOF 1.8s ease-in-out infinite;
+      }
+
+      .crm-filter-btn.fansly.active{
+        background:linear-gradient(135deg, rgba(168,85,247,.48), rgba(124,58,237,.28));
+        border-color:rgba(168,85,247,.68);
+        color:#f5f3ff;
+
+        box-shadow:
+          0 0 0 1px rgba(168,85,247,.18),
+          0 0 22px rgba(168,85,247,.22),
+          0 0 32px rgba(168,85,247,.12);
+
+        animation:btnPulseFansly 1.8s ease-in-out infinite;
+      }
+
+      @keyframes btnPulseOF{
+        0% {
+          box-shadow:
+            0 0 0 1px rgba(79,110,247,.12),
+            0 0 12px rgba(79,110,247,.12);
+        }
+        50% {
+          box-shadow:
+            0 0 0 1px rgba(79,110,247,.24),
+            0 0 30px rgba(79,110,247,.30),
+            0 0 40px rgba(34,197,94,.18);
+        }
+        100% {
+          box-shadow:
+            0 0 0 1px rgba(79,110,247,.12),
+            0 0 12px rgba(79,110,247,.12);
+        }
+      }
+
+      @keyframes btnPulseFansly{
+        0% {
+          box-shadow:
+            0 0 0 1px rgba(168,85,247,.12),
+            0 0 12px rgba(168,85,247,.12);
+        }
+        50% {
+          box-shadow:
+            0 0 0 1px rgba(168,85,247,.24),
+            0 0 30px rgba(168,85,247,.30);
+        }
+        100% {
+          box-shadow:
+            0 0 0 1px rgba(168,85,247,.12),
+            0 0 12px rgba(168,85,247,.12);
+        }
+    }
+
     .pipeline-hint{
       background:linear-gradient(135deg, rgba(79,110,247,.18), rgba(34,197,94,.10));
       border:1px solid rgba(79,110,247,.35);
@@ -2396,6 +2478,14 @@
 
           <div class="tools-row">
             <input id="crmSearch" class="crm-search" placeholder="Поиск по имени, Telegram, статусу..." />
+
+            <button class="crm-filter-btn of" id="filterOnlyFansBtn" type="button" onclick="setCrmPlatform('onlyfans')">
+              OnlyFans
+            </button>
+
+            <button class="crm-filter-btn fansly" id="filterFanslyBtn" type="button" onclick="setCrmPlatform('fansly')">
+              Fansly
+            </button>
           </div>
 
           <div class="pipeline-hint" id="pipelineHint">
@@ -2512,7 +2602,8 @@
 
     const crmFilters = {
       q: '',
-      pipeline: ''
+      pipeline: '',
+      platform: ''
     };
 
     function getStatusTone(status) {
@@ -2589,6 +2680,13 @@
           out = out.filter(item => group.values.includes(item.status));
         }
       }
+
+      if (crmFilters.platform) {
+        out = out.filter(item =>
+          String(item.platform || '').toLowerCase().includes(crmFilters.platform)
+        );
+      }
+
       return out;
     }
 
@@ -2723,6 +2821,18 @@
 
     window.setCrmPipeline = setCrmPipeline;
 
+    function setCrmPlatform(platform) {
+      crmFilters.platform = crmFilters.platform === platform ? '' : platform;
+      rerenderCrmPage();
+    }
+
+    window.setCrmPlatform = setCrmPlatform;
+
+    function updatePlatformFilterButtons() {
+      document.getElementById('filterOnlyFansBtn')?.classList.toggle('active', crmFilters.platform === 'onlyfans');
+      document.getElementById('filterFanslyBtn')?.classList.toggle('active', crmFilters.platform === 'fansly');
+    }
+
     async function teamQuickSetStatus(rowNumber, status) {
       const res = await api(`/api/team-member/${rowNumber}`, {
         method: 'PATCH',
@@ -2829,6 +2939,7 @@
       const filtered = applyCrmFilters(allCrmItems);
 
       renderPipelineBlock(allCrmItems);
+      updatePlatformFilterButtons();
       renderTeamCards(filtered);
     }
 
