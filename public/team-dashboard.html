@@ -403,27 +403,64 @@
     .member-card{
       background:linear-gradient(180deg,#232840,#1b1f2c);
       border:1px solid var(--border);
-      border-radius:16px;
+      border-radius:18px;
       padding:1rem;
-      transition:.2s ease;
+      box-shadow:var(--shadow);
+      transition:.18s ease;
       cursor:pointer;
     }
 
     .member-card:hover{
-      transform:translateY(-3px);
-      border-color:rgba(255,255,255,.15);
+      transform:translateY(-2px);
     }
 
-    .member-card.platform-onlyfans{
-      border-color: rgba(79,110,247,.35);
-      background: linear-gradient(180deg, rgba(79,110,247,.10), rgba(27,31,44,1));
-      box-shadow: inset 0 0 0 1px rgba(79,110,247,.12);
+    .member-card.state-work-of{
+      background:linear-gradient(135deg, rgba(79,110,247,.24), rgba(34,197,94,.18) 55%, #1b1f2c);
+      border-color:rgba(79,110,247,.28);
     }
 
-    .member-card.platform-fansly{
-      border-color: rgba(168,85,247,.35);
-      background: linear-gradient(180deg, rgba(168,85,247,.10), rgba(27,31,44,1));
-      box-shadow: inset 0 0 0 1px rgba(168,85,247,.12);
+    .member-card.state-work-fansly{
+      background:linear-gradient(135deg, rgba(168,85,247,.24), rgba(34,197,94,.18) 55%, #1b1f2c);
+      border-color:rgba(168,85,247,.28);
+    }
+
+    .member-card.state-start{
+      background:linear-gradient(135deg, rgba(245,158,11,.20), rgba(79,110,247,.16) 60%, #1b1f2c);
+      border-color:rgba(245,158,11,.28);
+    }
+
+    .member-card.state-verification{
+      background:linear-gradient(135deg, rgba(79,110,247,.22), rgba(168,85,247,.18) 60%, #1b1f2c);
+      border-color:rgba(79,110,247,.28);
+    }
+
+    .member-card.state-test{
+      background:linear-gradient(135deg, rgba(251,191,36,.22), rgba(234,179,8,.14) 55%, #1b1f2c);
+      border-color:rgba(251,191,36,.30);
+    }
+
+    .member-card.state-guide{
+      background:linear-gradient(135deg, rgba(59,130,246,.22), rgba(79,110,247,.14) 55%, #1b1f2c);
+      border-color:rgba(59,130,246,.26);
+    }
+
+    .member-card.state-want{
+      background:linear-gradient(135deg, rgba(168,85,247,.24), rgba(124,58,237,.14) 55%, #1b1f2c);
+      border-color:rgba(168,85,247,.28);
+    }
+
+    .member-card.state-waiting{
+      background:linear-gradient(135deg, rgba(148,163,184,.18), rgba(79,110,247,.12) 60%, #1b1f2c);
+      border-color:rgba(148,163,184,.22);
+    }
+
+    .member-card.state-fired{
+      background:linear-gradient(135deg, rgba(239,68,68,.20), rgba(127,29,29,.14) 60%, #1b1f2c);
+      border-color:rgba(239,68,68,.28);
+    }
+
+    .member-card.state-neutral{
+      background:linear-gradient(180deg,#232840,#1b1f2c);
     }
 
     .member-name{
@@ -1448,15 +1485,8 @@
         </div>
 
         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-          <select id="platformFilter" class="modal-btn" style="min-width:180px;">
-            <option value="">Все платформы</option>
-            <option value="onlyfans">OnlyFans</option>
-            <option value="fansly">Fansly</option>
-          </select>
-
-          <button class="btn" id="transactionEndingBtn" type="button">Центы</button>
-          <button class="btn" id="addEmployeeBtn">Добавить сотрудника</button>
-          <button class="btn" id="refreshBtn">Обновить</button>
+          <button class="btn" id="addMemberBtn" type="button">Добавить сотрудника</button>
+          <button class="btn" id="refreshBtn" type="button">Обновить</button>
         </div>
       </div>
 
@@ -1604,6 +1634,33 @@
       return `badge-${getStatusTone(status)}`;
     }
 
+    function getTeamCardVisualClass(item) {
+      const status = String(item.status || '').trim().toLowerCase();
+      const platform = String(item.platform || '').trim().toLowerCase();
+
+      if (status.includes('работает') || status.includes('принятый')) {
+        if (platform.includes('onlyfans')) return 'state-work-of';
+        if (platform.includes('fansly')) return 'state-work-fansly';
+        return 'state-work-of';
+      }
+
+      if (status.includes('ожидание старта')) return 'state-start';
+      if (status.includes('верификация')) return 'state-verification';
+      if (status.includes('ждет тест') || status.includes('тест')) return 'state-test';
+      if (status.includes('изучает гайд')) return 'state-guide';
+      if (status.includes('хочу взять')) return 'state-want';
+      if (status.includes('лист ожидания') || status.includes('ждет собеседования')) return 'state-waiting';
+      if (
+        status.includes('уволен') ||
+        status.includes('убрать') ||
+        status.includes('нет ответа') ||
+        status.includes('не рассчитан') ||
+        status.includes('отказ')
+      ) return 'state-fired';
+
+      return 'state-neutral';
+    }
+
     function getNextAction(item) {
       const status = String(item.status || '').trim();
       if (status === 'Ждет собеседования' || status === 'Собеседование' || status === 'Отписал') return '⚡ Провести собеседование';
@@ -1714,18 +1771,15 @@
             const platform = String(item.platform || '').toLowerCase();
 
             let platformBadge = '';
-            let platformCardClass = '';
 
             if (platform.includes('onlyfans')) {
               platformBadge = `<span class="badge-platform badge-of">OnlyFans</span>`;
-              platformCardClass = 'platform-onlyfans';
             } else if (platform.includes('fansly')) {
               platformBadge = `<span class="badge-platform badge-fansly">Fansly</span>`;
-              platformCardClass = 'platform-fansly';
             }
 
             return `
-              <div class="member-card ${platformCardClass}" onclick="openMemberEditor(${item.row_number})">
+              <div class="member-card ${getTeamCardVisualClass(item)}" onclick="openMemberEditor(${item.row_number})">
                 <div class="crm-card-top">
                   <div>
                     <div class="member-name">
@@ -2003,7 +2057,7 @@
       loadAllCrmMembers();
     });
 
-    platformFilter.addEventListener('change', () => {
+    platformFilter?.addEventListener('change', () => {
       currentPlatformFilter = String(platformFilter?.value || '').trim().toLowerCase();
       if (currentTeamStatsData) {
         renderTeamStats(currentTeamStatsData);
@@ -2111,18 +2165,15 @@
             const platform = String(person.platform || '').toLowerCase();
 
             let platformBadge = '';
-            let platformCardClass = '';
 
             if (platform.includes('onlyfans')) {
               platformBadge = `<span class="badge-platform badge-of">OnlyFans</span>`;
-              platformCardClass = 'platform-onlyfans';
             } else if (platform.includes('fansly')) {
               platformBadge = `<span class="badge-platform badge-fansly">Fansly</span>`;
-              platformCardClass = 'platform-fansly';
             }
 
             return `
-              <div class="member-card ${platformCardClass}" onclick="openMemberEditor(${person.row_number})">
+              <div class="member-card ${getTeamCardVisualClass(person)}" onclick="openMemberEditor(${person.row_number})">
                 <div class="member-name">
                   ${person.name || 'Без имени'}
                   ${platformBadge}
@@ -3163,8 +3214,8 @@
       isCreatingMember = false;
     }
 
-    document.getElementById('addEmployeeBtn').addEventListener('click', openNewMemberEditor);
-    document.getElementById('transactionEndingBtn').addEventListener('click', openTransactionEndingModal);
+    document.getElementById('addMemberBtn')?.addEventListener('click', openNewMemberEditor);
+    document.getElementById('transactionEndingBtn')?.addEventListener('click', openTransactionEndingModal);
 
     window.openMemberEditor = openMemberEditor;
     window.saveMemberEditor = saveMemberEditor;
