@@ -2275,6 +2275,20 @@
       font-size:11px;
     }
 
+    .password-gen-btn{
+      border:none;
+      cursor:pointer;
+      border-radius:12px;
+      padding:.78rem .95rem;
+      font-family:'Manrope',sans-serif;
+      font-weight:800;
+      font-size:12px;
+      background:linear-gradient(135deg, rgba(79,110,247,.24), rgba(168,85,247,.18));
+      border:1px solid rgba(79,110,247,.34);
+      color:#dbeafe;
+      box-shadow:0 0 18px rgba(79,110,247,.12);
+    }
+
     .crm-filter-btn{
       border:none;
       background:var(--surface3);
@@ -3858,6 +3872,42 @@
       );
     }
 
+    function generateStrongPassword(length = 14) {
+      const lower = 'abcdefghijkmnopqrstuvwxyz';
+      const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+      const digits = '23456789';
+      const symbols = '!@#$%^&*-_=+?';
+      const all = lower + upper + digits + symbols;
+
+      const randomIndex = (max) => {
+        const arr = new Uint32Array(1);
+        crypto.getRandomValues(arr);
+        return arr[0] % max;
+      };
+
+      const picks = [
+        lower[randomIndex(lower.length)],
+        upper[randomIndex(upper.length)],
+        digits[randomIndex(digits.length)],
+        symbols[randomIndex(symbols.length)]
+      ];
+
+      while (picks.length < length) {
+        picks.push(all[randomIndex(all.length)]);
+      }
+
+      for (let i = picks.length - 1; i > 0; i--) {
+        const j = randomIndex(i + 1);
+        [picks[i], picks[j]] = [picks[j], picks[i]];
+      }
+
+      return picks.join('');
+    }
+
+    function isCrmPasswordField(label) {
+      return String(label || '').trim().toLowerCase() === 'пароль crm';
+    }
+
     async function openMemberEditor(rowNumber) {
       currentMemberEditorRow = rowNumber;
       await loadUsedTransactionEndings();
@@ -3933,6 +3983,33 @@
                         `;
                       }).join('')}
                     </div>
+                  </div>
+                </div>
+              `;
+            }
+
+            if (isCrmPasswordField(field.label)) {
+              return `
+                <div class="editor-field ${long ? 'full' : ''}">
+                  <div class="editor-label">${field.label}</div>
+
+                  <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <input
+                      class="editor-input"
+                      id="member-field-${idx}"
+                      data-field-index="${idx}"
+                      data-field-type="text"
+                      value="${escapeHtml(field.value || '')}"
+                      style="flex:1; min-width:220px;"
+                    />
+
+                    <button
+                      type="button"
+                      class="password-gen-btn"
+                      onclick="event.stopPropagation(); generateCrmPasswordForField(${idx}, ${currentMemberEditorRow})"
+                    >
+                      Сгенерировать пароль
+                    </button>
                   </div>
                 </div>
               `;
@@ -4139,6 +4216,62 @@
 
       overlay.classList.add('show');
     }
+
+    async function generateCrmPasswordForField(fieldIndex, rowNumber) {
+      const input = document.getElementById(`member-field-${fieldIndex}`);
+      if (!input) return;
+
+      const newPassword = generateStrongPassword(14);
+      input.value = newPassword;
+
+      const statusEl = document.getElementById('memberEditorSaveStatus');
+      if (statusEl) {
+        statusEl.textContent = 'Сохранение...';
+        statusEl.className = 'autosave-status saving';
+      }
+
+      const field = currentMemberFields?.[fieldIndex];
+      if (!field) return;
+
+      const res = await api(`/api/team-member/${rowNumber}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          updates: {
+            [field.label]: newPassword
+          }
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        if (statusEl) {
+          statusEl.textContent = data.error || 'Ошибка';
+          statusEl.className = 'autosave-status err';
+        }
+        return;
+      }
+
+      if (field) {
+        field.value = newPassword;
+      }
+
+      const item = allCrmItems.find(x => Number(x.row_number) === Number(rowNumber));
+      if (item) {
+        item[field.label] = newPassword;
+      }
+
+      if (statusEl) {
+        statusEl.textContent = 'Сохранено';
+        statusEl.className = 'autosave-status ok';
+
+        setTimeout(() => {
+          statusEl.textContent = '';
+          statusEl.className = 'autosave-status';
+        }, 1200);
+      }
+    }
+    window.generateCrmPasswordForField = generateCrmPasswordForField;
 
     function autosaveMemberEditor() {
       if (!currentMemberEditorRow || isCreatingMember) return;
