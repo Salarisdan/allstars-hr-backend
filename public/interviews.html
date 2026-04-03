@@ -1640,28 +1640,20 @@
 
       allCrmItems = (Array.isArray(allInterviews) ? allInterviews : []).map(item => ({
         ...item,
-        id: item.id || item.row_number,
+        id: item.id,
         name: item.name || '',
-        telegram: item.telegram || item.telegram_username || item.tg || item.username || '',
-        tg: item.tg || item.telegram_username || item.telegram || '',
-        username: item.username || item.telegram_username || '',
-        phone: item.phone || '',
+        telegram: item.telegram || item.tg || item.username || '',
+        username: item.username || '',
         age: item.age || '',
-        city: item.city || '',
-        country: item.country || '',
-        platform: item.platform || item.platforms || '',
-        platforms: item.platforms || item.platform || '',
+        platform: item.platform || '',
+        top_profile: item.top_profile || '',
+        experience: item.experience || '',
+        shift: item.shift || '',
+        english_level: item.english_level || '',
+        notes: item.notes || '',
         status: item.status || '',
         interview_date: item.interview_date || '',
-        interviewer: item.interviewer || item.interviewer_name || item.owner_name || '',
-        owner_name: item.owner_name || item.interviewer_name || item.interviewer || '',
-        notes: item.notes || item.comments || '',
-        interview_time: item.interview_time || '',
-        shift: item.shift || '',
-        english: item.english || '',
-        exp: item.exp || item.experience || '',
-        created_at: item.created_at || '',
-        source: item.source || ''
+        interview_time: item.interview_time || ''
       }));
 
       allCandidates = [...allCrmItems];
@@ -1774,17 +1766,21 @@
               </div>
 
               <div class="crm-meta-hints">
+                ${item.experience ? `<div class="crm-hint">Опыт: ${escapeHtml(item.experience)}</div>` : ''}
                 ${item.interview_date ? `<div class="crm-hint">Дата: ${escapeHtml(item.interview_date)}</div>` : ''}
                 ${item.interview_time ? `<div class="crm-hint">Время: ${escapeHtml(item.interview_time)}</div>` : ''}
-                ${item.interviewer ? `<div class="crm-hint">Интервьюер: ${escapeHtml(item.interviewer)}</div>` : ''}
+                ${item.platform ? `<div class="crm-hint">${escapeHtml(item.platform)}</div>` : ''}
               </div>
 
               <div class="quick-actions">
+                <button class="quick-btn" type="button" onclick="event.stopPropagation(); startInterviewFromCard(${item.id})">
+                  Провести собеседование
+                </button>
+
                 <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Ждет собеседования')">Собес</button>
                 <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Изучает гайд')">Гайд</button>
                 <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Ждет тест')">Ждет тест</button>
                 <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Тест смена')">Тест смена</button>
-                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Принятый')">Принят</button>
                 <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Отказ')">Отказ</button>
               </div>
             </div>
