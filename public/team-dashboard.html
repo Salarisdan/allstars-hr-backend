@@ -1975,48 +1975,85 @@
 
     .member-card{
       background:linear-gradient(180deg,#232840,#1b1f2c);
-      border:1px solid var(--border);
+      border:1px solid rgba(255,255,255,.06);
       border-radius:18px;
       padding:1rem;
-      box-shadow:var(--shadow);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.02),
+        0 8px 24px rgba(0,0,0,.35);
       transition:
         background .28s ease,
         border-color .28s ease,
         box-shadow .28s ease,
         transform .18s ease;
+      position:relative;
+      overflow:hidden;
       will-change:background,border-color,box-shadow,transform;
       cursor:pointer;
     }
 
     .member-card:hover{
-      transform:translateY(-2px);
-      animation-play-state:paused;
+      transform:translateY(-3px) scale(1.01);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.06),
+        0 16px 40px rgba(0,0,0,.45);
+    }
+
+    .member-card::after{
+      content:'';
+      position:absolute;
+      inset:0;
+      border-radius:18px;
+      pointer-events:none;
+      background:linear-gradient(120deg, transparent, rgba(255,255,255,.04), transparent);
+      opacity:0;
+      transition:.3s;
+    }
+
+    .member-card:hover::after{
+      opacity:1;
     }
 
     .member-card.state-work-of{
-      background:linear-gradient(135deg, rgba(79,110,247,.24), rgba(34,197,94,.18) 55%, #1b1f2c);
-      border-color:rgba(79,110,247,.28);
+      background:linear-gradient(135deg, rgba(79,110,247,.45), rgba(34,197,94,.28) 60%, #1b1f2c);
+      border-color:rgba(110,140,255,.55);
+      box-shadow:
+        0 0 0 1px rgba(110,140,255,.12),
+        0 0 26px rgba(79,110,247,.22),
+        0 0 40px rgba(34,197,94,.10);
     }
 
     .member-card.state-work-fansly{
-      background:linear-gradient(135deg, rgba(168,85,247,.24), rgba(34,197,94,.18) 55%, #1b1f2c);
-      border-color:rgba(168,85,247,.28);
+      background:linear-gradient(135deg, rgba(168,85,247,.48), rgba(34,197,94,.26) 60%, #1b1f2c);
+      border-color:rgba(168,85,247,.55);
+      box-shadow:
+        0 0 0 1px rgba(168,85,247,.12),
+        0 0 26px rgba(168,85,247,.22);
     }
 
     .member-card.state-start{
-      background:linear-gradient(135deg, rgba(245,158,11,.20), rgba(79,110,247,.16) 60%, #1b1f2c);
-      border-color:rgba(245,158,11,.28);
+      background:linear-gradient(135deg, rgba(245,158,11,.46), rgba(79,110,247,.22) 60%, #1b1f2c);
+      border-color:rgba(245,158,11,.55);
+      box-shadow:
+        0 0 0 1px rgba(245,158,11,.12),
+        0 0 22px rgba(245,158,11,.20);
     }
 
     .member-card.state-verification{
-      background:linear-gradient(135deg, rgba(79,110,247,.22), rgba(168,85,247,.18) 60%, #1b1f2c);
-      border-color:rgba(79,110,247,.28);
+      background:linear-gradient(135deg, rgba(79,110,247,.42), rgba(168,85,247,.24) 60%, #1b1f2c);
+      border-color:rgba(99,102,241,.55);
+      box-shadow:
+        0 0 0 1px rgba(99,102,241,.12),
+        0 0 24px rgba(99,102,241,.22);
     }
 
     .member-card.state-test{
-      background:linear-gradient(135deg, rgba(251,191,36,.22), rgba(234,179,8,.14) 55%, #1b1f2c);
-      border-color:rgba(251,191,36,.30);
-      animation:softPulseGold 2.2s ease-in-out infinite;
+      background:linear-gradient(135deg, rgba(251,191,36,.52), rgba(234,179,8,.26) 60%, #1b1f2c);
+      border-color:rgba(251,191,36,.65);
+      box-shadow:
+        0 0 0 1px rgba(251,191,36,.16),
+        0 0 28px rgba(251,191,36,.30);
+      animation:cardPulseGold 1.6s ease-in-out infinite;
     }
 
     .member-card.state-guide{
@@ -2030,14 +2067,32 @@
     }
 
     .member-card.state-waiting{
-      background:linear-gradient(135deg, rgba(148,163,184,.18), rgba(79,110,247,.12) 60%, #1b1f2c);
-      border-color:rgba(148,163,184,.22);
-      animation:softPulseBlue 2.6s ease-in-out infinite;
+      background:linear-gradient(135deg, rgba(59,130,246,.40), rgba(79,110,247,.20) 60%, #1b1f2c);
+      border-color:rgba(59,130,246,.52);
+      box-shadow:
+        0 0 0 1px rgba(59,130,246,.12),
+        0 0 24px rgba(59,130,246,.22);
+      animation:cardPulseBlue 1.9s ease-in-out infinite;
     }
 
     .member-card.state-fired{
-      background:linear-gradient(135deg, rgba(239,68,68,.20), rgba(127,29,29,.14) 60%, #1b1f2c);
-      border-color:rgba(239,68,68,.34);
+      background:linear-gradient(135deg, rgba(239,68,68,.42), rgba(127,29,29,.22) 60%, #1b1f2c);
+      border-color:rgba(239,68,68,.55);
+      box-shadow:
+        0 0 0 1px rgba(239,68,68,.12),
+        0 0 22px rgba(239,68,68,.22);
+    }
+
+    @keyframes cardPulseGold{
+      0% { box-shadow:0 0 0 1px rgba(251,191,36,.12), 0 0 12px rgba(251,191,36,.12); }
+      50% { box-shadow:0 0 0 1px rgba(251,191,36,.22), 0 0 36px rgba(251,191,36,.36); }
+      100% { box-shadow:0 0 0 1px rgba(251,191,36,.12), 0 0 12px rgba(251,191,36,.12); }
+    }
+
+    @keyframes cardPulseBlue{
+      0% { box-shadow:0 0 0 1px rgba(59,130,246,.10), 0 0 10px rgba(59,130,246,.10); }
+      50% { box-shadow:0 0 0 1px rgba(59,130,246,.22), 0 0 32px rgba(59,130,246,.28); }
+      100% { box-shadow:0 0 0 1px rgba(59,130,246,.10), 0 0 10px rgba(59,130,246,.10); }
     }
 
     .crm-card-top{
@@ -2066,9 +2121,10 @@
       font-weight:800;
       padding:.35rem .6rem;
       border-radius:999px;
-      border:1px solid var(--border);
-      background:var(--surface3);
-      color:var(--text2);
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.08);
+      color:#fff;
+      backdrop-filter:blur(4px);
       transition:
         background .24s ease,
         border-color .24s ease,
