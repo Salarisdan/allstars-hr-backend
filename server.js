@@ -159,6 +159,19 @@ const TEAM_STATUSES_CLEAR_TRANSACTION_ENDING = new Set([
   'Убрать'
 ]);
 
+const TEAM_VISIBLE_STATUSES = new Set([
+  'Работает',
+  'Ожидание старта',
+  'Верификация',
+  'Ждет тест',
+  'Изучает гайд',
+  'Хочу взять',
+  'Ждет собеседования',
+  'Лист ожидания',
+  'Не рассчитан',
+  'Тест смена'
+]);
+
 function shouldClearTransactionEndingByStatus(status) {
   return TEAM_STATUSES_CLEAR_TRANSACTION_ENDING.has(String(status || '').trim());
 }
@@ -2237,7 +2250,8 @@ app.get('/api/team-all-members', auth, async (req, res) => {
         transactionEnding: safeGet(row, transactionEndingIdx),
         start_date: safeGet(row, startDateIdx),
         work_days: safeGet(row, workDaysIdx)
-      }));
+      }))
+      .filter(row => TEAM_VISIBLE_STATUSES.has(String(row.status || '').trim()));
 
     res.json(members);
   } catch (err) {

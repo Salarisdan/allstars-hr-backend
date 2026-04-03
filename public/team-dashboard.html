@@ -2599,6 +2599,19 @@
     }
 
 
+    const TEAM_VISIBLE_STATUSES = new Set([
+      'Работает',
+      'Ожидание старта',
+      'Верификация',
+      'Ждет тест',
+      'Изучает гайд',
+      'Хочу взять',
+      'Ждет собеседования',
+      'Лист ожидания',
+      'Не рассчитан',
+      'Тест смена'
+    ]);
+
     const CRM_STATUS_GROUPS = [
       { key: 'Работает', label: 'Работает', values: ['Работает'] },
       { key: 'Ожидание старта', label: 'Ожидание старта', values: ['Ожидание старта'] },
@@ -2608,10 +2621,7 @@
       { key: 'Хочу взять', label: 'Хочу взять', values: ['Хочу взять'] },
       { key: 'Ждет собеседования', label: 'Ждет собеседования', values: ['Ждет собеседования'] },
       { key: 'Лист ожидания', label: 'Лист ожидания', values: ['Лист ожидания'] },
-      { key: 'Уволен', label: 'Уволен', values: ['Уволен'] },
-      { key: 'Не рассчитан', label: 'Не рассчитан', values: ['Не рассчитан'] },
-      { key: 'Нет ответа', label: 'Нет ответа', values: ['Нет ответа'] },
-      { key: 'Убрать', label: 'Убрать', values: ['Убрать'] }
+      { key: 'Не рассчитан', label: 'Не рассчитан', values: ['Не рассчитан'] }
     ];
 
     const crmFilters = {
@@ -2651,13 +2661,7 @@
       if (status.includes('изучает гайд')) return 'state-guide';
       if (status.includes('хочу взять')) return 'state-want';
       if (status.includes('лист ожидания') || status.includes('ждет собеседования')) return 'state-waiting';
-      if (
-        status.includes('уволен') ||
-        status.includes('убрать') ||
-        status.includes('нет ответа') ||
-        status.includes('не рассчитан') ||
-        status.includes('отказ')
-      ) return 'state-fired';
+      if (status.includes('не рассчитан')) return 'state-fired';
 
       return 'state-neutral';
     }
@@ -2714,12 +2718,7 @@
       if (key === 'изучает гайд') return 'state-guide';
       if (key === 'хочу взять') return 'state-want';
       if (key === 'ждет собеседования' || key === 'лист ожидания') return 'state-waiting';
-      if (
-        key === 'уволен' ||
-        key === 'не рассчитан' ||
-        key === 'нет ответа' ||
-        key === 'убрать'
-      ) return 'state-fired';
+      if (key === 'не рассчитан') return 'state-fired';
 
       return '';
     }
@@ -3001,17 +3000,19 @@
       const res = await api('/api/team-all-members');
       if (!res.ok) return;
       const allCandidates = await res.json().catch(() => []);
-      allCrmItems = (Array.isArray(allCandidates) ? allCandidates : []).map(item => ({
-        ...item,
-        id: item.row_number,
-        row_number: item.row_number,
-        name: item.name || '',
-        telegram: item.telegram || '',
-        username: item.telegram || '',
-        status: item.status || item.hr_status || item['Актуальный статус кандидата (Hr)'] || '',
-        platform: item.platform || '',
-        transactionEnding: item.transactionEnding || item['Transaction ending'] || ''
-      }));
+      allCrmItems = (Array.isArray(allCandidates) ? allCandidates : [])
+        .map(item => ({
+          ...item,
+          id: item.row_number,
+          row_number: item.row_number,
+          name: item.name || '',
+          telegram: item.telegram || '',
+          username: item.telegram || '',
+          status: item.status || item.hr_status || item['Актуальный статус кандидата (Hr)'] || '',
+          platform: item.platform || '',
+          transactionEnding: item.transactionEnding || item['Transaction ending'] || ''
+        }))
+        .filter(item => TEAM_VISIBLE_STATUSES.has(String(item.status || '').trim()));
       rerenderCrmPage();
     }
 
