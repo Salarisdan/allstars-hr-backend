@@ -1730,6 +1730,442 @@
         grid-template-columns:1fr;
       }
     }
+
+    .sticky-tools{
+      position:sticky;
+      top:0;
+      z-index:20;
+      background:rgba(13,15,20,.92);
+      backdrop-filter:blur(8px);
+      padding:12px 0 14px;
+      margin-bottom:16px;
+    }
+
+    .tools-card{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:14px;
+      box-shadow:var(--shadow);
+    }
+
+    .tools-row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .crm-search{
+      flex:1;
+      min-width:220px;
+      background:#0f1220;
+      border:1px solid var(--border);
+      color:var(--text);
+      border-radius:12px;
+      padding:.82rem .95rem;
+      font-family:'Manrope',sans-serif;
+      font-size:13px;
+      outline:none;
+    }
+
+    .pipeline{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(138px,1fr));
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .pipeline-item{
+      background:linear-gradient(180deg,#232840,#1b1f2c);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:12px;
+      cursor:pointer;
+      transition:
+        background .22s ease,
+        border-color .22s ease,
+        box-shadow .22s ease,
+        transform .16s ease;
+    }
+
+    .pipeline-item:hover{
+      transform:translateY(-1px);
+    }
+
+    .pipeline-label{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:var(--text3);
+      font-weight:800;
+      margin-bottom:6px;
+    }
+
+    .pipeline-count{
+      font-size:22px;
+      font-weight:800;
+    }
+
+    .pipeline-item.state-work{
+      background:linear-gradient(135deg, rgba(79,110,247,.14), rgba(34,197,94,.10) 55%, #1b1f2c);
+      border-color:rgba(79,110,247,.22);
+    }
+    .pipeline-item.state-work.active{
+      background:linear-gradient(135deg, rgba(79,110,247,.26), rgba(34,197,94,.18) 55%, #1b1f2c);
+      border-color:rgba(79,110,247,.38);
+      box-shadow:0 0 18px rgba(79,110,247,.16);
+      animation:softPulseWork 2.4s ease-in-out infinite;
+    }
+
+    .pipeline-item.state-start{
+      background:linear-gradient(135deg, rgba(245,158,11,.12), rgba(79,110,247,.08) 55%, #1b1f2c);
+      border-color:rgba(245,158,11,.18);
+    }
+    .pipeline-item.state-start.active{
+      background:linear-gradient(135deg, rgba(245,158,11,.24), rgba(79,110,247,.14) 55%, #1b1f2c);
+      border-color:rgba(245,158,11,.34);
+      box-shadow:0 0 16px rgba(245,158,11,.16);
+      animation:softPulseStart 2.4s ease-in-out infinite;
+    }
+
+    .pipeline-item.state-verification{
+      background:linear-gradient(135deg, rgba(79,110,247,.12), rgba(168,85,247,.08) 55%, #1b1f2c);
+      border-color:rgba(79,110,247,.18);
+    }
+    .pipeline-item.state-verification.active{
+      background:linear-gradient(135deg, rgba(79,110,247,.24), rgba(168,85,247,.14) 55%, #1b1f2c);
+      border-color:rgba(79,110,247,.34);
+      box-shadow:0 0 16px rgba(99,102,241,.16);
+      animation:softPulseVerification 2.5s ease-in-out infinite;
+    }
+
+    .pipeline-item.state-test{
+      background:linear-gradient(135deg, rgba(251,191,36,.12), rgba(234,179,8,.08) 55%, #1b1f2c);
+      border-color:rgba(251,191,36,.18);
+    }
+    .pipeline-item.state-test.active{
+      background:linear-gradient(135deg, rgba(251,191,36,.28), rgba(234,179,8,.14) 55%, #1b1f2c);
+      border-color:rgba(251,191,36,.38);
+      box-shadow:0 0 18px rgba(251,191,36,.18);
+      animation:softPulseGold 2.2s ease-in-out infinite;
+    }
+
+    .pipeline-item.state-guide{
+      background:linear-gradient(135deg, rgba(59,130,246,.12), rgba(79,110,247,.08) 55%, #1b1f2c);
+      border-color:rgba(59,130,246,.18);
+    }
+    .pipeline-item.state-guide.active{
+      background:linear-gradient(135deg, rgba(59,130,246,.24), rgba(79,110,247,.14) 55%, #1b1f2c);
+      border-color:rgba(59,130,246,.34);
+      box-shadow:0 0 16px rgba(59,130,246,.16);
+      animation:softPulseBlue 2.5s ease-in-out infinite;
+    }
+
+    .pipeline-item.state-want{
+      background:linear-gradient(135deg, rgba(168,85,247,.12), rgba(124,58,237,.08) 55%, #1b1f2c);
+      border-color:rgba(168,85,247,.18);
+    }
+    .pipeline-item.state-want.active{
+      background:linear-gradient(135deg, rgba(168,85,247,.26), rgba(124,58,237,.14) 55%, #1b1f2c);
+      border-color:rgba(168,85,247,.36);
+      box-shadow:0 0 16px rgba(168,85,247,.16);
+      animation:softPulsePurple 2.5s ease-in-out infinite;
+    }
+
+    .pipeline-item.state-waiting{
+      background:linear-gradient(135deg, rgba(148,163,184,.12), rgba(79,110,247,.08) 55%, #1b1f2c);
+      border-color:rgba(148,163,184,.18);
+    }
+    .pipeline-item.state-waiting.active{
+      background:linear-gradient(135deg, rgba(148,163,184,.22), rgba(79,110,247,.14) 55%, #1b1f2c);
+      border-color:rgba(148,163,184,.32);
+      box-shadow:0 0 14px rgba(148,163,184,.14);
+      animation:softPulseWaiting 2.7s ease-in-out infinite;
+    }
+
+    .pipeline-item.state-fired{
+      background:linear-gradient(135deg, rgba(239,68,68,.12), rgba(127,29,29,.08) 55%, #1b1f2c);
+      border-color:rgba(239,68,68,.18);
+    }
+    .pipeline-item.state-fired.active{
+      background:linear-gradient(135deg, rgba(239,68,68,.24), rgba(127,29,29,.14) 55%, #1b1f2c);
+      border-color:rgba(239,68,68,.34);
+      box-shadow:0 0 16px rgba(239,68,68,.16);
+      animation:softPulseRed 2.6s ease-in-out infinite;
+    }
+
+    @keyframes softPulseGold {
+      0% { box-shadow:0 0 0 0 rgba(251,191,36,0); }
+      50% { box-shadow:0 0 18px 2px rgba(251,191,36,.18); }
+      100% { box-shadow:0 0 0 0 rgba(251,191,36,0); }
+    }
+    @keyframes softPulseBlue {
+      0% { box-shadow:0 0 0 0 rgba(59,130,246,0); }
+      50% { box-shadow:0 0 16px 2px rgba(59,130,246,.16); }
+      100% { box-shadow:0 0 0 0 rgba(59,130,246,0); }
+    }
+    @keyframes softPulseWork {
+      0% { box-shadow:0 0 0 0 rgba(79,110,247,0); }
+      50% { box-shadow:0 0 18px 2px rgba(79,110,247,.16); }
+      100% { box-shadow:0 0 0 0 rgba(79,110,247,0); }
+    }
+    @keyframes softPulseStart {
+      0% { box-shadow:0 0 0 0 rgba(245,158,11,0); }
+      50% { box-shadow:0 0 16px 2px rgba(245,158,11,.15); }
+      100% { box-shadow:0 0 0 0 rgba(245,158,11,0); }
+    }
+    @keyframes softPulseVerification {
+      0% { box-shadow:0 0 0 0 rgba(99,102,241,0); }
+      50% { box-shadow:0 0 16px 2px rgba(99,102,241,.15); }
+      100% { box-shadow:0 0 0 0 rgba(99,102,241,0); }
+    }
+    @keyframes softPulsePurple {
+      0% { box-shadow:0 0 0 0 rgba(168,85,247,0); }
+      50% { box-shadow:0 0 16px 2px rgba(168,85,247,.15); }
+      100% { box-shadow:0 0 0 0 rgba(168,85,247,0); }
+    }
+    @keyframes softPulseWaiting {
+      0% { box-shadow:0 0 0 0 rgba(148,163,184,0); }
+      50% { box-shadow:0 0 14px 2px rgba(148,163,184,.14); }
+      100% { box-shadow:0 0 0 0 rgba(148,163,184,0); }
+    }
+    @keyframes softPulseRed {
+      0% { box-shadow:0 0 0 0 rgba(239,68,68,0); }
+      50% { box-shadow:0 0 16px 2px rgba(239,68,68,.16); }
+      100% { box-shadow:0 0 0 0 rgba(239,68,68,0); }
+    }
+
+    .member-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+      gap:14px;
+    }
+
+    .member-card{
+      background:linear-gradient(180deg,#232840,#1b1f2c);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:1rem;
+      box-shadow:var(--shadow);
+      transition:
+        background .28s ease,
+        border-color .28s ease,
+        box-shadow .28s ease,
+        transform .18s ease;
+      will-change:background,border-color,box-shadow,transform;
+      cursor:pointer;
+    }
+
+    .member-card:hover{
+      transform:translateY(-2px);
+      animation-play-state:paused;
+    }
+
+    .member-card.state-work-of{
+      background:linear-gradient(135deg, rgba(79,110,247,.24), rgba(34,197,94,.18) 55%, #1b1f2c);
+      border-color:rgba(79,110,247,.28);
+    }
+
+    .member-card.state-work-fansly{
+      background:linear-gradient(135deg, rgba(168,85,247,.24), rgba(34,197,94,.18) 55%, #1b1f2c);
+      border-color:rgba(168,85,247,.28);
+    }
+
+    .member-card.state-start{
+      background:linear-gradient(135deg, rgba(245,158,11,.20), rgba(79,110,247,.16) 60%, #1b1f2c);
+      border-color:rgba(245,158,11,.28);
+    }
+
+    .member-card.state-verification{
+      background:linear-gradient(135deg, rgba(79,110,247,.22), rgba(168,85,247,.18) 60%, #1b1f2c);
+      border-color:rgba(79,110,247,.28);
+    }
+
+    .member-card.state-test{
+      background:linear-gradient(135deg, rgba(251,191,36,.22), rgba(234,179,8,.14) 55%, #1b1f2c);
+      border-color:rgba(251,191,36,.30);
+      animation:softPulseGold 2.2s ease-in-out infinite;
+    }
+
+    .member-card.state-guide{
+      background:linear-gradient(135deg, rgba(59,130,246,.22), rgba(79,110,247,.14) 55%, #1b1f2c);
+      border-color:rgba(59,130,246,.26);
+    }
+
+    .member-card.state-want{
+      background:linear-gradient(135deg, rgba(168,85,247,.24), rgba(124,58,237,.14) 55%, #1b1f2c);
+      border-color:rgba(168,85,247,.28);
+    }
+
+    .member-card.state-waiting{
+      background:linear-gradient(135deg, rgba(148,163,184,.18), rgba(79,110,247,.12) 60%, #1b1f2c);
+      border-color:rgba(148,163,184,.22);
+      animation:softPulseBlue 2.6s ease-in-out infinite;
+    }
+
+    .member-card.state-fired{
+      background:linear-gradient(135deg, rgba(239,68,68,.20), rgba(127,29,29,.14) 60%, #1b1f2c);
+      border-color:rgba(239,68,68,.34);
+    }
+
+    .crm-card-top{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+
+    .member-name{
+      font-size:16px;
+      font-weight:800;
+      line-height:1.2;
+    }
+
+    .member-meta{
+      margin-top:6px;
+      color:var(--text2);
+      font-size:12px;
+    }
+
+    .status-badge{
+      font-size:11px;
+      font-weight:800;
+      padding:.35rem .6rem;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:var(--surface3);
+      color:var(--text2);
+      transition:
+        background .24s ease,
+        border-color .24s ease,
+        color .24s ease,
+        box-shadow .24s ease,
+        transform .16s ease;
+    }
+
+    .member-card:hover .status-badge{
+      transform:translateY(-1px);
+    }
+
+    .status-badge.state-work-of{
+      background:rgba(79,110,247,.18);
+      border-color:rgba(79,110,247,.35);
+      color:#9db2ff;
+    }
+
+    .status-badge.state-work-fansly{
+      background:rgba(168,85,247,.18);
+      border-color:rgba(168,85,247,.35);
+      color:#d8b4fe;
+    }
+
+    .status-badge.state-start{
+      background:rgba(245,158,11,.18);
+      border-color:rgba(245,158,11,.35);
+      color:#fcd34d;
+    }
+
+    .status-badge.state-verification{
+      background:rgba(99,102,241,.18);
+      border-color:rgba(99,102,241,.35);
+      color:#a5b4fc;
+    }
+
+    .status-badge.state-test{
+      background:rgba(251,191,36,.22);
+      border-color:rgba(251,191,36,.40);
+      color:#fde68a;
+    }
+
+    .status-badge.state-guide{
+      background:rgba(59,130,246,.18);
+      border-color:rgba(59,130,246,.35);
+      color:#93c5fd;
+    }
+
+    .status-badge.state-want{
+      background:rgba(168,85,247,.20);
+      border-color:rgba(168,85,247,.40);
+      color:#e9d5ff;
+    }
+
+    .status-badge.state-waiting{
+      background:rgba(148,163,184,.18);
+      border-color:rgba(148,163,184,.30);
+      color:#cbd5f5;
+    }
+
+    .status-badge.state-fired{
+      background:rgba(239,68,68,.20);
+      border-color:rgba(239,68,68,.40);
+      color:#fca5a5;
+    }
+
+    .crm-next-action{
+      margin-top:10px;
+      font-size:12px;
+      font-weight:800;
+      color:var(--text2);
+    }
+
+    .crm-meta-hints{
+      margin-top:10px;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .crm-hint{
+      font-size:11px;
+      font-weight:700;
+      color:var(--text2);
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:999px;
+      padding:5px 9px;
+    }
+
+    .quick-actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:12px;
+    }
+
+    .quick-btn{
+      border:none;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.1);
+      color:var(--text2);
+      padding:.55rem .8rem;
+      border-radius:10px;
+      cursor:pointer;
+      font-family:'Manrope',sans-serif;
+      font-weight:800;
+      font-size:11px;
+    }
+
+    .toolbar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .btn-primary{
+      background:var(--accent-bg);
+      border:1px solid var(--accent-border);
+      color:var(--accent2);
+    }
+
+    .btn-ghost{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      color:var(--text2);
+    }
   </style>
 </head>
 <body>
@@ -1757,29 +2193,24 @@
           <p>Операционная статистика по сотрудникам из отдельной таблицы.</p>
         </div>
 
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-          <button class="btn" id="addMemberBtn" type="button">Добавить сотрудника</button>
-          <button class="btn" id="refreshBtn" type="button">Обновить</button>
+        <div class="toolbar">
+          <button class="btn btn-primary" id="addMemberBtn" type="button">Добавить сотрудника</button>
+          <button class="btn btn-ghost" id="refreshBtn" type="button">Обновить</button>
         </div>
-      </div>
-
-      <div class="crm-hint" style="margin-bottom:12px;">
-        Здесь ты видишь активную воронку действующих сотрудников. Нажми на этап сверху, чтобы быстро отфильтровать нужных людей.
       </div>
 
       <div class="sticky-tools">
         <div class="tools-card">
+          <div class="crm-hint" style="margin-bottom:12px;">
+            Здесь видна воронка действующих сотрудников. Нажми на статус сверху, чтобы отфильтровать нужных людей.
+          </div>
+
           <div class="tools-row">
             <input id="crmSearch" class="crm-search" placeholder="Поиск по имени, Telegram, статусу..." />
-            <button class="crm-filter-btn" id="filterOfBtn" type="button" onclick="setCrmPlatform('onlyfans')">OnlyFans</button>
-            <button class="crm-filter-btn" id="filterFanslyBtn" type="button" onclick="setCrmPlatform('fansly')">Fansly</button>
-            <button class="crm-filter-btn" id="filterNoEndingBtn" type="button" onclick="toggleCrmFilter('noEnding')">Без ending</button>
           </div>
           <div class="pipeline" id="pipeline"></div>
         </div>
       </div>
-
-      <div class="crm-grid" id="crmGrid"></div>
 
       <div id="content">
         <div class="loading">Загружаем статистику...</div>
@@ -1840,11 +2271,8 @@
     }
 
     const content = document.getElementById('content');
-    const crmGrid = document.getElementById('crmGrid');
     const refreshBtn = document.getElementById('refreshBtn');
-    const platformFilter = document.getElementById('platformFilter');
     let currentTeamStatsData = null;
-    let currentPlatformFilter = String(platformFilter?.value || '').trim().toLowerCase();
     let STATUS_OPTIONS = [];
     const autosaveTimers = new Map();
     const autosaveStateTimers = new Map();
@@ -1874,7 +2302,7 @@
       { key: 'Работает', label: 'Работает', values: ['Работает'] },
       { key: 'Ожидание старта', label: 'Ожидание старта', values: ['Ожидание старта'] },
       { key: 'Верификация', label: 'Верификация', values: ['Верификация'] },
-      { key: 'Ждет тест', label: 'Ждет тест', values: ['Ждет тест'] },
+      { key: 'Ждет тест', label: 'Ждет тест', values: ['Ждет тест', 'Тест смена'] },
       { key: 'Изучает гайд', label: 'Изучает гайд', values: ['Изучает гайд'] },
       { key: 'Хочу взять', label: 'Хочу взять', values: ['Хочу взять'] },
       { key: 'Ждет собеседования', label: 'Ждет собеседования', values: ['Ждет собеседования'] },
@@ -1887,8 +2315,6 @@
 
     const crmFilters = {
       q: '',
-      platform: '',
-      noEnding: false,
       pipeline: ''
     };
 
@@ -1934,30 +2360,14 @@
       return 'state-neutral';
     }
 
-    function getTeamCardAttentionClass(item) {
-      const status = String(item.status || '').trim().toLowerCase();
-
-      if (status.includes('ждет тест') || status.includes('тест')) {
-        return 'attention-gold';
-      }
-
-      if (status.includes('ждет собеседования')) {
-        return 'attention-blue';
-      }
-
-      return '';
-    }
-
     function getNextAction(item) {
       const status = String(item.status || '').trim();
-      if (status === 'Ждет собеседования' || status === 'Собеседование' || status === 'Отписал') return '⚡ Провести собеседование';
-      if (status === 'Изучает гайд') return '⚡ Проверить прохождение гайда';
-      if (status === 'Ждет тест' || status === 'Тест смена') return '⚡ Назначить тест смену';
       if (status === 'Верификация') return '⚡ Завершить верификацию';
       if (status === 'Ожидание старта') return '⚡ Выдать доступы и назначить старт';
-      if (status === 'Работает' && !item.transactionEnding) return '⚡ Назначить цент / ending';
-      if (status === 'Хочу взять') return '⚡ Перевести в следующий этап';
-      if (status === 'Лист ожидания') return '⚡ Следить за освобождением мест';
+      if (status === 'Изучает гайд') return '⚡ Проверить прохождение гайда';
+      if (status === 'Ждет тест' || status === 'Тест смена') return '⚡ Назначить тест смену';
+      if (status === 'Хочу взять') return '⚡ Подтвердить перевод в старт';
+      if (status === 'Лист ожидания') return '⚡ Следить за освобождением места';
       return '';
     }
 
@@ -1966,19 +2376,21 @@
       if (crmFilters.q) {
         const q = crmFilters.q.toLowerCase();
         out = out.filter(item => {
-          const hay = [item.name, item.telegram, item.username, item.status, item.platform].join(' ').toLowerCase();
+          const hay = [
+            item.name,
+            item.telegram,
+            item.status,
+            item.platform,
+            item.transactionEnding
+          ].join(' ').toLowerCase();
           return hay.includes(q);
         });
       }
-      if (crmFilters.platform) {
-        out = out.filter(item => String(item.platform || '').toLowerCase().includes(crmFilters.platform));
-      }
       if (crmFilters.pipeline) {
         const group = CRM_STATUS_GROUPS.find(x => x.key === crmFilters.pipeline);
-        if (group) out = out.filter(item => group.values.includes(item.status));
-      }
-      if (crmFilters.noEnding) {
-        out = out.filter(item => !String(item.transactionEnding || '').trim());
+        if (group) {
+          out = out.filter(item => group.values.includes(item.status));
+        }
       }
       return out;
     }
@@ -2003,8 +2415,8 @@
       return '';
     }
 
-    function renderPipelineBlock(items, containerId = 'pipeline') {
-      const el = document.getElementById(containerId);
+    function renderPipelineBlock(items) {
+      const el = document.getElementById('pipeline');
       if (!el) return;
       el.innerHTML = CRM_STATUS_GROUPS.map(group => {
         const count = items.filter(item => group.values.includes(item.status)).length;
@@ -2027,19 +2439,7 @@
       rerenderCrmPage();
     }
 
-    function setCrmPlatform(platform) {
-      crmFilters.platform = crmFilters.platform === platform ? '' : platform;
-      rerenderCrmPage();
-    }
-
-    function toggleCrmFilter(name) {
-      crmFilters[name] = !crmFilters[name];
-      rerenderCrmPage();
-    }
-
     window.setCrmPipeline = setCrmPipeline;
-    window.setCrmPlatform = setCrmPlatform;
-    window.toggleCrmFilter = toggleCrmFilter;
 
     async function teamQuickSetStatus(rowNumber, status) {
       const res = await api(`/api/team-member/${rowNumber}`, {
@@ -2062,12 +2462,6 @@
 
     window.quickSetTeamStatus = quickSetTeamStatus;
 
-    function updateCrmFilterButtons() {
-      document.getElementById('filterOfBtn')?.classList.toggle('active', crmFilters.platform === 'onlyfans');
-      document.getElementById('filterFanslyBtn')?.classList.toggle('active', crmFilters.platform === 'fansly');
-      document.getElementById('filterNoEndingBtn')?.classList.toggle('active', crmFilters.noEnding);
-    }
-
     function renderTeamCards(items) {
       const el = document.getElementById('teamCards');
       if (!el) return;
@@ -2079,92 +2473,38 @@
 
       el.innerHTML = `
         <div class="member-grid">
-          ${items.map(item => {
-            const platform = String(item.platform || '').toLowerCase();
-
-            let platformBadge = '';
-
-            if (platform.includes('onlyfans')) {
-              platformBadge = `<span class="badge-platform badge-of">OnlyFans</span>`;
-            } else if (platform.includes('fansly')) {
-              platformBadge = `<span class="badge-platform badge-fansly">Fansly</span>`;
-            }
-
-            return `
-              <div class="member-card ${getTeamCardVisualClass(item)} ${getTeamCardAttentionClass(item)}" onclick="openMemberEditor(${item.row_number})">
-                <div class="crm-card-top">
-                  <div>
-                    <div class="member-name">
-                      ${item.name || 'Без имени'}
-                      ${platformBadge}
-                    </div>
-                    <div class="member-meta">
-                      <div>${item.telegram || '—'}</div>
-                    </div>
-                  </div>
-
-                  <div class="status-badge ${getTeamCardVisualClass(item)}">
-                    ${escapeHtml(item.status || 'Без статуса')}
-                  </div>
+          ${items.map(item => `
+            <div class="member-card ${getTeamCardVisualClass(item)}" onclick="openMemberEditor(${item.row_number})">
+              <div class="crm-card-top">
+                <div>
+                  <div class="member-name">${escapeHtml(item.name || 'Без имени')}</div>
+                  <div class="member-meta">${escapeHtml(item.telegram || '—')}</div>
                 </div>
 
-                <div class="crm-next-action">
-                  ${getNextAction(item) || '⚡ Действие не требуется'}
-                </div>
-
-                <div class="crm-meta-hints">
-                  ${item.transactionEnding ? `<div class="crm-hint">Цент: ${item.transactionEnding}</div>` : `<div class="crm-hint">Без ending</div>`}
-                  ${item.platform ? `<div class="crm-hint">${item.platform}</div>` : ''}
-                </div>
-
-                <div class="quick-actions">
-                  <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetTeamStatus(${item.row_number}, 'Верификация')">Верификация</button>
-                  <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetTeamStatus(${item.row_number}, 'Ждет тест')">Ждет тест</button>
-                  <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetTeamStatus(${item.row_number}, 'Ожидание старта')">Старт</button>
-                  <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetTeamStatus(${item.row_number}, 'Работает')">Работает</button>
+                <div class="status-badge ${getTeamCardVisualClass(item)}">
+                  ${escapeHtml(item.status || 'Без статуса')}
                 </div>
               </div>
-            `;
-          }).join('')}
+
+              <div class="crm-next-action">
+                ${getNextAction(item) || '⚡ Действие не требуется'}
+              </div>
+
+              <div class="crm-meta-hints">
+                ${item.platform ? `<div class="crm-hint">${escapeHtml(item.platform)}</div>` : ''}
+                ${item.transactionEnding ? `<div class="crm-hint">Transaction ending: ${escapeHtml(item.transactionEnding)}</div>` : ''}
+              </div>
+
+              <div class="quick-actions">
+                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetTeamStatus(${item.row_number}, 'Верификация')">Верификация</button>
+                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetTeamStatus(${item.row_number}, 'Ждет тест')">Ждет тест</button>
+                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetTeamStatus(${item.row_number}, 'Ожидание старта')">Старт</button>
+                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetTeamStatus(${item.row_number}, 'Работает')">Работает</button>
+              </div>
+            </div>
+          `).join('')}
         </div>
       `;
-    }
-
-    function renderCrmGrid(items) {
-      if (!crmGrid) return;
-      if (!items.length) {
-        crmGrid.innerHTML = `<div class="loading" style="color:var(--text3);">В этой категории никого нет</div>`;
-        return;
-      }
-      crmGrid.innerHTML = items.map(item => `
-        <div class="crm-member-card" onclick="openMemberEditor(${item.id})">
-          <div class="crm-card-top">
-            <div>
-              <div class="candidate-name">${escapeHtml(item.name || 'Без имени')}</div>
-              <div class="candidate-telegram">${escapeHtml(item.telegram || '—')}</div>
-            </div>
-            <div class="card-status-badge ${getStatusBadgeClass(item.status)}">
-              ${escapeHtml(item.status || 'Без статуса')}
-            </div>
-          </div>
-
-          <div class="crm-next-action">
-            ${getNextAction(item) || '⚡ Действие не требуется'}
-          </div>
-
-          <div class="crm-meta-hints">
-            ${item.platform ? `<div class="crm-hint">${escapeHtml(item.platform)}</div>` : ''}
-            ${item.transactionEnding ? `<div class="crm-hint">Цент: ${escapeHtml(item.transactionEnding)}</div>` : `<div class="crm-hint">Без ending</div>`}
-          </div>
-
-          <div class="crm-quick-actions" onclick="event.stopPropagation()">
-            <button class="crm-q-btn" onclick="teamQuickSetStatus(${item.id}, 'Ждет собеседования')">Собес</button>
-            <button class="crm-q-btn" onclick="teamQuickSetStatus(${item.id}, 'Изучает гайд')">Гайд</button>
-            <button class="crm-q-btn" onclick="teamQuickSetStatus(${item.id}, 'Тест смена')">Тест</button>
-            <button class="crm-q-btn" onclick="teamQuickSetStatus(${item.id}, 'Работает')">Работает</button>
-          </div>
-        </div>
-      `).join('');
     }
 
     function rerenderCrmPage() {
@@ -2174,7 +2514,6 @@
       const filtered = applyCrmFilters(allCrmItems);
 
       renderPipelineBlock(allCrmItems);
-      updateCrmFilterButtons();
       renderTeamCards(filtered);
     }
 
@@ -2196,10 +2535,7 @@
       rerenderCrmPage();
     }
 
-    document.getElementById('crmSearch')?.addEventListener('input', () => {
-      crmFilters.q = document.getElementById('crmSearch').value.trim();
-      rerenderCrmPage();
-    });
+    document.getElementById('crmSearch')?.addEventListener('input', rerenderCrmPage);
 
     window.rerenderCrmPage = rerenderCrmPage;
     /* ─── конец CRM JS ─────────────────────────────────────────── */
@@ -2278,30 +2614,6 @@
       return '';
     }
 
-    function filterStatusesByPlatform(data) {
-      const mode = String(currentPlatformFilter || '').trim().toLowerCase();
-      if (!mode) return data;
-
-      const filteredStatuses = (data.statuses || [])
-        .map(item => {
-          const filteredCount =
-            mode === 'onlyfans' ? Number(item.onlyfans || 0)
-            : mode === 'fansly' ? Number(item.fansly || 0)
-            : Number(item.count || 0);
-
-          return {
-            ...item,
-            count: filteredCount
-          };
-        })
-        .filter(item => item.count > 0);
-
-      return {
-        ...data,
-        statuses: filteredStatuses
-      };
-    }
-
     function renderTeamStats(data) {
       currentTeamStatsData = data;
 
@@ -2367,13 +2679,6 @@
     refreshBtn.addEventListener('click', () => {
       loadTeamStatsPage();
       loadAllCrmMembers();
-    });
-
-    platformFilter?.addEventListener('change', () => {
-      currentPlatformFilter = String(platformFilter?.value || '').trim().toLowerCase();
-      if (currentTeamStatsData) {
-        renderTeamStats(currentTeamStatsData);
-      }
     });
 
     async function initTeamDashboardPage() {
@@ -2485,7 +2790,7 @@
             }
 
             return `
-              <div class="member-card ${getTeamCardVisualClass(person)} ${getTeamCardAttentionClass(person)}" onclick="openMemberEditor(${person.row_number})">
+              <div class="member-card ${getTeamCardVisualClass(person)}" onclick="openMemberEditor(${person.row_number})">
                 <div class="member-name">
                   ${person.name || 'Без имени'}
                   ${platformBadge}
