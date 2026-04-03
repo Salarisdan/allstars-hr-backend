@@ -261,6 +261,10 @@
       border-color:rgba(148,163,184,.22);
     }
 
+    .interview-card.attention-blue{
+      box-shadow:0 0 0 1px rgba(79,110,247,.20), 0 0 18px rgba(79,110,247,.16), var(--shadow);
+    }
+
     .card-status{
       border:1px solid var(--border);
       position:relative;
@@ -1614,6 +1618,18 @@
       return map[status] || 'blue';
     }
 
+    function isTodayDate(value) {
+      if (!value) return false;
+
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const todayStr = `${yyyy}-${mm}-${dd}`;
+
+      return String(value).trim() === todayStr;
+    }
+
     function getStatusClass(status) {
       const s = String(status || '').toLowerCase();
 
@@ -1749,7 +1765,7 @@
       content.innerHTML = `
         <div class="interviews-grid">
           ${items.map(item => `
-            <div class="interview-card ${getInterviewCardClass(item.status)}" onclick="openInterviewCard(${item.id})">
+            <div class="interview-card ${getInterviewCardClass(item.status)} ${isTodayDate(item.interview_date) ? 'attention-blue' : ''}" onclick="openInterviewCard(${item.id})">
               <div class="crm-card-top">
                 <div>
                   <div class="candidate-name">${escapeHtml(item.name || 'Без имени')}</div>

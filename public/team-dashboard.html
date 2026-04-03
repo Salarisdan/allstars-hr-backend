@@ -406,12 +406,18 @@
       border-radius:18px;
       padding:1rem;
       box-shadow:var(--shadow);
-      transition:.18s ease;
+      transition:
+        background .28s ease,
+        border-color .28s ease,
+        box-shadow .28s ease,
+        transform .18s ease;
+      will-change: background, border-color, box-shadow, transform;
       cursor:pointer;
     }
 
     .member-card:hover{
       transform:translateY(-2px);
+      animation-play-state:paused;
     }
 
     .member-card.state-work-of{
@@ -456,11 +462,43 @@
 
     .member-card.state-fired{
       background:linear-gradient(135deg, rgba(239,68,68,.20), rgba(127,29,29,.14) 60%, #1b1f2c);
-      border-color:rgba(239,68,68,.28);
+      border-color:rgba(239,68,68,.34);
     }
 
     .member-card.state-neutral{
       background:linear-gradient(180deg,#232840,#1b1f2c);
+    }
+
+    @keyframes softPulseGold {
+      0% {
+        box-shadow:0 0 0 0 rgba(251,191,36,.00);
+      }
+      50% {
+        box-shadow:0 0 18px 2px rgba(251,191,36,.16);
+      }
+      100% {
+        box-shadow:0 0 0 0 rgba(251,191,36,.00);
+      }
+    }
+
+    @keyframes softPulseBlue {
+      0% {
+        box-shadow:0 0 0 0 rgba(79,110,247,.00);
+      }
+      50% {
+        box-shadow:0 0 18px 2px rgba(79,110,247,.14);
+      }
+      100% {
+        box-shadow:0 0 0 0 rgba(79,110,247,.00);
+      }
+    }
+
+    .attention-gold{
+      animation:softPulseGold 2.2s ease-in-out infinite;
+    }
+
+    .attention-blue{
+      animation:softPulseBlue 2.6s ease-in-out infinite;
     }
 
     .member-name{
@@ -1137,7 +1175,12 @@
       border:1px solid var(--border);
       background:var(--surface3);
       color:var(--text2);
-      transition:.18s ease;
+      transition:
+        background .24s ease,
+        border-color .24s ease,
+        color .24s ease,
+        box-shadow .24s ease,
+        transform .16s ease;
     }
 
     .status-badge.state-work-of{
@@ -1743,6 +1786,20 @@
       return 'state-neutral';
     }
 
+    function getTeamCardAttentionClass(item) {
+      const status = String(item.status || '').trim().toLowerCase();
+
+      if (status.includes('ждет тест') || status.includes('тест')) {
+        return 'attention-gold';
+      }
+
+      if (status.includes('ждет собеседования')) {
+        return 'attention-blue';
+      }
+
+      return '';
+    }
+
     function getNextAction(item) {
       const status = String(item.status || '').trim();
       if (status === 'Ждет собеседования' || status === 'Собеседование' || status === 'Отписал') return '⚡ Провести собеседование';
@@ -1861,7 +1918,7 @@
             }
 
             return `
-              <div class="member-card ${getTeamCardVisualClass(item)}" onclick="openMemberEditor(${item.row_number})">
+              <div class="member-card ${getTeamCardVisualClass(item)} ${getTeamCardAttentionClass(item)}" onclick="openMemberEditor(${item.row_number})">
                 <div class="crm-card-top">
                   <div>
                     <div class="member-name">
@@ -2255,7 +2312,7 @@
             }
 
             return `
-              <div class="member-card ${getTeamCardVisualClass(person)}" onclick="openMemberEditor(${person.row_number})">
+              <div class="member-card ${getTeamCardVisualClass(person)} ${getTeamCardAttentionClass(person)}" onclick="openMemberEditor(${person.row_number})">
                 <div class="member-name">
                   ${person.name || 'Без имени'}
                   ${platformBadge}
