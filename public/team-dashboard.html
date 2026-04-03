@@ -2014,6 +2014,46 @@
       opacity:1;
     }
 
+    .member-card.dragging{
+      opacity:.55;
+      transform:scale(.98);
+      box-shadow:0 18px 48px rgba(0,0,0,.42);
+    }
+
+    .pipeline-item.drop-ready{
+      transform:translateY(-2px) scale(1.02);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.10),
+        0 0 22px rgba(255,255,255,.10);
+    }
+
+    .pipeline-item.drop-over{
+      transform:translateY(-2px) scale(1.03);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.16),
+        0 0 28px rgba(255,255,255,.18);
+      filter:brightness(1.12);
+    }
+
+    .member-card.drop-animate{
+      animation:dropCardFlash .45s ease;
+    }
+
+    @keyframes dropCardFlash {
+      0% {
+        transform:scale(.98);
+        box-shadow:0 0 0 rgba(255,255,255,0);
+      }
+      45% {
+        transform:scale(1.02);
+        box-shadow:0 0 24px rgba(255,255,255,.14);
+      }
+      100% {
+        transform:scale(1);
+        box-shadow:var(--shadow);
+      }
+    }
+
     .member-card.state-work-of{
       background:linear-gradient(135deg, rgba(79,110,247,.45), rgba(34,197,94,.28) 60%, #1b1f2c);
       border-color:rgba(110,140,255,.55);
@@ -2235,6 +2275,68 @@
       font-size:11px;
     }
 
+    .pipeline-hint{
+      background:linear-gradient(135deg, rgba(79,110,247,.18), rgba(34,197,94,.10));
+      border:1px solid rgba(79,110,247,.35);
+      color:#dbeafe;
+      font-size:12px;
+      font-weight:700;
+      padding:10px 12px;
+      border-radius:12px;
+      margin-bottom:10px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      animation:fadeInHint .4s ease;
+    }
+
+    .pipeline-hint-close{
+      cursor:pointer;
+      opacity:.6;
+      transition:.2s;
+    }
+
+    .pipeline-hint-close:hover{
+      opacity:1;
+    }
+
+    @keyframes fadeInHint{
+      from{ opacity:0; transform:translateY(-6px);}
+      to{ opacity:1; transform:translateY(0);}
+    }
+
+    .member-card.hint-drag{
+      animation:hintDragMove .8s ease;
+    }
+
+    .pipeline-item.hint-drop{
+      animation:hintDropGlow .8s ease;
+    }
+
+    @keyframes hintDragMove{
+      0% { transform:translateX(0); }
+      50% { transform:translateX(12px); }
+      100% { transform:translateX(0); }
+    }
+
+    @keyframes hintDropGlow{
+      0% { box-shadow:0 0 0 rgba(255,255,255,0); }
+      50% { box-shadow:0 0 26px rgba(79,110,247,.35); }
+      100% { box-shadow:0 0 0 rgba(255,255,255,0); }
+    }
+
+    .member-card{
+      cursor:grab;
+    }
+
+    .member-card:active{
+      cursor:grabbing;
+    }
+
+    .member-card:hover{
+      outline:1px dashed rgba(255,255,255,.12);
+    }
+
     .toolbar{
       display:flex;
       gap:10px;
@@ -2295,6 +2397,12 @@
           <div class="tools-row">
             <input id="crmSearch" class="crm-search" placeholder="Поиск по имени, Telegram, статусу..." />
           </div>
+
+          <div class="pipeline-hint" id="pipelineHint">
+            💡 Перетащи карточку сотрудника на статус, чтобы быстро изменить этап
+            <span class="pipeline-hint-close" onclick="closePipelineHint()">✕</span>
+          </div>
+
           <div class="pipeline" id="pipeline"></div>
         </div>
       </div>
@@ -2366,6 +2474,8 @@
 
     /* ─── CRM JS (общий блок) ──────────────────────────────────── */
     let allCrmItems = [];
+    let draggedTeamRowNumber = null;
+    let lastDroppedTeamRowNumber = null;
 
     function normalizePersonKey(value) {
       return String(value || '')
@@ -2502,6 +2612,88 @@
       return '';
     }
 
+    function getDropStatusFromPipelineKey(key) {
+      const group = CRM_STATUS_GROUPS.find(x => x.key === key);
+      if (!group || !Array.isArray(group.values) || !group.values.length) return '';
+      return group.values[0];
+    }
+
+    function clearPipelineDropStates() {
+      document.querySelectorAll('.pipeline-item').forEach(el => {
+        el.classList.remove('drop-ready', 'drop-over');
+      });
+    }
+
+    function markAllPipelineDropReady() {
+      document.querySelectorAll('.pipeline-item').forEach(el => {
+        el.classList.add('drop-ready');
+      });
+    }
+
+    function onTeamCardDragStart(event, rowNumber) {
+      draggedTeamRowNumber = Number(rowNumber);
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', String(rowNumber));
+
+      const card = event.currentTarget;
+      requestAnimationFrame(() => {
+        card.classList.add('dragging');
+      });
+
+      markAllPipelineDropReady();
+    }
+
+    function onTeamCardDragEnd(event) {
+      event.currentTarget.classList.remove('dragging');
+      draggedTeamRowNumber = null;
+      clearPipelineDropStates();
+    }
+
+    function onPipelineDragOver(event, groupKey) {
+      if (!draggedTeamRowNumber) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'move';
+
+      clearPipelineDropStates();
+      const target = event.currentTarget;
+      target.classList.add('drop-ready', 'drop-over');
+    }
+
+    function onPipelineDragLeave(event) {
+      event.currentTarget.classList.remove('drop-over');
+    }
+
+    async function onPipelineDrop(event, groupKey) {
+      event.preventDefault();
+
+      const rowNumber = draggedTeamRowNumber || Number(event.dataTransfer.getData('text/plain'));
+      clearPipelineDropStates();
+
+      if (!rowNumber) return;
+
+      const nextStatus = getDropStatusFromPipelineKey(groupKey);
+      if (!nextStatus) return;
+
+      await quickSetTeamStatus(rowNumber, nextStatus, { silent: true });
+
+      lastDroppedTeamRowNumber = rowNumber;
+      rerenderCrmPage();
+
+      requestAnimationFrame(() => {
+        const card = document.querySelector(`[data-row-number="${rowNumber}"]`);
+        if (card) {
+          card.classList.add('drop-animate');
+          setTimeout(() => card.classList.remove('drop-animate'), 500);
+        }
+      });
+    }
+
+    window.onTeamCardDragStart = onTeamCardDragStart;
+    window.onTeamCardDragEnd = onTeamCardDragEnd;
+    window.onPipelineDragOver = onPipelineDragOver;
+    window.onPipelineDragLeave = onPipelineDragLeave;
+    window.onPipelineDrop = onPipelineDrop;
+
     function renderPipelineBlock(items) {
       const el = document.getElementById('pipeline');
       if (!el) return;
@@ -2513,6 +2705,9 @@
           <div
             class="pipeline-item ${visualClass} ${crmFilters.pipeline === group.key ? 'active' : ''}"
             onclick="setCrmPipeline('${group.key}')"
+            ondragover="onPipelineDragOver(event, '${group.key}')"
+            ondragleave="onPipelineDragLeave(event)"
+            ondrop="onPipelineDrop(event, '${group.key}')"
           >
             <div class="pipeline-label">${group.label}</div>
             <div class="pipeline-count">${count}</div>
@@ -2543,8 +2738,34 @@
 
     window.teamQuickSetStatus = teamQuickSetStatus;
 
-    async function quickSetTeamStatus(rowNumber, status) {
-      await teamQuickSetStatus(rowNumber, status);
+    async function quickSetTeamStatus(rowNumber, status, options = {}) {
+      const res = await api(`/api/team-member/${rowNumber}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          updates: {
+            'Актуальный статус кандидата (Hr)': status
+          }
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (!options.silent) {
+          alert(data.error || 'Не удалось обновить статус');
+        }
+        return false;
+      }
+
+      const item = allCrmItems.find(x => Number(x.row_number) === Number(rowNumber));
+      if (item) {
+        item.status = status;
+      }
+
+      if (!options.silent) {
+        rerenderCrmPage();
+      }
+
+      return true;
     }
 
     window.quickSetTeamStatus = quickSetTeamStatus;
@@ -2561,7 +2782,14 @@
       el.innerHTML = `
         <div class="member-grid">
           ${items.map(item => `
-            <div class="member-card ${getTeamCardVisualClass(item)}" onclick="openMemberEditor(${item.row_number})">
+            <div
+              class="member-card ${getTeamCardVisualClass(item)}"
+              data-row-number="${item.row_number}"
+              draggable="true"
+              onclick="openMemberEditor(${item.row_number})"
+              ondragstart="onTeamCardDragStart(event, ${item.row_number})"
+              ondragend="onTeamCardDragEnd(event)"
+            >
               <div class="crm-card-top">
                 <div>
                   <div class="member-name">${escapeHtml(item.name || 'Без имени')}</div>
@@ -2602,6 +2830,46 @@
 
       renderPipelineBlock(allCrmItems);
       renderTeamCards(filtered);
+    }
+
+    function initPipelineHint(){
+      const seen = localStorage.getItem('crm_drag_hint_seen');
+
+      if (seen === '1') {
+        const el = document.getElementById('pipelineHint');
+        if (el) el.remove();
+        return;
+      }
+
+      setTimeout(() => {
+        triggerDragHintAnimation();
+      }, 600);
+    }
+
+    function closePipelineHint(){
+      localStorage.setItem('crm_drag_hint_seen', '1');
+      const el = document.getElementById('pipelineHint');
+      if (el) el.remove();
+    }
+
+    window.closePipelineHint = closePipelineHint;
+
+    function triggerDragHintAnimation(){
+      const firstCard = document.querySelector('.member-card');
+      const firstPipeline = document.querySelector('.pipeline-item');
+
+      if (!firstCard || !firstPipeline) return;
+
+      firstCard.classList.add('hint-drag');
+
+      setTimeout(() => {
+        firstPipeline.classList.add('hint-drop');
+      }, 400);
+
+      setTimeout(() => {
+        firstCard.classList.remove('hint-drag');
+        firstPipeline.classList.remove('hint-drop');
+      }, 1600);
     }
 
     async function loadAllCrmMembers() {
@@ -2771,6 +3039,7 @@
     async function initTeamDashboardPage() {
       await loadStatusOptions();
       await Promise.all([loadTeamStatsPage(), loadAllCrmMembers()]);
+      initPipelineHint();
     }
 
     initTeamDashboardPage().catch(err => {
