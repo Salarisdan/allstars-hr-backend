@@ -2947,12 +2947,14 @@
 
     function rerenderCrmPage() {
       const searchEl = document.getElementById('crmSearch');
-      if (searchEl) crmFilters.q = String(searchEl.value || '').trim();
+      if (searchEl) {
+        crmFilters.q = String(searchEl.value || '').trim();
+      }
 
       const filtered = applyCrmFilters(allCrmItems);
 
       renderPipelineBlock(allCrmItems);
-      updatePlatformFilterButtons();
+      updatePlatformFilterButtons?.();
       renderTeamCards(filtered);
     }
 
@@ -2997,23 +2999,7 @@
     }
 
     async function loadAllCrmMembers() {
-      const res = await api('/api/team-all-members');
-      if (!res.ok) return;
-      const allCandidates = await res.json().catch(() => []);
-      allCrmItems = (Array.isArray(allCandidates) ? allCandidates : [])
-        .map(item => ({
-          ...item,
-          id: item.row_number,
-          row_number: item.row_number,
-          name: item.name || '',
-          telegram: item.telegram || '',
-          username: item.telegram || '',
-          status: item.status || item.hr_status || item['Актуальный статус кандидата (Hr)'] || '',
-          platform: item.platform || '',
-          transactionEnding: item.transactionEnding || item['Transaction ending'] || ''
-        }))
-        .filter(item => TEAM_VISIBLE_STATUSES.has(String(item.status || '').trim()));
-      rerenderCrmPage();
+      await loadTeamStatsPage();
     }
 
     document.getElementById('crmSearch')?.addEventListener('input', rerenderCrmPage);
@@ -3096,47 +3082,47 @@
     }
 
     function renderTeamStats(data) {
-      currentTeamStatsData = data;
+      const content = document.getElementById('content');
+      if (!content) return;
+
+      const totals = data?.totals || {};
+      const averages = data?.averages || {};
 
       content.innerHTML = `
         <section class="hero-stats">
           <div class="stat-card">
-            <div class="stat-value">${data.totals.total}</div>
+            <div class="stat-value">${totals.total || 0}</div>
             <div class="stat-label">Всего сотрудников</div>
           </div>
+
           <div class="stat-card">
-            <div class="stat-value">${data.totals.active}</div>
-            <div class="stat-label">Сейчас работает</div>
+            <div class="stat-value">${totals.active || 0}</div>
+            <div class="stat-label">Работает</div>
           </div>
+
           <div class="stat-card">
-            <div class="stat-value">${data.totals.fired}</div>
-            <div class="stat-label">Уволено</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">${data.totals.unpaid}</div>
+            <div class="stat-value">${totals.unpaid || 0}</div>
             <div class="stat-label">Не рассчитан</div>
           </div>
-        </section>
 
-        <section class="summary-card">
-          <div class="summary-title">Платформы и средние показатели</div>
-          <div class="summary-list">
-            <div class="summary-item">
-              <div class="k">OnlyFans</div>
-              <div class="v">${data.totals.onlyfans}</div>
-            </div>
-            <div class="summary-item">
-              <div class="k">Fansly</div>
-              <div class="v">${data.totals.fansly}</div>
-            </div>
-            <div class="summary-item">
-              <div class="k">Средний опыт, мес.</div>
-              <div class="v">${data.averages.experience_months}</div>
-            </div>
-            <div class="summary-item">
-              <div class="k">Средний срок работы, дни</div>
-              <div class="v">${data.averages.work_days}</div>
-            </div>
+          <div class="stat-card">
+            <div class="stat-value">${totals.onlyfans || 0}</div>
+            <div class="stat-label">OnlyFans</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-value">${totals.fansly || 0}</div>
+            <div class="stat-label">Fansly</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-value">${averages.experience_months || 0}</div>
+            <div class="stat-label">Средний опыт, мес.</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-value">${averages.work_days || 0}</div>
+            <div class="stat-label">Средний срок работы, дни</div>
           </div>
         </section>
 
@@ -3145,26 +3131,51 @@
     }
 
     async function loadTeamStatsPage() {
-      content.innerHTML = `<div class="loading">Загружаем статистику...</div>`;
+      const content = document.getElementById('content');
 
-      const res = await api('/api/team-stats');
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Не удалось загрузить статистику команды');
+      try {
+        if (content) {
+          content.innerHTML = `<div class="loading">Загружаем страницу действующие...</div>`;
+        }
+
+        const res = await api('/api/team-stats');
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Не удалось загрузить страницу действующие');
+        }
+
+        currentTeamStatsData = data || {};
+
+        allCrmItems = (Array.isArray(data.items) ? data.items : [])
+          .map(item => ({
+            ...item,
+            row_number: item.row_number,
+            name: item.name || '',
+            telegram: item.telegram || '',
+            status: item.status || '',
+            platform: item.platform || '',
+            experience_months: item.experience_months || '',
+            work_days: item.work_days || '',
+            transactionEnding: item.transactionEnding || ''
+          }))
+          .filter(item => TEAM_VISIBLE_STATUSES.has(String(item.status || '').trim()));
+
+        renderTeamStats(currentTeamStatsData);
+        rerenderCrmPage();
+      } catch (err) {
+        console.error('loadTeamStatsPage error:', err);
+        if (content) {
+          content.innerHTML = `<div class="error-box">${err.message || 'Не удалось загрузить страницу действующие'}</div>`;
+        }
       }
-
-      const data = await res.json();
-      renderTeamStats(data);
     }
 
-    refreshBtn.addEventListener('click', () => {
-      loadTeamStatsPage();
-      loadAllCrmMembers();
-    });
+    document.getElementById('refreshBtn')?.addEventListener('click', loadTeamStatsPage);
 
     async function initTeamDashboardPage() {
       await loadStatusOptions();
-      await Promise.all([loadTeamStatsPage(), loadAllCrmMembers()]);
+      await loadTeamStatsPage();
       initPipelineHint();
     }
 

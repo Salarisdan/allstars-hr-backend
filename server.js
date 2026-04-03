@@ -159,7 +159,7 @@ const TEAM_STATUSES_CLEAR_TRANSACTION_ENDING = new Set([
   'Убрать'
 ]);
 
-const TEAM_VISIBLE_STATUSES = new Set([
+const TEAM_DASHBOARD_VISIBLE_STATUSES = new Set([
   'Работает',
   'Ожидание старта',
   'Верификация',
@@ -171,6 +171,10 @@ const TEAM_VISIBLE_STATUSES = new Set([
   'Не рассчитан',
   'Тест смена'
 ]);
+
+function isVisibleTeamDashboardStatus(status) {
+  return TEAM_DASHBOARD_VISIBLE_STATUSES.has(String(status || '').trim());
+}
 
 function shouldClearTransactionEndingByStatus(status) {
   return TEAM_STATUSES_CLEAR_TRANSACTION_ENDING.has(String(status || '').trim());
@@ -2028,15 +2032,42 @@ app.get('/api/team-stats', auth, async (req, res) => {
     const idx = (name) => headers.indexOf(name);
 
     const statusIdx = idx('Актуальный статус кандидата (Hr)');
+    const nameIdx =
+      idx('Имя') >= 0 ? idx('Имя')
+      : idx('Имя / ник') >= 0 ? idx('Имя / ник')
+      : idx('Ник') >= 0 ? idx('Ник')
+      : -1;
+    const telegramIdx =
+      idx('Телеграм') >= 0 ? idx('Телеграм')
+      : idx('Telegram') >= 0 ? idx('Telegram')
+      : idx('ТГ') >= 0 ? idx('ТГ')
+      : idx('Telegram / username') >= 0 ? idx('Telegram / username')
+      : -1;
     const platformIdx = idx('OnlyFans / Fansly');
     const expIdx = idx('Опыт, мес.');
     const workDaysIdx = idx('Срок работы, дни');
+    const transactionEndingIdx = idx('Transaction ending');
 
     const safeGet = (row, i) => (i >= 0 && i < row.length ? row[i] : '');
 
     const dataRows = rows.filter(row =>
       row.some(cell => String(cell || '').trim() !== '')
     );
+
+    const filteredRows = dataRows.filter(row =>
+      isVisibleTeamDashboardStatus(safeGet(row, statusIdx))
+    );
+
+    const items = filteredRows.map((row, index) => ({
+      row_number: index + 2,
+      name: String(safeGet(row, nameIdx) || '').trim(),
+      telegram: String(safeGet(row, telegramIdx) || '').trim(),
+      status: String(safeGet(row, statusIdx) || '').trim(),
+      platform: String(safeGet(row, platformIdx) || '').trim(),
+      experience_months: String(safeGet(row, expIdx) || '').trim(),
+      work_days: String(safeGet(row, workDaysIdx) || '').trim(),
+      transactionEnding: String(safeGet(row, transactionEndingIdx) || '').trim()
+    }));
 
     let total = 0;
     let active = 0;
@@ -2054,7 +2085,7 @@ app.get('/api/team-stats', auth, async (req, res) => {
     const statusMap = new Map();
     const statusPlatformMap = new Map();
 
-    for (const row of dataRows) {
+    for (const row of filteredRows) {
       const statusRaw = String(safeGet(row, statusIdx) || '').trim();
       const status = normalizeText(statusRaw);
       const platform = normalizeText(safeGet(row, platformIdx));
@@ -2118,7 +2149,8 @@ app.get('/api/team-stats', auth, async (req, res) => {
         experience_months: expCount ? Number((expSum / expCount).toFixed(1)) : 0,
         work_days: workDaysCount ? Number((workDaysSum / workDaysCount).toFixed(1)) : 0
       },
-      statuses
+      statuses,
+      items
     };
 
     teamStatsCache = {
@@ -2251,7 +2283,7 @@ app.get('/api/team-all-members', auth, async (req, res) => {
         start_date: safeGet(row, startDateIdx),
         work_days: safeGet(row, workDaysIdx)
       }))
-      .filter(row => TEAM_VISIBLE_STATUSES.has(String(row.status || '').trim()));
+      .filter(row => isVisibleTeamDashboardStatus(row.status));
 
     res.json(members);
   } catch (err) {
