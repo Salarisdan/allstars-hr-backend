@@ -4088,12 +4088,13 @@
     }
 
     async function openMemberEditorByRow(rowNumber) {
-      const normalizedRow = Number(rowNumber);
-      const item = findTeamMemberByRowNumber(normalizedRow);
+      console.log('CLICK row_number =', rowNumber);
+
+      const item = allCrmItems.find(x => Number(x.row_number) === Number(rowNumber));
+      console.log('FRONT item =', item?.name, item?.row_number);
 
       if (!item) {
-        console.error('Не найден сотрудник по row_number:', rowNumber);
-        alert('Ошибка: сотрудник не найден');
+        alert('Сотрудник не найден');
         return;
       }
 
@@ -4135,6 +4136,8 @@
       }
 
       try {
+        console.log('REQUEST /api/team-member/', item.row_number);
+
         const res = await api(`/api/team-member/${item.row_number}`);
         const data = await res.json().catch(() => ({}));
 
