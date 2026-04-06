@@ -1986,12 +1986,6 @@ const TEAM_STATS_CACHE_TTL = 60 * 1000;
 
 app.get('/api/team-stats', auth, async (req, res) => {
   try {
-    const now = Date.now();
-
-    if (teamStatsCache.data && now - teamStatsCache.ts < TEAM_STATS_CACHE_TTL) {
-      return res.json(teamStatsCache.data);
-    }
-
     const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
     const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
 
@@ -2003,165 +1997,78 @@ app.get('/api/team-stats', auth, async (req, res) => {
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `${sheetName}!A1:Z5000`
+      range: `${sheetName}!A1:AU1000`
     });
 
     const values = response.data.values || [];
-
     if (!values.length) {
       return res.json({
-        totals: {
-          total: 0,
-          active: 0,
-          fired: 0,
-          unpaid: 0,
-          onlyfans: 0,
-          fansly: 0
-        },
-        averages: {
-          experience_months: 0,
-          work_days: 0
-        },
-        statuses: []
+        totals: {},
+        averages: {},
+        items: []
       });
     }
 
-    const headers = values[0];
+    const headers = values[0] || [];
     const rows = values.slice(1);
 
-    const idx = (name) => headers.indexOf(name);
+    const allItems = rows.map((row, index) => {
+      const obj = {};
+      headers.forEach((header, colIndex) => {
+        obj[header] = row[colIndex] || '';
+      });
 
-    const statusIdx = idx('Актуальный статус кандидата (Hr)');
-    const nameIdx =
-      idx('Имя') >= 0 ? idx('Имя')
-      : idx('Имя / ник') >= 0 ? idx('Имя / ник')
-      : idx('Ник') >= 0 ? idx('Ник')
-      : -1;
-    const telegramIdx =
-      idx('Телеграм') >= 0 ? idx('Телеграм')
-      : idx('Telegram') >= 0 ? idx('Telegram')
-      : idx('ТГ') >= 0 ? idx('ТГ')
-      : idx('Telegram / username') >= 0 ? idx('Telegram / username')
-      : -1;
-    const platformIdx = idx('OnlyFans / Fansly');
-    const expIdx = idx('Опыт, мес.');
-    const workDaysIdx = idx('Срок работы, дни');
-    const transactionEndingIdx = idx('Transaction ending');
+      return {
+        row_number: index + 2,
+        raw: obj,
+        name: obj['Имя'] || '',
+        telegram: obj['Telegram'] || obj['ТГ'] || obj['Telegram / username'] || '',
+        status: obj['Актуальный статус кандидата (Hr)'] || '',
+        platform: obj['OnlyFans / Fansly'] || obj['Платформа'] || '',
+        experience_months: obj['Опыт, мес.'] || obj['Опыт КД, мес'] || '',
+        work_days: obj['Срок работы, дни'] || '',
+        transactionEnding: obj['Transaction ending'] || ''
+      };
+    });
 
-    const safeGet = (row, i) => (i >= 0 && i < row.length ? row[i] : '');
+    const items = allItems.filter(item => isVisibleTeamDashboardStatus(item.status));
 
-    const dataRows = rows.filter(row =>
-      row.some(cell => String(cell || '').trim() !== '')
-    );
+    const toNumber = (value) => {
+      const n = Number(String(value || '').replace(',', '.').trim());
+      return Number.isFinite(n) ? n : 0;
+    };
 
-    const filteredRows = dataRows.filter(row =>
-      isVisibleTeamDashboardStatus(safeGet(row, statusIdx))
-    );
+    const totals = {
+      total: items.length,
+      active: items.filter(x => String(x.status || '').trim() === 'Работает').length,
+      onlyfans: items.filter(x => String(x.platform || '').toLowerCase().includes('onlyfans')).length,
+      fansly: items.filter(x => String(x.platform || '').toLowerCase().includes('fansly')).length,
+      unpaid: items.filter(x => String(x.status || '').trim() === 'Не рассчитан').length
+    };
 
-    const items = filteredRows.map((row, index) => ({
-      row_number: index + 2,
-      name: String(safeGet(row, nameIdx) || '').trim(),
-      telegram: String(safeGet(row, telegramIdx) || '').trim(),
-      status: String(safeGet(row, statusIdx) || '').trim(),
-      platform: String(safeGet(row, platformIdx) || '').trim(),
-      experience_months: String(safeGet(row, expIdx) || '').trim(),
-      work_days: String(safeGet(row, workDaysIdx) || '').trim(),
-      transactionEnding: String(safeGet(row, transactionEndingIdx) || '').trim()
-    }));
+    const expValues = items.map(x => toNumber(x.experience_months)).filter(x => x > 0);
+    const workDayValues = items.map(x => toNumber(x.work_days)).filter(x => x > 0);
 
-    let total = 0;
-    let active = 0;
-    let fired = 0;
-    let unpaid = 0;
-    let onlyfans = 0;
-    let fansly = 0;
+    const avg = (arr) => {
+      if (!arr.length) return 0;
+      return Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10;
+    };
 
-    let expSum = 0;
-    let expCount = 0;
+    const averages = {
+      experience_months: avg(expValues),
+      work_days: avg(workDayValues)
+    };
 
-    let workDaysSum = 0;
-    let workDaysCount = 0;
-
-    const statusMap = new Map();
-    const statusPlatformMap = new Map();
-
-    for (const row of filteredRows) {
-      const statusRaw = String(safeGet(row, statusIdx) || '').trim();
-      const status = normalizeText(statusRaw);
-      const platform = normalizeText(safeGet(row, platformIdx));
-      const normalizedStatusName = statusRaw || 'Без статуса';
-      const platformName =
-        platform.includes('onlyfans') ? 'onlyfans'
-        : platform.includes('fansly') ? 'fansly'
-        : '';
-      const exp = parseNumberLoose(safeGet(row, expIdx));
-      const workDays = parseNumberLoose(safeGet(row, workDaysIdx));
-
-      total++;
-
-      statusMap.set(normalizedStatusName, (statusMap.get(normalizedStatusName) || 0) + 1);
-
-      const statusPlatformKey = `${normalizedStatusName}__${platformName}`;
-      statusPlatformMap.set(statusPlatformKey, (statusPlatformMap.get(statusPlatformKey) || 0) + 1);
-
-      if (status.includes('работает')) active++;
-      if (status.includes('уволен')) fired++;
-      if (status.includes('не рассчитан')) unpaid++;
-
-      if (platform.includes('onlyfans')) onlyfans++;
-      if (platform.includes('fansly')) fansly++;
-
-      if (exp > 0) {
-        expSum += exp;
-        expCount++;
-      }
-
-      if (workDays > 0) {
-        workDaysSum += workDays;
-        workDaysCount++;
-      }
-    }
-
-    const statuses = [...statusMap.entries()]
-      .map(([name, count]) => {
-        const onlyfansCount = statusPlatformMap.get(`${name}__onlyfans`) || 0;
-        const fanslyCount = statusPlatformMap.get(`${name}__fansly`) || 0;
-
-        return {
-          name,
-          count,
-          onlyfans: onlyfansCount,
-          fansly: fanslyCount
-        };
-      })
-      .sort((a, b) => b.count - a.count);
-
-    const payload = {
+    res.json({
       totals: {
-        total,
-        active,
-        fired,
-        unpaid,
-        onlyfans,
-        fansly
+        ...totals
       },
-      averages: {
-        experience_months: expCount ? Number((expSum / expCount).toFixed(1)) : 0,
-        work_days: workDaysCount ? Number((workDaysSum / workDaysCount).toFixed(1)) : 0
-      },
-      statuses,
+      averages,
       items
-    };
-
-    teamStatsCache = {
-      data: payload,
-      ts: now
-    };
-
-    res.json(payload);
+    });
   } catch (err) {
-    console.error('Team stats read error:', err.message);
-    res.status(500).json({ error: 'Failed to read team stats from Google Sheets' });
+    console.error('Team stats error:', err);
+    res.status(500).json({ error: 'Не удалось загрузить страницу действующие' });
   }
 });
 
