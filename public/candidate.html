@@ -615,6 +615,64 @@
       resize: vertical;
     }
 
+    .candidate-report-card{
+      margin-top:16px;
+      background:linear-gradient(180deg,#232840,#1b1f2c);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:16px;
+      box-shadow:var(--shadow);
+    }
+
+    .candidate-report-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom:12px;
+    }
+
+    .candidate-report-title{
+      font-size:16px;
+      font-weight:800;
+      color:var(--text);
+    }
+
+    .candidate-report-actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .candidate-report-btn{
+      border:none;
+      cursor:pointer;
+      border-radius:12px;
+      padding:.72rem .95rem;
+      font-family:'Manrope',sans-serif;
+      font-weight:800;
+      font-size:12px;
+      background:linear-gradient(135deg, rgba(79,110,247,.24), rgba(168,85,247,.16));
+      border:1px solid rgba(79,110,247,.34);
+      color:#dbeafe;
+    }
+
+    .candidate-report-textarea{
+      width:100%;
+      min-height:220px;
+      resize:vertical;
+      background:#0f1220;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;
+      color:var(--text);
+      padding:14px;
+      font-family:'Manrope',sans-serif;
+      font-size:13px;
+      line-height:1.55;
+      outline:none;
+    }
+
     @media (max-width: 1100px){
       .wrap{
         grid-template-columns:1fr;
@@ -883,11 +941,152 @@
       });
     }
 
-    function verdictMeta(total) {
-      if (total >= 40) return { label:'Берём', cls:'green' };
-      if (total >= 28) return { label:'Думаем', cls:'yellow' };
-      if (total > 0) return { label:'Отказ', cls:'red' };
+    function getCandidateVerdictKey(candidate = {}) {
+      const status = String(candidate.status || '').trim();
+
+      if (status === 'Принят' || status === 'Работает') return 'hire';
+      if (['Отказ', 'Уволен', 'Не рассчитан', 'Убрать', 'Не пришел на собес'].includes(status)) return 'reject';
+      if (status) return 'review';
+      return 'unrated';
+    }
+
+    function verdictMeta(candidate = {}) {
+      const verdict = getCandidateVerdictKey(candidate);
+      if (verdict === 'hire') return { label:'Берём', cls:'green' };
+      if (verdict === 'review') return { label:'Думаем', cls:'yellow' };
+      if (verdict === 'reject') return { label:'Отказ', cls:'red' };
       return { label:'Без оценки', cls:'blue' };
+    }
+
+    function getTextBySelectors(selectors) {
+      for (const selector of selectors) {
+        const el = document.querySelector(selector);
+        if (!el) continue;
+
+        const value =
+          'value' in el
+            ? String(el.value || '').trim()
+            : String(el.textContent || '').trim();
+
+        if (value) return value;
+      }
+      return '';
+    }
+
+    function buildCandidateInterviewReport(data = {}) {
+      return [
+        `Платформа: ${data.platform || '—'}`,
+        `Имя: ${data.name || '—'}`,
+        `Тг: ${data.telegram || '—'}`,
+        `Возраст: ${data.age || '—'}`,
+        `Англ: ${data.english || '—'}`,
+        `Опыт: ${data.experience || '—'}`,
+        `Топ страниц: ${data.topPages || '—'}`,
+        `Ср чек: ${data.avgCheck || '—'}`,
+        `Смена: ${data.shift || '—'}`,
+        `Есть ли основная деятельность/учеба: ${data.study || '—'}`,
+        '',
+        `График 5/2 или 6/1: ${data.schedule || '—'}`
+      ].join('\n');
+    }
+
+    function collectCandidateReportData() {
+      return {
+        platform: getTextBySelectors([
+          '[data-field="platform"]',
+          '[data-candidate-platform]',
+          '#candidatePlatform',
+          '.candidate-platform'
+        ]),
+        name: getTextBySelectors([
+          '[data-field="name"]',
+          '#candidateName',
+          '.candidate-name',
+          'h1'
+        ]),
+        telegram: getTextBySelectors([
+          '[data-field="telegram"]',
+          '#candidateTelegram',
+          '.candidate-telegram'
+        ]),
+        age: getTextBySelectors([
+          '[data-field="age"]',
+          '#candidateAge',
+          '.candidate-age'
+        ]),
+        english: getTextBySelectors([
+          '[data-field="english"]',
+          '[data-field="english_level"]',
+          '#candidateEnglish',
+          '.candidate-english'
+        ]),
+        experience: getTextBySelectors([
+          '[data-field="experience"]',
+          '#candidateExperience',
+          '.candidate-experience'
+        ]),
+        topPages: getTextBySelectors([
+          '[data-field="top_pages"]',
+          '[data-field="top_profile"]',
+          '#candidateTopPages',
+          '.candidate-top-pages'
+        ]),
+        avgCheck: getTextBySelectors([
+          '[data-field="avg_check"]',
+          '[data-field="average_check"]',
+          '#candidateAvgCheck',
+          '.candidate-avg-check'
+        ]),
+        shift: getTextBySelectors([
+          '[data-field="shift"]',
+          '#candidateShift',
+          '.candidate-shift'
+        ]),
+        study: getTextBySelectors([
+          '[data-field="study"]',
+          '[data-field="main_activity"]',
+          '[data-field="study_info"]',
+          '#candidateStudy',
+          '.candidate-study'
+        ]),
+        schedule: getTextBySelectors([
+          '[data-field="schedule"]',
+          '[data-field="schedule_preference"]',
+          '#candidateSchedule',
+          '.candidate-schedule'
+        ])
+      };
+    }
+
+    function generateCandidateReport() {
+      const data = collectCandidateReportData();
+      const report = buildCandidateInterviewReport(data);
+
+      const output = document.getElementById('candidateReportOutput');
+      if (output) {
+        output.value = report;
+      }
+    }
+
+    async function copyCandidateReport() {
+      const output = document.getElementById('candidateReportOutput');
+      if (!output) return;
+
+      const text = String(output.value || '').trim();
+      if (!text) {
+        generateCandidateReport();
+      }
+
+      const finalText = String(output.value || '').trim();
+      if (!finalText) return;
+
+      try {
+        await navigator.clipboard.writeText(finalText);
+      } catch {
+        output.focus();
+        output.select();
+        document.execCommand('copy');
+      }
     }
 
     function statusMeta(status) {
@@ -1021,7 +1220,7 @@
     }
 
     function renderLeft(candidate) {
-      const verdict = verdictMeta(Number(candidate.total || 0));
+      const verdict = verdictMeta(candidate);
 
       leftCol.innerHTML = `
         <section class="card">
@@ -1029,8 +1228,8 @@
             <div class="avatar-row">
               <div class="avatar">${initials(candidate.name || '')}</div>
               <div>
-                <div class="name">${escapeHtml(candidate.name || 'Без имени')}</div>
-                <div class="tg">${escapeHtml(candidate.tg || '—')}</div>
+                <div class="name candidate-name" id="candidateName" data-field="name">${escapeHtml(candidate.name || 'Без имени')}</div>
+                <div class="tg candidate-telegram" id="candidateTelegram" data-field="telegram">${escapeHtml(candidate.telegram || candidate.tg || '—')}</div>
                 <div class="sub">Создан: ${formatDate(candidate.created_at)}</div>
               </div>
             </div>
@@ -1038,8 +1237,8 @@
             <div class="row">
               <span class="badge ${verdict.cls}">${verdict.label}</span>
               ${candidate.status ? `<span class="badge ${statusMeta(candidate.status)}">${escapeHtml(candidate.status)}</span>` : `<span class="badge blue">Без статуса</span>`}
-              ${candidate.platforms ? `<span class="badge blue">${escapeHtml(candidate.platforms)}</span>` : ''}
-              ${candidate.english ? `<span class="badge purple">${escapeHtml(candidate.english)}</span>` : ''}
+              ${(candidate.platform || candidate.platforms) ? `<span class="badge blue candidate-platform" id="candidatePlatform" data-field="platform">${escapeHtml(candidate.platform || candidate.platforms)}</span>` : ''}
+              ${(candidate.english_level || candidate.english) ? `<span class="badge purple candidate-english" id="candidateEnglish" data-field="english_level">${escapeHtml(candidate.english_level || candidate.english)}</span>` : ''}
             </div>
 
             <div class="score-box">
@@ -1082,13 +1281,13 @@
             </div>
 
             <div class="field-list">
-              <div class="field-box"><div class="k">Возраст</div><div class="v">${escapeHtml(candidate.age || '—')}</div></div>
-              <div class="field-box"><div class="k">Опыт</div><div class="v">${escapeHtml(candidate.exp || '—')}</div></div>
-              <div class="field-box"><div class="k">Средний чек</div><div class="v">${escapeHtml(candidate.avg_check || '—')}</div></div>
-              <div class="field-box"><div class="k">Смены</div><div class="v">${escapeHtml(candidate.shift || '—')}</div></div>
-              <div class="field-box"><div class="k">График</div><div class="v">${escapeHtml(candidate.schedule || '—')}</div></div>
-              <div class="field-box"><div class="k">Топ страницы</div><div class="v">${escapeHtml(candidate.top_pages || '—')}</div></div>
-              <div class="field-box"><div class="k">Занятость</div><div class="v">${escapeHtml(candidate.job || '—')}</div></div>
+              <div class="field-box"><div class="k">Возраст</div><div class="v candidate-age" id="candidateAge" data-field="age">${escapeHtml(candidate.age || '—')}</div></div>
+              <div class="field-box"><div class="k">Опыт</div><div class="v candidate-experience" id="candidateExperience" data-field="experience">${escapeHtml(candidate.experience || candidate.exp || '—')}</div></div>
+              <div class="field-box"><div class="k">Средний чек</div><div class="v candidate-avg-check" id="candidateAvgCheck" data-field="avg_check">${escapeHtml(candidate.avg_check || '—')}</div></div>
+              <div class="field-box"><div class="k">Смены</div><div class="v candidate-shift" id="candidateShift" data-field="shift">${escapeHtml(candidate.shift || '—')}</div></div>
+              <div class="field-box"><div class="k">График</div><div class="v candidate-schedule" id="candidateSchedule" data-field="schedule_preference">${escapeHtml(candidate.schedule_preference || candidate.schedule || '—')}</div></div>
+              <div class="field-box"><div class="k">Топ страницы</div><div class="v candidate-top-pages" id="candidateTopPages" data-field="top_profile">${escapeHtml(candidate.top_profile || candidate.top_pages || '—')}</div></div>
+              <div class="field-box"><div class="k">Занятость</div><div class="v candidate-study" id="candidateStudy" data-field="main_activity">${escapeHtml(candidate.main_activity || candidate.job || '—')}</div></div>
               <div class="field-box"><div class="k">Владелец</div><div class="v">${escapeHtml(candidate.owner_name || '—')}</div></div>
               <div class="field-box"><div class="k">Обновлён</div><div class="v">${formatDate(candidate.updated_at)}</div></div>
             </div>
@@ -1118,6 +1317,27 @@
               <button class="btn btn-ghost" onclick="saveInternalComment()">Сохранить комментарий</button>
             </div>
           </div>
+
+          <section class="candidate-report-card">
+            <div class="candidate-report-head">
+              <div class="candidate-report-title">Отчет по кандидату</div>
+
+              <div class="candidate-report-actions">
+                <button type="button" class="candidate-report-btn" onclick="generateCandidateReport()">
+                  Сгенерировать отчет
+                </button>
+                <button type="button" class="candidate-report-btn" onclick="copyCandidateReport()">
+                  Скопировать отчет
+                </button>
+              </div>
+            </div>
+
+            <textarea
+              id="candidateReportOutput"
+              class="candidate-report-textarea"
+              placeholder="Здесь появится структурированный отчет по кандидату..."
+            >${escapeHtml(candidate.interview_report || '')}</textarea>
+          </section>
 
           <div class="panel">
             <div class="panel-title">
@@ -1222,6 +1442,48 @@
 
       renderLeft(candidate);
       renderRight(candidate, historyData);
+      setTimeout(() => {
+        generateCandidateReport();
+      }, 50);
+    }
+
+    function buildCandidatePatchPayload(baseCandidate, fieldOverrides = {}) {
+      const split = splitInternalComment(baseCandidate.notes || '');
+      const nextNotes = Object.prototype.hasOwnProperty.call(fieldOverrides, 'notes')
+        ? fieldOverrides.notes
+        : mergeInternalComment(split.publicNotes, split.internalComment);
+
+      return {
+        fields: {
+          name: baseCandidate.name || '',
+          tg: baseCandidate.telegram || baseCandidate.tg || '',
+          telegram: baseCandidate.telegram || baseCandidate.tg || '',
+          age: baseCandidate.age || '',
+          english: baseCandidate.english_level || baseCandidate.english || '',
+          english_level: baseCandidate.english_level || baseCandidate.english || '',
+          exp: baseCandidate.experience || baseCandidate.exp || '',
+          experience: baseCandidate.experience || baseCandidate.exp || '',
+          platform: baseCandidate.platform || baseCandidate.platforms || '',
+          platforms: baseCandidate.platform || baseCandidate.platforms || '',
+          shift: baseCandidate.shift || '',
+          schedule: baseCandidate.schedule_preference || baseCandidate.schedule || '',
+          schedule_preference: baseCandidate.schedule_preference || baseCandidate.schedule || '',
+          top: baseCandidate.top_profile || baseCandidate.top_pages || '',
+          top_pages: baseCandidate.top_pages || '',
+          top_profile: baseCandidate.top_profile || baseCandidate.top_pages || '',
+          avgcheck: baseCandidate.avg_check || '',
+          avg_check: baseCandidate.avg_check || '',
+          job: baseCandidate.main_activity || baseCandidate.job || '',
+          main_activity: baseCandidate.main_activity || baseCandidate.job || '',
+          interview_report: baseCandidate.interview_report || '',
+          status: baseCandidate.status || '',
+          notes: nextNotes,
+          source: baseCandidate.source || '',
+          ...fieldOverrides
+        },
+        ratings: baseCandidate.ratings || {},
+        total: baseCandidate.total || 0
+      };
     }
 
     async function quickUpdateStatus() {
@@ -1229,26 +1491,7 @@
 
       const status = document.getElementById('quick-status')?.value || '';
 
-      const payload = {
-        fields: {
-          name: currentCandidate.name || '',
-          tg: currentCandidate.tg || '',
-          age: currentCandidate.age || '',
-          english: currentCandidate.english || '',
-          exp: currentCandidate.exp || '',
-          platforms: currentCandidate.platforms || '',
-          shift: currentCandidate.shift || '',
-          schedule: currentCandidate.schedule || '',
-          top: currentCandidate.top_pages || '',
-          avgcheck: currentCandidate.avg_check || '',
-          job: currentCandidate.job || '',
-          status,
-          notes: currentCandidate.notes || '',
-          source: currentCandidate.source || ''
-        },
-        ratings: currentCandidate.ratings || {},
-        total: currentCandidate.total || 0
-      };
+      const payload = buildCandidatePatchPayload(currentCandidate, { status });
 
       const res = await api(`/candidates/${candidateId}`, {
         method: 'PATCH',
@@ -1271,26 +1514,7 @@
       const internalComment = document.getElementById('internal-comment-editor')?.value || '';
       const notes = mergeInternalComment(publicNotes, internalComment);
 
-      const payload = {
-        fields: {
-          name: currentCandidate.name || '',
-          tg: currentCandidate.tg || '',
-          age: currentCandidate.age || '',
-          english: currentCandidate.english || '',
-          exp: currentCandidate.exp || '',
-          platforms: currentCandidate.platforms || '',
-          shift: currentCandidate.shift || '',
-          schedule: currentCandidate.schedule || '',
-          top: currentCandidate.top_pages || '',
-          avgcheck: currentCandidate.avg_check || '',
-          job: currentCandidate.job || '',
-          status: currentCandidate.status || '',
-          notes,
-          source: currentCandidate.source || ''
-        },
-        ratings: currentCandidate.ratings || {},
-        total: currentCandidate.total || 0
-      };
+      const payload = buildCandidatePatchPayload(currentCandidate, { notes });
 
       const res = await api(`/candidates/${candidateId}`, {
         method: 'PATCH',
@@ -1313,26 +1537,7 @@
       const internalComment = document.getElementById('internal-comment-editor')?.value || '';
       const mergedNotes = mergeInternalComment(publicNotes, internalComment);
 
-      const payload = {
-        fields: {
-          name: currentCandidate.name || '',
-          tg: currentCandidate.tg || '',
-          age: currentCandidate.age || '',
-          english: currentCandidate.english || '',
-          exp: currentCandidate.exp || '',
-          platforms: currentCandidate.platforms || '',
-          shift: currentCandidate.shift || '',
-          schedule: currentCandidate.schedule || '',
-          top: currentCandidate.top_pages || '',
-          avgcheck: currentCandidate.avg_check || '',
-          job: currentCandidate.job || '',
-          status: currentCandidate.status || '',
-          notes: mergedNotes,
-          source: currentCandidate.source || ''
-        },
-        ratings: currentCandidate.ratings || {},
-        total: currentCandidate.total || 0
-      };
+      const payload = buildCandidatePatchPayload(currentCandidate, { notes: mergedNotes });
 
       const res = await api(`/candidates/${candidateId}`, {
         method: 'PATCH',
@@ -1356,26 +1561,10 @@
       const split = splitInternalComment(currentCandidate.notes || '');
       const notes = mergeInternalComment(split.publicNotes, split.internalComment);
 
-      const payload = {
-        fields: {
-          name: currentCandidate.name || '',
-          tg: currentCandidate.tg || '',
-          age: currentCandidate.age || '',
-          english: currentCandidate.english || '',
-          exp: currentCandidate.exp || '',
-          platforms: currentCandidate.platforms || '',
-          shift: currentCandidate.shift || '',
-          schedule: currentCandidate.schedule || '',
-          top: currentCandidate.top_pages || '',
-          avgcheck: currentCandidate.avg_check || '',
-          job: currentCandidate.job || '',
-          status: currentCandidate.status || '',
-          notes,
-          source: pipeline
-        },
-        ratings: currentCandidate.ratings || {},
-        total: currentCandidate.total || 0
-      };
+      const payload = buildCandidatePatchPayload(currentCandidate, {
+        notes,
+        source: pipeline
+      });
 
       const res = await api(`/candidates/${candidateId}`, {
         method: 'PATCH',
@@ -1395,6 +1584,14 @@
     window.saveNotes = saveNotes;
     window.saveInternalComment = saveInternalComment;
     window.savePipeline = savePipeline;
+    window.generateCandidateReport = generateCandidateReport;
+    window.copyCandidateReport = copyCandidateReport;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        generateCandidateReport();
+      }, 250);
+    });
 
     load().catch(err => {
       console.error(err);
