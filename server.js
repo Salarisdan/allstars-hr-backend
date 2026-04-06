@@ -1370,50 +1370,47 @@ app.post('/candidates', auth, async (req, res) => {
   console.log('POST /candidates BODY =', req.body);
 
   try {
-    const rawFields = req.body && typeof req.body.fields === 'object' && !Array.isArray(req.body.fields)
-      ? req.body.fields
-      : {};
-    const rawRatings = req.body && typeof req.body.ratings === 'object' && !Array.isArray(req.body.ratings)
-      ? req.body.ratings
-      : {};
-    const { ownerUserId } = req.body || {};
+    const body = req.body || {};
+    const source = body && typeof body.fields === 'object' && !Array.isArray(body.fields)
+      ? { ...body, ...body.fields }
+      : body;
     const safe = (value) => {
       if (value === undefined || value === null) return '';
-      if (Array.isArray(value)) return value.join(', ');
+      if (Array.isArray(value)) return JSON.stringify(value);
       if (typeof value === 'object') return JSON.stringify(value);
       return String(value);
     };
-    const safeTotal = Number.isFinite(Number(req.body?.total)) ? Number(req.body.total) : 0;
-    const normalizedOwnerUserId = typeof ownerUserId === 'string' || typeof ownerUserId === 'number'
-      ? ownerUserId
+    const ownerUserId = typeof body.ownerUserId === 'string' || typeof body.ownerUserId === 'number'
+      ? body.ownerUserId
       : req.user.userId;
-    const fields = {
-      name: safe(rawFields.name),
-      tg: safe(rawFields.tg),
-      telegram: safe(rawFields.telegram || rawFields.tg),
-      age: safe(rawFields.age),
-      english: safe(rawFields.english),
-      english_level: safe(rawFields.english_level || rawFields.english),
-      exp: safe(rawFields.exp),
-      experience: safe(rawFields.experience || rawFields.exp),
-      platform: safe(rawFields.platform || rawFields.platforms),
-      platforms: safe(rawFields.platforms),
-      shift: safe(rawFields.shift),
-      schedule: safe(rawFields.schedule),
-      schedule_preference: safe(rawFields.schedule_preference || rawFields.schedule),
-      top: safe(rawFields.top),
-      top_profile: safe(rawFields.top_profile || rawFields.top_pages || rawFields.top),
-      avgcheck: safe(rawFields.avgcheck),
-      job: safe(rawFields.job),
-      main_activity: safe(rawFields.main_activity || rawFields.job),
-      interview_report: safe(rawFields.interview_report),
-      status: safe(rawFields.status),
-      source: safe(rawFields.source) || 'manual',
-      notes: safe(rawFields.notes)
+    const candidate = {
+      name: safe(source.name),
+      tg: safe(source.tg || source.telegram || source.username),
+      telegram: safe(source.telegram || source.tg || source.username),
+      age: safe(source.age),
+      english: safe(source.english || source.english_level),
+      english_level: safe(source.english_level || source.english),
+      exp: safe(source.exp || source.experience),
+      experience: safe(source.experience || source.exp),
+      platform: safe(source.platform || source.platforms),
+      platforms: safe(source.platforms || source.platform),
+      shift: safe(source.shift),
+      schedule: safe(source.schedule || source.schedule_preference),
+      schedule_preference: safe(source.schedule_preference || source.schedule),
+      top_pages: safe(source.top_pages || source.top_profile || source.top),
+      top_profile: safe(source.top_profile || source.top_pages || source.top),
+      avg_check: safe(source.avg_check || source.avgcheck),
+      job: safe(source.job || source.main_activity),
+      main_activity: safe(source.main_activity || source.job),
+      interview_report: safe(source.interview_report),
+      status: normalizeCandidateStatus(source.status || 'Без статуса'),
+      source: safe(source.source) || 'manual',
+      notes: safe(source.notes),
+      ratings: body.ratings && typeof body.ratings === 'object' && !Array.isArray(body.ratings) ? body.ratings : {},
+      total: Number.isFinite(Number(body.total)) ? Number(body.total) : 0
     };
-    const normalizedCandidateStatus = normalizeCandidateStatus(fields.status);
 
-    const candidate = await query(
+    const result = await query(
       `INSERT INTO candidates(
         agency_id, owner_user_id, created_by_user_id, updated_by_user_id,
         name, tg, telegram, age, english, english_level, exp, experience, platform, platforms, shift, schedule, schedule_preference, top_pages, top_profile, avg_check, job, main_activity, interview_report, status, source, notes, ratings, total
@@ -1423,44 +1420,44 @@ app.post('/candidates', auth, async (req, res) => {
       ) RETURNING *`,
       [
         req.user.agencyId,
-        normalizedOwnerUserId,
+        ownerUserId,
         req.user.userId,
-        fields.name,
-        fields.tg,
-        fields.telegram,
-        fields.age,
-        fields.english,
-        fields.english_level,
-        fields.exp,
-        fields.experience,
-        fields.platform,
-        fields.platforms,
-        fields.shift,
-        fields.schedule,
-        fields.schedule_preference,
-        fields.top,
-        fields.top_profile,
-        fields.avgcheck,
-        fields.job,
-        fields.main_activity,
-        fields.interview_report,
-        normalizedCandidateStatus,
-        fields.source,
-        fields.notes,
-        JSON.stringify(rawRatings),
-        safeTotal
+        candidate.name,
+        candidate.tg,
+        candidate.telegram,
+        candidate.age,
+        candidate.english,
+        candidate.english_level,
+        candidate.exp,
+        candidate.experience,
+        candidate.platform,
+        candidate.platforms,
+        candidate.shift,
+        candidate.schedule,
+        candidate.schedule_preference,
+        candidate.top_pages,
+        candidate.top_profile,
+        candidate.avg_check,
+        candidate.job,
+        candidate.main_activity,
+        candidate.interview_report,
+        candidate.status,
+        candidate.source,
+        candidate.notes,
+        JSON.stringify(candidate.ratings),
+        candidate.total
       ]
     );
 
-    if (normalizedCandidateStatus) {
+    if (candidate.status) {
       await query(
         `INSERT INTO candidate_status_history(candidate_id, status, changed_by_user_id)
          VALUES ($1,$2,$3)`,
-        [candidate.rows[0].id, normalizedCandidateStatus, req.user.userId]
+        [result.rows[0].id, candidate.status, req.user.userId]
       );
     }
 
-    const ai = buildAiInsight(candidate.rows[0]);
+    const ai = buildAiInsight(result.rows[0]);
 
     await query(
       `INSERT INTO candidate_ai_insights(candidate_id, recommendation, confidence, summary, strengths, risks)
@@ -1472,10 +1469,10 @@ app.post('/candidates', auth, async (req, res) => {
                      strengths = EXCLUDED.strengths,
                      risks = EXCLUDED.risks,
                      generated_at = NOW()`,
-      [candidate.rows[0].id, ai.recommendation, ai.confidence, ai.summary, JSON.stringify(ai.strengths), JSON.stringify(ai.risks)]
+      [result.rows[0].id, ai.recommendation, ai.confidence, ai.summary, JSON.stringify(ai.strengths), JSON.stringify(ai.risks)]
     );
 
-    res.status(201).json(candidate.rows[0]);
+    res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error('POST /candidates ERROR =', err);
     res.status(500).json({ error: err.message || 'Не удалось сохранить кандидата' });

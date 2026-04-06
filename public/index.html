@@ -1373,6 +1373,9 @@
       setValue(['username', 'candidateUsername'], data.username);
       setValue(['age', 'candidateAge', 'f-age'], data.age);
       setValue(['platform', 'candidatePlatform'], data.platform);
+      setValue(['avg_check', 'avgCheck', 'f-avgcheck'], data.avg_check);
+      setValue(['main_activity', 'mainActivity', 'f-job'], data.main_activity);
+      setValue(['schedule_preference', 'schedulePreference'], data.schedule_preference);
 
       // важные поля из карточки собеседования
       setValue(['top_profile', 'topProfile', 'candidateTopProfile', 'f-top'], data.top_profile);
@@ -1394,6 +1397,10 @@
         setSinglePill(['pills-english'], data.english_level);
       }
 
+      if (!document.getElementById('schedule_preference') && !document.getElementById('schedulePreference') && !document.getElementById('f-schedule')) {
+        setSinglePill(['pills-schedule'], data.schedule_preference);
+      }
+
       const sourceBadge = document.getElementById('interviewSourceBadge');
       if (sourceBadge) {
         sourceBadge.textContent = 'Кандидат загружен из Собеседований';
@@ -1403,6 +1410,10 @@
       console.log('FILLED INTERVIEW FORM WITH =', data);
 
       sessionStorage.removeItem('allstars_interview_candidate');
+    }
+
+    function fillInterviewFormFromStorage() {
+      fillCandidateFromInterviewStorage();
     }
 
     async function generateAISummary() {
@@ -1575,7 +1586,7 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
       await loadCandidateFromSheetRow();
-      fillCandidateFromInterviewStorage();
+      fillInterviewFormFromStorage();
 
       if (sessionStorage.getItem('allstars_open_interview_script') === '1') {
         sessionStorage.removeItem('allstars_open_interview_script');
