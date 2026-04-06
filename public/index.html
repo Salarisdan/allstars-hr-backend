@@ -1400,6 +1400,8 @@
         sourceBadge.style.display = 'inline-flex';
       }
 
+      console.log('FILLED INTERVIEW FORM WITH =', data);
+
       sessionStorage.removeItem('allstars_interview_candidate');
     }
 
@@ -1810,6 +1812,11 @@
       const fields = getFields();
       const total = Object.values(ratings).reduce((a,b)=>a+b,0);
       const btn = document.getElementById('save-btn');
+      const payload = {
+        fields,
+        ratings,
+        total
+      };
 
       if (!fields.name) {
         setSaveStatus('Нужно заполнить хотя бы имя кандидата');
@@ -1824,17 +1831,17 @@
       setSaveStatus('Отправляем кандидата в базу...');
 
       try {
+        console.log('SAVE CANDIDATE PAYLOAD =', payload);
+
         const res = await api('/candidates', {
           method: 'POST',
-          body: JSON.stringify({
-            fields,
-            ratings,
-            total
-          })
+          body: JSON.stringify(payload)
         });
 
+        const data = await res.json().catch(() => ({}));
+        console.log('SAVE CANDIDATE RESPONSE =', res.status, data);
+
         if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
           throw new Error(data.error || 'Ошибка сохранения');
         }
 

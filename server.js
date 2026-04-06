@@ -1367,72 +1367,119 @@ app.get('/candidates', auth, async (req, res) => {
 });
 
 app.post('/candidates', auth, async (req, res) => {
-  const { fields = {}, ratings = {}, total = 0, ownerUserId } = req.body || {};
-  const normalizedCandidateStatus = normalizeCandidateStatus(fields.status);
+  console.log('POST /candidates BODY =', req.body);
 
-  const candidate = await query(
-    `INSERT INTO candidates(
-      agency_id, owner_user_id, created_by_user_id, updated_by_user_id,
-      name, tg, telegram, age, english, english_level, exp, experience, platform, platforms, shift, schedule, schedule_preference, top_pages, top_profile, avg_check, job, main_activity, interview_report, status, source, notes, ratings, total
-    ) VALUES (
-      $1,$2,$3,$3,
-      $4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28
-    ) RETURNING *`,
-    [
-      req.user.agencyId,
-      ownerUserId || req.user.userId,
-      req.user.userId,
-      fields.name || '',
-      fields.tg || '',
-      fields.telegram || fields.tg || '',
-      fields.age || '',
-      fields.english || '',
-      fields.english_level || fields.english || '',
-      fields.exp || '',
-      fields.experience || fields.exp || '',
-      fields.platform || fields.platforms || '',
-      fields.platforms || '',
-      fields.shift || '',
-      fields.schedule || '',
-      fields.schedule_preference || fields.schedule || '',
-      fields.top || '',
-      fields.top_profile || fields.top_pages || fields.top || '',
-      fields.avgcheck || '',
-      fields.job || '',
-      fields.main_activity || fields.job || '',
-      fields.interview_report || '',
-      normalizedCandidateStatus,
-      fields.source || 'manual',
-      fields.notes || '',
-      JSON.stringify(ratings),
-      total || 0
-    ]
-  );
+  try {
+    const rawFields = req.body && typeof req.body.fields === 'object' && !Array.isArray(req.body.fields)
+      ? req.body.fields
+      : {};
+    const rawRatings = req.body && typeof req.body.ratings === 'object' && !Array.isArray(req.body.ratings)
+      ? req.body.ratings
+      : {};
+    const { ownerUserId } = req.body || {};
+    const safe = (value) => {
+      if (value === undefined || value === null) return '';
+      if (Array.isArray(value)) return value.join(', ');
+      if (typeof value === 'object') return JSON.stringify(value);
+      return String(value);
+    };
+    const safeTotal = Number.isFinite(Number(req.body?.total)) ? Number(req.body.total) : 0;
+    const normalizedOwnerUserId = typeof ownerUserId === 'string' || typeof ownerUserId === 'number'
+      ? ownerUserId
+      : req.user.userId;
+    const fields = {
+      name: safe(rawFields.name),
+      tg: safe(rawFields.tg),
+      telegram: safe(rawFields.telegram || rawFields.tg),
+      age: safe(rawFields.age),
+      english: safe(rawFields.english),
+      english_level: safe(rawFields.english_level || rawFields.english),
+      exp: safe(rawFields.exp),
+      experience: safe(rawFields.experience || rawFields.exp),
+      platform: safe(rawFields.platform || rawFields.platforms),
+      platforms: safe(rawFields.platforms),
+      shift: safe(rawFields.shift),
+      schedule: safe(rawFields.schedule),
+      schedule_preference: safe(rawFields.schedule_preference || rawFields.schedule),
+      top: safe(rawFields.top),
+      top_profile: safe(rawFields.top_profile || rawFields.top_pages || rawFields.top),
+      avgcheck: safe(rawFields.avgcheck),
+      job: safe(rawFields.job),
+      main_activity: safe(rawFields.main_activity || rawFields.job),
+      interview_report: safe(rawFields.interview_report),
+      status: safe(rawFields.status),
+      source: safe(rawFields.source) || 'manual',
+      notes: safe(rawFields.notes)
+    };
+    const normalizedCandidateStatus = normalizeCandidateStatus(fields.status);
 
-  if (normalizedCandidateStatus) {
-    await query(
-      `INSERT INTO candidate_status_history(candidate_id, status, changed_by_user_id)
-       VALUES ($1,$2,$3)`,
-      [candidate.rows[0].id, normalizedCandidateStatus, req.user.userId]
+    const candidate = await query(
+      `INSERT INTO candidates(
+        agency_id, owner_user_id, created_by_user_id, updated_by_user_id,
+        name, tg, telegram, age, english, english_level, exp, experience, platform, platforms, shift, schedule, schedule_preference, top_pages, top_profile, avg_check, job, main_activity, interview_report, status, source, notes, ratings, total
+      ) VALUES (
+        $1,$2,$3,$3,
+        $4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28
+      ) RETURNING *`,
+      [
+        req.user.agencyId,
+        normalizedOwnerUserId,
+        req.user.userId,
+        fields.name,
+        fields.tg,
+        fields.telegram,
+        fields.age,
+        fields.english,
+        fields.english_level,
+        fields.exp,
+        fields.experience,
+        fields.platform,
+        fields.platforms,
+        fields.shift,
+        fields.schedule,
+        fields.schedule_preference,
+        fields.top,
+        fields.top_profile,
+        fields.avgcheck,
+        fields.job,
+        fields.main_activity,
+        fields.interview_report,
+        normalizedCandidateStatus,
+        fields.source,
+        fields.notes,
+        JSON.stringify(rawRatings),
+        safeTotal
+      ]
     );
+
+    if (normalizedCandidateStatus) {
+      await query(
+        `INSERT INTO candidate_status_history(candidate_id, status, changed_by_user_id)
+         VALUES ($1,$2,$3)`,
+        [candidate.rows[0].id, normalizedCandidateStatus, req.user.userId]
+      );
+    }
+
+    const ai = buildAiInsight(candidate.rows[0]);
+
+    await query(
+      `INSERT INTO candidate_ai_insights(candidate_id, recommendation, confidence, summary, strengths, risks)
+       VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb)
+       ON CONFLICT (candidate_id)
+       DO UPDATE SET recommendation = EXCLUDED.recommendation,
+                     confidence = EXCLUDED.confidence,
+                     summary = EXCLUDED.summary,
+                     strengths = EXCLUDED.strengths,
+                     risks = EXCLUDED.risks,
+                     generated_at = NOW()`,
+      [candidate.rows[0].id, ai.recommendation, ai.confidence, ai.summary, JSON.stringify(ai.strengths), JSON.stringify(ai.risks)]
+    );
+
+    res.status(201).json(candidate.rows[0]);
+  } catch (err) {
+    console.error('POST /candidates ERROR =', err);
+    res.status(500).json({ error: err.message || 'Не удалось сохранить кандидата' });
   }
-
-  const ai = buildAiInsight(candidate.rows[0]);
-
-  await query(
-    `INSERT INTO candidate_ai_insights(candidate_id, recommendation, confidence, summary, strengths, risks)
-     VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb)
-     ON CONFLICT (candidate_id)
-     DO UPDATE SET recommendation = EXCLUDED.recommendation,
-                   confidence = EXCLUDED.confidence,
-                   summary = EXCLUDED.summary,
-                   strengths = EXCLUDED.strengths,
-                   risks = EXCLUDED.risks,
-                   generated_at = NOW()`,
-    [candidate.rows[0].id, ai.recommendation, ai.confidence, ai.summary, JSON.stringify(ai.strengths), JSON.stringify(ai.risks)]
-  );
-
-  res.status(201).json(candidate.rows[0]);
 });
 
 app.patch('/candidates/:id', auth, async (req, res) => {

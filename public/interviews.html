@@ -1823,32 +1823,31 @@
         alert('Не удалось найти карточку кандидата');
         return;
       }
-        const payload = {
-          source: 'interviews',
-          interview_id: item.id,
 
-          name: item.name || '',
-          telegram: item.telegram || item.tg || item.username || '',
-          username: item.username || '',
-          age: item.age || '',
-          platform: item.platform || '',
+      const payload = {
+        source: 'interviews',
+        interview_id: item.id,
+        name: item.name || '',
+        telegram: item.telegram || item.tg || item.username || '',
+        username: item.username || '',
+        age: item.age || '',
+        platform: item.platform || '',
+        top_profile: item.top_profile || '',
+        experience: item.experience || '',
+        shift: item.shift || '',
+        english_level: item.english_level || '',
+        interview_date: item.interview_date || '',
+        interview_time: item.interview_time || '',
+        notes: item.notes || '',
+        status: item.status || ''
+      };
 
-          top_profile: item.top_profile || '',
-          experience: item.experience || '',
-          shift: item.shift || '',
-          english_level: item.english_level || '',
+      console.log('INTERVIEW TRANSFER PAYLOAD =', payload);
 
-          notes: item.notes || '',
-          status: item.status || '',
+      sessionStorage.setItem('allstars_interview_candidate', JSON.stringify(payload));
+      sessionStorage.setItem('allstars_open_interview_script', '1');
 
-          interview_date: item.interview_date || '',
-          interview_time: item.interview_time || ''
-        };
-
-        sessionStorage.setItem('allstars_interview_candidate', JSON.stringify(payload));
-        sessionStorage.setItem('allstars_open_interview_script', '1');
-
-        window.location.href = '/index.html';
+      window.location.href = '/index.html';
     }
 
     function findInterviewItemById(id) {
