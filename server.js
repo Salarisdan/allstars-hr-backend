@@ -1371,56 +1371,112 @@ app.post('/candidates', auth, async (req, res) => {
 
   try {
     const body = req.body || {};
-    const source = body && typeof body.fields === 'object' && !Array.isArray(body.fields)
-      ? { ...body, ...body.fields }
-      : body;
+    const source =
+      body && typeof body.fields === 'object' && !Array.isArray(body.fields)
+        ? { ...body, ...body.fields }
+        : body;
+
     const safe = (value) => {
       if (value === undefined || value === null) return '';
       if (Array.isArray(value)) return JSON.stringify(value);
       if (typeof value === 'object') return JSON.stringify(value);
       return String(value);
     };
-    const ownerUserId = typeof body.ownerUserId === 'string' || typeof body.ownerUserId === 'number'
-      ? body.ownerUserId
-      : req.user.userId;
+
+    const ownerUserId =
+      typeof body.ownerUserId === 'string' || typeof body.ownerUserId === 'number'
+        ? String(body.ownerUserId)
+        : String(req.user.userId);
+
     const candidate = {
       name: safe(source.name),
       tg: safe(source.tg || source.telegram || source.username),
       telegram: safe(source.telegram || source.tg || source.username),
       age: safe(source.age),
+
       english: safe(source.english || source.english_level),
       english_level: safe(source.english_level || source.english),
+
       exp: safe(source.exp || source.experience),
       experience: safe(source.experience || source.exp),
+
       platform: safe(source.platform || source.platforms),
       platforms: safe(source.platforms || source.platform),
+
       shift: safe(source.shift),
+
       schedule: safe(source.schedule || source.schedule_preference),
       schedule_preference: safe(source.schedule_preference || source.schedule),
+
       top_pages: safe(source.top_pages || source.top_profile || source.top),
       top_profile: safe(source.top_profile || source.top_pages || source.top),
+
       avg_check: safe(source.avg_check || source.avgcheck),
+
       job: safe(source.job || source.main_activity),
       main_activity: safe(source.main_activity || source.job),
+
       interview_report: safe(source.interview_report),
       status: normalizeCandidateStatus(source.status || 'Без статуса'),
       source: safe(source.source) || 'manual',
       notes: safe(source.notes),
-      ratings: body.ratings && typeof body.ratings === 'object' && !Array.isArray(body.ratings) ? body.ratings : {},
-      total: Number.isFinite(Number(body.total)) ? Number(body.total) : 0
+
+      ratings: body.ratings && typeof body.ratings === 'object' && !Array.isArray(body.ratings)
+        ? JSON.stringify(body.ratings)
+        : '{}',
+
+      total: Number.isFinite(Number(body.total)) ? Number(body.total) : 0,
+      owner_user_id: ownerUserId
     };
 
-    const result = await query(
-      `INSERT INTO candidates(
-        agency_id, owner_user_id, created_by_user_id, updated_by_user_id,
-        name, tg, telegram, age, english, english_level, exp, experience, platform, platforms, shift, schedule, schedule_preference, top_pages, top_profile, avg_check, job, main_activity, interview_report, status, source, notes, ratings, total
-      ) VALUES (
-        $1,$2,$3,$3,
-        $4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28
-      ) RETURNING *`,
+    console.log('POST /candidates NORMALIZED =', candidate);
+
+    const result = await pool.query(
+      `
+      INSERT INTO candidates (
+        agency_id,
+        owner_user_id,
+        created_by_user_id,
+        updated_by_user_id,
+        name,
+        tg,
+        telegram,
+        age,
+        english,
+        english_level,
+        exp,
+        experience,
+        platform,
+        platforms,
+        shift,
+        schedule,
+        schedule_preference,
+        top_pages,
+        top_profile,
+        avg_check,
+        job,
+        main_activity,
+        interview_report,
+        status,
+        source,
+        notes,
+        ratings,
+        total
+      )
+      VALUES (
+        $1,  $2,  $3,  $4,  $5,
+        $6,  $7,  $8,  $9,  $10,
+        $11, $12, $13, $14, $15,
+        $16, $17, $18, $19, $20,
+        $21, $22, $23, $24, $25,
+        $26, $27, $28
+      )
+      RETURNING *
+      `,
       [
         req.user.agencyId,
-        ownerUserId,
+        candidate.owner_user_id,
+        req.user.userId,
         req.user.userId,
         candidate.name,
         candidate.tg,
@@ -1444,7 +1500,7 @@ app.post('/candidates', auth, async (req, res) => {
         candidate.status,
         candidate.source,
         candidate.notes,
-        JSON.stringify(candidate.ratings),
+        candidate.ratings,
         candidate.total
       ]
     );
