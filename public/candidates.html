@@ -1165,6 +1165,13 @@
           <label>Заметки</label>
           <textarea id="m-notes"></textarea>
         </div>
+        <div class="field full">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+            <label style="margin:0;">Отчет по кандидату</label>
+            <button type="button" class="btn btn-ghost" onclick="generateCandidateReport()">Сгенерировать отчет</button>
+          </div>
+          <textarea id="m-report" style="min-height:220px;"></textarea>
+        </div>
       </div>
 
       <div class="modal-actions">
@@ -1419,11 +1426,40 @@
       });
     }
 
-    function verdictMeta(total) {
-      if (total >= 40) return { label:'Берём', cls:'green' };
-      if (total >= 28) return { label:'Думаем', cls:'yellow' };
-      if (total > 0) return { label:'Отказ', cls:'red' };
+    function getCandidateVerdictKey(candidate = {}) {
+      const status = String(candidate.status || '').trim();
+
+      if (status === 'Принят' || status === 'Работает') return 'hire';
+      if (['Отказ', 'Уволен', 'Не рассчитан', 'Убрать', 'Не пришел на собес'].includes(status)) return 'reject';
+      if (status) return 'review';
+      return 'unrated';
+    }
+
+    function verdictMeta(candidate = {}) {
+      const verdict = getCandidateVerdictKey(candidate);
+      if (verdict === 'hire') return { label:'Берём', cls:'green' };
+      if (verdict === 'review') return { label:'Думаем', cls:'yellow' };
+      if (verdict === 'reject') return { label:'Отказ', cls:'red' };
       return { label:'Без оценки', cls:'blue' };
+    }
+
+    function buildCandidateInterviewReport(data = {}) {
+      const lines = [
+        `Платформа: ${data.platform || '—'}`,
+        `Имя: ${data.name || '—'}`,
+        `Тг: ${data.telegram || data.username || '—'}`,
+        `Возраст: ${data.age || '—'}`,
+        `Англ: ${data.english_level || '—'}`,
+        `Опыт: ${data.experience || '—'}`,
+        `Топ страниц: ${data.top_pages || data.top_profile || '—'}`,
+        `Ср чек: ${data.avg_check || data.average_check || '—'}`,
+        `Смена: ${data.shift || '—'}`,
+        `Есть ли основная деятельность/учеба: ${data.main_activity || data.study_info || '—'}`,
+        '',
+        `График 5/2 или 6/1: ${data.schedule_preference || '—'}`
+      ];
+
+      return lines.join('\n');
     }
 
     function statusMeta(status) {
@@ -1602,10 +1638,7 @@
       }
 
       if (verdict) {
-        rows = rows.filter(x => {
-          const v = x.total >= 40 ? 'hire' : x.total >= 28 ? 'review' : x.total > 0 ? 'reject' : '';
-          return v === verdict;
-        });
+        rows = rows.filter(x => getCandidateVerdictKey(x) === verdict);
       }
 
       if (sort === 'new') {
@@ -1725,19 +1758,55 @@
     function openModal(candidate) {
       currentEditId = candidate.id;
       document.getElementById('m-name').value = candidate.name || '';
-      document.getElementById('m-tg').value = candidate.tg || '';
+      document.getElementById('m-tg').value = candidate.telegram || candidate.tg || '';
       document.getElementById('m-age').value = candidate.age || '';
-      document.getElementById('m-exp').value = candidate.exp || '';
-      document.getElementById('m-english').value = candidate.english || '';
+      document.getElementById('m-exp').value = candidate.experience || candidate.exp || '';
+      document.getElementById('m-english').value = candidate.english_level || candidate.english || '';
       document.getElementById('m-avgcheck').value = candidate.avg_check || '';
-      document.getElementById('m-platforms').value = candidate.platforms || '';
+      document.getElementById('m-platforms').value = candidate.platform || candidate.platforms || '';
       document.getElementById('m-shift').value = candidate.shift || '';
-      document.getElementById('m-schedule').value = candidate.schedule || '';
-      document.getElementById('m-top').value = candidate.top_pages || '';
-      document.getElementById('m-job').value = candidate.job || '';
+      document.getElementById('m-schedule').value = candidate.schedule_preference || candidate.schedule || '';
+      document.getElementById('m-top').value = candidate.top_profile || candidate.top_pages || '';
+      document.getElementById('m-job').value = candidate.main_activity || candidate.job || '';
       document.getElementById('m-status').value = candidate.status || '';
       document.getElementById('m-notes').value = candidate.notes || '';
+      document.getElementById('m-report').value = candidate.interview_report || buildCandidateInterviewReport({
+        platform: candidate.platform || candidate.platforms || '',
+        name: candidate.name || '',
+        telegram: candidate.telegram || candidate.tg || '',
+        age: candidate.age || '',
+        english_level: candidate.english_level || candidate.english || '',
+        experience: candidate.experience || candidate.exp || '',
+        top_pages: candidate.top_pages || '',
+        top_profile: candidate.top_profile || '',
+        avg_check: candidate.avg_check || '',
+        shift: candidate.shift || '',
+        main_activity: candidate.main_activity || candidate.job || '',
+        schedule_preference: candidate.schedule_preference || candidate.schedule || ''
+      });
       editModal.classList.add('show');
+    }
+
+    function generateCandidateReport() {
+      const payload = {
+        platform: document.getElementById('m-platforms')?.value.trim() || '',
+        name: document.getElementById('m-name')?.value.trim() || '',
+        telegram: document.getElementById('m-tg')?.value.trim() || '',
+        age: document.getElementById('m-age')?.value.trim() || '',
+        english_level: document.getElementById('m-english')?.value.trim() || '',
+        experience: document.getElementById('m-exp')?.value.trim() || '',
+        top_pages: document.getElementById('m-top')?.value.trim() || '',
+        avg_check: document.getElementById('m-avgcheck')?.value.trim() || '',
+        shift: document.getElementById('m-shift')?.value.trim() || '',
+        main_activity: document.getElementById('m-job')?.value.trim() || '',
+        schedule_preference: document.getElementById('m-schedule')?.value.trim() || ''
+      };
+
+      const report = buildCandidateInterviewReport(payload);
+      const reportField = document.getElementById('m-report');
+      if (reportField) {
+        reportField.value = report;
+      }
     }
 
     function closeModal() {
@@ -1753,15 +1822,25 @@
         fields: {
           name: document.getElementById('m-name').value.trim(),
           tg: document.getElementById('m-tg').value.trim(),
+          telegram: document.getElementById('m-tg').value.trim(),
           age: document.getElementById('m-age').value.trim(),
           english: document.getElementById('m-english').value.trim(),
+          english_level: document.getElementById('m-english').value.trim(),
           exp: document.getElementById('m-exp').value.trim(),
+          experience: document.getElementById('m-exp').value.trim(),
           platforms: document.getElementById('m-platforms').value.trim(),
+          platform: document.getElementById('m-platforms').value.trim(),
           shift: document.getElementById('m-shift').value.trim(),
           schedule: document.getElementById('m-schedule').value.trim(),
+          schedule_preference: document.getElementById('m-schedule').value.trim(),
           top: document.getElementById('m-top').value.trim(),
+          top_pages: document.getElementById('m-top').value.trim(),
+          top_profile: document.getElementById('m-top').value.trim(),
           avgcheck: document.getElementById('m-avgcheck').value.trim(),
+          avg_check: document.getElementById('m-avgcheck').value.trim(),
           job: document.getElementById('m-job').value.trim(),
+          main_activity: document.getElementById('m-job').value.trim(),
+          interview_report: document.getElementById('m-report').value.trim(),
           status: document.getElementById('m-status').value,
           notes: document.getElementById('m-notes').value.trim()
         },
@@ -1871,7 +1950,7 @@
       }
 
       grid.innerHTML = rows.map(candidate => {
-        const verdict = verdictMeta(Number(candidate.total || 0));
+        const verdict = verdictMeta(candidate);
         const pipeline = pipelineMeta(candidate.source || '');
 
         return `
@@ -1997,6 +2076,7 @@
     window.openEditFromId = openEditFromId;
     window.closeModal = closeModal;
     window.saveEdit = saveEdit;
+    window.generateCandidateReport = generateCandidateReport;
     window.toggleDetails = toggleDetails;
 
     async function initCandidatesPage() {

@@ -665,15 +665,23 @@ CREATE TABLE IF NOT EXISTS candidates (
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   name TEXT NOT NULL DEFAULT '',
   tg TEXT DEFAULT '',
+  telegram TEXT DEFAULT '',
   age TEXT DEFAULT '',
   english TEXT DEFAULT '',
+  english_level TEXT DEFAULT '',
   exp TEXT DEFAULT '',
+  experience TEXT DEFAULT '',
+  platform TEXT DEFAULT '',
   platforms TEXT DEFAULT '',
   shift TEXT DEFAULT '',
   schedule TEXT DEFAULT '',
+  schedule_preference TEXT DEFAULT '',
   top_pages TEXT DEFAULT '',
+  top_profile TEXT DEFAULT '',
   avg_check TEXT DEFAULT '',
   job TEXT DEFAULT '',
+  main_activity TEXT DEFAULT '',
+  interview_report TEXT DEFAULT '',
   status TEXT DEFAULT '',
   stage TEXT DEFAULT 'new',
   source TEXT DEFAULT 'manual',
@@ -707,6 +715,18 @@ CREATE INDEX IF NOT EXISTS idx_candidates_agency_owner ON candidates(agency_id, 
 
 async function initDb() {
   await query(bootstrapSql);
+
+  await pool.query(`
+    ALTER TABLE candidates
+    ADD COLUMN IF NOT EXISTS telegram TEXT DEFAULT '',
+    ADD COLUMN IF NOT EXISTS english_level TEXT DEFAULT '',
+    ADD COLUMN IF NOT EXISTS experience TEXT DEFAULT '',
+    ADD COLUMN IF NOT EXISTS platform TEXT DEFAULT '',
+    ADD COLUMN IF NOT EXISTS schedule_preference TEXT DEFAULT '',
+    ADD COLUMN IF NOT EXISTS top_profile TEXT DEFAULT '',
+    ADD COLUMN IF NOT EXISTS main_activity TEXT DEFAULT '',
+    ADD COLUMN IF NOT EXISTS interview_report TEXT DEFAULT ''
+  `).catch(() => {});
 
   await pool.query(`
     ALTER TABLE users
@@ -866,10 +886,14 @@ function canSeeCandidate(row, user) {
   return Number(row.owner_user_id) === Number(user.userId) || Number(row.created_by_user_id) === Number(user.userId);
 }
 
-function candidateVerdict(total) {
-  if (total >= 40) return 'hire';
-  if (total >= 28) return 'review';
-  if (total > 0) return 'reject';
+function candidateVerdict(candidateOrStatus, maybeStatus) {
+  const status = typeof candidateOrStatus === 'object'
+    ? String(candidateOrStatus?.status || '').trim()
+    : String(maybeStatus || '').trim();
+
+  if (['Принят', 'Работает'].includes(status)) return 'hire';
+  if (['Отказ', 'Уволен', 'Не рассчитан', 'Убрать', 'Не пришел на собес'].includes(status)) return 'reject';
+  if (status) return 'review';
   return 'unrated';
 }
 
@@ -1337,7 +1361,7 @@ app.get('/candidates', auth, async (req, res) => {
   );
 
   let rows = result.rows;
-  if (verdict) rows = rows.filter(r => candidateVerdict(r.total) === verdict);
+  if (verdict) rows = rows.filter(r => candidateVerdict(r) === verdict);
 
   res.json(rows);
 });
@@ -1349,10 +1373,10 @@ app.post('/candidates', auth, async (req, res) => {
   const candidate = await query(
     `INSERT INTO candidates(
       agency_id, owner_user_id, created_by_user_id, updated_by_user_id,
-      name, tg, age, english, exp, platforms, shift, schedule, top_pages, avg_check, job, status, source, notes, ratings, total
+      name, tg, telegram, age, english, english_level, exp, experience, platform, platforms, shift, schedule, schedule_preference, top_pages, top_profile, avg_check, job, main_activity, interview_report, status, source, notes, ratings, total
     ) VALUES (
       $1,$2,$3,$3,
-      $4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19
+      $4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28
     ) RETURNING *`,
     [
       req.user.agencyId,
@@ -1360,15 +1384,23 @@ app.post('/candidates', auth, async (req, res) => {
       req.user.userId,
       fields.name || '',
       fields.tg || '',
+      fields.telegram || fields.tg || '',
       fields.age || '',
       fields.english || '',
+      fields.english_level || fields.english || '',
       fields.exp || '',
+      fields.experience || fields.exp || '',
+      fields.platform || fields.platforms || '',
       fields.platforms || '',
       fields.shift || '',
       fields.schedule || '',
+      fields.schedule_preference || fields.schedule || '',
       fields.top || '',
+      fields.top_profile || fields.top_pages || fields.top || '',
       fields.avgcheck || '',
       fields.job || '',
+      fields.main_activity || fields.job || '',
+      fields.interview_report || '',
       normalizedCandidateStatus,
       fields.source || 'manual',
       fields.notes || '',
@@ -1424,15 +1456,23 @@ app.patch('/candidates/:id', auth, async (req, res) => {
   const next = {
     name: fields.name ?? row.name,
     tg: fields.tg ?? row.tg,
+    telegram: fields.telegram ?? fields.tg ?? row.telegram ?? row.tg,
     age: fields.age ?? row.age,
     english: fields.english ?? row.english,
+    english_level: fields.english_level ?? fields.english ?? row.english_level ?? row.english,
     exp: fields.exp ?? row.exp,
+    experience: fields.experience ?? fields.exp ?? row.experience ?? row.exp,
+    platform: fields.platform ?? fields.platforms ?? row.platform ?? row.platforms,
     platforms: fields.platforms ?? row.platforms,
     shift: fields.shift ?? row.shift,
     schedule: fields.schedule ?? row.schedule,
+    schedule_preference: fields.schedule_preference ?? fields.schedule ?? row.schedule_preference ?? row.schedule,
     top_pages: fields.top ?? row.top_pages,
+    top_profile: fields.top_profile ?? fields.top_pages ?? fields.top ?? row.top_profile ?? row.top_pages,
     avg_check: fields.avgcheck ?? row.avg_check,
     job: fields.job ?? row.job,
+    main_activity: fields.main_activity ?? fields.job ?? row.main_activity ?? row.job,
+    interview_report: fields.interview_report ?? row.interview_report,
     status: fields.status !== undefined ? normalizeCandidateStatus(fields.status) : row.status,
     source: fields.source ?? row.source,
     notes: fields.notes ?? row.notes,
@@ -1446,9 +1486,11 @@ app.patch('/candidates/:id', auth, async (req, res) => {
      SET owner_user_id = $3,
          updated_by_user_id = $4,
          updated_at = NOW(),
-         name = $5, tg = $6, age = $7, english = $8, exp = $9, platforms = $10,
-         shift = $11, schedule = $12, top_pages = $13, avg_check = $14,
-         job = $15, status = $16, source = $17, notes = $18, ratings = $19::jsonb, total = $20
+         name = $5, tg = $6, telegram = $7, age = $8, english = $9, english_level = $10,
+         exp = $11, experience = $12, platform = $13, platforms = $14, shift = $15,
+         schedule = $16, schedule_preference = $17, top_pages = $18, top_profile = $19,
+         avg_check = $20, job = $21, main_activity = $22, interview_report = $23,
+         status = $24, source = $25, notes = $26, ratings = $27::jsonb, total = $28
      WHERE id = $1 AND agency_id = $2
      RETURNING *`,
     [
@@ -1456,10 +1498,11 @@ app.patch('/candidates/:id', auth, async (req, res) => {
       req.user.agencyId,
       next.owner_user_id,
       req.user.userId,
-      next.name, next.tg, next.age, next.english, next.exp,
-      next.platforms, next.shift, next.schedule, next.top_pages,
-      next.avg_check, next.job, next.status, next.source, next.notes,
-      JSON.stringify(next.ratings), next.total
+      next.name, next.tg, next.telegram, next.age, next.english, next.english_level,
+      next.exp, next.experience, next.platform, next.platforms, next.shift,
+      next.schedule, next.schedule_preference, next.top_pages, next.top_profile,
+      next.avg_check, next.job, next.main_activity, next.interview_report,
+      next.status, next.source, next.notes, JSON.stringify(next.ratings), next.total
     ]
   );
 

@@ -1682,9 +1682,9 @@
     }
 
     function getVerdict(total) {
-      if (total >= 40) return { text: '✓ Берём — сильный кандидат', cls: 'green' };
-      if (total >= 28) return { text: '⚠ Думаем — нужен доп. скрининг / тест-смена', cls: 'yellow' };
-      if (total > 0) return { text: '✗ Отказ — слабый фит', cls: 'red' };
+      if (total > 0) {
+        return { text: 'Статус кандидата выбирается вручную, оценка сохраняется отдельно', cls: 'blue' };
+      }
       return null;
     }
 
@@ -1705,30 +1705,84 @@
       verdict.textContent = v.text;
     }
 
+    function buildCandidateInterviewReport(data = {}) {
+      const lines = [
+        `Платформа: ${data.platform || '—'}`,
+        `Имя: ${data.name || '—'}`,
+        `Тг: ${data.telegram || data.username || '—'}`,
+        `Возраст: ${data.age || '—'}`,
+        `Англ: ${data.english_level || '—'}`,
+        `Опыт: ${data.experience || '—'}`,
+        `Топ страниц: ${data.top_pages || data.top_profile || '—'}`,
+        `Ср чек: ${data.avg_check || data.average_check || '—'}`,
+        `Смена: ${data.shift || '—'}`,
+        `Есть ли основная деятельность/учеба: ${data.main_activity || data.study_info || '—'}`,
+        '',
+        `График 5/2 или 6/1: ${data.schedule_preference || '—'}`
+      ];
+
+      return lines.join('\n');
+    }
+
     function getFields() {
       const mainNotes = document.getElementById('f-notes').value.trim();
       const questionNotes = collectQuestionNotes();
       const teamleadHandoff = document.getElementById('f-teamlead-handoff').value.trim();
+      const platform = getPill('pills-platforms');
+      const telegram = document.getElementById('f-tg').value.trim().replace(/^@*/, '@').replace(/^@$/, '');
+      const englishLevel = getPill('pills-english');
+      const experience = document.getElementById('f-exp').value.trim();
+      const shift = getPill('pills-shifts', true);
+      const schedulePreference = getPill('pills-schedule');
+      const topPages = document.getElementById('f-top').value.trim();
+      const avgCheck = document.getElementById('f-avgcheck').value.trim();
+      const mainActivity = document.getElementById('f-job').value.trim();
 
       const combinedNotes = [
         mainNotes,
         questionNotes ? `Структурированные заметки по интервью:\n\n${questionNotes}` : ''
       ].filter(Boolean).join('\n\n────────────\n\n');
 
+      const interviewReport = buildCandidateInterviewReport({
+        platform,
+        name: document.getElementById('f-name').value.trim(),
+        telegram,
+        username: telegram,
+        age: document.getElementById('f-age').value.trim(),
+        english_level: englishLevel,
+        experience,
+        top_pages: topPages,
+        top_profile: topPages,
+        avg_check: avgCheck,
+        shift,
+        main_activity: mainActivity,
+        schedule_preference: schedulePreference
+      });
+
       return {
         name: document.getElementById('f-name').value.trim(),
-        tg: document.getElementById('f-tg').value.trim().replace(/^@*/, '@').replace(/^@$/, ''),
+        tg: telegram,
+        telegram,
         age: document.getElementById('f-age').value.trim(),
-        english: getPill('pills-english'),
-        exp: document.getElementById('f-exp').value.trim(),
-        platforms: getPill('pills-platforms'),
-        shift: getPill('pills-shifts', true),
-        schedule: getPill('pills-schedule'),
-        top: document.getElementById('f-top').value.trim(),
-        avgcheck: document.getElementById('f-avgcheck').value.trim(),
-        job: document.getElementById('f-job').value.trim(),
+        english: englishLevel,
+        english_level: englishLevel,
+        exp: experience,
+        experience,
+        platforms: platform,
+        platform,
+        shift,
+        schedule: schedulePreference,
+        schedule_preference: schedulePreference,
+        top: topPages,
+        top_pages: topPages,
+        top_profile: topPages,
+        avgcheck: avgCheck,
+        avg_check: avgCheck,
+        job: mainActivity,
+        main_activity: mainActivity,
         status: document.getElementById('f-status-select').value,
-        notes: buildFinalNotes(combinedNotes, teamleadHandoff)
+        notes: buildFinalNotes(combinedNotes, teamleadHandoff),
+        interview_report: interviewReport
       };
     }
 
