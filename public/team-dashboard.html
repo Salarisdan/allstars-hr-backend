@@ -3871,9 +3871,13 @@
     });
 
     let currentMemberEditorRow = null;
-  let currentMemberEditorItem = null;
+    let currentMemberEditorItem = null;
     let currentMemberFields = [];
     let isCreatingMember = false;
+
+    // КЭШ КАРТОЧЕК ПО row_number
+    const memberEditorCache = new Map();
+
     let usedTransactionEndings = [];
 
     function isLongField(label) {
@@ -3937,7 +3941,9 @@
       if (createBtn) createBtn.style.display = 'none';
       setAutosaveStatus(statusEl, '');
 
-      currentMemberFields = Array.isArray(data.fields) ? data.fields : [];
+      currentMemberFields = Array.isArray(data.fields)
+        ? data.fields.map(field => ({ ...field }))
+        : [];
 
       content.innerHTML = `
         <div class="editor-grid">
@@ -4082,15 +4088,14 @@
     }
 
     async function openMemberEditorByRow(rowNumber) {
-      const item = findTeamMemberByRowNumber(rowNumber);
+      const normalizedRow = Number(rowNumber);
+      const item = findTeamMemberByRowNumber(normalizedRow);
 
       if (!item) {
-        alert('Не удалось найти сотрудника по row_number');
+        console.error('Не найден сотрудник по row_number:', rowNumber);
+        alert('Ошибка: сотрудник не найден');
         return;
       }
-
-      currentMemberEditorRow = Number(rowNumber);
-      currentMemberEditorItem = item;
 
       await openMemberEditor(item);
     }
@@ -4100,8 +4105,7 @@
 
       currentMemberEditorRow = Number(item.row_number);
       currentMemberEditorItem = item;
-
-      await loadUsedTransactionEndings();
+      isCreatingMember = false;
 
       const overlay = document.getElementById('memberEditorOverlay');
       const title = document.getElementById('memberEditorTitle');
@@ -4112,20 +4116,86 @@
       if (!overlay || !title || !content) return;
 
       title.textContent = `Карточка сотрудника · строка ${item.row_number}`;
-      content.innerHTML = `<div class="loading">Загружаем данные...</div>`;
       if (createBtn) createBtn.style.display = 'none';
       setAutosaveStatus(statusEl, '');
+
       overlay.classList.add('show');
 
-      const res = await api(`/api/team-member/${item.row_number}`);
-      const data = await res.json().catch(() => ({}));
+      const cacheKey = Number(item.row_number);
+      const cached = memberEditorCache.get(cacheKey);
 
-      if (!res.ok) {
-        content.innerHTML = `<div class="error-box">${data.error || 'Не удалось загрузить карточку сотрудника'}</div>`;
-        return;
+      if (cached) {
+        currentMemberFields = Array.isArray(cached.fields)
+          ? cached.fields.map(field => ({ ...field }))
+          : [];
+
+        renderMemberEditorForm(cached);
+      } else {
+        content.innerHTML = `<div class="loading">Загружаем данные...</div>`;
       }
 
-      renderMemberEditorForm(data);
+      try {
+        const res = await api(`/api/team-member/${item.row_number}`);
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          if (!cached) {
+            content.innerHTML = `<div class="error-box">${data.error || 'Не удалось загрузить карточку сотрудника'}</div>`;
+          }
+          return;
+        }
+
+        memberEditorCache.set(cacheKey, data);
+
+        currentMemberFields = Array.isArray(data.fields)
+          ? data.fields.map(field => ({ ...field }))
+          : [];
+
+        renderMemberEditorForm(data);
+      } catch (err) {
+        console.error('openMemberEditor error:', err);
+        if (!cached) {
+          content.innerHTML = `<div class="error-box">Не удалось загрузить карточку сотрудника</div>`;
+        }
+      }
+    }
+
+    function updateMemberEditorCacheField(rowNumber, fieldLabel, nextValue) {
+      const key = Number(rowNumber);
+      const cached = memberEditorCache.get(key);
+      if (!cached || !Array.isArray(cached.fields)) return;
+
+      cached.fields = cached.fields.map(field =>
+        String(field.label || '').trim() === String(fieldLabel || '').trim()
+          ? { ...field, value: nextValue }
+          : field
+      );
+
+      memberEditorCache.set(key, cached);
+    }
+
+    function syncTeamListItemFromUpdates(rowNumber, updates) {
+      const item = allCrmItems.find(x => Number(x.row_number) === Number(rowNumber));
+      if (!item) return;
+
+      const mapLabelToKey = {
+        'Имя': 'name',
+        'Telegram': 'telegram',
+        'ТГ': 'telegram',
+        'Telegram / username': 'telegram',
+        'Актуальный статус кандидата (Hr)': 'status',
+        'OnlyFans / Fansly': 'platform',
+        'Transaction ending': 'transactionEnding',
+        'Опыт, мес.': 'experience_months',
+        'Срок работы, дни': 'work_days'
+      };
+
+      Object.entries(updates || {}).forEach(([label, value]) => {
+        const key = mapLabelToKey[label];
+        if (key) {
+          item[key] = value;
+        }
+      });
     }
 
     async function openNewMemberEditor() {
@@ -4309,6 +4379,10 @@
         field.value = newPassword;
       }
 
+      updateMemberEditorCacheField(rowNumber, field.label, newPassword);
+      syncTeamListItemFromUpdates(rowNumber, { [field.label]: newPassword });
+      rerenderCrmPage();
+
       const currentItem = findTeamMemberByRowNumber(rowNumber);
       if (currentItem) {
         currentItem[field.label] = newPassword;
@@ -4382,10 +4456,14 @@
           return { ...field, value: next };
         });
 
-        currentMemberEditorItem = findTeamMemberByRowNumber(currentMemberEditorRow) || currentMemberEditorItem;
+        Object.entries(updates).forEach(([label, value]) => {
+          updateMemberEditorCacheField(currentMemberEditorRow, label, value);
+        });
 
-        await loadUsedTransactionEndings();
-        await loadAllCrmMembers();
+        syncTeamListItemFromUpdates(currentMemberEditorRow, updates);
+        rerenderCrmPage();
+
+        currentMemberEditorItem = findTeamMemberByRowNumber(currentMemberEditorRow) || currentMemberEditorItem;
         if (document.getElementById('transactionEndingModal')?.classList.contains('show')) {
           await openTransactionEndingModal();
         }
@@ -4460,8 +4538,22 @@
         return { ...field, value: next };
       });
 
-      await loadUsedTransactionEndings();
-      await loadAllCrmMembers();
+      Object.entries(updates).forEach(([label, value]) => {
+        updateMemberEditorCacheField(currentMemberEditorRow, label, value);
+      });
+
+      syncTeamListItemFromUpdates(currentMemberEditorRow, updates);
+      rerenderCrmPage();
+
+      if (currentMemberEditorRow) {
+        const freshRes = await api(`/api/team-member/${currentMemberEditorRow}`);
+        const freshData = await freshRes.json().catch(() => ({}));
+
+        if (freshRes.ok) {
+          memberEditorCache.set(Number(currentMemberEditorRow), freshData);
+        }
+      }
+
       currentMemberEditorItem = currentMemberEditorRow
         ? findTeamMemberByRowNumber(currentMemberEditorRow)
         : null;
