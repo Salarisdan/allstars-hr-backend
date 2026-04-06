@@ -4154,6 +4154,7 @@
           ? data.fields.map(field => ({ ...field }))
           : [];
 
+        console.log('API CARD DATA =', data);
         renderMemberEditorForm(data);
       } catch (err) {
         console.error('openMemberEditor error:', err);
@@ -4602,7 +4603,6 @@
     window.selectEditorOption = selectEditorOption;
     window.toggleEditorMultiselect = toggleEditorMultiselect;
     window.toggleEditorMultiselectOption = toggleEditorMultiselectOption;
-    window.assignRandomTransactionEnding = assignRandomTransactionEnding;
     window.debouncedFilterStatusMembers = debouncedFilterStatusMembers;
     window.openTransactionEndingModal = openTransactionEndingModal;
     window.clearTransactionEnding = clearTransactionEnding;
