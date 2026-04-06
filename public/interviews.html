@@ -1823,26 +1823,32 @@
         alert('Не удалось найти карточку кандидата');
         return;
       }
+        const payload = {
+          source: 'interviews',
+          interview_id: item.id,
 
-      const payload = {
-        source: 'interviews',
-        interview_id: item.id,
-        name: item.name || '',
-        telegram: item.telegram || item.tg || item.username || '',
-        username: item.username || '',
-        phone: item.phone || '',
-        age: item.age || '',
-        city: item.city || '',
-        country: item.country || '',
-        platform: item.platform || item.platforms || '',
-        status: item.status || '',
-        notes: item.notes || '',
-        script_mode: 'interview'
-      };
+          name: item.name || '',
+          telegram: item.telegram || item.tg || item.username || '',
+          username: item.username || '',
+          age: item.age || '',
+          platform: item.platform || '',
 
-      sessionStorage.setItem('allstars_interview_candidate', JSON.stringify(payload));
-      sessionStorage.setItem('allstars_open_interview_script', '1');
-      window.location.href = '/index.html';
+          top_profile: item.top_profile || '',
+          experience: item.experience || '',
+          shift: item.shift || '',
+          english_level: item.english_level || '',
+
+          notes: item.notes || '',
+          status: item.status || '',
+
+          interview_date: item.interview_date || '',
+          interview_time: item.interview_time || ''
+        };
+
+        sessionStorage.setItem('allstars_interview_candidate', JSON.stringify(payload));
+        sessionStorage.setItem('allstars_open_interview_script', '1');
+
+        window.location.href = '/index.html';
     }
 
     function findInterviewItemById(id) {

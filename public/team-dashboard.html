@@ -2893,6 +2893,10 @@
 
     window.quickSetTeamStatus = quickSetTeamStatus;
 
+    function findTeamMemberByRowNumber(rowNumber) {
+      return allCrmItems.find(x => Number(x.row_number) === Number(rowNumber)) || null;
+    }
+
     function renderTeamCards(items) {
       const el = document.getElementById('teamCards');
       if (!el) return;
@@ -2909,7 +2913,7 @@
               class="member-card ${getTeamCardVisualClass(item)}"
               data-row-number="${item.row_number}"
               draggable="true"
-              onclick="openMemberEditor(${item.row_number})"
+              onclick="openMemberEditorByRow(${item.row_number})"
               ondragstart="onTeamCardDragStart(event, ${item.row_number})"
               ondragend="onTeamCardDragEnd(event)"
             >
@@ -3150,7 +3154,7 @@
         allCrmItems = (Array.isArray(data.items) ? data.items : [])
           .map(item => ({
             ...item,
-            row_number: item.row_number,
+            row_number: Number(item.row_number),
             name: item.name || '',
             telegram: item.telegram || '',
             status: item.status || '',
@@ -3283,7 +3287,7 @@
             }
 
             return `
-              <div class="member-card ${getTeamCardVisualClass(person)}" onclick="openMemberEditor(${person.row_number})">
+              <div class="member-card ${getTeamCardVisualClass(person)}" onclick="openMemberEditorByRow(${person.row_number})">
                 <div class="member-name">
                   ${person.name || 'Без имени'}
                   ${platformBadge}
@@ -3867,6 +3871,7 @@
     });
 
     let currentMemberEditorRow = null;
+  let currentMemberEditorItem = null;
     let currentMemberFields = [];
     let isCreatingMember = false;
     let usedTransactionEndings = [];
@@ -3920,29 +3925,17 @@
       return String(label || '').trim().toLowerCase() === 'пароль crm';
     }
 
-    async function openMemberEditor(rowNumber) {
-      currentMemberEditorRow = rowNumber;
-      await loadUsedTransactionEndings();
-
+    function renderMemberEditorForm(data) {
       const overlay = document.getElementById('memberEditorOverlay');
       const title = document.getElementById('memberEditorTitle');
       const content = document.getElementById('memberEditorContent');
       const createBtn = document.getElementById('memberEditorCreateBtn');
       const statusEl = document.getElementById('memberEditorSaveStatus');
 
-      title.textContent = `Карточка сотрудника · строка ${rowNumber}`;
-      content.innerHTML = `<div class="loading">Загружаем данные...</div>`;
+      if (!overlay || !title || !content) return;
+
       if (createBtn) createBtn.style.display = 'none';
       setAutosaveStatus(statusEl, '');
-      overlay.classList.add('show');
-
-      const res = await api(`/api/team-member/${rowNumber}`);
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        content.innerHTML = `<div class="error-box">${data.error || 'Не удалось загрузить сотрудника'}</div>`;
-        return;
-      }
 
       currentMemberFields = Array.isArray(data.fields) ? data.fields : [];
 
@@ -4088,9 +4081,57 @@
       bindMemberEditorAutosave();
     }
 
+    async function openMemberEditorByRow(rowNumber) {
+      const item = findTeamMemberByRowNumber(rowNumber);
+
+      if (!item) {
+        alert('Не удалось найти сотрудника по row_number');
+        return;
+      }
+
+      currentMemberEditorRow = Number(rowNumber);
+      currentMemberEditorItem = item;
+
+      await openMemberEditor(item);
+    }
+
+    async function openMemberEditor(item) {
+      if (!item) return;
+
+      currentMemberEditorRow = Number(item.row_number);
+      currentMemberEditorItem = item;
+
+      await loadUsedTransactionEndings();
+
+      const overlay = document.getElementById('memberEditorOverlay');
+      const title = document.getElementById('memberEditorTitle');
+      const content = document.getElementById('memberEditorContent');
+      const createBtn = document.getElementById('memberEditorCreateBtn');
+      const statusEl = document.getElementById('memberEditorSaveStatus');
+
+      if (!overlay || !title || !content) return;
+
+      title.textContent = `Карточка сотрудника · строка ${item.row_number}`;
+      content.innerHTML = `<div class="loading">Загружаем данные...</div>`;
+      if (createBtn) createBtn.style.display = 'none';
+      setAutosaveStatus(statusEl, '');
+      overlay.classList.add('show');
+
+      const res = await api(`/api/team-member/${item.row_number}`);
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        content.innerHTML = `<div class="error-box">${data.error || 'Не удалось загрузить карточку сотрудника'}</div>`;
+        return;
+      }
+
+      renderMemberEditorForm(data);
+    }
+
     async function openNewMemberEditor() {
       isCreatingMember = true;
       currentMemberEditorRow = null;
+      currentMemberEditorItem = null;
 
       const overlay = document.getElementById('memberEditorOverlay');
       const title = document.getElementById('memberEditorTitle');
@@ -4268,9 +4309,10 @@
         field.value = newPassword;
       }
 
-      const item = allCrmItems.find(x => Number(x.row_number) === Number(rowNumber));
-      if (item) {
-        item[field.label] = newPassword;
+      const currentItem = findTeamMemberByRowNumber(rowNumber);
+      if (currentItem) {
+        currentItem[field.label] = newPassword;
+        currentMemberEditorItem = currentItem;
       }
 
       if (statusEl) {
@@ -4339,6 +4381,8 @@
             : field.value;
           return { ...field, value: next };
         });
+
+        currentMemberEditorItem = findTeamMemberByRowNumber(currentMemberEditorRow) || currentMemberEditorItem;
 
         await loadUsedTransactionEndings();
         await loadAllCrmMembers();
@@ -4418,6 +4462,9 @@
 
       await loadUsedTransactionEndings();
       await loadAllCrmMembers();
+      currentMemberEditorItem = currentMemberEditorRow
+        ? findTeamMemberByRowNumber(currentMemberEditorRow)
+        : null;
       if (document.getElementById('transactionEndingModal')?.classList.contains('show')) {
         await openTransactionEndingModal();
       }
@@ -4434,6 +4481,8 @@
     function closeMemberEditor(event) {
       if (event.target.id === 'memberEditorOverlay') {
         document.getElementById('memberEditorOverlay').classList.remove('show');
+        currentMemberEditorRow = null;
+        currentMemberEditorItem = null;
       }
     }
 
@@ -4441,11 +4490,15 @@
       document.getElementById('memberEditorOverlay').classList.remove('show');
       setAutosaveStatus(document.getElementById('memberEditorSaveStatus'), '');
       isCreatingMember = false;
+      currentMemberEditorRow = null;
+      currentMemberEditorItem = null;
     }
 
     document.getElementById('addMemberBtn')?.addEventListener('click', openNewMemberEditor);
     document.getElementById('transactionEndingBtn')?.addEventListener('click', openTransactionEndingModal);
 
+    window.findTeamMemberByRowNumber = findTeamMemberByRowNumber;
+    window.openMemberEditorByRow = openMemberEditorByRow;
     window.openMemberEditor = openMemberEditor;
     window.saveMemberEditor = saveMemberEditor;
     window.closeMemberEditor = closeMemberEditor;

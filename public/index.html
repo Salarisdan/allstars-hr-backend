@@ -1306,31 +1306,92 @@
         return;
       }
 
-      const setValue = (id, value) => {
-        const el = document.getElementById(id);
-        if (el && value !== undefined && value !== null) {
-          el.value = value;
-          el.dispatchEvent(new Event('input', { bubbles: true }));
-          el.dispatchEvent(new Event('change', { bubbles: true }));
+      const setValue = (ids, value) => {
+        const idList = Array.isArray(ids) ? ids : [ids];
+
+        for (const id of idList) {
+          const el = document.getElementById(id);
+          if (!el) continue;
+
+          if (value !== undefined && value !== null) {
+            if (el.tagName === 'SELECT') {
+              const hasOption = [...el.options].some(option => option.value === value);
+              if (!hasOption) {
+                return false;
+              }
+            }
+
+            el.value = value;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+
+          return true;
         }
+
+        return false;
       };
 
-      setValue('f-name', data.name || '');
-      setValue('f-tg', data.telegram || data.username || '');
-      setValue('f-age', data.age || '');
-      setValue('f-notes', data.notes || '');
+      const setSinglePill = (groupIds, value) => {
+        const idList = Array.isArray(groupIds) ? groupIds : [groupIds];
 
-      if (data.platform) {
-        selectSinglePillByValue('pills-platforms', data.platform);
+        for (const id of idList) {
+          const el = document.getElementById(id);
+          if (!el) continue;
+
+          if (value !== undefined && value !== null && String(value).trim()) {
+            selectSinglePillByValue(id, value);
+          }
+          return true;
+        }
+
+        return false;
+      };
+
+      const setShiftValue = (ids, value) => {
+        if (setValue(ids, value)) {
+          return true;
+        }
+
+        const groupIds = ['pills-shifts', 'candidateShiftPills'];
+        for (const id of groupIds) {
+          const el = document.getElementById(id);
+          if (!el) continue;
+
+          if (value !== undefined && value !== null && String(value).trim()) {
+            selectShiftPills(value);
+          }
+          return true;
+        }
+
+        return false;
+      };
+
+      // базовые
+      setValue(['name', 'candidateName', 'fullName', 'f-name'], data.name);
+      setValue(['telegram', 'candidateTelegram', 'tg', 'f-tg'], data.telegram || data.username);
+      setValue(['username', 'candidateUsername'], data.username);
+      setValue(['age', 'candidateAge', 'f-age'], data.age);
+      setValue(['platform', 'candidatePlatform'], data.platform);
+
+      // важные поля из карточки собеседования
+      setValue(['top_profile', 'topProfile', 'candidateTopProfile', 'f-top'], data.top_profile);
+      setValue(['experience', 'candidateExperience', 'exp_candidate', 'f-exp'], data.experience);
+      setShiftValue(['shift', 'candidateShift'], data.shift);
+      setValue(['english_level', 'englishLevel', 'candidateEnglish'], data.english_level);
+
+      // заметки / статус / дата / время
+      setValue(['notes', 'candidateNotes', 'comment', 'f-notes'], data.notes);
+      setValue(['status', 'candidateStatus', 'f-status-select'], data.status);
+      setValue(['interview_date', 'interviewDate'], data.interview_date);
+      setValue(['interview_time', 'interviewTime'], data.interview_time);
+
+      if (!document.getElementById('platform') && !document.getElementById('candidatePlatform') && !document.getElementById('f-platform')) {
+        setSinglePill(['pills-platforms'], data.platform);
       }
 
-      const statusSelect = document.getElementById('f-status-select');
-      if (statusSelect && data.status) {
-        const hasOption = [...statusSelect.options].some(option => option.value === data.status);
-        if (hasOption) {
-          statusSelect.value = data.status;
-          statusSelect.dispatchEvent(new Event('change', { bubbles: true }));
-        }
+      if (!document.getElementById('english_level') && !document.getElementById('englishLevel') && !document.getElementById('candidateEnglish') && !document.getElementById('f-english')) {
+        setSinglePill(['pills-english'], data.english_level);
       }
 
       const sourceBadge = document.getElementById('interviewSourceBadge');
@@ -1510,17 +1571,19 @@
     initPills('pills-shifts', true);
     initPills('pills-schedule');
 
-    loadCandidateFromSheetRow();
-    fillCandidateFromInterviewStorage();
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadCandidateFromSheetRow();
+      fillCandidateFromInterviewStorage();
 
-    if (sessionStorage.getItem('allstars_open_interview_script') === '1') {
-      sessionStorage.removeItem('allstars_open_interview_script');
+      if (sessionStorage.getItem('allstars_open_interview_script') === '1') {
+        sessionStorage.removeItem('allstars_open_interview_script');
 
-      const scriptBlock = document.getElementById('interviewScriptBlock');
-      if (scriptBlock) {
-        scriptBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const scriptBlock = document.getElementById('interviewScriptBlock');
+        if (scriptBlock) {
+          scriptBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
       }
-    }
+    });
 
     const criteria = [
       {
