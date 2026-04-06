@@ -2454,53 +2454,56 @@ app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
 
 app.get('/api/team-member/:rowNumber', auth, async (req, res) => {
   try {
+    const rowNumber = Number(req.params.rowNumber);
+
+    if (!Number.isFinite(rowNumber) || rowNumber < 2) {
+      return res.status(400).json({ error: 'Некорректный номер строки' });
+    }
+
     const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
     const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
-    const rowNumber = Number(req.params.rowNumber);
 
     if (!spreadsheetId) {
       return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
     }
 
-    if (!rowNumber || rowNumber < 2) {
-      return res.status(400).json({ error: 'Invalid row number' });
-    }
-
     const sheets = await getSheetsClient();
 
-    const [headersRes, rowRes] = await Promise.all([
-      sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range: `${sheetName}!A1:AU1`
-      }),
-      sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range: `${sheetName}!A${rowNumber}:AU${rowNumber}`
-      })
-    ]);
+    // Заголовки
+    const headerRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A1:AU1`
+    });
 
-    const headers = headersRes.data.values?.[0] || [];
-    const row = rowRes.data.values?.[0] || [];
+    const headers = headerRes.data.values?.[0] || [];
 
     if (!headers.length) {
-      return res.status(500).json({ error: 'Headers not found in team sheet' });
+      return res.status(500).json({ error: 'Не удалось прочитать заголовки таблицы' });
     }
 
-    const fields = headers
-      .map((header, index) => ({
-        index,
-        label: sanitizeTeamFieldLabel(header) || `Колонка ${index + 1}`,
-        value: row[index] ?? ''
-      }))
-      .filter(field => field.label && field.label !== 'null');
+    // ЧИТАЕМ ИМЕННО ЭТУ СТРОКУ, А НЕ ИНДЕКС В МАССИВЕ
+    const rowRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A${rowNumber}:AU${rowNumber}`
+    });
+
+    const row = rowRes.data.values?.[0] || [];
+    if (!row.length) {
+      return res.status(404).json({ error: 'Строка не найдена' });
+    }
+
+    const fields = headers.map((label, idx) => ({
+      label,
+      value: row[idx] || ''
+    }));
 
     res.json({
       row_number: rowNumber,
       fields
     });
   } catch (err) {
-    console.error('Team member read error:', err.message);
-    res.status(500).json({ error: 'Failed to read team member' });
+    console.error('GET /api/team-member/:rowNumber error:', err);
+    res.status(500).json({ error: 'Не удалось загрузить карточку сотрудника' });
   }
 });
 
