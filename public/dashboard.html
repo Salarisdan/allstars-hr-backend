@@ -392,7 +392,7 @@
 
     .dashboard-grid{
       display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
       gap:14px;
     }
 
@@ -467,9 +467,41 @@
       color:rgba(255,255,255,.78);
     }
 
+    .kpi-trend{
+      margin-top:12px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:800;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.08);
+      color:#fff;
+    }
+
+    .kpi-trend.up{
+      background:rgba(34,197,94,.14);
+      border-color:rgba(34,197,94,.26);
+      color:#bbf7d0;
+    }
+
+    .kpi-trend.down{
+      background:rgba(239,68,68,.14);
+      border-color:rgba(239,68,68,.26);
+      color:#fecaca;
+    }
+
+    .kpi-trend.flat{
+      background:rgba(148,163,184,.14);
+      border-color:rgba(148,163,184,.22);
+      color:#e2e8f0;
+    }
+
     .dashboard-panels{
       display:grid;
-      grid-template-columns:1.2fr .8fr;
+      grid-template-columns:1.25fr .75fr;
       gap:16px;
     }
 
@@ -495,7 +527,7 @@
 
     .daily-row{
       display:grid;
-      grid-template-columns:90px repeat(4,1fr);
+      grid-template-columns:110px repeat(5,1fr);
       gap:10px;
       align-items:center;
       padding:10px 12px;
@@ -531,12 +563,14 @@
     }
 
     .conversion-list,
-    .platform-list{
+    .platform-list,
+    .top-people-list{
       display:grid;
       gap:10px;
     }
 
-    .metric-box{
+    .metric-box,
+    .person-box{
       display:flex;
       justify-content:space-between;
       align-items:center;
@@ -547,16 +581,30 @@
       border:1px solid rgba(255,255,255,.06);
     }
 
-    .metric-box-k{
+    .metric-box-k,
+    .person-box-k{
       font-size:12px;
       font-weight:700;
       color:var(--text2);
     }
 
-    .metric-box-v{
+    .metric-box-v,
+    .person-box-v{
       font-size:18px;
       font-weight:900;
       color:var(--text);
+    }
+
+    .person-box-sub{
+      font-size:11px;
+      color:var(--text3);
+      margin-top:4px;
+    }
+
+    .dashboard-panels-bottom{
+      display:grid;
+      grid-template-columns:.9fr 1.1fr;
+      gap:16px;
     }
 
     @media (max-width:1100px){
@@ -653,7 +701,8 @@
     }
 
     @media (max-width: 980px){
-      .dashboard-panels{
+      .dashboard-panels,
+      .dashboard-panels-bottom{
         grid-template-columns:1fr;
       }
 
@@ -734,7 +783,6 @@
     }
 
     let dashboardWeekMode = 'current';
-    let dashboardStatsCache = null;
 
     function setDashboardWeek(mode) {
       dashboardWeekMode = mode;
@@ -750,9 +798,43 @@
       return labels[d.getDay()] || dateStr;
     }
 
-    function renderDashboardStats(data) {
-      dashboardStatsCache = data;
+    function getTrendMeta(trend) {
+      const diff = Number(trend?.diff || 0);
+      const diffPercent = Number(trend?.diff_percent || 0);
 
+      if (diff > 0) {
+        return {
+          cls: 'up',
+          text: `↑ +${diff} · ${diffPercent}%`
+        };
+      }
+
+      if (diff < 0) {
+        return {
+          cls: 'down',
+          text: `↓ ${diff} · ${diffPercent}%`
+        };
+      }
+
+      return {
+        cls: 'flat',
+        text: '→ без изменений'
+      };
+    }
+
+    function renderKpiCard(title, value, foot, cls, trend) {
+      const t = getTrendMeta(trend);
+      return `
+        <div class="kpi-card ${cls}">
+          <div class="kpi-label">${title}</div>
+          <div class="kpi-value">${value || 0}</div>
+          <div class="kpi-foot">${foot}</div>
+          <div class="kpi-trend ${t.cls}">${t.text}</div>
+        </div>
+      `;
+    }
+
+    function renderDashboardStats(data) {
       const content = document.getElementById('dashboardContent');
       const rangeLabel = document.getElementById('dashboardRangeLabel');
       if (!content) return;
@@ -762,48 +844,22 @@
       const daily = Array.isArray(data?.daily) ? data.daily : [];
       const conversion = data?.conversion || {};
       const range = data?.range || {};
+      const prevRange = data?.previous_range || {};
+      const topPeople = Array.isArray(data?.top_people) ? data.top_people : [];
+      const trends = data?.trends || {};
 
       if (rangeLabel) {
-        rangeLabel.textContent = `${range.date_from || '—'} → ${range.date_to || '—'}`;
+        rangeLabel.textContent = `${range.date_from || '—'} → ${range.date_to || '—'} · сравнение с ${prevRange.date_from || '—'} → ${prevRange.date_to || '—'}`;
       }
 
       content.innerHTML = `
         <div class="dashboard-grid">
-          <div class="kpi-card kpi-blue">
-            <div class="kpi-label">Лиды</div>
-            <div class="kpi-value">${summary.leads || 0}</div>
-            <div class="kpi-foot">Новых кандидатов за период</div>
-          </div>
-
-          <div class="kpi-card kpi-purple">
-            <div class="kpi-label">Собеседования</div>
-            <div class="kpi-value">${summary.interviews || 0}</div>
-            <div class="kpi-foot">Проведено интервью</div>
-          </div>
-
-          <div class="kpi-card kpi-green">
-            <div class="kpi-label">Принятые</div>
-            <div class="kpi-value">${summary.hired || 0}</div>
-            <div class="kpi-foot">Принято за неделю</div>
-          </div>
-
-          <div class="kpi-card kpi-red">
-            <div class="kpi-label">Отказы</div>
-            <div class="kpi-value">${summary.rejected || 0}</div>
-            <div class="kpi-foot">Отказов за неделю</div>
-          </div>
-
-          <div class="kpi-card kpi-burgundy">
-            <div class="kpi-label">Уволены</div>
-            <div class="kpi-value">${summary.fired || 0}</div>
-            <div class="kpi-foot">Уволено за неделю</div>
-          </div>
-
-          <div class="kpi-card kpi-orange">
-            <div class="kpi-label">Старт</div>
-            <div class="kpi-value">${summary.started || 0}</div>
-            <div class="kpi-foot">Вышли на старт</div>
-          </div>
+          ${renderKpiCard('Лиды', summary.leads, 'Новых кандидатов за период', 'kpi-blue', trends.leads)}
+          ${renderKpiCard('Собеседования', summary.interviews, 'Проведено интервью', 'kpi-purple', trends.interviews)}
+          ${renderKpiCard('Принятые', summary.hired, 'Принято за неделю', 'kpi-green', trends.hired)}
+          ${renderKpiCard('Отказы', summary.rejected, 'Отказов за неделю', 'kpi-red', trends.rejected)}
+          ${renderKpiCard('Уволены', summary.fired, 'Уволено за неделю', 'kpi-burgundy', trends.fired)}
+          ${renderKpiCard('Старт', summary.started, 'Вышли на старт', 'kpi-orange', trends.started)}
         </div>
 
         <div class="dashboard-panels">
@@ -833,13 +889,18 @@
                     <div class="daily-metric-k">Отказы</div>
                     <div class="daily-metric-v">${day.rejected || 0}</div>
                   </div>
+
+                  <div class="daily-metric">
+                    <div class="daily-metric-k">Старт</div>
+                    <div class="daily-metric-v">${day.started || 0}</div>
+                  </div>
                 </div>
               `).join('')}
             </div>
           </div>
 
           <div class="dashboard-panel">
-            <div class="panel-title">Конверсии и платформы</div>
+            <div class="panel-title">Конверсии</div>
 
             <div class="conversion-list" style="margin-bottom:14px;">
               <div class="metric-box">
@@ -883,6 +944,59 @@
               <div class="metric-box">
                 <div class="metric-box-k">Не рассчитан</div>
                 <div class="metric-box-v">${summary.unpaid || 0}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-panels-bottom">
+          <div class="dashboard-panel">
+            <div class="panel-title">Top HR / TeamLead</div>
+            <div class="top-people-list">
+              ${
+                topPeople.length
+                  ? topPeople.map(person => `
+                    <div class="person-box">
+                      <div>
+                        <div class="person-box-k">${person.name}</div>
+                        <div class="person-box-sub">
+                          Лиды: ${person.leads || 0} · Собесы: ${person.interviews || 0} · Принятые: ${person.hired || 0}
+                        </div>
+                      </div>
+                      <div class="person-box-v">${(person.hired || 0) * 5 + (person.interviews || 0) * 2 + (person.leads || 0)}</div>
+                    </div>
+                  `).join('')
+                  : `<div class="metric-box"><div class="metric-box-k">Пока нет данных по авторам событий</div><div class="metric-box-v">—</div></div>`
+              }
+            </div>
+          </div>
+
+          <div class="dashboard-panel">
+            <div class="panel-title">Итог недели</div>
+            <div class="platform-list">
+              <div class="metric-box">
+                <div class="metric-box-k">Лиды</div>
+                <div class="metric-box-v">${summary.leads || 0}</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-k">Собеседования</div>
+                <div class="metric-box-v">${summary.interviews || 0}</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-k">Принятые</div>
+                <div class="metric-box-v">${summary.hired || 0}</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-k">Отказы</div>
+                <div class="metric-box-v">${summary.rejected || 0}</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-k">Уволены</div>
+                <div class="metric-box-v">${summary.fired || 0}</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-k">Старт</div>
+                <div class="metric-box-v">${summary.started || 0}</div>
               </div>
             </div>
           </div>
