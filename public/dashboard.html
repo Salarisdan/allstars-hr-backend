@@ -472,7 +472,7 @@
       display:inline-flex;
       align-items:center;
       gap:8px;
-      padding:6px 10px;
+      padding:7px 11px;
       border-radius:999px;
       font-size:11px;
       font-weight:800;
@@ -497,6 +497,21 @@
       background:rgba(148,163,184,.14);
       border-color:rgba(148,163,184,.22);
       color:#e2e8f0;
+    }
+
+    .kpi-trend-arrow{
+      font-size:13px;
+      font-weight:900;
+    }
+
+    .kpi-trend-main{
+      font-size:12px;
+      font-weight:900;
+    }
+
+    .kpi-trend-sub{
+      font-size:11px;
+      opacity:.85;
     }
 
     .dashboard-panels{
@@ -562,6 +577,40 @@
       color:var(--text);
     }
 
+    .daily-bar-wrap{
+      width:100%;
+      height:6px;
+      border-radius:999px;
+      background:rgba(255,255,255,.06);
+      overflow:hidden;
+      margin-top:4px;
+    }
+
+    .daily-bar{
+      height:100%;
+      border-radius:999px;
+    }
+
+    .bar-blue{
+      background:linear-gradient(90deg, #60a5fa, #3b82f6);
+    }
+
+    .bar-purple{
+      background:linear-gradient(90deg, #c084fc, #8b5cf6);
+    }
+
+    .bar-green{
+      background:linear-gradient(90deg, #4ade80, #22c55e);
+    }
+
+    .bar-red{
+      background:linear-gradient(90deg, #f87171, #ef4444);
+    }
+
+    .bar-orange{
+      background:linear-gradient(90deg, #fbbf24, #f59e0b);
+    }
+
     .conversion-list,
     .platform-list,
     .top-people-list{
@@ -605,6 +654,20 @@
       display:grid;
       grid-template-columns:.9fr 1.1fr;
       gap:16px;
+    }
+
+    .dashboard-live-badge{
+      display:inline-flex;
+      align-items:center;
+      margin-left:10px;
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.08em;
+      background:rgba(34,197,94,.16);
+      border:1px solid rgba(34,197,94,.26);
+      color:#bbf7d0;
     }
 
     @media (max-width:1100px){
@@ -783,6 +846,7 @@
     }
 
     let dashboardWeekMode = 'current';
+    let dashboardAutoRefreshTimer = null;
 
     function setDashboardWeek(mode) {
       dashboardWeekMode = mode;
@@ -805,31 +869,57 @@
       if (diff > 0) {
         return {
           cls: 'up',
-          text: `↑ +${diff} · ${diffPercent}%`
+          arrow: '↑',
+          text: `+${diff}`,
+          sub: `${diffPercent}%`
         };
       }
 
       if (diff < 0) {
         return {
           cls: 'down',
-          text: `↓ ${diff} · ${diffPercent}%`
+          arrow: '↓',
+          text: `${diff}`,
+          sub: `${diffPercent}%`
         };
       }
 
       return {
         cls: 'flat',
-        text: '→ без изменений'
+        arrow: '→',
+        text: '0',
+        sub: 'без изменений'
       };
     }
 
     function renderKpiCard(title, value, foot, cls, trend) {
       const t = getTrendMeta(trend);
+
       return `
         <div class="kpi-card ${cls}">
           <div class="kpi-label">${title}</div>
           <div class="kpi-value">${value || 0}</div>
           <div class="kpi-foot">${foot}</div>
-          <div class="kpi-trend ${t.cls}">${t.text}</div>
+
+          <div class="kpi-trend ${t.cls}">
+            <span class="kpi-trend-arrow">${t.arrow}</span>
+            <span class="kpi-trend-main">${t.text}</span>
+            <span class="kpi-trend-sub">${t.sub}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function getDailyMax(daily, key) {
+      return Math.max(1, ...daily.map(day => Number(day[key] || 0)));
+    }
+
+    function renderDailyBar(value, max, cls = '') {
+      const width = Math.max(6, Math.round((Number(value || 0) / max) * 100));
+
+      return `
+        <div class="daily-bar-wrap">
+          <div class="daily-bar ${cls}" style="width:${width}%"></div>
         </div>
       `;
     }
@@ -847,9 +937,17 @@
       const prevRange = data?.previous_range || {};
       const topPeople = Array.isArray(data?.top_people) ? data.top_people : [];
       const trends = data?.trends || {};
+      const maxLeads = getDailyMax(daily, 'leads');
+      const maxInterviews = getDailyMax(daily, 'interviews');
+      const maxHired = getDailyMax(daily, 'hired');
+      const maxRejected = getDailyMax(daily, 'rejected');
+      const maxStarted = getDailyMax(daily, 'started');
 
       if (rangeLabel) {
-        rangeLabel.textContent = `${range.date_from || '—'} → ${range.date_to || '—'} · сравнение с ${prevRange.date_from || '—'} → ${prevRange.date_to || '—'}`;
+        rangeLabel.innerHTML = `
+          ${range.date_from || '—'} → ${range.date_to || '—'} · сравнение с ${prevRange.date_from || '—'} → ${prevRange.date_to || '—'}
+          <span class="dashboard-live-badge">LIVE</span>
+        `;
       }
 
       content.innerHTML = `
@@ -873,26 +971,31 @@
                   <div class="daily-metric">
                     <div class="daily-metric-k">Лиды</div>
                     <div class="daily-metric-v">${day.leads || 0}</div>
+                    ${renderDailyBar(day.leads, maxLeads, 'bar-blue')}
                   </div>
 
                   <div class="daily-metric">
                     <div class="daily-metric-k">Собесы</div>
                     <div class="daily-metric-v">${day.interviews || 0}</div>
+                    ${renderDailyBar(day.interviews, maxInterviews, 'bar-purple')}
                   </div>
 
                   <div class="daily-metric">
                     <div class="daily-metric-k">Приняты</div>
                     <div class="daily-metric-v">${day.hired || 0}</div>
+                    ${renderDailyBar(day.hired, maxHired, 'bar-green')}
                   </div>
 
                   <div class="daily-metric">
                     <div class="daily-metric-k">Отказы</div>
                     <div class="daily-metric-v">${day.rejected || 0}</div>
+                    ${renderDailyBar(day.rejected, maxRejected, 'bar-red')}
                   </div>
 
                   <div class="daily-metric">
                     <div class="daily-metric-k">Старт</div>
                     <div class="daily-metric-v">${day.started || 0}</div>
+                    ${renderDailyBar(day.started, maxStarted, 'bar-orange')}
                   </div>
                 </div>
               `).join('')}
@@ -1004,9 +1107,25 @@
       `;
     }
 
-    async function loadDashboardStats() {
+    function startDashboardAutoRefresh() {
+      stopDashboardAutoRefresh();
+
+      dashboardAutoRefreshTimer = setInterval(() => {
+        loadDashboardStats(true);
+      }, 45000);
+    }
+
+    function stopDashboardAutoRefresh() {
+      if (dashboardAutoRefreshTimer) {
+        clearInterval(dashboardAutoRefreshTimer);
+        dashboardAutoRefreshTimer = null;
+      }
+    }
+
+    async function loadDashboardStats(isSilent = false) {
       const content = document.getElementById('dashboardContent');
-      if (content) {
+
+      if (!isSilent && content) {
         content.innerHTML = `<div class="loading">Загружаем dashboard...</div>`;
       }
 
@@ -1020,7 +1139,7 @@
 
         renderDashboardStats(data);
       } catch (err) {
-        if (content) {
+        if (!isSilent && content) {
           content.innerHTML = `<div class="error-box">${err.message || 'Не удалось загрузить dashboard'}</div>`;
         }
       }
@@ -1030,7 +1149,10 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       loadDashboardStats();
+      startDashboardAutoRefresh();
     });
+
+    window.addEventListener('beforeunload', stopDashboardAutoRefresh);
   </script>
 </body>
 </html>
