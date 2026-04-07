@@ -2677,21 +2677,45 @@
       return '';
     }
 
+      function normalizeSearchText(value) {
+        return String(value || '')
+          .toLowerCase()
+          .trim()
+          .replace(/^@+/, '')
+          .replace(/\s+/g, ' ');
+      }
+
     function applyCrmFilters(items) {
       let out = [...items];
+
       if (crmFilters.q) {
-        const q = crmFilters.q.toLowerCase();
+          const q = normalizeSearchText(crmFilters.q);
+
         out = out.filter(item => {
-          const hay = [
+            const telegramCandidates = [
+              item.telegram,
+              item.tg,
+              item.username,
+              item.raw?.['Телеграм'],
+              item.raw?.['Telegram'],
+              item.raw?.['ТГ'],
+              item.raw?.['Telegram / username']
+            ];
+
+            const haystack = [
             item.name,
-            item.telegram,
             item.status,
             item.platform,
-            item.transactionEnding
-          ].join(' ').toLowerCase();
-          return hay.includes(q);
+              item.transactionEnding,
+              ...telegramCandidates
+            ]
+              .map(normalizeSearchText)
+              .join(' ');
+
+            return haystack.includes(q);
         });
       }
+
       if (crmFilters.pipeline) {
         const group = CRM_STATUS_GROUPS.find(x => x.key === crmFilters.pipeline);
         if (group) {
@@ -3156,12 +3180,15 @@
             ...item,
             row_number: Number(item.row_number),
             name: item.name || '',
-            telegram: item.telegram || '',
+            telegram: item.telegram || item.tg || item.username || '',
+            tg: item.tg || '',
+            username: item.username || '',
             status: item.status || '',
             platform: item.platform || '',
             experience_months: item.experience_months || '',
             work_days: item.work_days || '',
-            transactionEnding: item.transactionEnding || ''
+            transactionEnding: item.transactionEnding || '',
+            raw: item.raw || {}
           }))
           .filter(item => TEAM_VISIBLE_STATUSES.has(String(item.status || '').trim()));
 
