@@ -1130,7 +1130,7 @@
       }
 
       try {
-        const res = await api(`/api/dashboard/stats?week=${dashboardWeekMode}`);
+        const res = await api(`/api/dashboard/stats-live?week=${dashboardWeekMode}`);
         const data = await res.json().catch(() => ({}));
 
         if (!res.ok) {
