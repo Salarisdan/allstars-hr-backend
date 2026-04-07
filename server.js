@@ -2608,13 +2608,290 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
 
 app.get('/api/dashboard/stats-live', auth, async (req, res) => {
   try {
-    const payload = await buildDashboardStatsPayload(req.query || {});
-    res.json(payload);
-  } catch (err) {
-    if (err.message === 'INVALID_DATE_RANGE') {
-      return res.status(400).json({ error: 'Некорректный date_from/date_to' });
+    const { week = 'current' } = req.query;
+
+    const baseDate =
+      week === 'previous'
+        ? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        : new Date();
+
+    const fromDate = startOfWeek(baseDate);
+    const toDate = endOfWeek(baseDate);
+
+    const prevFrom = new Date(fromDate);
+    prevFrom.setDate(prevFrom.getDate() - 7);
+    const prevTo = new Date(toDate);
+    prevTo.setDate(prevTo.getDate() - 7);
+
+    async function buildRange(from, to) {
+      const [
+        leadsRes,
+        hiredRes,
+        rejectedRes,
+        startedRes,
+        firedRes,
+        dailyLeadsRes,
+        dailyStatusRes,
+        onlyFansRes,
+        fanslyRes
+      ] = await Promise.all([
+        pool.query(
+          `
+          SELECT COUNT(*)::int AS count
+          FROM candidates
+          WHERE created_at >= $1 AND created_at <= $2
+          `,
+          [from, to]
+        ),
+
+        pool.query(
+          `
+          SELECT COUNT(*)::int AS count
+          FROM candidate_status_history
+          WHERE created_at >= $1
+            AND created_at <= $2
+            AND status IN ('Принят', 'Принятый', 'Работает')
+          `,
+          [from, to]
+        ),
+
+        pool.query(
+          `
+          SELECT COUNT(*)::int AS count
+          FROM candidate_status_history
+          WHERE created_at >= $1
+            AND created_at <= $2
+            AND status = 'Отказ'
+          `,
+          [from, to]
+        ),
+
+        pool.query(
+          `
+          SELECT COUNT(*)::int AS count
+          FROM candidate_status_history
+          WHERE created_at >= $1
+            AND created_at <= $2
+            AND status = 'Ожидание старта'
+          `,
+          [from, to]
+        ),
+
+        pool.query(
+          `
+          SELECT COUNT(*)::int AS count
+          FROM candidate_status_history
+          WHERE created_at >= $1
+            AND created_at <= $2
+            AND status = 'Уволен'
+          `,
+          [from, to]
+        ),
+
+        pool.query(
+          `
+          SELECT DATE(created_at) AS d, COUNT(*)::int AS count
+          FROM candidates
+          WHERE created_at >= $1 AND created_at <= $2
+          GROUP BY DATE(created_at)
+          ORDER BY DATE(created_at)
+          `,
+          [from, to]
+        ),
+
+        pool.query(
+          `
+          SELECT DATE(created_at) AS d, status, COUNT(*)::int AS count
+          FROM candidate_status_history
+          WHERE created_at >= $1 AND created_at <= $2
+          GROUP BY DATE(created_at), status
+          ORDER BY DATE(created_at)
+          `,
+          [from, to]
+        ),
+
+        pool.query(
+          `
+          SELECT COUNT(*)::int AS count
+          FROM candidates
+          WHERE created_at >= $1
+            AND created_at <= $2
+            AND LOWER(COALESCE(platform, '')) LIKE '%onlyfans%'
+          `,
+          [from, to]
+        ),
+
+        pool.query(
+          `
+          SELECT COUNT(*)::int AS count
+          FROM candidates
+          WHERE created_at >= $1
+            AND created_at <= $2
+            AND LOWER(COALESCE(platform, '')) LIKE '%fansly%'
+          `,
+          [from, to]
+        )
+      ]);
+
+      let interviewsCount = 0;
+      let dailyInterviews = [];
+
+      try {
+        const interviewsRes = await pool.query(
+          `
+          SELECT COUNT(*)::int AS count
+          FROM interviews
+          WHERE completed_at >= $1 AND completed_at <= $2
+          `,
+          [from, to]
+        );
+        interviewsCount = interviewsRes.rows[0]?.count || 0;
+
+        const dailyInterviewsRes = await pool.query(
+          `
+          SELECT DATE(completed_at) AS d, COUNT(*)::int AS count
+          FROM interviews
+          WHERE completed_at >= $1 AND completed_at <= $2
+          GROUP BY DATE(completed_at)
+          ORDER BY DATE(completed_at)
+          `,
+          [from, to]
+        );
+        dailyInterviews = dailyInterviewsRes.rows || [];
+      } catch (e) {
+        try {
+          const interviewsRes = await pool.query(
+            `
+            SELECT COUNT(*)::int AS count
+            FROM interviews
+            WHERE updated_at >= $1 AND updated_at <= $2
+            `,
+            [from, to]
+          );
+          interviewsCount = interviewsRes.rows[0]?.count || 0;
+
+          const dailyInterviewsRes = await pool.query(
+            `
+            SELECT DATE(updated_at) AS d, COUNT(*)::int AS count
+            FROM interviews
+            WHERE updated_at >= $1 AND updated_at <= $2
+            GROUP BY DATE(updated_at)
+            ORDER BY DATE(updated_at)
+            `,
+            [from, to]
+          );
+          dailyInterviews = dailyInterviewsRes.rows || [];
+        } catch (e2) {
+          interviewsCount = 0;
+          dailyInterviews = [];
+        }
+      }
+
+      const summary = {
+        leads: leadsRes.rows[0]?.count || 0,
+        interviews: interviewsCount,
+        hired: hiredRes.rows[0]?.count || 0,
+        rejected: rejectedRes.rows[0]?.count || 0,
+        started: startedRes.rows[0]?.count || 0,
+        fired: firedRes.rows[0]?.count || 0,
+        waiting_test: 0,
+        test_shift: 0,
+        unpaid: 0
+      };
+
+      const dailyMap = new Map();
+      for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
+        const key = formatDateOnly(d);
+        dailyMap.set(key, {
+          date: key,
+          leads: 0,
+          interviews: 0,
+          hired: 0,
+          rejected: 0,
+          started: 0,
+          fired: 0
+        });
+      }
+
+      for (const row of dailyLeadsRes.rows) {
+        const key = formatDateOnly(row.d);
+        if (dailyMap.has(key)) dailyMap.get(key).leads = row.count;
+      }
+
+      for (const row of dailyInterviews) {
+        const key = formatDateOnly(row.d);
+        if (dailyMap.has(key)) dailyMap.get(key).interviews = row.count;
+      }
+
+      for (const row of dailyStatusRes.rows) {
+        const key = formatDateOnly(row.d);
+        const day = dailyMap.get(key);
+        if (!day) continue;
+
+        const status = String(row.status || '').trim();
+
+        if (['Принят', 'Принятый', 'Работает'].includes(status)) day.hired += row.count;
+        if (status === 'Отказ') day.rejected += row.count;
+        if (status === 'Ожидание старта') day.started += row.count;
+        if (status === 'Уволен') day.fired += row.count;
+      }
+
+      const conversion = {
+        lead_to_interview:
+          summary.leads > 0 ? Math.round((summary.interviews / summary.leads) * 1000) / 10 : 0,
+        interview_to_hired:
+          summary.interviews > 0 ? Math.round((summary.hired / summary.interviews) * 1000) / 10 : 0,
+        hired_to_started:
+          summary.hired > 0 ? Math.round((summary.started / summary.hired) * 1000) / 10 : 0
+      };
+
+      return {
+        summary,
+        daily: [...dailyMap.values()],
+        platforms: {
+          onlyfans: onlyFansRes.rows[0]?.count || 0,
+          fansly: fanslyRes.rows[0]?.count || 0
+        },
+        conversion
+      };
     }
 
+    const [current, previous] = await Promise.all([
+      buildRange(fromDate, toDate),
+      buildRange(prevFrom, prevTo)
+    ]);
+
+    const trend = (curr, prev) => ({
+      current: curr,
+      previous: prev,
+      diff: curr - prev,
+      diff_percent: prev > 0 ? Math.round(((curr - prev) / prev) * 1000) / 10 : (curr > 0 ? 100 : 0)
+    });
+
+    res.json({
+      range: {
+        date_from: formatDateOnly(fromDate),
+        date_to: formatDateOnly(toDate),
+        week
+      },
+      previous_range: {
+        date_from: formatDateOnly(prevFrom),
+        date_to: formatDateOnly(prevTo)
+      },
+      summary: current.summary,
+      daily: current.daily,
+      platforms: current.platforms,
+      conversion: current.conversion,
+      trends: {
+        leads: trend(current.summary.leads, previous.summary.leads),
+        interviews: trend(current.summary.interviews, previous.summary.interviews),
+        hired: trend(current.summary.hired, previous.summary.hired),
+        rejected: trend(current.summary.rejected, previous.summary.rejected),
+        fired: trend(current.summary.fired, previous.summary.fired),
+        started: trend(current.summary.started, previous.summary.started)
+      }
+    });
+  } catch (err) {
     console.error('GET /api/dashboard/stats-live error:', err);
     res.status(500).json({ error: 'Не удалось загрузить live dashboard статистику' });
   }
