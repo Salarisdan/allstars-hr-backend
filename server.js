@@ -555,6 +555,75 @@ function normalizeNeedPlatform(value) {
   return s === 'fansly' ? 'fansly' : 'onlyfans';
 }
 
+async function logCrmEvent({
+  entityType,
+  entityId,
+  eventType,
+  oldValue = '',
+  newValue = '',
+  meta = {},
+  createdBy = ''
+}) {
+  try {
+    await pool.query(
+      `
+      INSERT INTO crm_events (
+        entity_type,
+        entity_id,
+        event_type,
+        old_value,
+        new_value,
+        meta_json,
+        created_by
+      )
+      VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)
+      `,
+      [
+        String(entityType || ''),
+        String(entityId || ''),
+        String(eventType || ''),
+        String(oldValue || ''),
+        String(newValue || ''),
+        JSON.stringify(meta || {}),
+        String(createdBy || '')
+      ]
+    );
+  } catch (err) {
+    console.error('logCrmEvent error:', err.message);
+  }
+}
+
+function startOfWeek(date = new Date()) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+
+function endOfWeek(date = new Date()) {
+  const start = startOfWeek(date);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+  return end;
+}
+
+function formatDateOnly(date) {
+  const d = new Date(date);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function parseDateOnly(value) {
+  if (!value) return null;
+  const d = new Date(`${value}T00:00:00`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 async function moveCandidateToTeamSheet(candidate) {
   const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
   const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
@@ -809,6 +878,22 @@ async function initDb() {
       updated_at TIMESTAMP DEFAULT NOW()
     );
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS crm_events (
+      id SERIAL PRIMARY KEY,
+      entity_type TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      old_value TEXT DEFAULT '',
+      new_value TEXT DEFAULT '',
+      meta_json JSONB DEFAULT '{}'::jsonb,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      created_by TEXT DEFAULT ''
+    )
+  `).catch(err => {
+    console.error('crm_events init error:', err.message);
+  });
 
   await pool.query(`
     ALTER TABLE interviews
@@ -1528,6 +1613,20 @@ app.post('/candidates', auth, async (req, res) => {
       [result.rows[0].id, ai.recommendation, ai.confidence, ai.summary, JSON.stringify(ai.strengths), JSON.stringify(ai.risks)]
     );
 
+    const created = result.rows[0];
+
+    await logCrmEvent({
+      entityType: 'candidate',
+      entityId: created.id,
+      eventType: 'lead_created',
+      meta: {
+        platform: candidate.platform,
+        name: candidate.name,
+        telegram: candidate.telegram
+      },
+      createdBy: req.user?.email || String(req.user?.userId || '')
+    });
+
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error('POST /candidates ERROR =', err);
@@ -1612,6 +1711,18 @@ app.patch('/candidates/:id', auth, async (req, res) => {
        VALUES ($1,$2,$3)`,
       [req.params.id, next.status, req.user.userId]
     );
+
+    await logCrmEvent({
+      entityType: 'candidate',
+      entityId: req.params.id,
+      eventType: 'status_changed',
+      oldValue: row.status,
+      newValue: next.status,
+      meta: {
+        platform: next.platform || ''
+      },
+      createdBy: req.user?.email || String(req.user?.userId || '')
+    });
 
     if (next.status === 'Тест смена') {
       try {
@@ -1929,6 +2040,13 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
     });
 
     const headers = headersRes.data.values?.[0] || [];
+    const currentRowRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A${rowNumber}:AU${rowNumber}`
+    });
+    const currentRow = currentRowRes.data.values?.[0] || [];
+    const currentCandidate = normalizeRow(headers, currentRow, rowNumber);
+    const prevInterviewStatus = normalizeInterviewStatus(currentCandidate.status || req.body?.status || '');
 
     // Helper to find column index by field names
     const findColumnIndex = (...names) => {
@@ -2013,6 +2131,24 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
 
     const updatedRow = updatedRowRes.data.values?.[0] || [];
     const candidate = normalizeRow(headers, updatedRow, rowNumber);
+
+    const nextInterviewStatus = normalizeInterviewStatus(candidate.status || req.body?.status || '');
+    if (
+      nextInterviewStatus === 'Собеседование проведено' &&
+      nextInterviewStatus !== prevInterviewStatus
+    ) {
+      await logCrmEvent({
+        entityType: 'interview',
+        entityId: rowNumber,
+        eventType: 'interview_completed',
+        meta: {
+          platform: candidate.platform || req.body?.platform || '',
+          name: candidate.name || req.body?.name || '',
+          telegram: candidate.telegram || candidate.username || req.body?.telegram || req.body?.username || ''
+        },
+        createdBy: req.user?.email || String(req.user?.userId || '')
+      });
+    }
 
     res.json(candidate);
   } catch (err) {
@@ -2117,6 +2253,206 @@ app.get('/api/stats', auth, async (req, res) => {
   } catch (err) {
     console.error('Stats read error:', err.message);
     res.status(500).json({ error: 'Failed to read stats from Google Sheets' });
+  }
+});
+
+app.get('/api/dashboard/stats', auth, async (req, res) => {
+  try {
+    const { week = 'current', date_from, date_to } = req.query;
+
+    let fromDate;
+    let toDate;
+
+    if (date_from && date_to) {
+      fromDate = parseDateOnly(date_from);
+      toDate = parseDateOnly(date_to);
+
+      if (!fromDate || !toDate) {
+        return res.status(400).json({ error: 'Некорректный date_from/date_to' });
+      }
+
+      fromDate.setHours(0, 0, 0, 0);
+      toDate.setHours(23, 59, 59, 999);
+    } else {
+      const now = new Date();
+      const base =
+        week === 'previous'
+          ? new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+          : now;
+
+      fromDate = startOfWeek(base);
+      toDate = endOfWeek(base);
+    }
+
+    const result = await pool.query(
+      `
+      SELECT
+        id,
+        entity_type,
+        entity_id,
+        event_type,
+        old_value,
+        new_value,
+        meta_json,
+        created_at,
+        created_by
+      FROM crm_events
+      WHERE created_at >= $1
+        AND created_at <= $2
+      ORDER BY created_at ASC
+      `,
+      [fromDate.toISOString(), toDate.toISOString()]
+    );
+
+    const events = result.rows || [];
+
+    const summary = {
+      leads: 0,
+      interviews: 0,
+      hired: 0,
+      rejected: 0,
+      fired: 0,
+      started: 0,
+      test_shift: 0,
+      waiting_test: 0,
+      unpaid: 0
+    };
+
+    const platforms = {
+      onlyfans: 0,
+      fansly: 0
+    };
+
+    const dailyMap = new Map();
+
+    const ensureDay = (dateStr) => {
+      if (!dailyMap.has(dateStr)) {
+        dailyMap.set(dateStr, {
+          date: dateStr,
+          leads: 0,
+          interviews: 0,
+          hired: 0,
+          rejected: 0,
+          fired: 0,
+          started: 0,
+          test_shift: 0
+        });
+      }
+      return dailyMap.get(dateStr);
+    };
+
+    for (const event of events) {
+      const meta = event.meta_json || {};
+      const dateStr = formatDateOnly(event.created_at);
+      const dayRow = ensureDay(dateStr);
+
+      const platform = String(meta.platform || '').toLowerCase();
+
+      if (event.event_type === 'lead_created') {
+        summary.leads += 1;
+        dayRow.leads += 1;
+
+        if (platform.includes('onlyfans')) platforms.onlyfans += 1;
+        if (platform.includes('fansly')) platforms.fansly += 1;
+      }
+
+      if (event.event_type === 'interview_completed') {
+        summary.interviews += 1;
+        dayRow.interviews += 1;
+
+        if (platform.includes('onlyfans')) platforms.onlyfans += 1;
+        if (platform.includes('fansly')) platforms.fansly += 1;
+      }
+
+      if (event.event_type === 'status_changed') {
+        const next = String(event.new_value || '').trim();
+
+        if (next === 'Принятый' || next === 'Работает') {
+          summary.hired += 1;
+          dayRow.hired += 1;
+        }
+
+        if (next === 'Отказ') {
+          summary.rejected += 1;
+          dayRow.rejected += 1;
+        }
+
+        if (next === 'Уволен') {
+          summary.fired += 1;
+          dayRow.fired += 1;
+        }
+
+        if (next === 'Ожидание старта') {
+          summary.started += 1;
+          dayRow.started += 1;
+        }
+
+        if (next === 'Тест смена') {
+          summary.test_shift += 1;
+          dayRow.test_shift += 1;
+        }
+
+        if (next === 'Ждет тест') {
+          summary.waiting_test += 1;
+        }
+
+        if (next === 'Не рассчитан') {
+          summary.unpaid += 1;
+        }
+
+        if (platform.includes('onlyfans')) platforms.onlyfans += 1;
+        if (platform.includes('fansly')) platforms.fansly += 1;
+      }
+    }
+
+    const daily = [];
+    const cursor = new Date(fromDate);
+    while (cursor <= toDate) {
+      const dateStr = formatDateOnly(cursor);
+      daily.push(
+        dailyMap.get(dateStr) || {
+          date: dateStr,
+          leads: 0,
+          interviews: 0,
+          hired: 0,
+          rejected: 0,
+          fired: 0,
+          started: 0,
+          test_shift: 0
+        }
+      );
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    const conversion = {
+      lead_to_interview:
+        summary.leads > 0
+          ? Math.round((summary.interviews / summary.leads) * 1000) / 10
+          : 0,
+      interview_to_hired:
+        summary.interviews > 0
+          ? Math.round((summary.hired / summary.interviews) * 1000) / 10
+          : 0,
+      hired_to_started:
+        summary.hired > 0
+          ? Math.round((summary.started / summary.hired) * 1000) / 10
+          : 0
+    };
+
+    res.json({
+      range: {
+        date_from: formatDateOnly(fromDate),
+        date_to: formatDateOnly(toDate),
+        week
+      },
+      summary,
+      platforms,
+      daily,
+      conversion
+    });
+  } catch (err) {
+    console.error('GET /api/dashboard/stats error:', err);
+    res.status(500).json({ error: 'Не удалось загрузить dashboard статистику' });
   }
 });
 
@@ -2588,6 +2924,13 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       return res.status(500).json({ error: 'Headers not found in team sheet' });
     }
 
+    const currentRowRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A${rowNumber}:AU${rowNumber}`
+    });
+    const currentRow = currentRowRes.data.values?.[0] || [];
+    const currentRowData = normalizeRow(headers, currentRow, rowNumber);
+
     const statusLabel = 'Актуальный статус кандидата (Hr)';
 
     const data = [];
@@ -2626,6 +2969,26 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       data: null,
       ts: 0
     };
+
+    const nextStatus = String(updates['Актуальный статус кандидата (Hr)'] || '').trim();
+    const prevStatus = String(currentRowData?.status || '').trim();
+    const platform = String(currentRowData?.platform || '').trim();
+    const name = String(currentRowData?.name || '').trim();
+
+    if (nextStatus && nextStatus !== prevStatus) {
+      await logCrmEvent({
+        entityType: 'team_member',
+        entityId: req.params.rowNumber,
+        eventType: 'status_changed',
+        oldValue: prevStatus,
+        newValue: nextStatus,
+        meta: {
+          platform,
+          name
+        },
+        createdBy: req.user?.email || String(req.user?.userId || '')
+      });
+    }
 
     res.json({ ok: true });
   } catch (err) {

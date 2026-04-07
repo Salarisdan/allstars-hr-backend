@@ -326,6 +326,239 @@
       background:var(--red-bg);
     }
 
+    .dashboard-wrap{
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+    }
+
+    .dashboard-topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      flex-wrap:wrap;
+    }
+
+    .dashboard-title{
+      font-size:28px;
+      font-weight:900;
+      color:var(--text);
+      line-height:1.1;
+    }
+
+    .dashboard-subtitle{
+      margin-top:6px;
+      color:var(--text2);
+      font-size:13px;
+    }
+
+    .dashboard-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .dashboard-tab,
+    .dashboard-refresh-btn{
+      border:none;
+      cursor:pointer;
+      border-radius:14px;
+      padding:.82rem 1rem;
+      font-family:'Manrope',sans-serif;
+      font-weight:800;
+      font-size:12px;
+      transition:.18s ease;
+    }
+
+    .dashboard-tab{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      color:var(--text2);
+    }
+
+    .dashboard-tab.active{
+      background:linear-gradient(135deg, rgba(79,110,247,.28), rgba(168,85,247,.18));
+      border-color:rgba(79,110,247,.38);
+      color:#dbeafe;
+      box-shadow:0 0 20px rgba(79,110,247,.14);
+    }
+
+    .dashboard-refresh-btn{
+      background:linear-gradient(135deg, rgba(34,197,94,.22), rgba(79,110,247,.16));
+      border:1px solid rgba(34,197,94,.28);
+      color:#dcfce7;
+    }
+
+    .dashboard-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:14px;
+    }
+
+    .kpi-card{
+      position:relative;
+      overflow:hidden;
+      border-radius:20px;
+      padding:18px;
+      border:1px solid rgba(255,255,255,.08);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.02),
+        0 10px 28px rgba(0,0,0,.34);
+    }
+
+    .kpi-card::after{
+      content:'';
+      position:absolute;
+      inset:0;
+      background:linear-gradient(120deg, transparent, rgba(255,255,255,.04), transparent);
+      pointer-events:none;
+    }
+
+    .kpi-blue{
+      background:linear-gradient(135deg, rgba(59,130,246,.42), rgba(79,110,247,.18) 60%, #1b1f2c);
+      border-color:rgba(59,130,246,.34);
+    }
+
+    .kpi-purple{
+      background:linear-gradient(135deg, rgba(168,85,247,.42), rgba(124,58,237,.18) 60%, #1b1f2c);
+      border-color:rgba(168,85,247,.34);
+    }
+
+    .kpi-green{
+      background:linear-gradient(135deg, rgba(34,197,94,.40), rgba(16,185,129,.18) 60%, #1b1f2c);
+      border-color:rgba(34,197,94,.34);
+    }
+
+    .kpi-red{
+      background:linear-gradient(135deg, rgba(239,68,68,.42), rgba(127,29,29,.18) 60%, #1b1f2c);
+      border-color:rgba(239,68,68,.34);
+    }
+
+    .kpi-orange{
+      background:linear-gradient(135deg, rgba(245,158,11,.42), rgba(234,179,8,.18) 60%, #1b1f2c);
+      border-color:rgba(245,158,11,.34);
+    }
+
+    .kpi-burgundy{
+      background:linear-gradient(135deg, rgba(127,29,29,.42), rgba(239,68,68,.14) 60%, #1b1f2c);
+      border-color:rgba(127,29,29,.34);
+    }
+
+    .kpi-label{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:rgba(255,255,255,.72);
+      font-weight:800;
+      margin-bottom:10px;
+    }
+
+    .kpi-value{
+      font-size:34px;
+      font-weight:900;
+      line-height:1;
+      color:#fff;
+    }
+
+    .kpi-foot{
+      margin-top:10px;
+      font-size:12px;
+      color:rgba(255,255,255,.78);
+    }
+
+    .dashboard-panels{
+      display:grid;
+      grid-template-columns:1.2fr .8fr;
+      gap:16px;
+    }
+
+    .dashboard-panel{
+      background:linear-gradient(180deg,#232840,#1b1f2c);
+      border:1px solid var(--border);
+      border-radius:20px;
+      padding:16px;
+      box-shadow:var(--shadow);
+    }
+
+    .panel-title{
+      font-size:15px;
+      font-weight:800;
+      margin-bottom:14px;
+      color:var(--text);
+    }
+
+    .daily-list{
+      display:grid;
+      gap:10px;
+    }
+
+    .daily-row{
+      display:grid;
+      grid-template-columns:90px repeat(4,1fr);
+      gap:10px;
+      align-items:center;
+      padding:10px 12px;
+      border-radius:14px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.06);
+    }
+
+    .daily-day{
+      font-size:12px;
+      font-weight:800;
+      color:var(--text2);
+    }
+
+    .daily-metric{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+
+    .daily-metric-k{
+      font-size:10px;
+      color:var(--text3);
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      font-weight:800;
+    }
+
+    .daily-metric-v{
+      font-size:16px;
+      font-weight:800;
+      color:var(--text);
+    }
+
+    .conversion-list,
+    .platform-list{
+      display:grid;
+      gap:10px;
+    }
+
+    .metric-box{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      padding:12px 14px;
+      border-radius:14px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.06);
+    }
+
+    .metric-box-k{
+      font-size:12px;
+      font-weight:700;
+      color:var(--text2);
+    }
+
+    .metric-box-v{
+      font-size:18px;
+      font-weight:900;
+      color:var(--text);
+    }
+
     @media (max-width:1100px){
       .hero-stats{
         grid-template-columns:repeat(2,minmax(0,1fr));
@@ -419,6 +652,16 @@
       }
     }
 
+    @media (max-width: 980px){
+      .dashboard-panels{
+        grid-template-columns:1fr;
+      }
+
+      .daily-row{
+        grid-template-columns:1fr 1fr;
+      }
+    }
+
     @media (max-width:920px){
       .details-grid{
         grid-template-columns:1fr;
@@ -445,19 +688,29 @@
     </aside>
 
     <main class="main">
-      <div class="topbar">
-        <div class="title">
-          <h1>Статистика</h1>
-          <p>Актуальная аналитика из Google Таблиц: лиды, собеседования, ожидание и отказы.</p>
+      <div class="dashboard-wrap">
+        <div class="dashboard-topbar">
+          <div>
+            <div class="dashboard-title">Dashboard</div>
+            <div class="dashboard-subtitle" id="dashboardRangeLabel">Загружаем период...</div>
+          </div>
+
+          <div class="dashboard-actions">
+            <button class="dashboard-tab active" id="weekCurrentBtn" type="button" onclick="setDashboardWeek('current')">
+              Эта неделя
+            </button>
+            <button class="dashboard-tab" id="weekPreviousBtn" type="button" onclick="setDashboardWeek('previous')">
+              Прошлая неделя
+            </button>
+            <button class="dashboard-refresh-btn" type="button" onclick="loadDashboardStats()">
+              Обновить
+            </button>
+          </div>
         </div>
 
-        <div class="btns">
-          <button class="btn btn-ghost" id="refreshBtn">Обновить</button>
+        <div id="dashboardContent">
+          <div class="loading">Загружаем dashboard...</div>
         </div>
-      </div>
-
-      <div id="content">
-        <div class="loading">Загружаем статистику...</div>
       </div>
     </main>
   </div>
@@ -469,10 +722,6 @@
     if (!token) {
       location.href = '/login.html';
     }
-
-    const content = document.getElementById('content');
-    const refreshBtn = document.getElementById('refreshBtn');
-
     function api(path, options = {}) {
       return fetch(path, {
         ...options,
@@ -484,305 +733,189 @@
       });
     }
 
-    let weeklyChartInstance = null;
+    let dashboardWeekMode = 'current';
+    let dashboardStatsCache = null;
 
-    function renderWeeklyChart(weekly = []) {
-      const canvas = document.getElementById('weeklyChart');
-      if (!canvas) return;
+    function setDashboardWeek(mode) {
+      dashboardWeekMode = mode;
+      document.getElementById('weekCurrentBtn')?.classList.toggle('active', mode === 'current');
+      document.getElementById('weekPreviousBtn')?.classList.toggle('active', mode === 'previous');
+      loadDashboardStats();
+    }
+    window.setDashboardWeek = setDashboardWeek;
 
-      const ctx = canvas.getContext('2d');
-
-      if (weeklyChartInstance) {
-        weeklyChartInstance.destroy();
-      }
-
-      const labels = weekly.map(x => x.period || '—');
-      const totalData = weekly.map(x => Number(x.total || 0));
-      const interviewData = weekly.map(x => Number(x.interviews || 0));
-      const waitingData = weekly.map(x => Number(x.waiting || 0));
-      const rejectData = weekly.map(x => Number(x.rejects || 0));
-
-      weeklyChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [
-            {
-              label: 'Всего',
-              data: totalData
-            },
-            {
-              label: 'Собес',
-              data: interviewData
-            },
-            {
-              label: 'Ожид',
-              data: waitingData
-            },
-            {
-              label: 'Отказы',
-              data: rejectData
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: false,
-          plugins: {
-            legend: {
-              labels: {
-                color: '#e8eaf0',
-                font: {
-                  family: 'Manrope'
-                }
-              }
-            }
-          },
-          scales: {
-            x: {
-              ticks: {
-                color: '#9ba3bd',
-                font: {
-                  family: 'Manrope'
-                }
-              },
-              grid: {
-                color: 'rgba(255,255,255,.06)'
-              }
-            },
-            y: {
-              beginAtZero: true,
-              ticks: {
-                color: '#9ba3bd',
-                font: {
-                  family: 'Manrope'
-                }
-              },
-              grid: {
-                color: 'rgba(255,255,255,.06)'
-              }
-            }
-          }
-        }
-      });
+    function getDayShortLabel(dateStr) {
+      const d = new Date(`${dateStr}T00:00:00`);
+      const labels = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+      return labels[d.getDay()] || dateStr;
     }
 
-    let distributionChartInstance = null;
+    function renderDashboardStats(data) {
+      dashboardStatsCache = data;
 
-    function renderDistributionChart(data) {
-      const canvas = document.getElementById('distributionChart');
-      if (!canvas) return;
+      const content = document.getElementById('dashboardContent');
+      const rangeLabel = document.getElementById('dashboardRangeLabel');
+      if (!content) return;
 
-      const ctx = canvas.getContext('2d');
+      const summary = data?.summary || {};
+      const platforms = data?.platforms || {};
+      const daily = Array.isArray(data?.daily) ? data.daily : [];
+      const conversion = data?.conversion || {};
+      const range = data?.range || {};
 
-      if (distributionChartInstance) {
-        distributionChartInstance.destroy();
+      if (rangeLabel) {
+        rangeLabel.textContent = `${range.date_from || '—'} → ${range.date_to || '—'}`;
       }
-
-      distributionChartInstance = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: ['Собеседования', 'Ожидание', 'Отказы'],
-          datasets: [
-            {
-              data: [
-                Number(data?.totals?.interviews || 0),
-                Number(data?.totals?.waiting || 0),
-                Number(data?.totals?.rejects || 0)
-              ]
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: false,
-          cutout: '55%',
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                color: '#e8eaf0',
-                font: {
-                  family: 'Manrope'
-                },
-                padding: 16
-              }
-            }
-          }
-        }
-      });
-    }
-
-    function renderStats(data) {
-      const { totals, month, week } = data;
 
       content.innerHTML = `
-        <section class="hero-stats">
-          <div class="stat-card">
-            <div class="stat-value">${totals.leads}</div>
-            <div class="stat-label">Общее количество лидов</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">${totals.interviews}</div>
-            <div class="stat-label">Собеседования</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">${totals.waiting}</div>
-            <div class="stat-label">Ожидание</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">${totals.rejects}</div>
-            <div class="stat-label">Отказы</div>
-          </div>
-        </section>
-
-        <section class="sections">
-          <div class="section-card">
-            <div class="section-head">
-              <div class="section-title">За текущий месяц</div>
-              <div class="section-badge">Месячная статистика</div>
-            </div>
-
-            <div class="mini-grid">
-              <div class="mini-stat">
-                <div class="mini-value">${month.leads}</div>
-                <div class="mini-label">Лиды</div>
-              </div>
-              <div class="mini-stat">
-                <div class="mini-value">${month.interviews}</div>
-                <div class="mini-label">Собеседования</div>
-              </div>
-              <div class="mini-stat">
-                <div class="mini-value">${month.waiting}</div>
-                <div class="mini-label">Ожидание</div>
-              </div>
-              <div class="mini-stat">
-                <div class="mini-value">${month.rejects}</div>
-                <div class="mini-label">Отказы</div>
-              </div>
-            </div>
+        <div class="dashboard-grid">
+          <div class="kpi-card kpi-blue">
+            <div class="kpi-label">Лиды</div>
+            <div class="kpi-value">${summary.leads || 0}</div>
+            <div class="kpi-foot">Новых кандидатов за период</div>
           </div>
 
-          <div class="section-card">
-            <div class="section-head">
-              <div class="section-title">За последние 7 дней</div>
-              <div class="section-badge">Недельная статистика</div>
-            </div>
-
-            <div class="mini-grid">
-              <div class="mini-stat">
-                <div class="mini-value">${week.leads}</div>
-                <div class="mini-label">Лиды</div>
-              </div>
-              <div class="mini-stat">
-                <div class="mini-value">${week.interviews}</div>
-                <div class="mini-label">Собеседования</div>
-              </div>
-              <div class="mini-stat">
-                <div class="mini-value">${week.waiting}</div>
-                <div class="mini-label">Ожидание</div>
-              </div>
-              <div class="mini-stat">
-                <div class="mini-value">${week.rejects}</div>
-                <div class="mini-label">Отказы</div>
-              </div>
-            </div>
+          <div class="kpi-card kpi-purple">
+            <div class="kpi-label">Собеседования</div>
+            <div class="kpi-value">${summary.interviews || 0}</div>
+            <div class="kpi-foot">Проведено интервью</div>
           </div>
-        </section>
 
-        <section class="summary-card">
-          <div class="summary-title">Сводка</div>
-          <div class="summary-list">
-            <div class="summary-item">
-              <div class="k">Всего лидов</div>
-              <div class="v">${totals.leads}</div>
-            </div>
-            <div class="summary-item">
-              <div class="k">Всего собеседований</div>
-              <div class="v">${totals.interviews}</div>
-            </div>
-            <div class="summary-item">
-              <div class="k">Всего ожидание</div>
-              <div class="v">${totals.waiting}</div>
-            </div>
-            <div class="summary-item">
-              <div class="k">Всего отказов</div>
-              <div class="v">${totals.rejects}</div>
-            </div>
-            <div class="summary-item">
-              <div class="k">Лиды за месяц</div>
-              <div class="v">${month.leads}</div>
-            </div>
-            <div class="summary-item">
-              <div class="k">Собесы за месяц</div>
-              <div class="v">${month.interviews}</div>
-            </div>
-            <div class="summary-item">
-              <div class="k">Лиды за 7 дней</div>
-              <div class="v">${week.leads}</div>
-            </div>
-            <div class="summary-item">
-              <div class="k">Собесы за 7 дней</div>
-              <div class="v">${week.interviews}</div>
-            </div>
+          <div class="kpi-card kpi-green">
+            <div class="kpi-label">Принятые</div>
+            <div class="kpi-value">${summary.hired || 0}</div>
+            <div class="kpi-foot">Принято за неделю</div>
           </div>
-        </section>
 
-        <section class="details-card">
-          <div class="details-title">Детальная разбивка</div>
-          <div class="details-grid">
-            ${(data.details || []).map(item => `
-              <div class="detail-item">
-                <div class="detail-name">${item.status}</div>
-                <div class="detail-meta">
-                  <div><strong>Кол-во:</strong> ${item.count}</div>
-                  <div><strong>%:</strong> ${item.percent || '—'}</div>
-                  <div><strong>Категория:</strong> ${item.category || '—'}</div>
+          <div class="kpi-card kpi-red">
+            <div class="kpi-label">Отказы</div>
+            <div class="kpi-value">${summary.rejected || 0}</div>
+            <div class="kpi-foot">Отказов за неделю</div>
+          </div>
+
+          <div class="kpi-card kpi-burgundy">
+            <div class="kpi-label">Уволены</div>
+            <div class="kpi-value">${summary.fired || 0}</div>
+            <div class="kpi-foot">Уволено за неделю</div>
+          </div>
+
+          <div class="kpi-card kpi-orange">
+            <div class="kpi-label">Старт</div>
+            <div class="kpi-value">${summary.started || 0}</div>
+            <div class="kpi-foot">Вышли на старт</div>
+          </div>
+        </div>
+
+        <div class="dashboard-panels">
+          <div class="dashboard-panel">
+            <div class="panel-title">Разбивка по дням</div>
+            <div class="daily-list">
+              ${daily.map(day => `
+                <div class="daily-row">
+                  <div class="daily-day">${getDayShortLabel(day.date)} · ${day.date}</div>
+
+                  <div class="daily-metric">
+                    <div class="daily-metric-k">Лиды</div>
+                    <div class="daily-metric-v">${day.leads || 0}</div>
+                  </div>
+
+                  <div class="daily-metric">
+                    <div class="daily-metric-k">Собесы</div>
+                    <div class="daily-metric-v">${day.interviews || 0}</div>
+                  </div>
+
+                  <div class="daily-metric">
+                    <div class="daily-metric-k">Приняты</div>
+                    <div class="daily-metric-v">${day.hired || 0}</div>
+                  </div>
+
+                  <div class="daily-metric">
+                    <div class="daily-metric-k">Отказы</div>
+                    <div class="daily-metric-v">${day.rejected || 0}</div>
+                  </div>
                 </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="dashboard-panel">
+            <div class="panel-title">Конверсии и платформы</div>
+
+            <div class="conversion-list" style="margin-bottom:14px;">
+              <div class="metric-box">
+                <div class="metric-box-k">Лид → Собеседование</div>
+                <div class="metric-box-v">${conversion.lead_to_interview || 0}%</div>
               </div>
-            `).join('')}
-          </div>
-        </section>
 
-        <section class="chart-card">
-          <div class="chart-title">Статистика по неделям</div>
-          <div class="chart-wrap">
-            <canvas id="weeklyChart"></canvas>
-          </div>
-        </section>
+              <div class="metric-box">
+                <div class="metric-box-k">Собеседование → Принят</div>
+                <div class="metric-box-v">${conversion.interview_to_hired || 0}%</div>
+              </div>
 
-        <section class="chart-card">
-          <div class="chart-title">Распределение лидов</div>
-          <div class="chart-wrap">
-            <canvas id="distributionChart"></canvas>
+              <div class="metric-box">
+                <div class="metric-box-k">Принят → Старт</div>
+                <div class="metric-box-v">${conversion.hired_to_started || 0}%</div>
+              </div>
+            </div>
+
+            <div class="panel-title" style="margin-top:8px;">Платформы</div>
+            <div class="platform-list">
+              <div class="metric-box">
+                <div class="metric-box-k">OnlyFans</div>
+                <div class="metric-box-v">${platforms.onlyfans || 0}</div>
+              </div>
+
+              <div class="metric-box">
+                <div class="metric-box-k">Fansly</div>
+                <div class="metric-box-v">${platforms.fansly || 0}</div>
+              </div>
+
+              <div class="metric-box">
+                <div class="metric-box-k">Ждут тест</div>
+                <div class="metric-box-v">${summary.waiting_test || 0}</div>
+              </div>
+
+              <div class="metric-box">
+                <div class="metric-box-k">Тест смена</div>
+                <div class="metric-box-v">${summary.test_shift || 0}</div>
+              </div>
+
+              <div class="metric-box">
+                <div class="metric-box-k">Не рассчитан</div>
+                <div class="metric-box-v">${summary.unpaid || 0}</div>
+              </div>
+            </div>
           </div>
-        </section>
+        </div>
       `;
-
-      renderWeeklyChart(data.weekly || []);
-      renderDistributionChart(data);
     }
 
-    async function loadStats() {
-      content.innerHTML = `<div class="loading">Загружаем статистику...</div>`;
-
-      const res = await api('/api/stats');
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Не удалось загрузить статистику');
+    async function loadDashboardStats() {
+      const content = document.getElementById('dashboardContent');
+      if (content) {
+        content.innerHTML = `<div class="loading">Загружаем dashboard...</div>`;
       }
 
-      const data = await res.json();
-      renderStats(data);
+      try {
+        const res = await api(`/api/dashboard/stats?week=${dashboardWeekMode}`);
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Не удалось загрузить dashboard');
+        }
+
+        renderDashboardStats(data);
+      } catch (err) {
+        if (content) {
+          content.innerHTML = `<div class="error-box">${err.message || 'Не удалось загрузить dashboard'}</div>`;
+        }
+      }
     }
 
-    refreshBtn.addEventListener('click', loadStats);
+    window.loadDashboardStats = loadDashboardStats;
 
-    loadStats().catch(err => {
-      console.error(err);
-      content.innerHTML = `<div class="error-box">${err.message || 'Ошибка загрузки статистики'}</div>`;
+    document.addEventListener('DOMContentLoaded', () => {
+      loadDashboardStats();
     });
   </script>
 </body>
