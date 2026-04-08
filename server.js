@@ -1851,16 +1851,23 @@ app.patch('/candidates/:id', auth, async (req, res) => {
   );
 
   if (next.status && next.status !== row.status) {
+    const candidateId = req.params.id;
+    const prevStatus = row.status;
+    const newStatus = next.status;
+    const candidateName = next.name;
+    const candidateTelegram = next.telegram || next.tg;
+    const candidatePlatform = next.platform || next.platforms;
+
     await appendCrmEvent({
       entity_type: 'candidate',
-      entity_id: String(req.params.id || row.id || Date.now()),
+      entity_id: String(candidateId || Date.now()),
       event_type: 'status_changed',
-      old_value: row.status || '',
-      new_value: next.status || '',
+      old_value: String(prevStatus || ''),
+      new_value: String(newStatus || ''),
       meta: {
-        name: next.name,
-        telegram: next.telegram || next.tg,
-        platform: next.platform || next.platforms
+        name: candidateName || '',
+        telegram: candidateTelegram || '',
+        platform: candidatePlatform || ''
       },
       created_by: req.user?.email || req.user?.full_name || ''
     });
@@ -2296,14 +2303,17 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
       nextInterviewStatus === 'Собеседование проведено' &&
       nextInterviewStatus !== prevInterviewStatus
     ) {
+      const interviewId = rowNumber;
+      const createdCandidate = candidate;
+
       await appendCrmEvent({
         entity_type: 'interview',
-        entity_id: String(rowNumber || candidate.telegram_user_id || Date.now()),
+        entity_id: String(interviewId || createdCandidate.id || Date.now()),
         event_type: 'interview_completed',
         meta: {
-          name: candidate.name || req.body?.name || '',
-          telegram: candidate.telegram || candidate.username || req.body?.telegram || req.body?.username || '',
-          platform: candidate.platform || req.body?.platform || ''
+          name: candidate.name,
+          telegram: candidate.telegram || candidate.tg,
+          platform: candidate.platform || candidate.platforms
         },
         created_by: req.user?.email || req.user?.full_name || ''
       });
@@ -3413,10 +3423,50 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
 
     const nextStatus = String(updates['Актуальный статус кандидата (Hr)'] || '').trim();
     const prevStatus = String(currentRowData?.status || '').trim();
-    const platform = String(currentRowData?.platform || '').trim();
-    const name = String(currentRowData?.name || '').trim();
+    const nameIdx = headers.findIndex(h => ['Имя', 'Имя / ник', 'Ник'].includes(String(h || '').trim()));
+    const telegramIdx = headers.findIndex(h => ['Телеграм', 'Telegram', 'TG Username', 'Username'].includes(String(h || '').trim()));
+    const platformIdx = headers.findIndex(h => ['OnlyFans / Fansly', 'Платформа'].includes(String(h || '').trim()));
+    const candidateId = rowNumber;
+    const candidateName = String(
+      updates['Имя'] ||
+      updates['Имя / ник'] ||
+      updates['Ник'] ||
+      (nameIdx >= 0 ? currentRow[nameIdx] : '') ||
+      currentRowData?.name ||
+      ''
+    ).trim();
+    const candidateTelegram = String(
+      updates['Телеграм'] ||
+      updates['Telegram'] ||
+      updates['TG Username'] ||
+      updates['Username'] ||
+      (telegramIdx >= 0 ? currentRow[telegramIdx] : '') ||
+      currentRowData?.telegram ||
+      ''
+    ).trim();
+    const candidatePlatform = String(
+      updates['OnlyFans / Fansly'] ||
+      updates['Платформа'] ||
+      (platformIdx >= 0 ? currentRow[platformIdx] : '') ||
+      currentRowData?.platform ||
+      ''
+    ).trim();
 
     if (nextStatus && nextStatus !== prevStatus) {
+      await appendCrmEvent({
+        entity_type: 'candidate',
+        entity_id: String(candidateId),
+        event_type: 'status_changed',
+        old_value: String(prevStatus || ''),
+        new_value: String(nextStatus || ''),
+        meta: {
+          name: candidateName || '',
+          telegram: candidateTelegram || '',
+          platform: candidatePlatform || ''
+        },
+        created_by: req.user?.email || ''
+      });
+
       await logCrmEvent({
         entityType: 'team_member',
         entityId: req.params.rowNumber,
@@ -3424,8 +3474,8 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
         oldValue: prevStatus,
         newValue: nextStatus,
         meta: {
-          platform,
-          name
+          platform: candidatePlatform,
+          name: candidateName
         },
         createdBy: req.user?.email || String(req.user?.userId || '')
       });
