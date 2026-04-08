@@ -855,6 +855,155 @@ async function loadAllTeamMembersForBackfill() {
     }));
 }
 
+async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
+  const candidates = await loadAllCandidatesForBackfill(agencyId);
+  const interviews = await loadAllInterviewsForBackfill();
+  const teamMembers = await loadAllTeamMembersForBackfill();
+  const newEvents = [];
+
+  for (const c of candidates) {
+    const createdAt = normalizeDateInput(c.created_at || c.date_created || c.created);
+    if (createdAt && isWithinRange(createdAt, fromDate, toDate)) {
+      newEvents.push(buildBackfillEvent({
+        entityType: 'candidate',
+        entityId: c.id || c.row_number || c.name,
+        eventType: 'lead_created',
+        date: createdAt,
+        meta: {
+          name: c.name || '',
+          telegram: c.telegram || c.tg || '',
+          platform: c.platform || c.platforms || ''
+        }
+      }));
+    }
+  }
+
+  for (const i of interviews) {
+    const interviewAt = normalizeDateInput(i.interview_date || i.completed_at || i.updated_at);
+    if (interviewAt && isWithinRange(interviewAt, fromDate, toDate)) {
+      newEvents.push(buildBackfillEvent({
+        entityType: 'interview',
+        entityId: i.id || i.row_number || i.name,
+        eventType: 'interview_completed',
+        date: interviewAt,
+        meta: {
+          name: i.name || '',
+          telegram: i.telegram || i.tg || '',
+          platform: i.platform || i.platforms || ''
+        },
+        approximate: !i.interview_date && !!(i.completed_at || i.updated_at)
+      }));
+    }
+  }
+
+  for (const c of candidates) {
+    const status = String(c.status || '').trim();
+
+    let eventDate = null;
+    let approximate = false;
+
+    if (isHiredCandidateStatus(status)) {
+      eventDate = normalizeDateInput(c.hired_at || c.date_hired || c.updated_at);
+      approximate = !c.hired_at && !c.date_hired && !!c.updated_at;
+    } else if (status === REJECTED_CANDIDATE_STATUS) {
+      eventDate = normalizeDateInput(c.rejected_at || c.date_rejected || c.updated_at);
+      approximate = !c.rejected_at && !c.date_rejected && !!c.updated_at;
+    } else if (status === STARTED_CANDIDATE_STATUS) {
+      eventDate = normalizeDateInput(c.started_at || c.date_start || c.updated_at);
+      approximate = !c.started_at && !c.date_start && !!c.updated_at;
+    } else if (status === FIRED_CANDIDATE_STATUS) {
+      eventDate = normalizeDateInput(c.fired_at || c.date_fired || c.updated_at);
+      approximate = !c.fired_at && !c.date_fired && !!c.updated_at;
+    }
+
+    if (eventDate && isWithinRange(eventDate, fromDate, toDate)) {
+      newEvents.push(buildBackfillEvent({
+        entityType: 'candidate',
+        entityId: c.id || c.row_number || c.name,
+        eventType: 'status_changed',
+        date: eventDate,
+        newValue: status,
+        meta: {
+          name: c.name || '',
+          telegram: c.telegram || c.tg || '',
+          platform: c.platform || c.platforms || ''
+        },
+        approximate
+      }));
+    }
+  }
+
+  for (const m of teamMembers) {
+    const status = String(m.status || '').trim();
+
+    let eventDate = null;
+    let approximate = false;
+
+    if (status === STARTED_CANDIDATE_STATUS) {
+      eventDate = normalizeDateInput(m.date_start || m.updated_at);
+      approximate = !m.date_start && !!m.updated_at;
+    } else if (status === FIRED_CANDIDATE_STATUS) {
+      eventDate = normalizeDateInput(m.date_fired || m.updated_at);
+      approximate = !m.date_fired && !!m.updated_at;
+    }
+
+    if (eventDate && isWithinRange(eventDate, fromDate, toDate)) {
+      newEvents.push(buildBackfillEvent({
+        entityType: 'team_member',
+        entityId: m.id || m.row_number || m.name,
+        eventType: 'status_changed',
+        date: eventDate,
+        newValue: status,
+        meta: {
+          name: m.name || '',
+          telegram: m.telegram || '',
+          platform: m.platform || ''
+        },
+        approximate
+      }));
+    }
+  }
+
+  return newEvents;
+}
+
+function mergeCrmEvents(existingEvents, newEvents) {
+  const existingKeys = new Set(
+    existingEvents.map(e =>
+      [
+        e.entity_type,
+        e.entity_id,
+        e.event_type,
+        e.new_value || '',
+        formatDateOnly(e.created_at)
+      ].join('|')
+    )
+  );
+
+  const filteredNew = newEvents.filter(e => {
+    const key = [
+      e.entity_type,
+      e.entity_id,
+      e.event_type,
+      e.new_value || '',
+      formatDateOnly(e.created_at)
+    ].join('|');
+
+    if (existingKeys.has(key)) return false;
+    existingKeys.add(key);
+    return true;
+  });
+
+  const merged = [...existingEvents, ...filteredNew].sort(
+    (a, b) => new Date(a.created_at) - new Date(b.created_at)
+  );
+
+  return {
+    filteredNew,
+    merged
+  };
+}
+
 function getStatusDatePatch(status) {
   const now = new Date();
 
@@ -2913,7 +3062,19 @@ app.get('/api/dashboard/stats-live', auth, async (req, res) => {
     const prevTo = new Date(toDate);
     prevTo.setDate(prevTo.getDate() - 7);
 
-    const allEvents = await readCrmEvents();
+    const existingEvents = await readCrmEvents();
+    const liveEvents = await collectBackfillEvents({
+      agencyId: req.user.agencyId,
+      fromDate: prevFrom,
+      toDate
+    });
+    const { filteredNew, merged } = mergeCrmEvents(existingEvents, liveEvents);
+
+    if (filteredNew.length) {
+      await writeCrmEvents(merged);
+    }
+
+    const allEvents = merged;
 
     function buildRange(events, from, to) {
       const filtered = events.filter((event) => {
@@ -3069,144 +3230,12 @@ app.post('/api/dashboard/backfill-last-2-weeks', auth, async (req, res) => {
     const toDate = endOfWeek(now);
 
     const existingEvents = await readCrmEvents();
-    const candidates = await loadAllCandidatesForBackfill(req.user.agencyId);
-    const interviews = await loadAllInterviewsForBackfill();
-    const teamMembers = await loadAllTeamMembersForBackfill();
-
-    const newEvents = [];
-
-    for (const c of candidates) {
-      const createdAt = normalizeDateInput(c.created_at || c.date_created || c.created);
-      if (createdAt && isWithinRange(createdAt, fromDate, toDate)) {
-        newEvents.push(buildBackfillEvent({
-          entityType: 'candidate',
-          entityId: c.id || c.row_number || c.name,
-          eventType: 'lead_created',
-          date: createdAt,
-          meta: {
-            name: c.name || '',
-            telegram: c.telegram || c.tg || '',
-            platform: c.platform || c.platforms || ''
-          }
-        }));
-      }
-    }
-
-    for (const i of interviews) {
-      const interviewAt = normalizeDateInput(i.interview_date || i.completed_at || i.updated_at);
-      if (interviewAt && isWithinRange(interviewAt, fromDate, toDate)) {
-        newEvents.push(buildBackfillEvent({
-          entityType: 'interview',
-          entityId: i.id || i.row_number || i.name,
-          eventType: 'interview_completed',
-          date: interviewAt,
-          meta: {
-            name: i.name || '',
-            telegram: i.telegram || i.tg || '',
-            platform: i.platform || i.platforms || ''
-          },
-          approximate: !i.interview_date && !!(i.completed_at || i.updated_at)
-        }));
-      }
-    }
-
-    for (const c of candidates) {
-      const status = String(c.status || '').trim();
-
-      let eventDate = null;
-      let approximate = false;
-
-      if (isHiredCandidateStatus(status)) {
-        eventDate = normalizeDateInput(c.hired_at || c.date_hired || c.updated_at);
-        approximate = !c.hired_at && !c.date_hired && !!c.updated_at;
-      } else if (status === REJECTED_CANDIDATE_STATUS) {
-        eventDate = normalizeDateInput(c.rejected_at || c.date_rejected || c.updated_at);
-        approximate = !c.rejected_at && !c.date_rejected && !!c.updated_at;
-      } else if (status === STARTED_CANDIDATE_STATUS) {
-        eventDate = normalizeDateInput(c.started_at || c.date_start || c.updated_at);
-        approximate = !c.started_at && !c.date_start && !!c.updated_at;
-      } else if (status === FIRED_CANDIDATE_STATUS) {
-        eventDate = normalizeDateInput(c.fired_at || c.date_fired || c.updated_at);
-        approximate = !c.fired_at && !c.date_fired && !!c.updated_at;
-      }
-
-      if (eventDate && isWithinRange(eventDate, fromDate, toDate)) {
-        newEvents.push(buildBackfillEvent({
-          entityType: 'candidate',
-          entityId: c.id || c.row_number || c.name,
-          eventType: 'status_changed',
-          date: eventDate,
-          newValue: status,
-          meta: {
-            name: c.name || '',
-            telegram: c.telegram || c.tg || '',
-            platform: c.platform || c.platforms || ''
-          },
-          approximate
-        }));
-      }
-    }
-
-    for (const m of teamMembers) {
-      const status = String(m.status || '').trim();
-
-      let eventDate = null;
-      let approximate = false;
-
-      if (status === STARTED_CANDIDATE_STATUS) {
-        eventDate = normalizeDateInput(m.date_start || m.updated_at);
-        approximate = !m.date_start && !!m.updated_at;
-      } else if (status === FIRED_CANDIDATE_STATUS) {
-        eventDate = normalizeDateInput(m.date_fired || m.updated_at);
-        approximate = !m.date_fired && !!m.updated_at;
-      }
-
-      if (eventDate && isWithinRange(eventDate, fromDate, toDate)) {
-        newEvents.push(buildBackfillEvent({
-          entityType: 'team_member',
-          entityId: m.id || m.row_number || m.name,
-          eventType: 'status_changed',
-          date: eventDate,
-          newValue: status,
-          meta: {
-            name: m.name || '',
-            telegram: m.telegram || '',
-            platform: m.platform || ''
-          },
-          approximate
-        }));
-      }
-    }
-
-    const existingKeys = new Set(
-      existingEvents.map(e =>
-        [
-          e.entity_type,
-          e.entity_id,
-          e.event_type,
-          e.new_value || '',
-          formatDateOnly(e.created_at)
-        ].join('|')
-      )
-    );
-
-    const filteredNew = newEvents.filter(e => {
-      const key = [
-        e.entity_type,
-        e.entity_id,
-        e.event_type,
-        e.new_value || '',
-        formatDateOnly(e.created_at)
-      ].join('|');
-
-      if (existingKeys.has(key)) return false;
-      existingKeys.add(key);
-      return true;
+    const newEvents = await collectBackfillEvents({
+      agencyId: req.user.agencyId,
+      fromDate,
+      toDate
     });
-
-    const merged = [...existingEvents, ...filteredNew].sort(
-      (a, b) => new Date(a.created_at) - new Date(b.created_at)
-    );
+    const { filteredNew, merged } = mergeCrmEvents(existingEvents, newEvents);
 
     await writeCrmEvents(merged);
 
