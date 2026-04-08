@@ -26,6 +26,10 @@ const CRM_EVENTS_FILE =
   process.env.CRM_EVENTS_FILE ||
   path.join(process.cwd(), 'data', 'crm-events.json');
 
+const DASHBOARD_STATS_SPREADSHEET_ID =
+  process.env.DASHBOARD_STATS_SPREADSHEET_ID ||
+  '19zpp7Qnhx8RO5kM6iC83mBxcT6f2s5oUk8Uep_mdNeg';
+
 async function ensureCrmEventsFile() {
   const dir = path.dirname(CRM_EVENTS_FILE);
 
@@ -714,10 +718,17 @@ function normalizeDateInput(value) {
 
   const str = String(value).trim();
 
-  const m = str.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-  if (m) {
-    const [, dd, mm, yyyy] = m;
+  const fullDate = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (fullDate) {
+    const [, dd, mm, yyyy] = fullDate;
     return new Date(`${yyyy}-${mm}-${dd}T12:00:00`);
+  }
+
+  const shortDate = str.match(/^(\d{1,2})\.(\d{1,2})$/);
+  if (shortDate) {
+    const [, dd, mm] = shortDate;
+    const yyyy = new Date().getFullYear();
+    return new Date(`${yyyy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}T12:00:00`);
   }
 
   const d = new Date(str);
@@ -770,6 +781,27 @@ async function loadAllCandidatesForBackfill(agencyId) {
      FROM candidates
      WHERE agency_id = $1
      ORDER BY created_at DESC`,
+    [agencyId]
+  );
+
+  return result.rows || [];
+}
+
+async function loadCandidateStatusHistoryForBackfill(agencyId) {
+  const result = await query(
+    `SELECT
+       h.candidate_id,
+       h.status,
+       h.created_at,
+       c.name,
+       c.tg,
+       c.telegram,
+       c.platform,
+       c.platforms
+     FROM candidate_status_history h
+     JOIN candidates c ON c.id = h.candidate_id
+     WHERE c.agency_id = $1
+     ORDER BY h.created_at DESC`,
     [agencyId]
   );
 
@@ -857,6 +889,7 @@ async function loadAllTeamMembersForBackfill() {
 
 async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
   const candidates = await loadAllCandidatesForBackfill(agencyId);
+  const candidateStatusHistory = await loadCandidateStatusHistoryForBackfill(agencyId);
   const interviews = await loadAllInterviewsForBackfill();
   const teamMembers = await loadAllTeamMembersForBackfill();
   const newEvents = [];
@@ -896,70 +929,59 @@ async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
     }
   }
 
-  for (const c of candidates) {
-    const status = String(c.status || '').trim();
+  for (const item of candidateStatusHistory) {
+    const status = String(item.status || '').trim();
+    if (![REJECTED_CANDIDATE_STATUS, FIRED_CANDIDATE_STATUS].includes(status)) continue;
 
-    let eventDate = null;
-    let approximate = false;
-
-    if (isHiredCandidateStatus(status)) {
-      eventDate = normalizeDateInput(c.hired_at || c.date_hired || c.updated_at);
-      approximate = !c.hired_at && !c.date_hired && !!c.updated_at;
-    } else if (status === REJECTED_CANDIDATE_STATUS) {
-      eventDate = normalizeDateInput(c.rejected_at || c.date_rejected || c.updated_at);
-      approximate = !c.rejected_at && !c.date_rejected && !!c.updated_at;
-    } else if (status === STARTED_CANDIDATE_STATUS) {
-      eventDate = normalizeDateInput(c.started_at || c.date_start || c.updated_at);
-      approximate = !c.started_at && !c.date_start && !!c.updated_at;
-    } else if (status === FIRED_CANDIDATE_STATUS) {
-      eventDate = normalizeDateInput(c.fired_at || c.date_fired || c.updated_at);
-      approximate = !c.fired_at && !c.date_fired && !!c.updated_at;
-    }
-
+    const eventDate = normalizeDateInput(item.created_at);
     if (eventDate && isWithinRange(eventDate, fromDate, toDate)) {
       newEvents.push(buildBackfillEvent({
         entityType: 'candidate',
-        entityId: c.id || c.row_number || c.name,
+        entityId: item.candidate_id || item.name,
         eventType: 'status_changed',
         date: eventDate,
         newValue: status,
         meta: {
-          name: c.name || '',
-          telegram: c.telegram || c.tg || '',
-          platform: c.platform || c.platforms || ''
-        },
-        approximate
+          name: item.name || '',
+          telegram: item.telegram || item.tg || '',
+          platform: item.platform || item.platforms || ''
+        }
       }));
     }
   }
 
   for (const m of teamMembers) {
-    const status = String(m.status || '').trim();
-
-    let eventDate = null;
-    let approximate = false;
-
-    if (status === STARTED_CANDIDATE_STATUS) {
-      eventDate = normalizeDateInput(m.date_start || m.updated_at);
-      approximate = !m.date_start && !!m.updated_at;
-    } else if (status === FIRED_CANDIDATE_STATUS) {
-      eventDate = normalizeDateInput(m.date_fired || m.updated_at);
-      approximate = !m.date_fired && !!m.updated_at;
-    }
-
-    if (eventDate && isWithinRange(eventDate, fromDate, toDate)) {
+    const startDate = normalizeDateInput(m.date_start || m.updated_at);
+    if (startDate && isWithinRange(startDate, fromDate, toDate)) {
       newEvents.push(buildBackfillEvent({
         entityType: 'team_member',
         entityId: m.id || m.row_number || m.name,
         eventType: 'status_changed',
-        date: eventDate,
-        newValue: status,
+        date: startDate,
+        newValue: STARTED_CANDIDATE_STATUS,
         meta: {
           name: m.name || '',
           telegram: m.telegram || '',
           platform: m.platform || ''
         },
-        approximate
+        approximate: !m.date_start && !!m.updated_at
+      }));
+    }
+
+    const firedDate = normalizeDateInput(m.date_fired || m.updated_at);
+    if (firedDate && isWithinRange(firedDate, fromDate, toDate)) {
+      newEvents.push(buildBackfillEvent({
+        entityType: 'team_member',
+        entityId: m.id || m.row_number || m.name,
+        eventType: 'status_changed',
+        date: firedDate,
+        newValue: FIRED_CANDIDATE_STATUS,
+        meta: {
+          name: m.name || '',
+          telegram: m.telegram || '',
+          platform: m.platform || ''
+        },
+        approximate: !m.date_fired && !!m.updated_at
       }));
     }
   }
@@ -1001,6 +1023,48 @@ function mergeCrmEvents(existingEvents, newEvents) {
   return {
     filteredNew,
     merged
+  };
+}
+
+function summarizeDashboardEvents(events, from, to) {
+  const summary = {
+    leads: 0,
+    interviews: 0,
+    hired: 0,
+    rejected: 0,
+    fired: 0,
+    raw_total: 0
+  };
+
+  const samples = [];
+
+  for (const event of events) {
+    if (!isWithinRange(event.created_at, from, to)) continue;
+
+    summary.raw_total += 1;
+    const next = String(event.new_value || '').trim();
+
+    if (event.event_type === 'lead_created') summary.leads += 1;
+    if (event.event_type === 'interview_completed') summary.interviews += 1;
+    if (event.event_type === 'status_changed' && next === STARTED_CANDIDATE_STATUS) summary.hired += 1;
+    if (event.event_type === 'status_changed' && next === REJECTED_CANDIDATE_STATUS) summary.rejected += 1;
+    if (event.event_type === 'status_changed' && next === FIRED_CANDIDATE_STATUS) summary.fired += 1;
+
+    if (samples.length < 10) {
+      samples.push({
+        created_at: event.created_at,
+        entity_type: event.entity_type,
+        entity_id: event.entity_id,
+        event_type: event.event_type,
+        new_value: event.new_value || '',
+        meta: event.meta || {}
+      });
+    }
+  }
+
+  return {
+    summary,
+    samples
   };
 }
 
@@ -2640,9 +2704,9 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
 
 app.get('/api/stats', auth, async (req, res) => {
   try {
-    const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+    const spreadsheetId = DASHBOARD_STATS_SPREADSHEET_ID;
     if (!spreadsheetId) {
-      return res.status(500).json({ error: 'GOOGLE_SPREADSHEET_ID is missing' });
+      return res.status(500).json({ error: 'DASHBOARD_STATS_SPREADSHEET_ID is missing' });
     }
 
     const sheets = await getSheetsClient();
@@ -4222,6 +4286,45 @@ app.get('/api/debug/crm-events', auth, async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: err.message || 'debug failed' });
+  }
+});
+
+app.get('/api/debug/dashboard-live-sources', auth, async (req, res) => {
+  try {
+    const now = new Date();
+    const currentWeekStart = startOfWeek(now);
+    const previousWeekStart = new Date(currentWeekStart);
+    previousWeekStart.setDate(previousWeekStart.getDate() - 7);
+    const currentWeekEnd = endOfWeek(now);
+    const previousWeekEnd = new Date(currentWeekStart);
+    previousWeekEnd.setMilliseconds(-1);
+
+    const existingEvents = await readCrmEvents();
+    const liveEvents = await collectBackfillEvents({
+      agencyId: req.user.agencyId,
+      fromDate: previousWeekStart,
+      toDate: currentWeekEnd
+    });
+    const { filteredNew, merged } = mergeCrmEvents(existingEvents, liveEvents);
+
+    res.json({
+      crm_events_file: CRM_EVENTS_FILE,
+      stats_spreadsheet_id: DASHBOARD_STATS_SPREADSHEET_ID,
+      added_now: filteredNew.length,
+      current_week: {
+        from: formatDateOnly(currentWeekStart),
+        to: formatDateOnly(currentWeekEnd),
+        ...summarizeDashboardEvents(merged, currentWeekStart, currentWeekEnd)
+      },
+      previous_week: {
+        from: formatDateOnly(previousWeekStart),
+        to: formatDateOnly(previousWeekEnd),
+        ...summarizeDashboardEvents(merged, previousWeekStart, previousWeekEnd)
+      }
+    });
+  } catch (err) {
+    console.error('dashboard-live-sources debug error:', err);
+    res.status(500).json({ error: err.message || 'dashboard live debug failed' });
   }
 });
 
