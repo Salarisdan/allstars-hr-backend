@@ -941,7 +941,6 @@
       const maxInterviews = getDailyMax(daily, 'interviews');
       const maxHired = getDailyMax(daily, 'hired');
       const maxRejected = getDailyMax(daily, 'rejected');
-      const maxStarted = getDailyMax(daily, 'started');
 
       if (rangeLabel) {
         rangeLabel.innerHTML = `
@@ -954,10 +953,9 @@
         <div class="dashboard-grid">
           ${renderKpiCard('Лиды', summary.leads, 'Новых кандидатов за период', 'kpi-blue', trends.leads)}
           ${renderKpiCard('Собеседования', summary.interviews, 'Проведено интервью', 'kpi-purple', trends.interviews)}
-          ${renderKpiCard('Принятые', summary.hired, 'Принято за неделю', 'kpi-green', trends.hired)}
+          ${renderKpiCard('Принятые', summary.hired, 'Вышли на работу за неделю', 'kpi-green', trends.hired)}
           ${renderKpiCard('Отказы', summary.rejected, 'Отказов за неделю', 'kpi-red', trends.rejected)}
           ${renderKpiCard('Уволены', summary.fired, 'Уволено за неделю', 'kpi-burgundy', trends.fired)}
-          ${renderKpiCard('Старт', summary.started, 'Вышли на старт', 'kpi-orange', trends.started)}
         </div>
 
         <div class="dashboard-panels">
@@ -991,12 +989,6 @@
                     <div class="daily-metric-v">${day.rejected || 0}</div>
                     ${renderDailyBar(day.rejected, maxRejected, 'bar-red')}
                   </div>
-
-                  <div class="daily-metric">
-                    <div class="daily-metric-k">Старт</div>
-                    <div class="daily-metric-v">${day.started || 0}</div>
-                    ${renderDailyBar(day.started, maxStarted, 'bar-orange')}
-                  </div>
                 </div>
               `).join('')}
             </div>
@@ -1012,13 +1004,8 @@
               </div>
 
               <div class="metric-box">
-                <div class="metric-box-k">Собеседование → Принят</div>
+                <div class="metric-box-k">Собеседование → Выход на работу</div>
                 <div class="metric-box-v">${conversion.interview_to_hired || 0}%</div>
-              </div>
-
-              <div class="metric-box">
-                <div class="metric-box-k">Принят → Старт</div>
-                <div class="metric-box-v">${conversion.hired_to_started || 0}%</div>
               </div>
             </div>
 
@@ -1096,10 +1083,6 @@
               <div class="metric-box">
                 <div class="metric-box-k">Уволены</div>
                 <div class="metric-box-v">${summary.fired || 0}</div>
-              </div>
-              <div class="metric-box">
-                <div class="metric-box-k">Старт</div>
-                <div class="metric-box-v">${summary.started || 0}</div>
               </div>
             </div>
           </div>

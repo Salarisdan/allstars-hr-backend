@@ -2894,12 +2894,6 @@ async function buildDashboardStatsPayload({ week = 'current', date_from, date_to
       if (event.event_type === 'status_changed') {
         const next = String(event.new_value || '').trim();
 
-        if (isHiredCandidateStatus(next)) {
-          summary.hired += 1;
-          dayRow.hired += 1;
-          bumpHr(createdBy, 'hired');
-        }
-
         if (next === REJECTED_CANDIDATE_STATUS) {
           summary.rejected += 1;
           dayRow.rejected += 1;
@@ -2913,6 +2907,10 @@ async function buildDashboardStatsPayload({ week = 'current', date_from, date_to
         }
 
         if (next === STARTED_CANDIDATE_STATUS) {
+          summary.hired += 1;
+          dayRow.hired += 1;
+          bumpHr(createdBy, 'hired');
+
           summary.started += 1;
           dayRow.started += 1;
         }
