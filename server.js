@@ -88,7 +88,7 @@ async function writeCrmEvents(events) {
 async function appendCrmEvent(event) {
   const events = await readCrmEvents();
 
-  events.push({
+  const nextEvent = {
     id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     entity_type: String(event.entity_type || ''),
     entity_id: String(event.entity_id || ''),
@@ -98,9 +98,18 @@ async function appendCrmEvent(event) {
     meta: event.meta || {},
     created_at: new Date().toISOString(),
     created_by: String(event.created_by || '')
-  });
+  };
+
+  events.push(nextEvent);
+
+  console.log('APPEND CRM EVENT =>', nextEvent);
+  console.log('CRM EVENTS FILE =>', CRM_EVENTS_FILE);
+  console.log('CRM EVENTS COUNT BEFORE WRITE =>', events.length);
 
   await writeCrmEvents(events);
+
+  const verify = await readCrmEvents();
+  console.log('CRM EVENTS COUNT AFTER WRITE =>', verify.length);
 }
 
 function getGoogleCreds() {
@@ -3791,6 +3800,19 @@ app.get('/health', async (_req, res) => {
     res.json({ status: 'ok', db: 'connected' });
   } catch {
     res.status(500).json({ status: 'error', db: 'disconnected' });
+  }
+});
+
+app.get('/api/debug/crm-events', auth, async (req, res) => {
+  try {
+    const events = await readCrmEvents();
+    res.json({
+      file: CRM_EVENTS_FILE,
+      count: events.length,
+      last10: events.slice(-10)
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'debug failed' });
   }
 });
 
