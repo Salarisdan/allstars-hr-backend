@@ -21,39 +21,10 @@ async function getGoogleSheet() {
 }
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET;
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
+
 const CRM_EVENTS_FILE =
   process.env.CRM_EVENTS_FILE ||
   path.join(process.cwd(), 'data', 'crm-events.json');
-
-if (!JWT_SECRET) {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('JWT_SECRET environment variable is required in production');
-  }
-  console.warn('WARNING: JWT_SECRET not set, using insecure default for development only');
-}
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false }
-});
-
-if (!process.env.DATABASE_URL) {
-  console.warn('DATABASE_URL is not set. Configure PostgreSQL first.');
-}
-
-app.use(cors({
-  origin: FRONTEND_ORIGIN === '*' ? true : FRONTEND_ORIGIN.split(',').map(x => x.trim()),
-  credentials: true
-}));
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-
-async function query(text, params = []) {
-  return pool.query(text, params);
-}
 
 async function ensureCrmEventsFile() {
   const dir = path.dirname(CRM_EVENTS_FILE);
@@ -86,6 +57,8 @@ async function writeCrmEvents(events) {
 }
 
 async function appendCrmEvent(event) {
+  console.log('APPEND CRM EVENT CALLED');
+
   const events = await readCrmEvents();
 
   const nextEvent = {
@@ -110,6 +83,37 @@ async function appendCrmEvent(event) {
 
   const verify = await readCrmEvents();
   console.log('CRM EVENTS COUNT AFTER WRITE =>', verify.length);
+}
+
+const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET;
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
+
+if (!JWT_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET environment variable is required in production');
+  }
+  console.warn('WARNING: JWT_SECRET not set, using insecure default for development only');
+}
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false }
+});
+
+if (!process.env.DATABASE_URL) {
+  console.warn('DATABASE_URL is not set. Configure PostgreSQL first.');
+}
+
+app.use(cors({
+  origin: FRONTEND_ORIGIN === '*' ? true : FRONTEND_ORIGIN.split(',').map(x => x.trim()),
+  credentials: true
+}));
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+async function query(text, params = []) {
+  return pool.query(text, params);
 }
 
 function getGoogleCreds() {
@@ -1697,6 +1701,28 @@ app.post('/candidates', auth, async (req, res) => {
       ]
     );
 
+    const createdCandidate = result.rows[0];
+
+    console.log('=== AFTER INSERT, BEFORE EVENT ===');
+
+    try {
+      await appendCrmEvent({
+        entity_type: 'candidate',
+        entity_id: String(createdCandidate.id),
+        event_type: 'lead_created',
+        meta: {
+          name: candidate.name,
+          telegram: candidate.telegram || candidate.tg,
+          platform: candidate.platform || candidate.platforms
+        },
+        created_by: req.user?.email || req.user?.full_name || ''
+      });
+
+      console.log('✅ EVENT WRITTEN SUCCESS');
+    } catch (err) {
+      console.error('❌ EVENT WRITE ERROR:', err);
+    }
+
     if (candidate.status) {
       await query(
         `INSERT INTO candidate_status_history(candidate_id, status, changed_by_user_id)
@@ -1720,19 +1746,7 @@ app.post('/candidates', auth, async (req, res) => {
       [result.rows[0].id, ai.recommendation, ai.confidence, ai.summary, JSON.stringify(ai.strengths), JSON.stringify(ai.risks)]
     );
 
-    const created = result.rows[0];
-
-    await appendCrmEvent({
-      entity_type: 'candidate',
-      entity_id: String(created.id || created.name || Date.now()),
-      event_type: 'lead_created',
-      meta: {
-        name: candidate.name,
-        telegram: candidate.telegram || candidate.tg,
-        platform: candidate.platform || candidate.platforms
-      },
-      created_by: req.user?.email || req.user?.full_name || ''
-    });
+    const created = createdCandidate;
 
     await logCrmEvent({
       entityType: 'candidate',
