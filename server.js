@@ -704,6 +704,157 @@ function parseDateOnly(value) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+function isWithinRange(date, from, to) {
+  const d = new Date(date);
+  return !Number.isNaN(d.getTime()) && d >= from && d <= to;
+}
+
+function normalizeDateInput(value) {
+  if (!value) return null;
+
+  const str = String(value).trim();
+
+  const m = str.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  if (m) {
+    const [, dd, mm, yyyy] = m;
+    return new Date(`${yyyy}-${mm}-${dd}T12:00:00`);
+  }
+
+  const d = new Date(str);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function buildBackfillEvent({
+  entityType,
+  entityId,
+  eventType,
+  date,
+  oldValue = '',
+  newValue = '',
+  meta = {},
+  createdBy = 'backfill',
+  approximate = false
+}) {
+  return {
+    id: `bf_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    entity_type: String(entityType || ''),
+    entity_id: String(entityId || ''),
+    event_type: String(eventType || ''),
+    old_value: String(oldValue || ''),
+    new_value: String(newValue || ''),
+    meta: {
+      ...meta,
+      approximate
+    },
+    created_at: new Date(date).toISOString(),
+    created_by: createdBy
+  };
+}
+
+async function loadAllCandidatesForBackfill(agencyId) {
+  const result = await query(
+    `SELECT
+       id,
+       created_at,
+       updated_at,
+       name,
+       tg,
+       telegram,
+       platform,
+       platforms,
+       status,
+       hired_at,
+       rejected_at,
+       started_at,
+       fired_at
+     FROM candidates
+     WHERE agency_id = $1
+     ORDER BY created_at DESC`,
+    [agencyId]
+  );
+
+  return result.rows || [];
+}
+
+async function loadAllInterviewsForBackfill() {
+  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+  if (!spreadsheetId) return [];
+
+  const sheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
+  const sheets = await getSheetsClient();
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${sheetName}!A1:AU5000`
+  });
+
+  const values = response.data.values || [];
+  if (!values.length) return [];
+
+  const headers = values[0];
+  const rows = values.slice(1);
+
+  return rows
+    .map((row, index) => {
+      const normalized = normalizeRow(headers, row, index + 2);
+      const get = (...names) => {
+        for (const name of names) {
+          const idx = headers.indexOf(name);
+          if (idx >= 0) return row[idx] ?? '';
+        }
+        return '';
+      };
+
+      return {
+        ...normalized,
+        completed_at: get('completed_at', 'Completed At', 'Дата завершения'),
+        updated_at: get('updated_at', 'Updated At', 'Дата обновления'),
+        tg: normalized.tg || normalized.telegram || normalized.username || ''
+      };
+    })
+    .filter(x => x.telegram_user_id || x.telegram_username || x.name);
+}
+
+async function loadAllTeamMembersForBackfill() {
+  const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
+  if (!spreadsheetId) return [];
+
+  const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
+  const sheets = await getSheetsClient();
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${sheetName}!A1:AU5000`
+  });
+
+  const values = response.data.values || [];
+  if (!values.length) return [];
+
+  const headers = values[0];
+  const rows = values.slice(1);
+  const idx = (name) => headers.indexOf(name);
+  const safeGet = (row, i) => (i >= 0 && i < row.length ? String(row[i] || '').trim() : '');
+
+  const statusIdx = idx('Актуальный статус кандидата (Hr)');
+  const nameIdx = idx('Имя') >= 0 ? idx('Имя') : idx('Имя / ник') >= 0 ? idx('Имя / ник') : idx('Ник');
+  const telegramIdx = idx('Телеграм') >= 0 ? idx('Телеграм') : idx('Telegram') >= 0 ? idx('Telegram') : idx('TG Username');
+  const platformIdx = idx('OnlyFans / Fansly') >= 0 ? idx('OnlyFans / Fansly') : idx('Платформа');
+  const startDateIdx = idx('Дата старта');
+  const firedDateIdx = idx('Дата увольнения') >= 0 ? idx('Дата увольнения') : idx('Дата уволен');
+  const updatedAtIdx = idx('Updated At') >= 0 ? idx('Updated At') : idx('Дата обновления');
+
+  return rows
+    .filter(row => row.some(cell => String(cell || '').trim() !== ''))
+    .map((row, index) => ({
+      row_number: index + 2,
+      name: safeGet(row, nameIdx),
+      telegram: safeGet(row, telegramIdx),
+      status: safeGet(row, statusIdx) || 'Без статуса',
+      platform: safeGet(row, platformIdx),
+      date_start: safeGet(row, startDateIdx),
+      date_fired: safeGet(row, firedDateIdx),
+      updated_at: safeGet(row, updatedAtIdx)
+    }));
+}
+
 function getStatusDatePatch(status) {
   const now = new Date();
 
@@ -2904,6 +3055,173 @@ app.get('/api/dashboard/stats-live', auth, async (req, res) => {
   } catch (err) {
     console.error('GET /api/dashboard/stats-live error:', err);
     res.status(500).json({ error: 'Не удалось загрузить live dashboard статистику' });
+  }
+});
+
+app.post('/api/dashboard/backfill-last-2-weeks', auth, async (req, res) => {
+  try {
+    const now = new Date();
+    const currentWeekStart = startOfWeek(now);
+    const previousWeekStart = new Date(currentWeekStart);
+    previousWeekStart.setDate(previousWeekStart.getDate() - 7);
+
+    const fromDate = previousWeekStart;
+    const toDate = endOfWeek(now);
+
+    const existingEvents = await readCrmEvents();
+    const candidates = await loadAllCandidatesForBackfill(req.user.agencyId);
+    const interviews = await loadAllInterviewsForBackfill();
+    const teamMembers = await loadAllTeamMembersForBackfill();
+
+    const newEvents = [];
+
+    for (const c of candidates) {
+      const createdAt = normalizeDateInput(c.created_at || c.date_created || c.created);
+      if (createdAt && isWithinRange(createdAt, fromDate, toDate)) {
+        newEvents.push(buildBackfillEvent({
+          entityType: 'candidate',
+          entityId: c.id || c.row_number || c.name,
+          eventType: 'lead_created',
+          date: createdAt,
+          meta: {
+            name: c.name || '',
+            telegram: c.telegram || c.tg || '',
+            platform: c.platform || c.platforms || ''
+          }
+        }));
+      }
+    }
+
+    for (const i of interviews) {
+      const interviewAt = normalizeDateInput(i.interview_date || i.completed_at || i.updated_at);
+      if (interviewAt && isWithinRange(interviewAt, fromDate, toDate)) {
+        newEvents.push(buildBackfillEvent({
+          entityType: 'interview',
+          entityId: i.id || i.row_number || i.name,
+          eventType: 'interview_completed',
+          date: interviewAt,
+          meta: {
+            name: i.name || '',
+            telegram: i.telegram || i.tg || '',
+            platform: i.platform || i.platforms || ''
+          },
+          approximate: !i.interview_date && !!(i.completed_at || i.updated_at)
+        }));
+      }
+    }
+
+    for (const c of candidates) {
+      const status = String(c.status || '').trim();
+
+      let eventDate = null;
+      let approximate = false;
+
+      if (isHiredCandidateStatus(status)) {
+        eventDate = normalizeDateInput(c.hired_at || c.date_hired || c.updated_at);
+        approximate = !c.hired_at && !c.date_hired && !!c.updated_at;
+      } else if (status === REJECTED_CANDIDATE_STATUS) {
+        eventDate = normalizeDateInput(c.rejected_at || c.date_rejected || c.updated_at);
+        approximate = !c.rejected_at && !c.date_rejected && !!c.updated_at;
+      } else if (status === STARTED_CANDIDATE_STATUS) {
+        eventDate = normalizeDateInput(c.started_at || c.date_start || c.updated_at);
+        approximate = !c.started_at && !c.date_start && !!c.updated_at;
+      } else if (status === FIRED_CANDIDATE_STATUS) {
+        eventDate = normalizeDateInput(c.fired_at || c.date_fired || c.updated_at);
+        approximate = !c.fired_at && !c.date_fired && !!c.updated_at;
+      }
+
+      if (eventDate && isWithinRange(eventDate, fromDate, toDate)) {
+        newEvents.push(buildBackfillEvent({
+          entityType: 'candidate',
+          entityId: c.id || c.row_number || c.name,
+          eventType: 'status_changed',
+          date: eventDate,
+          newValue: status,
+          meta: {
+            name: c.name || '',
+            telegram: c.telegram || c.tg || '',
+            platform: c.platform || c.platforms || ''
+          },
+          approximate
+        }));
+      }
+    }
+
+    for (const m of teamMembers) {
+      const status = String(m.status || '').trim();
+
+      let eventDate = null;
+      let approximate = false;
+
+      if (status === STARTED_CANDIDATE_STATUS) {
+        eventDate = normalizeDateInput(m.date_start || m.updated_at);
+        approximate = !m.date_start && !!m.updated_at;
+      } else if (status === FIRED_CANDIDATE_STATUS) {
+        eventDate = normalizeDateInput(m.date_fired || m.updated_at);
+        approximate = !m.date_fired && !!m.updated_at;
+      }
+
+      if (eventDate && isWithinRange(eventDate, fromDate, toDate)) {
+        newEvents.push(buildBackfillEvent({
+          entityType: 'team_member',
+          entityId: m.id || m.row_number || m.name,
+          eventType: 'status_changed',
+          date: eventDate,
+          newValue: status,
+          meta: {
+            name: m.name || '',
+            telegram: m.telegram || '',
+            platform: m.platform || ''
+          },
+          approximate
+        }));
+      }
+    }
+
+    const existingKeys = new Set(
+      existingEvents.map(e =>
+        [
+          e.entity_type,
+          e.entity_id,
+          e.event_type,
+          e.new_value || '',
+          formatDateOnly(e.created_at)
+        ].join('|')
+      )
+    );
+
+    const filteredNew = newEvents.filter(e => {
+      const key = [
+        e.entity_type,
+        e.entity_id,
+        e.event_type,
+        e.new_value || '',
+        formatDateOnly(e.created_at)
+      ].join('|');
+
+      if (existingKeys.has(key)) return false;
+      existingKeys.add(key);
+      return true;
+    });
+
+    const merged = [...existingEvents, ...filteredNew].sort(
+      (a, b) => new Date(a.created_at) - new Date(b.created_at)
+    );
+
+    await writeCrmEvents(merged);
+
+    res.json({
+      ok: true,
+      added: filteredNew.length,
+      total: merged.length,
+      range: {
+        from: formatDateOnly(fromDate),
+        to: formatDateOnly(toDate)
+      }
+    });
+  } catch (err) {
+    console.error('backfill-last-2-weeks error:', err);
+    res.status(500).json({ error: err.message || 'Backfill failed' });
   }
 });
 
