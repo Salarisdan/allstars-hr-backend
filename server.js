@@ -2,6 +2,8 @@ require('dotenv').config();
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
+const fsp = require('fs/promises');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -22,6 +24,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
+const CRM_EVENTS_FILE =
+  process.env.CRM_EVENTS_FILE ||
+  path.join(process.cwd(), 'data', 'crm-events.json');
 
 if (!JWT_SECRET) {
   if (process.env.NODE_ENV === 'production') {
@@ -48,6 +53,54 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 async function query(text, params = []) {
   return pool.query(text, params);
+}
+
+async function ensureCrmEventsFile() {
+  const dir = path.dirname(CRM_EVENTS_FILE);
+
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  if (!fs.existsSync(CRM_EVENTS_FILE)) {
+    await fsp.writeFile(CRM_EVENTS_FILE, '[]', 'utf8');
+  }
+}
+
+async function readCrmEvents() {
+  await ensureCrmEventsFile();
+
+  try {
+    const raw = await fsp.readFile(CRM_EVENTS_FILE, 'utf8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    console.error('readCrmEvents error:', err.message);
+    return [];
+  }
+}
+
+async function writeCrmEvents(events) {
+  await ensureCrmEventsFile();
+  await fsp.writeFile(CRM_EVENTS_FILE, JSON.stringify(events, null, 2), 'utf8');
+}
+
+async function appendCrmEvent(event) {
+  const events = await readCrmEvents();
+
+  events.push({
+    id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    entity_type: String(event.entity_type || ''),
+    entity_id: String(event.entity_id || ''),
+    event_type: String(event.event_type || ''),
+    old_value: String(event.old_value || ''),
+    new_value: String(event.new_value || ''),
+    meta: event.meta || {},
+    created_at: new Date().toISOString(),
+    created_by: String(event.created_by || '')
+  });
+
+  await writeCrmEvents(events);
 }
 
 function getGoogleCreds() {
@@ -172,8 +225,22 @@ const TEAM_DASHBOARD_VISIBLE_STATUSES = new Set([
   'Тест смена'
 ]);
 
+const HIRED_CANDIDATE_STATUSES = new Set([
+  'Принятый',
+  'Работает'
+]);
+
+const REJECTED_CANDIDATE_STATUS = 'Отказ';
+const STARTED_CANDIDATE_STATUS = 'Ожидание старта';
+const FIRED_CANDIDATE_STATUS = 'Уволен';
+const TRIAL_CANDIDATE_STATUS = 'Тест смена';
+
 function isVisibleTeamDashboardStatus(status) {
   return TEAM_DASHBOARD_VISIBLE_STATUSES.has(String(status || '').trim());
+}
+
+function isHiredCandidateStatus(status) {
+  return HIRED_CANDIDATE_STATUSES.has(String(status || '').trim());
 }
 
 function shouldClearTransactionEndingByStatus(status) {
@@ -628,17 +695,17 @@ function getStatusDatePatch(status) {
   const now = new Date();
 
   switch (status) {
-    case 'Принят':
+    case 'Принятый':
     case 'Работает':
       return { hired_at: now };
 
-    case 'Отказ':
+    case REJECTED_CANDIDATE_STATUS:
       return { rejected_at: now };
 
-    case 'Ожидание старта':
+    case STARTED_CANDIDATE_STATUS:
       return { started_at: now };
 
-    case 'Уволен':
+    case FIRED_CANDIDATE_STATUS:
       return { fired_at: now };
 
     default:
@@ -1007,7 +1074,7 @@ function candidateVerdict(candidateOrStatus, maybeStatus) {
     ? String(candidateOrStatus?.status || '').trim()
     : String(maybeStatus || '').trim();
 
-  if (['Принят', 'Работает'].includes(status)) return 'hire';
+  if (isHiredCandidateStatus(status)) return 'hire';
   if (['Отказ', 'Уволен', 'Не рассчитан', 'Убрать', 'Не пришел на собес'].includes(status)) return 'reject';
   if (status) return 'review';
   return 'unrated';
@@ -1646,6 +1713,18 @@ app.post('/candidates', auth, async (req, res) => {
 
     const created = result.rows[0];
 
+    await appendCrmEvent({
+      entity_type: 'candidate',
+      entity_id: String(created.id || created.name || Date.now()),
+      event_type: 'lead_created',
+      meta: {
+        name: candidate.name,
+        telegram: candidate.telegram || candidate.tg,
+        platform: candidate.platform || candidate.platforms
+      },
+      created_by: req.user?.email || req.user?.full_name || ''
+    });
+
     await logCrmEvent({
       entityType: 'candidate',
       entityId: created.id,
@@ -1749,6 +1828,20 @@ app.patch('/candidates/:id', auth, async (req, res) => {
   );
 
   if (next.status && next.status !== row.status) {
+    await appendCrmEvent({
+      entity_type: 'candidate',
+      entity_id: String(req.params.id || row.id || Date.now()),
+      event_type: 'status_changed',
+      old_value: row.status || '',
+      new_value: next.status || '',
+      meta: {
+        name: next.name,
+        telegram: next.telegram || next.tg,
+        platform: next.platform || next.platforms
+      },
+      created_by: req.user?.email || req.user?.full_name || ''
+    });
+
     await query(
       `INSERT INTO candidate_status_history(candidate_id, status, changed_by_user_id)
        VALUES ($1,$2,$3)`,
@@ -1865,8 +1958,8 @@ app.get('/analytics/overview', auth, async (req, res) => {
     `SELECT
       COUNT(*)::int AS total_candidates,
       COALESCE(AVG(total), 0)::numeric(10,2) AS avg_score,
-      COUNT(*) FILTER (WHERE status = 'Принят')::int AS hired,
-      COUNT(*) FILTER (WHERE status = 'Тест-смена')::int AS trial,
+      COUNT(*) FILTER (WHERE status IN ('Принятый', 'Работает'))::int AS hired,
+      COUNT(*) FILTER (WHERE status = 'Тест смена')::int AS trial,
       COUNT(*) FILTER (WHERE status = 'Изучает гайд')::int AS guide,
       COUNT(*) FILTER (WHERE status = 'Отказ')::int AS rejected
      FROM candidates c
@@ -1878,7 +1971,7 @@ app.get('/analytics/overview', auth, async (req, res) => {
     `SELECT
       COALESCE(u.full_name, 'Без владельца') AS hr_name,
       COUNT(c.id)::int AS total,
-      COUNT(c.id) FILTER (WHERE c.status = 'Принят')::int AS hired,
+      COUNT(c.id) FILTER (WHERE c.status IN ('Принятый', 'Работает'))::int AS hired,
       COALESCE(AVG(c.total), 0)::numeric(10,2) AS avg_score
      FROM candidates c
      LEFT JOIN users u ON u.id = c.owner_user_id
@@ -2180,6 +2273,18 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
       nextInterviewStatus === 'Собеседование проведено' &&
       nextInterviewStatus !== prevInterviewStatus
     ) {
+      await appendCrmEvent({
+        entity_type: 'interview',
+        entity_id: String(rowNumber || candidate.telegram_user_id || Date.now()),
+        event_type: 'interview_completed',
+        meta: {
+          name: candidate.name || req.body?.name || '',
+          telegram: candidate.telegram || candidate.username || req.body?.telegram || req.body?.username || '',
+          platform: candidate.platform || req.body?.platform || ''
+        },
+        created_by: req.user?.email || req.user?.full_name || ''
+      });
+
       await logCrmEvent({
         entityType: 'interview',
         entityId: rowNumber,
@@ -2456,30 +2561,30 @@ async function buildDashboardStatsPayload({ week = 'current', date_from, date_to
       if (event.event_type === 'status_changed') {
         const next = String(event.new_value || '').trim();
 
-        if (next === 'Принятый' || next === 'Работает') {
+        if (isHiredCandidateStatus(next)) {
           summary.hired += 1;
           dayRow.hired += 1;
           bumpHr(createdBy, 'hired');
         }
 
-        if (next === 'Отказ') {
+        if (next === REJECTED_CANDIDATE_STATUS) {
           summary.rejected += 1;
           dayRow.rejected += 1;
           bumpHr(createdBy, 'rejected');
         }
 
-        if (next === 'Уволен') {
+        if (next === FIRED_CANDIDATE_STATUS) {
           summary.fired += 1;
           dayRow.fired += 1;
           bumpHr(createdBy, 'fired');
         }
 
-        if (next === 'Ожидание старта') {
+        if (next === STARTED_CANDIDATE_STATUS) {
           summary.started += 1;
           dayRow.started += 1;
         }
 
-        if (next === 'Тест смена') {
+        if (next === TRIAL_CANDIDATE_STATUS) {
           summary.test_shift += 1;
           dayRow.test_shift += 1;
         }
@@ -2620,186 +2725,36 @@ app.get('/api/dashboard/stats-live', auth, async (req, res) => {
 
     const prevFrom = new Date(fromDate);
     prevFrom.setDate(prevFrom.getDate() - 7);
+
     const prevTo = new Date(toDate);
     prevTo.setDate(prevTo.getDate() - 7);
 
-    async function buildRange(from, to) {
-      const [
-        leadsRes,
-        hiredRes,
-        rejectedRes,
-        startedRes,
-        firedRes,
-        dailyLeadsRes,
-        dailyStatusRes,
-        onlyFansRes,
-        fanslyRes
-      ] = await Promise.all([
-        pool.query(
-          `
-          SELECT COUNT(*)::int AS count
-          FROM candidates
-          WHERE created_at >= $1 AND created_at <= $2
-          `,
-          [from, to]
-        ),
+    const allEvents = await readCrmEvents();
 
-        pool.query(
-          `
-          SELECT COUNT(*)::int AS count
-          FROM candidate_status_history
-          WHERE created_at >= $1
-            AND created_at <= $2
-            AND status IN ('Принят', 'Принятый', 'Работает')
-          `,
-          [from, to]
-        ),
-
-        pool.query(
-          `
-          SELECT COUNT(*)::int AS count
-          FROM candidate_status_history
-          WHERE created_at >= $1
-            AND created_at <= $2
-            AND status = 'Отказ'
-          `,
-          [from, to]
-        ),
-
-        pool.query(
-          `
-          SELECT COUNT(*)::int AS count
-          FROM candidate_status_history
-          WHERE created_at >= $1
-            AND created_at <= $2
-            AND status = 'Ожидание старта'
-          `,
-          [from, to]
-        ),
-
-        pool.query(
-          `
-          SELECT COUNT(*)::int AS count
-          FROM candidate_status_history
-          WHERE created_at >= $1
-            AND created_at <= $2
-            AND status = 'Уволен'
-          `,
-          [from, to]
-        ),
-
-        pool.query(
-          `
-          SELECT DATE(created_at) AS d, COUNT(*)::int AS count
-          FROM candidates
-          WHERE created_at >= $1 AND created_at <= $2
-          GROUP BY DATE(created_at)
-          ORDER BY DATE(created_at)
-          `,
-          [from, to]
-        ),
-
-        pool.query(
-          `
-          SELECT DATE(created_at) AS d, status, COUNT(*)::int AS count
-          FROM candidate_status_history
-          WHERE created_at >= $1 AND created_at <= $2
-          GROUP BY DATE(created_at), status
-          ORDER BY DATE(created_at)
-          `,
-          [from, to]
-        ),
-
-        pool.query(
-          `
-          SELECT COUNT(*)::int AS count
-          FROM candidates
-          WHERE created_at >= $1
-            AND created_at <= $2
-            AND LOWER(COALESCE(platform, '')) LIKE '%onlyfans%'
-          `,
-          [from, to]
-        ),
-
-        pool.query(
-          `
-          SELECT COUNT(*)::int AS count
-          FROM candidates
-          WHERE created_at >= $1
-            AND created_at <= $2
-            AND LOWER(COALESCE(platform, '')) LIKE '%fansly%'
-          `,
-          [from, to]
-        )
-      ]);
-
-      let interviewsCount = 0;
-      let dailyInterviews = [];
-
-      try {
-        const interviewsRes = await pool.query(
-          `
-          SELECT COUNT(*)::int AS count
-          FROM interviews
-          WHERE completed_at >= $1 AND completed_at <= $2
-          `,
-          [from, to]
-        );
-        interviewsCount = interviewsRes.rows[0]?.count || 0;
-
-        const dailyInterviewsRes = await pool.query(
-          `
-          SELECT DATE(completed_at) AS d, COUNT(*)::int AS count
-          FROM interviews
-          WHERE completed_at >= $1 AND completed_at <= $2
-          GROUP BY DATE(completed_at)
-          ORDER BY DATE(completed_at)
-          `,
-          [from, to]
-        );
-        dailyInterviews = dailyInterviewsRes.rows || [];
-      } catch (e) {
-        try {
-          const interviewsRes = await pool.query(
-            `
-            SELECT COUNT(*)::int AS count
-            FROM interviews
-            WHERE updated_at >= $1 AND updated_at <= $2
-            `,
-            [from, to]
-          );
-          interviewsCount = interviewsRes.rows[0]?.count || 0;
-
-          const dailyInterviewsRes = await pool.query(
-            `
-            SELECT DATE(updated_at) AS d, COUNT(*)::int AS count
-            FROM interviews
-            WHERE updated_at >= $1 AND updated_at <= $2
-            GROUP BY DATE(updated_at)
-            ORDER BY DATE(updated_at)
-            `,
-            [from, to]
-          );
-          dailyInterviews = dailyInterviewsRes.rows || [];
-        } catch (e2) {
-          interviewsCount = 0;
-          dailyInterviews = [];
-        }
-      }
+    function buildRange(events, from, to) {
+      const filtered = events.filter((event) => {
+        const dt = new Date(event.created_at);
+        return dt >= from && dt <= to;
+      });
 
       const summary = {
-        leads: leadsRes.rows[0]?.count || 0,
-        interviews: interviewsCount,
-        hired: hiredRes.rows[0]?.count || 0,
-        rejected: rejectedRes.rows[0]?.count || 0,
-        started: startedRes.rows[0]?.count || 0,
-        fired: firedRes.rows[0]?.count || 0,
+        leads: 0,
+        interviews: 0,
+        hired: 0,
+        rejected: 0,
+        started: 0,
+        fired: 0,
         waiting_test: 0,
         test_shift: 0,
         unpaid: 0
       };
 
       const dailyMap = new Map();
+      const platforms = {
+        onlyfans: 0,
+        fansly: 0
+      };
+
       for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
         const key = formatDateOnly(d);
         dailyMap.set(key, {
@@ -2813,28 +2768,53 @@ app.get('/api/dashboard/stats-live', auth, async (req, res) => {
         });
       }
 
-      for (const row of dailyLeadsRes.rows) {
-        const key = formatDateOnly(row.d);
-        if (dailyMap.has(key)) dailyMap.get(key).leads = row.count;
+      for (const event of filtered) {
+        const dateKey = formatDateOnly(event.created_at);
+        const day = dailyMap.get(dateKey);
+        const platform = String(event.meta?.platform || '').toLowerCase();
+        const nextStatus = String(event.new_value || '').trim();
+
+        if (event.event_type === 'lead_created') {
+          summary.leads += 1;
+          if (day) day.leads += 1;
+        }
+
+        if (event.event_type === 'interview_completed') {
+          summary.interviews += 1;
+          if (day) day.interviews += 1;
+        }
+
+        if (event.event_type === 'status_changed') {
+          if (isHiredCandidateStatus(nextStatus)) {
+            summary.hired += 1;
+            if (day) day.hired += 1;
+          }
+
+          if (nextStatus === REJECTED_CANDIDATE_STATUS) {
+            summary.rejected += 1;
+            if (day) day.rejected += 1;
+          }
+
+          if (nextStatus === STARTED_CANDIDATE_STATUS) {
+            summary.started += 1;
+            if (day) day.started += 1;
+          }
+
+          if (nextStatus === FIRED_CANDIDATE_STATUS) {
+            summary.fired += 1;
+            if (day) day.fired += 1;
+          }
+
+          if (nextStatus === 'Ждет тест') summary.waiting_test += 1;
+          if (nextStatus === TRIAL_CANDIDATE_STATUS) summary.test_shift += 1;
+          if (nextStatus === 'Не рассчитан') summary.unpaid += 1;
+        }
+
+        if (platform.includes('onlyfans')) platforms.onlyfans += 1;
+        if (platform.includes('fansly')) platforms.fansly += 1;
       }
 
-      for (const row of dailyInterviews) {
-        const key = formatDateOnly(row.d);
-        if (dailyMap.has(key)) dailyMap.get(key).interviews = row.count;
-      }
-
-      for (const row of dailyStatusRes.rows) {
-        const key = formatDateOnly(row.d);
-        const day = dailyMap.get(key);
-        if (!day) continue;
-
-        const status = String(row.status || '').trim();
-
-        if (['Принят', 'Принятый', 'Работает'].includes(status)) day.hired += row.count;
-        if (status === 'Отказ') day.rejected += row.count;
-        if (status === 'Ожидание старта') day.started += row.count;
-        if (status === 'Уволен') day.fired += row.count;
-      }
+      const daily = [...dailyMap.values()];
 
       const conversion = {
         lead_to_interview:
@@ -2847,18 +2827,15 @@ app.get('/api/dashboard/stats-live', auth, async (req, res) => {
 
       return {
         summary,
-        daily: [...dailyMap.values()],
-        platforms: {
-          onlyfans: onlyFansRes.rows[0]?.count || 0,
-          fansly: fanslyRes.rows[0]?.count || 0
-        },
+        daily,
+        platforms,
         conversion
       };
     }
 
     const [current, previous] = await Promise.all([
-      buildRange(fromDate, toDate),
-      buildRange(prevFrom, prevTo)
+      buildRange(allEvents, fromDate, toDate),
+      buildRange(allEvents, prevFrom, prevTo)
     ]);
 
     const trend = (curr, prev) => ({
