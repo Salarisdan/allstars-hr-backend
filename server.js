@@ -718,6 +718,19 @@ function normalizeDateInput(value) {
 
   const str = String(value).trim();
 
+  const fullDateTime = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
+  if (fullDateTime) {
+    const [, dd, mm, yyyy, hh = '12', min = '00'] = fullDateTime;
+    return new Date(`${yyyy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}T${String(hh).padStart(2, '0')}:${min}:00`);
+  }
+
+  const shortYearDate = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2})$/);
+  if (shortYearDate) {
+    const [, dd, mm, yy] = shortYearDate;
+    const yyyy = Number(yy) >= 70 ? `19${yy}` : `20${yy}`;
+    return new Date(`${yyyy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}T12:00:00`);
+  }
+
   const fullDate = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
   if (fullDate) {
     const [, dd, mm, yyyy] = fullDate;
@@ -926,6 +939,26 @@ async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
         },
         approximate: !i.interview_date && !!(i.completed_at || i.updated_at)
       }));
+    }
+
+    const interviewStatus = String(i.status || '').trim();
+    if (['Отказ', 'Отказ до собеседования', 'Отказ после собеседования'].includes(interviewStatus)) {
+      const rejectAt = normalizeDateInput(i.interview_date || i.completed_at || i.updated_at || i.created_at);
+      if (rejectAt && isWithinRange(rejectAt, fromDate, toDate)) {
+        newEvents.push(buildBackfillEvent({
+          entityType: 'candidate',
+          entityId: i.id || i.row_number || i.name,
+          eventType: 'status_changed',
+          date: rejectAt,
+          newValue: REJECTED_CANDIDATE_STATUS,
+          meta: {
+            name: i.name || '',
+            telegram: i.telegram || i.tg || '',
+            platform: i.platform || i.platforms || ''
+          },
+          approximate: !i.interview_date && !!(i.completed_at || i.updated_at || i.created_at)
+        }));
+      }
     }
   }
 
