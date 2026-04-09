@@ -251,6 +251,7 @@ const REJECTED_CANDIDATE_STATUS = 'Отказ';
 const STARTED_CANDIDATE_STATUS = 'Ожидание старта';
 const FIRED_CANDIDATE_STATUS = 'Уволен';
 const TRIAL_CANDIDATE_STATUS = 'Тест смена';
+const UNPAID_CANDIDATE_STATUS = 'Не рассчитан';
 
 function isVisibleTeamDashboardStatus(status) {
   return TEAM_DASHBOARD_VISIBLE_STATUSES.has(String(status || '').trim());
@@ -964,7 +965,7 @@ async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
 
   for (const item of candidateStatusHistory) {
     const status = String(item.status || '').trim();
-    if (![REJECTED_CANDIDATE_STATUS, FIRED_CANDIDATE_STATUS].includes(status)) continue;
+    if (![REJECTED_CANDIDATE_STATUS, FIRED_CANDIDATE_STATUS, UNPAID_CANDIDATE_STATUS].includes(status)) continue;
 
     const eventDate = normalizeDateInput(item.created_at);
     if (eventDate && isWithinRange(eventDate, fromDate, toDate)) {
@@ -984,7 +985,8 @@ async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
   }
 
   for (const m of teamMembers) {
-    const startDate = normalizeDateInput(m.date_start || m.updated_at);
+    const teamStatus = String(m.status || '').trim();
+    const startDate = normalizeDateInput(m.date_start);
     if (startDate && isWithinRange(startDate, fromDate, toDate)) {
       newEvents.push(buildBackfillEvent({
         entityType: 'team_member',
@@ -996,12 +998,11 @@ async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
           name: m.name || '',
           telegram: m.telegram || '',
           platform: m.platform || ''
-        },
-        approximate: !m.date_start && !!m.updated_at
+        }
       }));
     }
 
-    const firedDate = normalizeDateInput(m.date_fired || m.updated_at);
+    const firedDate = normalizeDateInput(m.date_fired);
     if (firedDate && isWithinRange(firedDate, fromDate, toDate)) {
       newEvents.push(buildBackfillEvent({
         entityType: 'team_member',
@@ -1013,8 +1014,50 @@ async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
           name: m.name || '',
           telegram: m.telegram || '',
           platform: m.platform || ''
+        }
+      }));
+    }
+
+    const fallbackStatusDate = normalizeDateInput(m.updated_at);
+
+    if (
+      !firedDate &&
+      teamStatus === FIRED_CANDIDATE_STATUS &&
+      fallbackStatusDate &&
+      isWithinRange(fallbackStatusDate, fromDate, toDate)
+    ) {
+      newEvents.push(buildBackfillEvent({
+        entityType: 'team_member',
+        entityId: m.id || m.row_number || m.name,
+        eventType: 'status_changed',
+        date: fallbackStatusDate,
+        newValue: FIRED_CANDIDATE_STATUS,
+        meta: {
+          name: m.name || '',
+          telegram: m.telegram || '',
+          platform: m.platform || ''
         },
-        approximate: !m.date_fired && !!m.updated_at
+        approximate: true
+      }));
+    }
+
+    if (
+      teamStatus === UNPAID_CANDIDATE_STATUS &&
+      fallbackStatusDate &&
+      isWithinRange(fallbackStatusDate, fromDate, toDate)
+    ) {
+      newEvents.push(buildBackfillEvent({
+        entityType: 'team_member',
+        entityId: m.id || m.row_number || m.name,
+        eventType: 'status_changed',
+        date: fallbackStatusDate,
+        newValue: UNPAID_CANDIDATE_STATUS,
+        meta: {
+          name: m.name || '',
+          telegram: m.telegram || '',
+          platform: m.platform || ''
+        },
+        approximate: true
       }));
     }
   }
@@ -2976,7 +3019,7 @@ function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
       summary.waiting_test += 1;
     }
 
-    if (nextStatus === 'Не рассчитан') {
+    if (nextStatus === UNPAID_CANDIDATE_STATUS) {
       summary.unpaid += 1;
     }
   }
@@ -3114,7 +3157,8 @@ async function buildDashboardStatsPayload({ week = 'current', date_from, date_to
     hired: trendValue(current.summary.hired, previous.summary.hired),
     rejected: trendValue(current.summary.rejected, previous.summary.rejected),
     fired: trendValue(current.summary.fired, previous.summary.fired),
-    started: trendValue(current.summary.started, previous.summary.started)
+    started: trendValue(current.summary.started, previous.summary.started),
+    unpaid: trendValue(current.summary.unpaid, previous.summary.unpaid)
   };
 
   return {
@@ -3213,7 +3257,8 @@ app.get('/api/dashboard/stats-live', auth, async (req, res) => {
         hired: trend(current.summary.hired, previous.summary.hired),
         rejected: trend(current.summary.rejected, previous.summary.rejected),
         fired: trend(current.summary.fired, previous.summary.fired),
-        started: trend(current.summary.started, previous.summary.started)
+        started: trend(current.summary.started, previous.summary.started),
+        unpaid: trend(current.summary.unpaid, previous.summary.unpaid)
       }
     });
   } catch (err) {

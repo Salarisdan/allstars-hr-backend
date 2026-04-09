@@ -956,6 +956,7 @@
           ${renderKpiCard('Принятые', summary.hired, 'Вышли на работу за неделю', 'kpi-green', trends.hired)}
           ${renderKpiCard('Отказы', summary.rejected, 'Отказов за неделю', 'kpi-red', trends.rejected)}
           ${renderKpiCard('Уволены', summary.fired, 'Уволено за неделю', 'kpi-burgundy', trends.fired)}
+          ${renderKpiCard('Не рассчитан', summary.unpaid, 'Зависли на расчёте за неделю', 'kpi-orange', trends.unpaid)}
         </div>
 
         <div class="dashboard-panels">
@@ -1083,6 +1084,10 @@
               <div class="metric-box">
                 <div class="metric-box-k">Уволены</div>
                 <div class="metric-box-v">${summary.fired || 0}</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-box-k">Не рассчитан</div>
+                <div class="metric-box-v">${summary.unpaid || 0}</div>
               </div>
             </div>
           </div>
