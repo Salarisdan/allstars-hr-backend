@@ -542,7 +542,7 @@
 
     .daily-row{
       display:grid;
-      grid-template-columns:110px repeat(5,1fr);
+      grid-template-columns:110px repeat(6,1fr);
       gap:10px;
       align-items:center;
       padding:10px 12px;
@@ -941,6 +941,8 @@
       const maxInterviews = getDailyMax(daily, 'interviews');
       const maxHired = getDailyMax(daily, 'hired');
       const maxRejected = getDailyMax(daily, 'rejected');
+      const maxFired = getDailyMax(daily, 'fired');
+      const maxUnpaid = getDailyMax(daily, 'unpaid');
 
       if (rangeLabel) {
         rangeLabel.innerHTML = `
@@ -989,6 +991,18 @@
                     <div class="daily-metric-k">Отказы</div>
                     <div class="daily-metric-v">${day.rejected || 0}</div>
                     ${renderDailyBar(day.rejected, maxRejected, 'bar-red')}
+                  </div>
+
+                  <div class="daily-metric">
+                    <div class="daily-metric-k">Уволены</div>
+                    <div class="daily-metric-v">${day.fired || 0}</div>
+                    ${renderDailyBar(day.fired, maxFired, 'bar-red')}
+                  </div>
+
+                  <div class="daily-metric">
+                    <div class="daily-metric-k">Не рассчитан</div>
+                    <div class="daily-metric-v">${day.unpaid || 0}</div>
+                    ${renderDailyBar(day.unpaid, maxUnpaid, 'bar-orange')}
                   </div>
                 </div>
               `).join('')}

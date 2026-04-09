@@ -2931,7 +2931,8 @@ function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
       rejected: 0,
       fired: 0,
       started: 0,
-      test_shift: 0
+      test_shift: 0,
+      unpaid: 0
     });
   }
 
@@ -3021,6 +3022,7 @@ function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
 
     if (nextStatus === UNPAID_CANDIDATE_STATUS) {
       summary.unpaid += 1;
+      if (dayRow) dayRow.unpaid += 1;
     }
   }
 
