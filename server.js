@@ -2834,6 +2834,187 @@ app.get('/api/stats', auth, async (req, res) => {
   }
 });
 
+function getDashboardEventMeta(event) {
+  if (event?.meta_json && typeof event.meta_json === 'object') {
+    return event.meta_json;
+  }
+
+  if (event?.meta && typeof event.meta === 'object') {
+    return event.meta;
+  }
+
+  return {};
+}
+
+function getDashboardEventAuthor(event) {
+  const meta = getDashboardEventMeta(event);
+  const createdBy = String(event?.created_by || meta.hr || meta.owner || '').trim();
+
+  if (!createdBy || createdBy.toLowerCase() === 'backfill') {
+    return '';
+  }
+
+  return createdBy;
+}
+
+function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
+  const summary = {
+    leads: 0,
+    interviews: 0,
+    hired: 0,
+    rejected: 0,
+    fired: 0,
+    started: 0,
+    test_shift: 0,
+    waiting_test: 0,
+    unpaid: 0
+  };
+
+  const platforms = {
+    onlyfans: 0,
+    fansly: 0
+  };
+
+  const dailyMap = new Map();
+  const hrMap = new Map();
+
+  for (let cursor = new Date(rangeStart); cursor <= rangeEnd; cursor.setDate(cursor.getDate() + 1)) {
+    const dateStr = formatDateOnly(cursor);
+    dailyMap.set(dateStr, {
+      date: dateStr,
+      leads: 0,
+      interviews: 0,
+      hired: 0,
+      rejected: 0,
+      fired: 0,
+      started: 0,
+      test_shift: 0
+    });
+  }
+
+  const bumpHr = (who, key) => {
+    if (!who) return;
+
+    if (!hrMap.has(who)) {
+      hrMap.set(who, {
+        name: who,
+        leads: 0,
+        interviews: 0,
+        hired: 0,
+        rejected: 0,
+        fired: 0
+      });
+    }
+
+    hrMap.get(who)[key] += 1;
+  };
+
+  for (const event of events) {
+    const createdAt = new Date(event.created_at);
+    if (Number.isNaN(createdAt.getTime()) || createdAt < rangeStart || createdAt > rangeEnd) {
+      continue;
+    }
+
+    const meta = getDashboardEventMeta(event);
+    const dateStr = formatDateOnly(createdAt);
+    const dayRow = dailyMap.get(dateStr);
+    const platform = String(meta.platform || '').toLowerCase();
+    const createdBy = getDashboardEventAuthor(event);
+    const nextStatus = String(event.new_value || '').trim();
+
+    if (event.event_type === 'lead_created') {
+      summary.leads += 1;
+      if (dayRow) dayRow.leads += 1;
+      bumpHr(createdBy, 'leads');
+
+      if (platform.includes('onlyfans')) platforms.onlyfans += 1;
+      if (platform.includes('fansly')) platforms.fansly += 1;
+      continue;
+    }
+
+    if (event.event_type === 'interview_completed') {
+      summary.interviews += 1;
+      if (dayRow) dayRow.interviews += 1;
+      bumpHr(createdBy, 'interviews');
+      continue;
+    }
+
+    if (event.event_type !== 'status_changed') {
+      continue;
+    }
+
+    if (nextStatus === REJECTED_CANDIDATE_STATUS) {
+      summary.rejected += 1;
+      if (dayRow) dayRow.rejected += 1;
+      bumpHr(createdBy, 'rejected');
+    }
+
+    if (nextStatus === FIRED_CANDIDATE_STATUS) {
+      summary.fired += 1;
+      if (dayRow) dayRow.fired += 1;
+      bumpHr(createdBy, 'fired');
+    }
+
+    if (nextStatus === STARTED_CANDIDATE_STATUS) {
+      summary.hired += 1;
+      summary.started += 1;
+
+      if (dayRow) {
+        dayRow.hired += 1;
+        dayRow.started += 1;
+      }
+
+      bumpHr(createdBy, 'hired');
+    }
+
+    if (nextStatus === TRIAL_CANDIDATE_STATUS) {
+      summary.test_shift += 1;
+      if (dayRow) dayRow.test_shift += 1;
+    }
+
+    if (nextStatus === 'Ждет тест') {
+      summary.waiting_test += 1;
+    }
+
+    if (nextStatus === 'Не рассчитан') {
+      summary.unpaid += 1;
+    }
+  }
+
+  const daily = [...dailyMap.values()];
+
+  const conversion = {
+    lead_to_interview:
+      summary.leads > 0
+        ? Math.round((summary.interviews / summary.leads) * 1000) / 10
+        : 0,
+    interview_to_hired:
+      summary.interviews > 0
+        ? Math.round((summary.hired / summary.interviews) * 1000) / 10
+        : 0,
+    hired_to_started:
+      summary.hired > 0
+        ? Math.round((summary.started / summary.hired) * 1000) / 10
+        : 0
+  };
+
+  const topPeople = [...hrMap.values()]
+    .sort((a, b) => {
+      const scoreA = a.hired * 5 + a.interviews * 2 + a.leads;
+      const scoreB = b.hired * 5 + b.interviews * 2 + b.leads;
+      return scoreB - scoreA;
+    })
+    .slice(0, 5);
+
+  return {
+    summary,
+    platforms,
+    daily,
+    conversion,
+    top_people: topPeople
+  };
+}
+
 async function buildDashboardStatsPayload({ week = 'current', date_from, date_to }) {
   let fromDate;
   let toDate;
@@ -2911,178 +3092,8 @@ async function buildDashboardStatsPayload({ week = 'current', date_from, date_to
   const currentEvents = currentRes.rows || [];
   const previousEvents = previousRes.rows || [];
 
-  function buildStats(events, rangeStart, rangeEnd) {
-    const summary = {
-      leads: 0,
-      interviews: 0,
-      hired: 0,
-      rejected: 0,
-      fired: 0,
-      started: 0,
-      test_shift: 0,
-      waiting_test: 0,
-      unpaid: 0
-    };
-
-    const platforms = {
-      onlyfans: 0,
-      fansly: 0
-    };
-
-    const dailyMap = new Map();
-    const hrMap = new Map();
-
-    const ensureDay = (dateStr) => {
-      if (!dailyMap.has(dateStr)) {
-        dailyMap.set(dateStr, {
-          date: dateStr,
-          leads: 0,
-          interviews: 0,
-          hired: 0,
-          rejected: 0,
-          fired: 0,
-          started: 0,
-          test_shift: 0
-        });
-      }
-      return dailyMap.get(dateStr);
-    };
-
-    const bumpHr = (who, key) => {
-      const hr = String(who || '').trim() || 'Без автора';
-      if (!hrMap.has(hr)) {
-        hrMap.set(hr, {
-          name: hr,
-          leads: 0,
-          interviews: 0,
-          hired: 0,
-          rejected: 0,
-          fired: 0
-        });
-      }
-      hrMap.get(hr)[key] += 1;
-    };
-
-    for (const event of events) {
-      const meta = event.meta_json || {};
-      const dateStr = formatDateOnly(event.created_at);
-      const dayRow = ensureDay(dateStr);
-      const platform = String(meta.platform || '').toLowerCase();
-      const createdBy = String(event.created_by || meta.hr || meta.owner || '').trim();
-
-      if (event.event_type === 'lead_created') {
-        summary.leads += 1;
-        dayRow.leads += 1;
-        bumpHr(createdBy, 'leads');
-
-        if (platform.includes('onlyfans')) platforms.onlyfans += 1;
-        if (platform.includes('fansly')) platforms.fansly += 1;
-      }
-
-      if (event.event_type === 'interview_completed') {
-        summary.interviews += 1;
-        dayRow.interviews += 1;
-        bumpHr(createdBy, 'interviews');
-
-        if (platform.includes('onlyfans')) platforms.onlyfans += 1;
-        if (platform.includes('fansly')) platforms.fansly += 1;
-      }
-
-      if (event.event_type === 'status_changed') {
-        const next = String(event.new_value || '').trim();
-
-        if (next === REJECTED_CANDIDATE_STATUS) {
-          summary.rejected += 1;
-          dayRow.rejected += 1;
-          bumpHr(createdBy, 'rejected');
-        }
-
-        if (next === FIRED_CANDIDATE_STATUS) {
-          summary.fired += 1;
-          dayRow.fired += 1;
-          bumpHr(createdBy, 'fired');
-        }
-
-        if (next === STARTED_CANDIDATE_STATUS) {
-          summary.hired += 1;
-          dayRow.hired += 1;
-          bumpHr(createdBy, 'hired');
-
-          summary.started += 1;
-          dayRow.started += 1;
-        }
-
-        if (next === TRIAL_CANDIDATE_STATUS) {
-          summary.test_shift += 1;
-          dayRow.test_shift += 1;
-        }
-
-        if (next === 'Ждет тест') {
-          summary.waiting_test += 1;
-        }
-
-        if (next === 'Не рассчитан') {
-          summary.unpaid += 1;
-        }
-
-        if (platform.includes('onlyfans')) platforms.onlyfans += 1;
-        if (platform.includes('fansly')) platforms.fansly += 1;
-      }
-    }
-
-    const daily = [];
-    const cursor = new Date(rangeStart);
-    while (cursor <= rangeEnd) {
-      const dateStr = formatDateOnly(cursor);
-      daily.push(
-        dailyMap.get(dateStr) || {
-          date: dateStr,
-          leads: 0,
-          interviews: 0,
-          hired: 0,
-          rejected: 0,
-          fired: 0,
-          started: 0,
-          test_shift: 0
-        }
-      );
-      cursor.setDate(cursor.getDate() + 1);
-    }
-
-    const conversion = {
-      lead_to_interview:
-        summary.leads > 0
-          ? Math.round((summary.interviews / summary.leads) * 1000) / 10
-          : 0,
-      interview_to_hired:
-        summary.interviews > 0
-          ? Math.round((summary.hired / summary.interviews) * 1000) / 10
-          : 0,
-      hired_to_started:
-        summary.hired > 0
-          ? Math.round((summary.started / summary.hired) * 1000) / 10
-          : 0
-    };
-
-    const topPeople = [...hrMap.values()]
-      .sort((a, b) => {
-        const scoreA = a.hired * 5 + a.interviews * 2 + a.leads;
-        const scoreB = b.hired * 5 + b.interviews * 2 + b.leads;
-        return scoreB - scoreA;
-      })
-      .slice(0, 5);
-
-    return {
-      summary,
-      platforms,
-      daily,
-      conversion,
-      top_people: topPeople
-    };
-  }
-
-  const current = buildStats(currentEvents, fromDate, toDate);
-  const previous = buildStats(previousEvents, previousFrom, previousTo);
+  const current = buildDashboardRangeStats(currentEvents, fromDate, toDate);
+  const previous = buildDashboardRangeStats(previousEvents, previousFrom, previousTo);
 
   const trendValue = (curr, prev) => {
     const diff = curr - prev;
@@ -3171,112 +3182,8 @@ app.get('/api/dashboard/stats-live', auth, async (req, res) => {
 
     const allEvents = merged;
 
-    function buildRange(events, from, to) {
-      const filtered = events.filter((event) => {
-        const dt = new Date(event.created_at);
-        return dt >= from && dt <= to;
-      });
-
-      const summary = {
-        leads: 0,
-        interviews: 0,
-        hired: 0,
-        rejected: 0,
-        started: 0,
-        fired: 0,
-        waiting_test: 0,
-        test_shift: 0,
-        unpaid: 0
-      };
-
-      const dailyMap = new Map();
-      const platforms = {
-        onlyfans: 0,
-        fansly: 0
-      };
-
-      for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
-        const key = formatDateOnly(d);
-        dailyMap.set(key, {
-          date: key,
-          leads: 0,
-          interviews: 0,
-          hired: 0,
-          rejected: 0,
-          started: 0,
-          fired: 0
-        });
-      }
-
-      for (const event of filtered) {
-        const dateKey = formatDateOnly(event.created_at);
-        const day = dailyMap.get(dateKey);
-        const platform = String(event.meta?.platform || '').toLowerCase();
-        const nextStatus = String(event.new_value || '').trim();
-
-        if (event.event_type === 'lead_created') {
-          summary.leads += 1;
-          if (day) day.leads += 1;
-        }
-
-        if (event.event_type === 'interview_completed') {
-          summary.interviews += 1;
-          if (day) day.interviews += 1;
-        }
-
-        if (event.event_type === 'status_changed') {
-          if (isHiredCandidateStatus(nextStatus)) {
-            summary.hired += 1;
-            if (day) day.hired += 1;
-          }
-
-          if (nextStatus === REJECTED_CANDIDATE_STATUS) {
-            summary.rejected += 1;
-            if (day) day.rejected += 1;
-          }
-
-          if (nextStatus === STARTED_CANDIDATE_STATUS) {
-            summary.started += 1;
-            if (day) day.started += 1;
-          }
-
-          if (nextStatus === FIRED_CANDIDATE_STATUS) {
-            summary.fired += 1;
-            if (day) day.fired += 1;
-          }
-
-          if (nextStatus === 'Ждет тест') summary.waiting_test += 1;
-          if (nextStatus === TRIAL_CANDIDATE_STATUS) summary.test_shift += 1;
-          if (nextStatus === 'Не рассчитан') summary.unpaid += 1;
-        }
-
-        if (platform.includes('onlyfans')) platforms.onlyfans += 1;
-        if (platform.includes('fansly')) platforms.fansly += 1;
-      }
-
-      const daily = [...dailyMap.values()];
-
-      const conversion = {
-        lead_to_interview:
-          summary.leads > 0 ? Math.round((summary.interviews / summary.leads) * 1000) / 10 : 0,
-        interview_to_hired:
-          summary.interviews > 0 ? Math.round((summary.hired / summary.interviews) * 1000) / 10 : 0,
-        hired_to_started:
-          summary.hired > 0 ? Math.round((summary.started / summary.hired) * 1000) / 10 : 0
-      };
-
-      return {
-        summary,
-        daily,
-        platforms,
-        conversion
-      };
-    }
-
-    const [current, previous] = await Promise.all([
-      buildRange(allEvents, fromDate, toDate),
-      buildRange(allEvents, prevFrom, prevTo)
-    ]);
+    const current = buildDashboardRangeStats(allEvents, fromDate, toDate);
+    const previous = buildDashboardRangeStats(allEvents, prevFrom, prevTo);
 
     const trend = (curr, prev) => ({
       current: curr,
@@ -3299,6 +3206,7 @@ app.get('/api/dashboard/stats-live', auth, async (req, res) => {
       daily: current.daily,
       platforms: current.platforms,
       conversion: current.conversion,
+      top_people: current.top_people,
       trends: {
         leads: trend(current.summary.leads, previous.summary.leads),
         interviews: trend(current.summary.interviews, previous.summary.interviews),
