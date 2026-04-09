@@ -252,6 +252,10 @@ const STARTED_CANDIDATE_STATUS = 'Ожидание старта';
 const FIRED_CANDIDATE_STATUS = 'Уволен';
 const TRIAL_CANDIDATE_STATUS = 'Тест смена';
 const UNPAID_CANDIDATE_STATUS = 'Не рассчитан';
+const OFFBOARDED_CANDIDATE_STATUSES = new Set([
+  FIRED_CANDIDATE_STATUS,
+  UNPAID_CANDIDATE_STATUS
+]);
 
 function isVisibleTeamDashboardStatus(status) {
   return TEAM_DASHBOARD_VISIBLE_STATUSES.has(String(status || '').trim());
@@ -1124,7 +1128,7 @@ function summarizeDashboardEvents(events, from, to) {
     if (event.event_type === 'interview_completed') summary.interviews += 1;
     if (event.event_type === 'status_changed' && next === STARTED_CANDIDATE_STATUS) summary.hired += 1;
     if (event.event_type === 'status_changed' && next === REJECTED_CANDIDATE_STATUS) summary.rejected += 1;
-    if (event.event_type === 'status_changed' && next === FIRED_CANDIDATE_STATUS) summary.fired += 1;
+    if (event.event_type === 'status_changed' && OFFBOARDED_CANDIDATE_STATUSES.has(next)) summary.fired += 1;
 
     if (samples.length < 10) {
       samples.push({
@@ -2993,7 +2997,7 @@ function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
       bumpHr(createdBy, 'rejected');
     }
 
-    if (nextStatus === FIRED_CANDIDATE_STATUS) {
+    if (OFFBOARDED_CANDIDATE_STATUSES.has(nextStatus)) {
       summary.fired += 1;
       if (dayRow) dayRow.fired += 1;
       bumpHr(createdBy, 'fired');
@@ -3780,6 +3784,9 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
     const currentRowData = normalizeRow(headers, currentRow, rowNumber);
 
     const statusLabel = 'Актуальный статус кандидата (Hr)';
+    const updatedAtHeader = headers.find(h => ['Updated At', 'Дата обновления'].includes(String(h || '').trim()));
+    const firedDateHeader = headers.find(h => ['Дата увольнения', 'Дата уволен'].includes(String(h || '').trim()));
+    const nowSheetValue = new Date().toISOString();
 
     const data = [];
 
@@ -3799,6 +3806,29 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
         range: `${sheetName}!${columnLetter}${rowNumber}`,
         values: [[nextValue]]
       });
+    }
+
+    if (updatedAtHeader) {
+      const colIndex = headers.findIndex(h => String(h || '').trim() === String(updatedAtHeader || '').trim());
+      if (colIndex >= 0) {
+        const columnLetter = columnToLetter(colIndex + 1);
+        data.push({
+          range: `${sheetName}!${columnLetter}${rowNumber}`,
+          values: [[nowSheetValue]]
+        });
+      }
+    }
+
+    const normalizedNextStatus = normalizeTeamStatus(updates[statusLabel] || '');
+    if (firedDateHeader && OFFBOARDED_CANDIDATE_STATUSES.has(normalizedNextStatus)) {
+      const colIndex = headers.findIndex(h => String(h || '').trim() === String(firedDateHeader || '').trim());
+      if (colIndex >= 0) {
+        const columnLetter = columnToLetter(colIndex + 1);
+        data.push({
+          range: `${sheetName}!${columnLetter}${rowNumber}`,
+          values: [[nowSheetValue]]
+        });
+      }
     }
 
     if (!data.length) {
