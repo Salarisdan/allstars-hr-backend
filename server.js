@@ -296,6 +296,27 @@ function namesLooselyMatch(a, b) {
   return x === y || x.startsWith(y) || y.startsWith(x);
 }
 
+function findHeaderIndex(headers, exactNames = [], partialNames = []) {
+  const normalizedHeaders = (headers || []).map(header => String(header || '').trim());
+
+  for (const name of exactNames) {
+    const index = normalizedHeaders.findIndex(header => header === name);
+    if (index >= 0) return index;
+  }
+
+  const loweredHeaders = normalizedHeaders.map(header => header.toLowerCase());
+
+  for (const part of partialNames) {
+    const needle = String(part || '').trim().toLowerCase();
+    if (!needle) continue;
+
+    const index = loweredHeaders.findIndex(header => header.includes(needle));
+    if (index >= 0) return index;
+  }
+
+  return -1;
+}
+
 async function readSexterEndingMap() {
   const spreadsheetId = process.env.SHELL_OF_SPREADSHEET_ID;
   const sheetName = process.env.SHELL_OF_SEXTER_SHEET_NAME || '# sexter';
@@ -880,16 +901,19 @@ async function loadAllTeamMembersForBackfill() {
 
   const headers = values[0];
   const rows = values.slice(1);
-  const idx = (name) => headers.indexOf(name);
   const safeGet = (row, i) => (i >= 0 && i < row.length ? String(row[i] || '').trim() : '');
 
-  const statusIdx = idx('Актуальный статус кандидата (Hr)');
-  const nameIdx = idx('Имя') >= 0 ? idx('Имя') : idx('Имя / ник') >= 0 ? idx('Имя / ник') : idx('Ник');
-  const telegramIdx = idx('Телеграм') >= 0 ? idx('Телеграм') : idx('Telegram') >= 0 ? idx('Telegram') : idx('TG Username');
-  const platformIdx = idx('OnlyFans / Fansly') >= 0 ? idx('OnlyFans / Fansly') : idx('Платформа');
-  const startDateIdx = idx('Дата старта');
-  const firedDateIdx = idx('Дата увольнения') >= 0 ? idx('Дата увольнения') : idx('Дата уволен');
-  const updatedAtIdx = idx('Updated At') >= 0 ? idx('Updated At') : idx('Дата обновления');
+  const statusIdx = findHeaderIndex(headers, ['Актуальный статус кандидата (Hr)'], ['статус кандидата', 'актуальный статус', 'status']);
+  const nameIdx = findHeaderIndex(headers, ['Имя', 'Имя / ник', 'Ник'], ['имя', 'ник']);
+  const telegramIdx = findHeaderIndex(headers, ['Телеграм', 'Telegram', 'TG Username', 'Username', 'ТГ'], ['telegram', 'телеграм', 'username', 'tg']);
+  const platformIdx = findHeaderIndex(headers, ['OnlyFans / Fansly', 'Платформа'], ['onlyfans', 'fansly', 'платформа']);
+  const startDateIdx = findHeaderIndex(headers, ['Дата старта'], ['дата старта', 'старт']);
+  const firedDateIdx = findHeaderIndex(
+    headers,
+    ['Дата увольнения', 'Дата уволен', 'Дата расчета', 'Дата расчёта'],
+    ['дата уволь', 'увольнен', 'дата увол', 'дата расчет', 'дата расчёт']
+  );
+  const updatedAtIdx = findHeaderIndex(headers, ['Updated At', 'Дата обновления'], ['updated at', 'дата обновления', 'обновлен', 'обновлён']);
 
   return rows
     .filter(row => row.some(cell => String(cell || '').trim() !== ''))
@@ -3064,6 +3088,51 @@ function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
   };
 }
 
+function collectDashboardOffboardedEvents(events, rangeStart, rangeEnd) {
+  const matches = [];
+
+  for (const event of events) {
+    const createdAt = new Date(event.created_at);
+    if (Number.isNaN(createdAt.getTime()) || createdAt < rangeStart || createdAt > rangeEnd) {
+      continue;
+    }
+
+    if (event.event_type !== 'status_changed') {
+      continue;
+    }
+
+    const nextStatus = String(event.new_value || '').trim();
+    if (!OFFBOARDED_CANDIDATE_STATUSES.has(nextStatus)) {
+      continue;
+    }
+
+    const meta = getDashboardEventMeta(event);
+
+    matches.push({
+      created_at: event.created_at,
+      date: formatDateOnly(createdAt),
+      entity_type: String(event.entity_type || ''),
+      entity_id: String(event.entity_id || ''),
+      status: nextStatus,
+      name: String(meta.name || '').trim(),
+      telegram: String(meta.telegram || '').trim(),
+      platform: String(meta.platform || '').trim(),
+      author: getDashboardEventAuthor(event),
+      approximate: !!meta.approximate,
+      source: event.meta_json ? 'db' : 'file/backfill'
+    });
+  }
+
+  matches.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  return {
+    total: matches.length,
+    fired: matches.filter(item => item.status === FIRED_CANDIDATE_STATUS).length,
+    unpaid: matches.filter(item => item.status === UNPAID_CANDIDATE_STATUS).length,
+    items: matches
+  };
+}
+
 async function buildDashboardStatsPayload({ week = 'current', date_from, date_to }) {
   let fromDate;
   let toDate;
@@ -3783,9 +3852,14 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
     const currentRow = currentRowRes.data.values?.[0] || [];
     const currentRowData = normalizeRow(headers, currentRow, rowNumber);
 
-    const statusLabel = 'Актуальный статус кандидата (Hr)';
-    const updatedAtHeader = headers.find(h => ['Updated At', 'Дата обновления'].includes(String(h || '').trim()));
-    const firedDateHeader = headers.find(h => ['Дата увольнения', 'Дата уволен'].includes(String(h || '').trim()));
+    const statusIdx = findHeaderIndex(headers, ['Актуальный статус кандидата (Hr)'], ['статус кандидата', 'актуальный статус', 'status']);
+    const statusLabel = statusIdx >= 0 ? String(headers[statusIdx] || '').trim() : 'Актуальный статус кандидата (Hr)';
+    const updatedAtIdx = findHeaderIndex(headers, ['Updated At', 'Дата обновления'], ['updated at', 'дата обновления', 'обновлен', 'обновлён']);
+    const firedDateIdx = findHeaderIndex(
+      headers,
+      ['Дата увольнения', 'Дата уволен', 'Дата расчета', 'Дата расчёта'],
+      ['дата уволь', 'увольнен', 'дата увол', 'дата расчет', 'дата расчёт']
+    );
     const nowSheetValue = new Date().toISOString();
 
     const data = [];
@@ -3808,27 +3882,21 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       });
     }
 
-    if (updatedAtHeader) {
-      const colIndex = headers.findIndex(h => String(h || '').trim() === String(updatedAtHeader || '').trim());
-      if (colIndex >= 0) {
-        const columnLetter = columnToLetter(colIndex + 1);
-        data.push({
-          range: `${sheetName}!${columnLetter}${rowNumber}`,
-          values: [[nowSheetValue]]
-        });
-      }
+    if (updatedAtIdx >= 0) {
+      const columnLetter = columnToLetter(updatedAtIdx + 1);
+      data.push({
+        range: `${sheetName}!${columnLetter}${rowNumber}`,
+        values: [[nowSheetValue]]
+      });
     }
 
     const normalizedNextStatus = normalizeTeamStatus(updates[statusLabel] || '');
-    if (firedDateHeader && OFFBOARDED_CANDIDATE_STATUSES.has(normalizedNextStatus)) {
-      const colIndex = headers.findIndex(h => String(h || '').trim() === String(firedDateHeader || '').trim());
-      if (colIndex >= 0) {
-        const columnLetter = columnToLetter(colIndex + 1);
-        data.push({
-          range: `${sheetName}!${columnLetter}${rowNumber}`,
-          values: [[nowSheetValue]]
-        });
-      }
+    if (firedDateIdx >= 0 && OFFBOARDED_CANDIDATE_STATUSES.has(normalizedNextStatus)) {
+      const columnLetter = columnToLetter(firedDateIdx + 1);
+      data.push({
+        range: `${sheetName}!${columnLetter}${rowNumber}`,
+        values: [[nowSheetValue]]
+      });
     }
 
     if (!data.length) {
@@ -4343,6 +4411,42 @@ app.get('/api/debug/dashboard-live-sources', auth, async (req, res) => {
   } catch (err) {
     console.error('dashboard-live-sources debug error:', err);
     res.status(500).json({ error: err.message || 'dashboard live debug failed' });
+  }
+});
+
+app.get('/api/debug/dashboard-offboarded', auth, async (req, res) => {
+  try {
+    const { week = 'current' } = req.query;
+
+    const baseDate =
+      week === 'previous'
+        ? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        : new Date();
+
+    const fromDate = startOfWeek(baseDate);
+    const toDate = endOfWeek(baseDate);
+
+    const existingEvents = await readCrmEvents();
+    const liveEvents = await collectBackfillEvents({
+      agencyId: req.user.agencyId,
+      fromDate,
+      toDate
+    });
+    const { filteredNew, merged } = mergeCrmEvents(existingEvents, liveEvents);
+    const offboarded = collectDashboardOffboardedEvents(merged, fromDate, toDate);
+
+    res.json({
+      range: {
+        date_from: formatDateOnly(fromDate),
+        date_to: formatDateOnly(toDate),
+        week
+      },
+      added_now: filteredNew.length,
+      offboarded
+    });
+  } catch (err) {
+    console.error('dashboard-offboarded debug error:', err);
+    res.status(500).json({ error: err.message || 'dashboard offboarded debug failed' });
   }
 });
 
