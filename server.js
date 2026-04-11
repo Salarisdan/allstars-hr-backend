@@ -869,6 +869,25 @@ async function loadAllCandidatesForBackfill(agencyId) {
   return result.rows || [];
 }
 
+function pushCandidateDateBackfillEvent(newEvents, candidate, agencyId, dateValue, newValue) {
+  const eventDate = normalizeDateInput(dateValue);
+  if (!eventDate) return;
+
+  newEvents.push(buildBackfillEvent({
+    entityType: 'candidate',
+    entityId: candidate.id || candidate.row_number || candidate.name,
+    eventType: 'status_changed',
+    date: eventDate,
+    agencyId,
+    newValue,
+    meta: {
+      name: candidate.name || '',
+      telegram: candidate.telegram || candidate.tg || '',
+      platform: candidate.platform || candidate.platforms || ''
+    }
+  }));
+}
+
 async function loadCandidateStatusHistoryForBackfill(agencyId) {
   const result = await query(
     `SELECT
@@ -988,6 +1007,22 @@ async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
           platform: c.platform || c.platforms || ''
         }
       }));
+    }
+
+    if (c.hired_at && isWithinRange(c.hired_at, fromDate, toDate)) {
+      pushCandidateDateBackfillEvent(newEvents, c, agencyId, c.hired_at, 'Принятый');
+    }
+
+    if (c.started_at && isWithinRange(c.started_at, fromDate, toDate)) {
+      pushCandidateDateBackfillEvent(newEvents, c, agencyId, c.started_at, STARTED_CANDIDATE_STATUS);
+    }
+
+    if (c.rejected_at && isWithinRange(c.rejected_at, fromDate, toDate)) {
+      pushCandidateDateBackfillEvent(newEvents, c, agencyId, c.rejected_at, REJECTED_CANDIDATE_STATUS);
+    }
+
+    if (c.fired_at && isWithinRange(c.fired_at, fromDate, toDate)) {
+      pushCandidateDateBackfillEvent(newEvents, c, agencyId, c.fired_at, FIRED_CANDIDATE_STATUS);
     }
   }
 
@@ -3113,6 +3148,12 @@ function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
   const dailyMap = new Map();
   const hrMap = new Map();
   const countedLeadKeys = new Set();
+  const countedHiredKeys = new Set();
+  const countedRejectedKeys = new Set();
+  const countedFiredKeys = new Set();
+  const countedStartedKeys = new Set();
+  const countedTestShiftKeys = new Set();
+  const countedUnpaidKeys = new Set();
 
   for (let cursor = new Date(rangeStart); cursor <= rangeEnd; cursor.setDate(cursor.getDate() + 1)) {
     const dateStr = formatDateOnly(cursor);
@@ -3186,42 +3227,59 @@ function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
       continue;
     }
 
+    const personKey = getDashboardLeadKey(event);
+
     if (nextStatus === REJECTED_CANDIDATE_STATUS) {
-      summary.rejected += 1;
-      if (dayRow) dayRow.rejected += 1;
-      bumpHr(createdBy, 'rejected');
+      if (!countedRejectedKeys.has(personKey)) {
+        countedRejectedKeys.add(personKey);
+        summary.rejected += 1;
+        if (dayRow) dayRow.rejected += 1;
+        bumpHr(createdBy, 'rejected');
+      }
     }
 
     if (OFFBOARDED_CANDIDATE_STATUSES.has(nextStatus)) {
-      summary.fired += 1;
-      if (dayRow) dayRow.fired += 1;
-      bumpHr(createdBy, 'fired');
+      if (!countedFiredKeys.has(personKey)) {
+        countedFiredKeys.add(personKey);
+        summary.fired += 1;
+        if (dayRow) dayRow.fired += 1;
+        bumpHr(createdBy, 'fired');
+      }
     }
 
-    if (isDashboardHiredStatus(nextStatus)) {
-      summary.hired += 1;
-      incrementDashboardPlatformMetric(platformBreakdown, platform, 'hired');
+    if (isDashboardHiredStatus(nextStatus) || nextStatus === STARTED_CANDIDATE_STATUS) {
+      if (!countedHiredKeys.has(personKey)) {
+        countedHiredKeys.add(personKey);
+        summary.hired += 1;
+        incrementDashboardPlatformMetric(platformBreakdown, platform, 'hired');
 
-      if (dayRow) {
-        dayRow.hired += 1;
+        if (dayRow) {
+          dayRow.hired += 1;
+        }
+
+        bumpHr(createdBy, 'hired');
       }
-
-      bumpHr(createdBy, 'hired');
     }
 
     if (nextStatus === STARTED_CANDIDATE_STATUS) {
-      summary.started += 1;
-      incrementDashboardPlatformMetric(platformBreakdown, platform, 'started');
+      if (!countedStartedKeys.has(personKey)) {
+        countedStartedKeys.add(personKey);
+        summary.started += 1;
+        incrementDashboardPlatformMetric(platformBreakdown, platform, 'started');
 
-      if (dayRow) {
-        dayRow.started += 1;
+        if (dayRow) {
+          dayRow.started += 1;
+        }
       }
     }
 
     if (isDashboardTrialStatus(nextStatus)) {
-      summary.test_shift += 1;
-      incrementDashboardPlatformMetric(platformBreakdown, platform, 'test_shift');
-      if (dayRow) dayRow.test_shift += 1;
+      if (!countedTestShiftKeys.has(personKey)) {
+        countedTestShiftKeys.add(personKey);
+        summary.test_shift += 1;
+        incrementDashboardPlatformMetric(platformBreakdown, platform, 'test_shift');
+        if (dayRow) dayRow.test_shift += 1;
+      }
     }
 
     if (nextStatus === WAITING_TEST_CANDIDATE_STATUS) {
@@ -3229,8 +3287,11 @@ function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
     }
 
     if (nextStatus === UNPAID_CANDIDATE_STATUS) {
-      summary.unpaid += 1;
-      if (dayRow) dayRow.unpaid += 1;
+      if (!countedUnpaidKeys.has(personKey)) {
+        countedUnpaidKeys.add(personKey);
+        summary.unpaid += 1;
+        if (dayRow) dayRow.unpaid += 1;
+      }
     }
   }
 
