@@ -944,32 +944,26 @@ async function loadAllTeamMembersForBackfill() {
 
   const headers = values[0];
   const rows = values.slice(1);
-  const safeGet = (row, i) => (i >= 0 && i < row.length ? String(row[i] || '').trim() : '');
-
-  const statusIdx = findHeaderIndex(headers, ['Актуальный статус кандидата (Hr)'], ['статус кандидата', 'актуальный статус', 'status']);
-  const nameIdx = findHeaderIndex(headers, ['Имя', 'Имя / ник', 'Ник'], ['имя', 'ник']);
-  const telegramIdx = findHeaderIndex(headers, ['Телеграм', 'Telegram', 'TG Username', 'Username', 'ТГ'], ['telegram', 'телеграм', 'username', 'tg']);
-  const platformIdx = findHeaderIndex(headers, ['OnlyFans / Fansly', 'Платформа'], ['onlyfans', 'fansly', 'платформа']);
-  const startDateIdx = findHeaderIndex(headers, ['Дата старта'], ['дата старта', 'старт']);
-  const firedDateIdx = findHeaderIndex(
-    headers,
-    ['Дата увольнения', 'Дата уволен', 'Дата расчета', 'Дата расчёта'],
-    ['дата уволь', 'увольнен', 'дата увол', 'дата расчет', 'дата расчёт']
-  );
-  const updatedAtIdx = findHeaderIndex(headers, ['Updated At', 'Дата обновления'], ['updated at', 'дата обновления', 'обновлен', 'обновлён']);
 
   return rows
     .filter(row => row.some(cell => String(cell || '').trim() !== ''))
-    .map((row, index) => ({
-      row_number: index + 2,
-      name: safeGet(row, nameIdx),
-      telegram: safeGet(row, telegramIdx),
-      status: safeGet(row, statusIdx) || 'Без статуса',
-      platform: safeGet(row, platformIdx),
-      date_start: safeGet(row, startDateIdx),
-      date_fired: safeGet(row, firedDateIdx),
-      updated_at: safeGet(row, updatedAtIdx)
-    }));
+    .map((row, index) => {
+      const obj = {};
+      headers.forEach((header, colIndex) => {
+        obj[header] = row[colIndex] || '';
+      });
+
+      return {
+        row_number: index + 2,
+        name: String(obj['Имя'] || obj['Имя / ник'] || obj['Ник'] || '').trim(),
+        telegram: String(obj['Телеграм'] || obj['Telegram'] || obj['ТГ'] || obj['Telegram / username'] || obj['TG Username'] || obj['Username'] || '').trim(),
+        status: String(obj['Актуальный статус кандидата (Hr)'] || '').trim() || 'Без статуса',
+        platform: String(obj['OnlyFans / Fansly'] || obj['Платформа'] || '').trim(),
+        date_start: String(obj['Дата старта'] || '').trim(),
+        date_fired: String(obj['Дата увольнения'] || obj['Дата уволен'] || obj['Дата расчета'] || obj['Дата расчёта'] || '').trim(),
+        updated_at: String(obj['Updated At'] || obj['Дата обновления'] || '').trim()
+      };
+    });
 }
 
 async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
@@ -3025,6 +3019,63 @@ function filterDashboardEventsByAgency(events, agencyId) {
   return events.filter(event => getDashboardEventAgencyId(event) === normalizedAgencyId);
 }
 
+function createDashboardPlatformStats() {
+  return {
+    leads: 0,
+    test_shift: 0,
+    hired: 0,
+    started: 0
+  };
+}
+
+function createDashboardPlatformBreakdown() {
+  return {
+    onlyfans: createDashboardPlatformStats(),
+    fansly: createDashboardPlatformStats(),
+    unknown: createDashboardPlatformStats()
+  };
+}
+
+function getDashboardPlatformBucket(value) {
+  const platform = String(value || '').trim().toLowerCase();
+  const hasOnlyFans = platform.includes('onlyfans') || platform.includes('only fans');
+  const hasFansly = platform.includes('fansly');
+
+  if (hasOnlyFans && !hasFansly) return 'onlyfans';
+  if (hasFansly && !hasOnlyFans) return 'fansly';
+  return 'unknown';
+}
+
+function incrementDashboardPlatformMetric(platformBreakdown, platformValue, metric) {
+  const bucket = getDashboardPlatformBucket(platformValue);
+  if (!platformBreakdown[bucket]) {
+    platformBreakdown[bucket] = createDashboardPlatformStats();
+  }
+
+  platformBreakdown[bucket][metric] += 1;
+}
+
+function buildDashboardWorkingSnapshot(teamMembers) {
+  const snapshot = {
+    onlyfans: 0,
+    fansly: 0,
+    unknown: 0,
+    total: 0
+  };
+
+  for (const member of teamMembers) {
+    if (String(member?.status || '').trim() !== 'Работает') {
+      continue;
+    }
+
+    const bucket = getDashboardPlatformBucket(member?.platform || '');
+    snapshot[bucket] += 1;
+    snapshot.total += 1;
+  }
+
+  return snapshot;
+}
+
 function getDashboardLeadKey(event) {
   const meta = getDashboardEventMeta(event);
   const telegram = String(meta.telegram || meta.tg || meta.username || '').trim().toLowerCase().replace(/^@/, '');
@@ -3057,6 +3108,7 @@ function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
     onlyfans: 0,
     fansly: 0
   };
+  const platformBreakdown = createDashboardPlatformBreakdown();
 
   const dailyMap = new Map();
   const hrMap = new Map();
@@ -3114,6 +3166,7 @@ function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
         summary.leads += 1;
         if (dayRow) dayRow.leads += 1;
         bumpHr(createdBy, 'leads');
+        incrementDashboardPlatformMetric(platformBreakdown, platform, 'leads');
 
         if (platform.includes('onlyfans')) platforms.onlyfans += 1;
         if (platform.includes('fansly')) platforms.fansly += 1;
@@ -3147,6 +3200,7 @@ function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
 
     if (isDashboardHiredStatus(nextStatus)) {
       summary.hired += 1;
+      incrementDashboardPlatformMetric(platformBreakdown, platform, 'hired');
 
       if (dayRow) {
         dayRow.hired += 1;
@@ -3157,6 +3211,7 @@ function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
 
     if (nextStatus === STARTED_CANDIDATE_STATUS) {
       summary.started += 1;
+      incrementDashboardPlatformMetric(platformBreakdown, platform, 'started');
 
       if (dayRow) {
         dayRow.started += 1;
@@ -3165,6 +3220,7 @@ function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
 
     if (isDashboardTrialStatus(nextStatus)) {
       summary.test_shift += 1;
+      incrementDashboardPlatformMetric(platformBreakdown, platform, 'test_shift');
       if (dayRow) dayRow.test_shift += 1;
     }
 
@@ -3206,6 +3262,7 @@ function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
   return {
     summary,
     platforms,
+    platform_breakdown: platformBreakdown,
     daily,
     conversion,
     top_people: topPeople
@@ -3424,6 +3481,8 @@ app.get('/api/dashboard/stats-live', auth, async (req, res) => {
     }
 
     const allEvents = filterDashboardEventsByAgency(merged, req.user.agencyId);
+    const teamMembers = await loadAllTeamMembersForBackfill();
+    const workingSnapshot = buildDashboardWorkingSnapshot(teamMembers);
 
     const current = buildDashboardRangeStats(allEvents, fromDate, toDate);
     const previous = buildDashboardRangeStats(allEvents, prevFrom, prevTo);
@@ -3448,6 +3507,8 @@ app.get('/api/dashboard/stats-live', auth, async (req, res) => {
       summary: current.summary,
       daily: current.daily,
       platforms: current.platforms,
+      platform_breakdown: current.platform_breakdown,
+      working_snapshot: workingSnapshot,
       conversion: current.conversion,
       top_people: current.top_people,
       trends: {
