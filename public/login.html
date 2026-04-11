@@ -194,15 +194,16 @@ async function loadMe(){
     const registerForm = document.getElementById('register-form');
     const msg = document.getElementById('auth-msg');
 
+    const loginHint = 'Введите email и пароль, которые вам выдали. Регистрация нужна только для создания нового агентства.';
+    const registerHint = 'После регистрации создаётся agency + owner account.';
+
     function switchTab(mode) {
       const isLogin = mode === 'login';
       loginForm.classList.toggle('hidden', !isLogin);
       registerForm.classList.toggle('hidden', isLogin);
       tabLogin.className = isLogin ? 'btn' : 'btn ghost';
       tabRegister.className = !isLogin ? 'btn' : 'btn ghost';
-      msg.textContent = isLogin
-        ? 'Демо вход уже заполнен.'
-        : 'После регистрации создаётся agency + owner account.';
+      msg.textContent = isLogin ? loginHint : registerHint;
     }
 
     tabLogin.onclick = () => switchTab('login');

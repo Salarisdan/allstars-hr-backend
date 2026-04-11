@@ -382,15 +382,19 @@
           <div class="field">
             <label>Роль</label>
             <select class="select" id="userRole">
-              <option value="hr">hr</option>
-              <option value="teamlead">teamlead</option>
-              <option value="admin">admin</option>
+              <option value="hr">HR</option>
+              <option value="teamlead">Teamlead</option>
+              <option value="owner">Owner</option>
             </select>
           </div>
         </div>
 
         <div class="form-actions">
           <button class="btn btn-primary" type="button" id="createUserBtn">Создать пользователя</button>
+        </div>
+
+        <div class="helper-text" id="createUserHint">
+          После создания передайте человеку email и пароль. Вход для него через <strong>/login.html</strong>, повторная регистрация не нужна.
         </div>
       </section>
 
@@ -407,6 +411,7 @@
     const usersContent = document.getElementById('usersContent');
     const refreshBtn = document.getElementById('refreshBtn');
     const createUserBtn = document.getElementById('createUserBtn');
+    const createUserHint = document.getElementById('createUserHint');
 
     async function api(path, options = {}) {
       const res = await fetch(path, {
@@ -507,6 +512,8 @@
       const password = document.getElementById('userPassword').value;
       const role = document.getElementById('userRole').value;
 
+      createUserHint.innerHTML = 'Создаём пользователя...';
+
       const res = await api('/api/users', {
         method: 'POST',
         body: JSON.stringify({ name, email, password, role })
@@ -515,6 +522,7 @@
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
+        createUserHint.textContent = data.error || 'Не удалось создать пользователя';
         alert(data.error || 'Не удалось создать пользователя');
         return;
       }
@@ -523,6 +531,7 @@
       document.getElementById('userEmail').value = '';
       document.getElementById('userPassword').value = '';
       document.getElementById('userRole').value = 'hr';
+      createUserHint.innerHTML = `Пользователь <strong>${escapeHtml(data.email || email)}</strong> создан. Передайте ему email и пароль, вход через <strong>/login.html</strong>.`;
 
       await loadUsers();
     }
