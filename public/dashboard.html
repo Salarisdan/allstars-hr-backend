@@ -780,47 +780,6 @@
       }
     }
 
-    @media (max-width:920px){
-      .layout{display:block}
-      .sidebar{
-        display:flex;
-        position:sticky;
-        top:0;
-        bottom:auto;
-        width:100%;
-        padding:.75rem 1rem;
-        border-right:none;
-        border-bottom:1px solid var(--border);
-        overflow-x:auto;
-        overflow-y:hidden;
-        gap:8px;
-        z-index:40;
-        background:rgba(20,23,32,.96);
-        backdrop-filter:blur(12px);
-      }
-      .sidebar-logo,.sidebar-section{display:none}
-      .nav-item{
-        flex:0 0 auto;
-        border-left:none;
-        border-bottom:2px solid transparent;
-        border-radius:12px;
-        padding:.72rem .9rem;
-        white-space:nowrap;
-        background:var(--surface2);
-      }
-      .nav-item.active{border-bottom-color:var(--accent)}
-    }
-
-    @media (max-width:640px){
-      .main{padding:.85rem .85rem 2rem}
-      .title h1{font-size:24px}
-      .topbar,.section-head{align-items:stretch}
-      .btns{width:100%}
-      .btns .btn{flex:1 1 100%}
-      .daily-row{grid-template-columns:1fr}
-      .chart-wrap{min-height:260px}
-      .dashboard-live-badge{margin-left:0}
-    }
     .mobile-nav-toggle{display:none}
     .mobile-nav-backdrop{display:none}
     .mobile-nav-toggle span{display:block;width:18px;height:2px;border-radius:999px;background:currentColor}
@@ -1091,7 +1050,7 @@
         <div class="dashboard-grid">
           ${renderKpiCard('Лиды', summary.leads, 'Новых кандидатов за период', 'kpi-blue', trends.leads)}
           ${renderKpiCard('Собеседования', summary.interviews, 'Проведено интервью', 'kpi-purple', trends.interviews)}
-          ${renderKpiCard('Принятые', summary.hired, 'Вышли на работу за неделю', 'kpi-green', trends.hired)}
+          ${renderKpiCard('Принятые', summary.hired, 'Статус: Принятый / Работает за неделю', 'kpi-green', trends.hired)}
           ${renderKpiCard('Отказы', summary.rejected, 'Отказов за неделю', 'kpi-red', trends.rejected)}
           ${renderKpiCard('Уволены', summary.fired, 'Уволен + не рассчитан за неделю', 'kpi-burgundy', trends.fired)}
           ${renderKpiCard('Не рассчитан', summary.unpaid, 'Зависли на расчёте за неделю', 'kpi-orange', trends.unpaid)}
@@ -1155,7 +1114,7 @@
               </div>
 
               <div class="metric-box">
-                <div class="metric-box-k">Собеседование → Выход на работу</div>
+                <div class="metric-box-k">Собеседование → Принятие</div>
                 <div class="metric-box-v">${conversion.interview_to_hired || 0}%</div>
               </div>
             </div>

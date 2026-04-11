@@ -64,6 +64,8 @@ async function appendCrmEvent(event) {
   console.log('APPEND CRM EVENT CALLED');
 
   const events = await readCrmEvents();
+  const rawAgencyId = Number(event.agency_id);
+  const agencyId = Number.isInteger(rawAgencyId) && rawAgencyId > 0 ? rawAgencyId : null;
 
   const nextEvent = {
     id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -73,9 +75,17 @@ async function appendCrmEvent(event) {
     old_value: String(event.old_value || ''),
     new_value: String(event.new_value || ''),
     meta: event.meta || {},
+    agency_id: agencyId,
     created_at: new Date().toISOString(),
     created_by: String(event.created_by || '')
   };
+
+  if (agencyId) {
+    nextEvent.meta = {
+      ...nextEvent.meta,
+      agencyId
+    };
+  }
 
   events.push(nextEvent);
 
@@ -246,14 +256,32 @@ const HIRED_CANDIDATE_STATUSES = new Set([
   'Принятый',
   'Работает'
 ]);
+const DASHBOARD_HIRED_CANDIDATE_STATUSES = new Set([
+  ...HIRED_CANDIDATE_STATUSES,
+  'Принят'
+]);
 
 const REJECTED_CANDIDATE_STATUS = 'Отказ';
 const STARTED_CANDIDATE_STATUS = 'Ожидание старта';
 const FIRED_CANDIDATE_STATUS = 'Уволен';
 const TRIAL_CANDIDATE_STATUS = 'Тест смена';
+const DASHBOARD_TRIAL_CANDIDATE_STATUSES = new Set([
+  TRIAL_CANDIDATE_STATUS,
+  'Тест-смена'
+]);
+const WAITING_TEST_CANDIDATE_STATUS = 'Ждет тест';
 const UNPAID_CANDIDATE_STATUS = 'Не рассчитан';
 const OFFBOARDED_CANDIDATE_STATUSES = new Set([
   FIRED_CANDIDATE_STATUS,
+  UNPAID_CANDIDATE_STATUS
+]);
+const DASHBOARD_TRACKED_STATUSES = new Set([
+  ...DASHBOARD_HIRED_CANDIDATE_STATUSES,
+  REJECTED_CANDIDATE_STATUS,
+  STARTED_CANDIDATE_STATUS,
+  FIRED_CANDIDATE_STATUS,
+  ...DASHBOARD_TRIAL_CANDIDATE_STATUSES,
+  WAITING_TEST_CANDIDATE_STATUS,
   UNPAID_CANDIDATE_STATUS
 ]);
 
@@ -263,6 +291,14 @@ function isVisibleTeamDashboardStatus(status) {
 
 function isHiredCandidateStatus(status) {
   return HIRED_CANDIDATE_STATUSES.has(String(status || '').trim());
+}
+
+function isDashboardHiredStatus(status) {
+  return DASHBOARD_HIRED_CANDIDATE_STATUSES.has(String(status || '').trim());
+}
+
+function isDashboardTrialStatus(status) {
+  return DASHBOARD_TRIAL_CANDIDATE_STATUSES.has(String(status || '').trim());
 }
 
 function shouldClearTransactionEndingByStatus(status) {
@@ -783,8 +819,13 @@ function buildBackfillEvent({
   newValue = '',
   meta = {},
   createdBy = 'backfill',
+  agencyId = null,
   approximate = false
 }) {
+  const normalizedAgencyId = Number.isInteger(Number(agencyId)) && Number(agencyId) > 0
+    ? Number(agencyId)
+    : null;
+
   return {
     id: `bf_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     entity_type: String(entityType || ''),
@@ -794,8 +835,10 @@ function buildBackfillEvent({
     new_value: String(newValue || ''),
     meta: {
       ...meta,
+      ...(normalizedAgencyId ? { agencyId: normalizedAgencyId } : {}),
       approximate
     },
+    agency_id: normalizedAgencyId,
     created_at: new Date(date).toISOString(),
     created_by: createdBy
   };
@@ -944,6 +987,7 @@ async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
         entityId: c.id || c.row_number || c.name,
         eventType: 'lead_created',
         date: createdAt,
+        agencyId,
         meta: {
           name: c.name || '',
           telegram: c.telegram || c.tg || '',
@@ -961,6 +1005,7 @@ async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
         entityId: i.id || i.row_number || i.name,
         eventType: 'interview_completed',
         date: interviewAt,
+        agencyId,
         meta: {
           name: i.name || '',
           telegram: i.telegram || i.tg || '',
@@ -979,6 +1024,7 @@ async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
           entityId: i.id || i.row_number || i.name,
           eventType: 'status_changed',
           date: rejectAt,
+          agencyId,
           newValue: REJECTED_CANDIDATE_STATUS,
           meta: {
             name: i.name || '',
@@ -993,7 +1039,7 @@ async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
 
   for (const item of candidateStatusHistory) {
     const status = String(item.status || '').trim();
-    if (![REJECTED_CANDIDATE_STATUS, FIRED_CANDIDATE_STATUS, UNPAID_CANDIDATE_STATUS].includes(status)) continue;
+    if (!DASHBOARD_TRACKED_STATUSES.has(status)) continue;
 
     const eventDate = normalizeDateInput(item.created_at);
     if (eventDate && isWithinRange(eventDate, fromDate, toDate)) {
@@ -1002,6 +1048,7 @@ async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
         entityId: item.candidate_id || item.name,
         eventType: 'status_changed',
         date: eventDate,
+        agencyId,
         newValue: status,
         meta: {
           name: item.name || '',
@@ -1021,6 +1068,7 @@ async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
         entityId: m.id || m.row_number || m.name,
         eventType: 'status_changed',
         date: startDate,
+        agencyId,
         newValue: STARTED_CANDIDATE_STATUS,
         meta: {
           name: m.name || '',
@@ -1037,6 +1085,7 @@ async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
         entityId: m.id || m.row_number || m.name,
         eventType: 'status_changed',
         date: firedDate,
+        agencyId,
         newValue: FIRED_CANDIDATE_STATUS,
         meta: {
           name: m.name || '',
@@ -1059,6 +1108,7 @@ async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
         entityId: m.id || m.row_number || m.name,
         eventType: 'status_changed',
         date: fallbackStatusDate,
+        agencyId,
         newValue: FIRED_CANDIDATE_STATUS,
         meta: {
           name: m.name || '',
@@ -1079,6 +1129,7 @@ async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
         entityId: m.id || m.row_number || m.name,
         eventType: 'status_changed',
         date: fallbackStatusDate,
+        agencyId,
         newValue: UNPAID_CANDIDATE_STATUS,
         meta: {
           name: m.name || '',
@@ -1097,6 +1148,7 @@ function mergeCrmEvents(existingEvents, newEvents) {
   const existingKeys = new Set(
     existingEvents.map(e =>
       [
+        String(e.agency_id || getDashboardEventMeta(e).agencyId || ''),
         e.entity_type,
         e.entity_id,
         e.event_type,
@@ -1108,6 +1160,7 @@ function mergeCrmEvents(existingEvents, newEvents) {
 
   const filteredNew = newEvents.filter(e => {
     const key = [
+      String(e.agency_id || getDashboardEventMeta(e).agencyId || ''),
       e.entity_type,
       e.entity_id,
       e.event_type,
@@ -1150,7 +1203,7 @@ function summarizeDashboardEvents(events, from, to) {
 
     if (event.event_type === 'lead_created') summary.leads += 1;
     if (event.event_type === 'interview_completed') summary.interviews += 1;
-    if (event.event_type === 'status_changed' && next === STARTED_CANDIDATE_STATUS) summary.hired += 1;
+    if (event.event_type === 'status_changed' && isDashboardHiredStatus(next)) summary.hired += 1;
     if (event.event_type === 'status_changed' && next === REJECTED_CANDIDATE_STATUS) summary.rejected += 1;
     if (event.event_type === 'status_changed' && OFFBOARDED_CANDIDATE_STATUSES.has(next)) summary.fired += 1;
 
@@ -2178,6 +2231,7 @@ app.post('/candidates', auth, async (req, res) => {
         entity_type: 'candidate',
         entity_id: String(createdCandidate.id),
         event_type: 'lead_created',
+        agency_id: req.user?.agencyId,
         meta: {
           name: candidate.name,
           telegram: candidate.telegram || candidate.tg,
@@ -2330,6 +2384,7 @@ app.patch('/candidates/:id', auth, async (req, res) => {
       entity_type: 'candidate',
       entity_id: String(candidateId || Date.now()),
       event_type: 'status_changed',
+      agency_id: req.user?.agencyId,
       old_value: String(prevStatus || ''),
       new_value: String(newStatus || ''),
       meta: {
@@ -2778,6 +2833,7 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
         entity_type: 'interview',
         entity_id: String(interviewId || createdCandidate.id || Date.now()),
         event_type: 'interview_completed',
+        agency_id: req.user?.agencyId,
         meta: {
           name: candidate.name,
           telegram: candidate.telegram || candidate.tg,
@@ -2928,6 +2984,30 @@ function getDashboardEventAuthor(event) {
   return createdBy;
 }
 
+function getDashboardEventAgencyId(event) {
+  const directAgencyId = Number(event?.agency_id);
+  if (Number.isInteger(directAgencyId) && directAgencyId > 0) {
+    return directAgencyId;
+  }
+
+  const meta = getDashboardEventMeta(event);
+  const metaAgencyId = Number(meta.agencyId || meta.agency_id);
+  if (Number.isInteger(metaAgencyId) && metaAgencyId > 0) {
+    return metaAgencyId;
+  }
+
+  return null;
+}
+
+function filterDashboardEventsByAgency(events, agencyId) {
+  const normalizedAgencyId = Number(agencyId);
+  if (!Number.isInteger(normalizedAgencyId) || normalizedAgencyId <= 0) {
+    return [];
+  }
+
+  return events.filter(event => getDashboardEventAgencyId(event) === normalizedAgencyId);
+}
+
 function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
   const summary = {
     leads: 0,
@@ -3027,24 +3107,30 @@ function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
       bumpHr(createdBy, 'fired');
     }
 
-    if (nextStatus === STARTED_CANDIDATE_STATUS) {
+    if (isDashboardHiredStatus(nextStatus)) {
       summary.hired += 1;
-      summary.started += 1;
 
       if (dayRow) {
         dayRow.hired += 1;
-        dayRow.started += 1;
       }
 
       bumpHr(createdBy, 'hired');
     }
 
-    if (nextStatus === TRIAL_CANDIDATE_STATUS) {
+    if (nextStatus === STARTED_CANDIDATE_STATUS) {
+      summary.started += 1;
+
+      if (dayRow) {
+        dayRow.started += 1;
+      }
+    }
+
+    if (isDashboardTrialStatus(nextStatus)) {
       summary.test_shift += 1;
       if (dayRow) dayRow.test_shift += 1;
     }
 
-    if (nextStatus === 'Ждет тест') {
+    if (nextStatus === WAITING_TEST_CANDIDATE_STATUS) {
       summary.waiting_test += 1;
     }
 
@@ -3299,7 +3385,7 @@ app.get('/api/dashboard/stats-live', auth, async (req, res) => {
       await writeCrmEvents(merged);
     }
 
-    const allEvents = merged;
+    const allEvents = filterDashboardEventsByAgency(merged, req.user.agencyId);
 
     const current = buildDashboardRangeStats(allEvents, fromDate, toDate);
     const previous = buildDashboardRangeStats(allEvents, prevFrom, prevTo);
@@ -3952,6 +4038,7 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
         entity_type: 'candidate',
         entity_id: String(candidateId),
         event_type: 'status_changed',
+        agency_id: req.user?.agencyId,
         old_value: String(prevStatus || ''),
         new_value: String(nextStatus || ''),
         meta: {
