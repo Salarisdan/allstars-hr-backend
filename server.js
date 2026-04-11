@@ -998,6 +998,23 @@ async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
   }
 
   for (const i of interviews) {
+    const interviewLeadAt = normalizeDateInput(i.created_at || i.updated_at || i.interview_date || i.completed_at);
+    if (interviewLeadAt && isWithinRange(interviewLeadAt, fromDate, toDate)) {
+      newEvents.push(buildBackfillEvent({
+        entityType: 'interview',
+        entityId: i.id || i.row_number || i.name,
+        eventType: 'lead_created',
+        date: interviewLeadAt,
+        agencyId,
+        meta: {
+          name: i.name || '',
+          telegram: i.telegram || i.tg || '',
+          platform: i.platform || i.platforms || ''
+        },
+        approximate: !i.created_at && !!(i.updated_at || i.interview_date || i.completed_at)
+      }));
+    }
+
     const interviewAt = normalizeDateInput(i.interview_date || i.completed_at || i.updated_at);
     if (interviewAt && isWithinRange(interviewAt, fromDate, toDate)) {
       newEvents.push(buildBackfillEvent({
@@ -3008,6 +3025,21 @@ function filterDashboardEventsByAgency(events, agencyId) {
   return events.filter(event => getDashboardEventAgencyId(event) === normalizedAgencyId);
 }
 
+function getDashboardLeadKey(event) {
+  const meta = getDashboardEventMeta(event);
+  const telegram = String(meta.telegram || meta.tg || meta.username || '').trim().toLowerCase().replace(/^@/, '');
+  if (telegram) {
+    return `tg:${telegram}`;
+  }
+
+  const name = String(meta.name || '').trim().toLowerCase();
+  if (name) {
+    return `name:${name}`;
+  }
+
+  return `${String(event.entity_type || '').trim()}:${String(event.entity_id || '').trim()}`;
+}
+
 function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
   const summary = {
     leads: 0,
@@ -3028,6 +3060,7 @@ function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
 
   const dailyMap = new Map();
   const hrMap = new Map();
+  const countedLeadKeys = new Set();
 
   for (let cursor = new Date(rangeStart); cursor <= rangeEnd; cursor.setDate(cursor.getDate() + 1)) {
     const dateStr = formatDateOnly(cursor);
@@ -3075,12 +3108,17 @@ function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
     const nextStatus = String(event.new_value || '').trim();
 
     if (event.event_type === 'lead_created') {
-      summary.leads += 1;
-      if (dayRow) dayRow.leads += 1;
-      bumpHr(createdBy, 'leads');
+      const leadKey = getDashboardLeadKey(event);
+      if (!countedLeadKeys.has(leadKey)) {
+        countedLeadKeys.add(leadKey);
+        summary.leads += 1;
+        if (dayRow) dayRow.leads += 1;
+        bumpHr(createdBy, 'leads');
 
-      if (platform.includes('onlyfans')) platforms.onlyfans += 1;
-      if (platform.includes('fansly')) platforms.fansly += 1;
+        if (platform.includes('onlyfans')) platforms.onlyfans += 1;
+        if (platform.includes('fansly')) platforms.fansly += 1;
+      }
+
       continue;
     }
 
