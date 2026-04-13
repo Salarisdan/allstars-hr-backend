@@ -2180,6 +2180,10 @@
       });
     }
 
+    function findInterviewItemById(id) {
+      return allCrmItems.find(x => Number(x.id) === Number(id)) || null;
+    }
+
     const reminderShownInterviews = new Set();
 
     function checkInterviewReminders() {
