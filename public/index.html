@@ -986,6 +986,11 @@
               </div>
 
               <div class="field">
+                <label>Откуда пришёл кандидат</label>
+                <input id="f-lead-source" placeholder="—" readonly />
+              </div>
+
+              <div class="field">
                 <label>Статус после звонка</label>
                 <select id="f-status-select">
                   <option value="">Выбери статус</option>
@@ -1377,7 +1382,7 @@
       // Schedule / shifts
       selectShiftPills(candidate.shift || '');
 
-      window.currentLeadSource = candidate.source || '';
+      setLeadSource(candidate.source || '');
 
       // Сохраним row number, чтобы потом при желании можно было связать результат обратно
       window.currentInterviewSheetRow = candidate.row_number || null;
@@ -1398,7 +1403,7 @@
       const experienceValue = data.experience || data.exp || '';
       const englishValue = normalizeEnglishLevelValue(data.english_level || data.english || '');
 
-      window.currentLeadSource = data.candidate_source || data.lead_source || window.currentLeadSource || '';
+      setLeadSource(data.candidate_source || data.lead_source || window.currentLeadSource || '');
 
       const setValue = (ids, value) => {
         const idList = Array.isArray(ids) ? ids : [ids];
@@ -1508,6 +1513,12 @@
 
     function fillInterviewFormFromStorage() {
       fillCandidateFromInterviewStorage();
+    }
+
+    function setLeadSource(value) {
+      window.currentLeadSource = String(value || '').trim();
+      const el = document.getElementById('f-lead-source');
+      if (el) el.value = window.currentLeadSource;
     }
 
     function normalizeEnglishLevelValue(value) {
@@ -1914,6 +1925,8 @@
         const el = document.getElementById(id);
         if (el) el.value = '';
       });
+
+      setLeadSource('');
 
       document.querySelectorAll('.q-note').forEach(el => el.value = '');
 
