@@ -942,7 +942,7 @@
                   <span class="pill" data-val="A2">A2</span>
                   <span class="pill" data-val="B1">B1</span>
                   <span class="pill" data-val="B2">B2</span>
-                  <span class="pill" data-val="C1">C1</span>
+                  <span class="pill" data-val="C1C2">C1C2</span>
                   <span class="pill" data-val="Native">Native</span>
                 </div>
               </div>
@@ -1356,7 +1356,7 @@
       setVal('f-name', candidate.name || '');
       setVal('f-tg', candidate.telegram_username || '');
       setVal('f-age', candidate.age || '');
-      setVal('f-exp', candidate.experience || '');
+      setVal('f-exp', candidate.experience || candidate.exp || '');
       setVal('f-top', candidate.profiles || '');
       setVal('f-job', '');
       setVal('f-avgcheck', '');
@@ -1369,7 +1369,7 @@
       }
 
       // English pills
-      selectSinglePillByValue('pills-english', candidate.english || '');
+      selectSinglePillByValue('pills-english', normalizeEnglishLevelValue(candidate.english_level || candidate.english || ''));
 
       // Platforms pills
       selectSinglePillByValue('pills-platforms', candidate.platform || '');
@@ -1396,6 +1396,7 @@
 
       const platformValue = data.platform || data.platforms || '';
       const experienceValue = data.experience || data.exp || '';
+      const englishValue = normalizeEnglishLevelValue(data.english_level || data.english || '');
 
       window.currentLeadSource = data.candidate_source || data.lead_source || window.currentLeadSource || '';
 
@@ -1474,7 +1475,7 @@
       setValue(['top_profile', 'topProfile', 'candidateTopProfile', 'f-top'], data.top_profile);
       setValue(['experience', 'candidateExperience', 'exp_candidate', 'f-exp'], experienceValue);
       setShiftValue(['shift', 'candidateShift'], data.shift);
-      setValue(['english_level', 'englishLevel', 'candidateEnglish'], data.english_level);
+      setValue(['english_level', 'englishLevel', 'candidateEnglish'], englishValue);
 
       // заметки / статус / дата / время
       setValue(['notes', 'candidateNotes', 'comment', 'f-notes'], data.notes);
@@ -1487,7 +1488,7 @@
       }
 
       if (!document.getElementById('english_level') && !document.getElementById('englishLevel') && !document.getElementById('candidateEnglish') && !document.getElementById('f-english')) {
-        setSinglePill(['pills-english'], data.english_level);
+        setSinglePill(['pills-english'], englishValue);
       }
 
       if (!document.getElementById('schedule_preference') && !document.getElementById('schedulePreference') && !document.getElementById('f-schedule')) {
@@ -1507,6 +1508,19 @@
 
     function fillInterviewFormFromStorage() {
       fillCandidateFromInterviewStorage();
+    }
+
+    function normalizeEnglishLevelValue(value) {
+      const raw = String(value || '').trim();
+      if (!raw) return '';
+
+      const normalized = raw.toUpperCase().replaceAll(' ', '').replaceAll('/', '').replaceAll('-', '');
+
+      if (normalized === 'C1' || normalized === 'C2' || normalized === 'C1C2') return 'C1C2';
+      if (normalized === 'NATIVE') return 'Native';
+      if (normalized === 'A1' || normalized === 'A2' || normalized === 'B1' || normalized === 'B2') return normalized;
+
+      return raw;
     }
 
     async function generateAISummary() {
