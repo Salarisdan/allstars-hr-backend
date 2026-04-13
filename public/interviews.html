@@ -1921,6 +1921,7 @@
               </div>
 
               <div class="crm-meta-hints">
+                ${item.source ? `<div class="crm-hint">Откуда вы о нас узнали: ${escapeHtml(item.source)}</div>` : ''}
                 ${item.experience ? `<div class="crm-hint">Опыт: ${escapeHtml(item.experience)}</div>` : ''}
                 ${item.crm_created_at ? `<div class="crm-hint">Карточка: ${escapeHtml(formatCrmDate(item.crm_created_at))}</div>` : ''}
                 ${item.crm_status_changed_at ? `<div class="crm-hint">Статус: ${escapeHtml(formatCrmDate(item.crm_status_changed_at))}</div>` : ''}
@@ -1985,6 +1986,7 @@
         interview_date: item.interview_date || '',
         interview_time: item.interview_time || '',
         notes: item.notes || '',
+        candidate_source: item.source || '',
         status: item.status || ''
       };
 
@@ -2057,6 +2059,11 @@
             <div class="interview-view-field">
               <div class="interview-view-label">Дата текущего статуса</div>
               <input class="editor-input" value="${escapeHtml(formatCrmDate(item.crm_status_changed_at || ''))}" readonly>
+            </div>
+
+            <div class="interview-view-field">
+              <div class="interview-view-label">Откуда вы о нас узнали?</div>
+              <input class="editor-input" id="iv-source" value="${escapeHtml(item.source || '')}" readonly>
             </div>
 
             <div class="interview-view-field">
