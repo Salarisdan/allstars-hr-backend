@@ -1830,12 +1830,39 @@
       return normalizeInterviewDateToYmd(value) === getTodayYmd();
     }
 
+    function hasActiveInterviewStatus(status) {
+      const s = String(status || '').trim().toLowerCase();
+      const activeStatuses = [
+        'назначено собеседование',
+        'ждет собеседования',
+        'работает',
+        'ожидание старта',
+        'верификация',
+        'хочу взять',
+        'ждет тест',
+        'тест смена'
+      ];
+      return activeStatuses.some(active => s.includes(active));
+    }
+
     function sortInterviewsForDisplay(items) {
       return [...items].sort((a, b) => {
-        const aIsToday = isTodayDate(a.interview_date);
-        const bIsToday = isTodayDate(b.interview_date);
+        const aHasInterview = hasActiveInterviewStatus(a.status);
+        const bHasInterview = hasActiveInterviewStatus(b.status);
 
-        if (aIsToday !== bIsToday) return aIsToday ? -1 : 1;
+        if (aHasInterview !== bHasInterview) return aHasInterview ? -1 : 1;
+
+        const aCreatedStr = String(a.crm_created_at || '').trim();
+        const bCreatedStr = String(b.crm_created_at || '').trim();
+
+        if (aCreatedStr && bCreatedStr) {
+          const aTime = new Date(aCreatedStr).getTime();
+          const bTime = new Date(bCreatedStr).getTime();
+          if (aTime !== bTime) return bTime - aTime;
+        }
+
+        if (aCreatedStr && !bCreatedStr) return -1;
+        if (!aCreatedStr && bCreatedStr) return 1;
 
         const aDate = normalizeInterviewDateToYmd(a.interview_date);
         const bDate = normalizeInterviewDateToYmd(b.interview_date);
