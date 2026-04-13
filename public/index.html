@@ -1403,7 +1403,14 @@
       const experienceValue = data.experience || data.exp || '';
       const englishValue = normalizeEnglishLevelValue(data.english_level || data.english || '');
 
-      setLeadSource(data.candidate_source || data.lead_source || window.currentLeadSource || '');
+      setLeadSource(
+        data.candidate_source ||
+        data.lead_source ||
+        data.source_name ||
+        data.source_label ||
+        window.currentLeadSource ||
+        ''
+      );
 
       const setValue = (ids, value) => {
         const idList = Array.isArray(ids) ? ids : [ids];
@@ -1412,11 +1419,14 @@
           const el = document.getElementById(id);
           if (!el) continue;
 
+          const isFormControl = ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName);
+          if (!isFormControl) continue;
+
           if (value !== undefined && value !== null) {
             if (el.tagName === 'SELECT') {
               const hasOption = [...el.options].some(option => option.value === value);
               if (!hasOption) {
-                return false;
+                continue;
               }
             }
 
