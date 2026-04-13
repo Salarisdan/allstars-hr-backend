@@ -1733,6 +1733,13 @@
       });
     }
 
+    function formatCrmDate(value) {
+      const raw = String(value || '').trim();
+      if (!raw) return '—';
+      if (/^\d{2}\.\d{2}\.\d{4}(?:\s+\d{2}:\d{2})?$/.test(raw)) return raw;
+      return formatDate(raw);
+    }
+
     function statusBadge(status = '') {
       const map = {
         'Отписал': 'red',
@@ -1797,6 +1804,9 @@
         english_level: item.english_level || '',
         notes: item.notes || '',
         status: item.status || '',
+        crm_created_at: item.crm_created_at || '',
+        crm_status_changed_at: item.crm_status_changed_at || '',
+        crm_interview_completed_at: item.crm_interview_completed_at || '',
         interview_date: item.interview_date || '',
         interview_time: item.interview_time || ''
       }));
@@ -1912,6 +1922,8 @@
 
               <div class="crm-meta-hints">
                 ${item.experience ? `<div class="crm-hint">Опыт: ${escapeHtml(item.experience)}</div>` : ''}
+                ${item.crm_created_at ? `<div class="crm-hint">Карточка: ${escapeHtml(formatCrmDate(item.crm_created_at))}</div>` : ''}
+                ${item.crm_status_changed_at ? `<div class="crm-hint">Статус: ${escapeHtml(formatCrmDate(item.crm_status_changed_at))}</div>` : ''}
                 ${item.interview_date ? `<div class="crm-hint">Дата: ${escapeHtml(item.interview_date)}</div>` : ''}
                 ${item.interview_time ? `<div class="crm-hint">Время: ${escapeHtml(item.interview_time)}</div>` : ''}
                 ${item.platform ? `<div class="crm-hint">${escapeHtml(item.platform)}</div>` : ''}
@@ -2035,6 +2047,16 @@
             <div class="interview-view-field">
               <div class="interview-view-label">Время собеседования</div>
               <input class="editor-input" id="iv-time" type="time" value="${escapeHtml(item.interview_time || '')}">
+            </div>
+
+            <div class="interview-view-field">
+              <div class="interview-view-label">Дата карточки в CRM</div>
+              <input class="editor-input" value="${escapeHtml(formatCrmDate(item.crm_created_at || ''))}" readonly>
+            </div>
+
+            <div class="interview-view-field">
+              <div class="interview-view-label">Дата текущего статуса</div>
+              <input class="editor-input" value="${escapeHtml(formatCrmDate(item.crm_status_changed_at || ''))}" readonly>
             </div>
 
             <div class="interview-view-field">

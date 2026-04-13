@@ -1369,6 +1369,7 @@
               <div class="field-box"><div class="k">Топ страницы</div><div class="v candidate-top-pages" id="candidateTopPages" data-field="top_profile">${escapeHtml(candidate.top_profile || candidate.top_pages || '—')}</div></div>
               <div class="field-box"><div class="k">Занятость</div><div class="v candidate-study" id="candidateStudy" data-field="main_activity">${escapeHtml(candidate.main_activity || candidate.job || '—')}</div></div>
               <div class="field-box"><div class="k">Владелец</div><div class="v">${escapeHtml(candidate.owner_name || '—')}</div></div>
+              <div class="field-box"><div class="k">Дата статуса</div><div class="v">${formatDate(candidate.status_changed_at)}</div></div>
               <div class="field-box"><div class="k">Обновлён</div><div class="v">${formatDate(candidate.updated_at)}</div></div>
             </div>
           </div>

@@ -568,6 +568,8 @@ function normalizeRow(headers, row, rowIndex) {
     id: rowIndex,
     row_number: rowIndex,
     created_at: get('Дата'),
+    updated_at: get('Updated At', 'Дата обновления', 'Дата смены статуса', 'Дата обновления статуса'),
+    status_changed_at: get('Дата смены статуса', 'Дата обновления статуса', 'Updated At', 'Дата обновления'),
     telegram_username: get('TG Username', 'Username'),
     telegram: get('TG Username', 'Username'),
     username: get('TG Username', 'Username'),
@@ -592,9 +594,109 @@ function normalizeRow(headers, row, rowIndex) {
     owner_name: get('Кто проводит собеседование'),
     interview_date: get('Дата собеседования'),
     interview_time: get('Время собеседования'),
+    completed_at: get('completed_at', 'Completed At', 'Дата завершения'),
     notes: get('Комментарии'),
     comments: get('Комментарии')
   };
+}
+
+function mergeInterviewCrmMeta(candidate, meta) {
+  if (!meta) return candidate;
+
+  const completedAtDate = meta.interview_completed_at || null;
+
+  return {
+    ...candidate,
+    crm_created_at: meta.created_at || '',
+    crm_status_changed_at: meta.status_changed_at || '',
+    crm_interview_completed_at: completedAtDate || '',
+    interview_date: candidate.interview_date || (completedAtDate ? formatRuDate(completedAtDate) : '')
+  };
+}
+
+async function getInterviewCrmMetaMap(agencyId, rowNumbers = []) {
+  const normalizedRowNumbers = [...new Set(rowNumbers.map(Number).filter(x => Number.isInteger(x) && x > 1))];
+  if (!normalizedRowNumbers.length) return new Map();
+
+  const result = await query(
+    `SELECT agency_id, row_number, created_at, updated_at, status_changed_at, interview_completed_at
+     FROM interview_crm_meta
+     WHERE agency_id = $1 AND row_number = ANY($2::int[])`,
+    [agencyId, normalizedRowNumbers]
+  );
+
+  return new Map(result.rows.map(row => [Number(row.row_number), row]));
+}
+
+async function getInterviewCrmMeta(agencyId, rowNumber) {
+  const map = await getInterviewCrmMetaMap(agencyId, [rowNumber]);
+  return map.get(Number(rowNumber)) || null;
+}
+
+async function ensureInterviewCrmMeta(agencyId, rowNumber, fallbackCreatedAt = null) {
+  const createdAt = normalizeDateInput(fallbackCreatedAt) || new Date();
+
+  await query(
+    `INSERT INTO interview_crm_meta (agency_id, row_number, created_at, updated_at)
+     VALUES ($1, $2, $3, NOW())
+     ON CONFLICT (agency_id, row_number)
+     DO UPDATE SET updated_at = interview_crm_meta.updated_at`,
+    [agencyId, Number(rowNumber), createdAt]
+  );
+
+  return getInterviewCrmMeta(agencyId, rowNumber);
+}
+
+async function updateInterviewCrmMeta(agencyId, rowNumber, patch = {}, fallbackCreatedAt = null) {
+  const createdAt = normalizeDateInput(fallbackCreatedAt) || new Date();
+  const statusChangedAt = patch.status_changed_at || null;
+  const interviewCompletedAt = patch.interview_completed_at || null;
+
+  const result = await query(
+    `INSERT INTO interview_crm_meta (
+       agency_id,
+       row_number,
+       created_at,
+       updated_at,
+       status_changed_at,
+       interview_completed_at
+     )
+     VALUES ($1, $2, $3, NOW(), $4, $5)
+     ON CONFLICT (agency_id, row_number)
+     DO UPDATE SET
+       updated_at = NOW(),
+       status_changed_at = COALESCE($4, interview_crm_meta.status_changed_at),
+       interview_completed_at = COALESCE($5, interview_crm_meta.interview_completed_at)
+     RETURNING agency_id, row_number, created_at, updated_at, status_changed_at, interview_completed_at`,
+    [agencyId, Number(rowNumber), createdAt, statusChangedAt, interviewCompletedAt]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function ensureInterviewCrmMetaForCandidates(agencyId, candidates = []) {
+  const rows = candidates
+    .map(candidate => ({
+      row_number: Number(candidate.row_number || candidate.id),
+      created_at: normalizeDateInput(candidate.created_at) || new Date()
+    }))
+    .filter(item => Number.isInteger(item.row_number) && item.row_number > 1);
+
+  if (!rows.length) return;
+
+  const values = [];
+  const placeholders = rows.map((item, index) => {
+    const base = index * 3;
+    values.push(agencyId, item.row_number, item.created_at);
+    return `($${base + 1}, $${base + 2}, $${base + 3}, NOW())`;
+  });
+
+  await query(
+    `INSERT INTO interview_crm_meta (agency_id, row_number, created_at, updated_at)
+     VALUES ${placeholders.join(', ')}
+     ON CONFLICT (agency_id, row_number) DO NOTHING`,
+    values
+  );
 }
 
 function columnToLetter(column) {
@@ -808,6 +910,28 @@ function normalizeDateInput(value) {
 
   const d = new Date(str);
   return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function formatRuDate(value = new Date()) {
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+
+  return `${dd}.${mm}.${yyyy}`;
+}
+
+function isPreInterviewStatus(status) {
+  const s = String(status || '').trim();
+  return !s || s === 'Назначено собеседование' || s === 'Ждет собеседования';
+}
+
+function hasInterviewOccurredByStatus(status) {
+  const s = String(status || '').trim();
+  if (!s) return false;
+  return !isPreInterviewStatus(s);
 }
 
 function buildBackfillEvent({
@@ -1272,25 +1396,37 @@ function summarizeDashboardEvents(events, from, to) {
 }
 
 function getStatusDatePatch(status) {
-  const now = new Date();
+  const normalizedStatus = String(status || '').trim();
+  if (!normalizedStatus) return {};
 
-  switch (status) {
+  const now = new Date();
+  const patch = {
+    status_changed_at: now
+  };
+
+  switch (normalizedStatus) {
     case 'Принятый':
     case 'Работает':
-      return { hired_at: now };
+      patch.hired_at = now;
+      break;
 
     case REJECTED_CANDIDATE_STATUS:
-      return { rejected_at: now };
+      patch.rejected_at = now;
+      break;
 
     case STARTED_CANDIDATE_STATUS:
-      return { started_at: now };
+      patch.started_at = now;
+      break;
 
     case FIRED_CANDIDATE_STATUS:
-      return { fired_at: now };
+      patch.fired_at = now;
+      break;
 
     default:
-      return {};
+      break;
   }
+
+  return patch;
 }
 
 async function moveCandidateToTeamSheet(candidate) {
@@ -1424,6 +1560,11 @@ CREATE TABLE IF NOT EXISTS candidates (
   stage TEXT DEFAULT 'new',
   source TEXT DEFAULT 'manual',
   notes TEXT DEFAULT '',
+  status_changed_at TIMESTAMPTZ,
+  hired_at TIMESTAMPTZ,
+  rejected_at TIMESTAMPTZ,
+  started_at TIMESTAMPTZ,
+  fired_at TIMESTAMPTZ,
   ratings JSONB NOT NULL DEFAULT '{}'::jsonb,
   total INTEGER NOT NULL DEFAULT 0
 );
@@ -1468,6 +1609,7 @@ async function initDb() {
 
   await pool.query(`
     ALTER TABLE candidates
+    ADD COLUMN IF NOT EXISTS status_changed_at TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS hired_at TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ,
@@ -1570,6 +1712,21 @@ async function initDb() {
     )
   `).catch(err => {
     console.error('crm_events init error:', err.message);
+  });
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS interview_crm_meta (
+      id SERIAL PRIMARY KEY,
+      agency_id INTEGER NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+      row_number INTEGER NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      status_changed_at TIMESTAMPTZ,
+      interview_completed_at TIMESTAMPTZ,
+      UNIQUE (agency_id, row_number)
+    )
+  `).catch(err => {
+    console.error('interview_crm_meta init error:', err.message);
   });
 
   await pool.query(`
@@ -2192,6 +2349,10 @@ app.post('/candidates', auth, async (req, res) => {
       owner_user_id: ownerUserId
     };
 
+    const initialStatusDatePatch = candidate.status
+      ? getStatusDatePatch(candidate.status)
+      : {};
+
     console.log('POST /candidates NORMALIZED =', candidate);
 
     const result = await pool.query(
@@ -2223,6 +2384,11 @@ app.post('/candidates', auth, async (req, res) => {
         status,
         source,
         notes,
+        status_changed_at,
+        hired_at,
+        rejected_at,
+        started_at,
+        fired_at,
         ratings,
         total
       )
@@ -2232,7 +2398,8 @@ app.post('/candidates', auth, async (req, res) => {
         $11, $12, $13, $14, $15,
         $16, $17, $18, $19, $20,
         $21, $22, $23, $24, $25,
-        $26, $27, $28
+        $26, $27, $28, $29, $30,
+        $31, $32, $33
       )
       RETURNING *
       `,
@@ -2263,6 +2430,11 @@ app.post('/candidates', auth, async (req, res) => {
         candidate.status,
         candidate.source,
         candidate.notes,
+        initialStatusDatePatch.status_changed_at || null,
+        initialStatusDatePatch.hired_at || null,
+        initialStatusDatePatch.rejected_at || null,
+        initialStatusDatePatch.started_at || null,
+        initialStatusDatePatch.fired_at || null,
         candidate.ratings,
         candidate.total
       ]
@@ -2395,10 +2567,11 @@ app.patch('/candidates/:id', auth, async (req, res) => {
          schedule = $16, schedule_preference = $17, top_pages = $18, top_profile = $19,
          avg_check = $20, job = $21, main_activity = $22, interview_report = $23,
          status = $24, source = $25, notes = $26, ratings = $27::jsonb, total = $28,
-         hired_at = COALESCE($29, hired_at),
-         rejected_at = COALESCE($30, rejected_at),
-         started_at = COALESCE($31, started_at),
-         fired_at = COALESCE($32, fired_at)
+         status_changed_at = COALESCE($29, status_changed_at),
+         hired_at = COALESCE($30, hired_at),
+         rejected_at = COALESCE($31, rejected_at),
+         started_at = COALESCE($32, started_at),
+         fired_at = COALESCE($33, fired_at)
      WHERE id = $1 AND agency_id = $2
      RETURNING *`,
     [
@@ -2411,6 +2584,7 @@ app.patch('/candidates/:id', auth, async (req, res) => {
       next.schedule, next.schedule_preference, next.top_pages, next.top_profile,
       next.avg_check, next.job, next.main_activity, next.interview_report,
       next.status, next.source, next.notes, JSON.stringify(next.ratings), next.total,
+      statusDatePatch.status_changed_at || null,
       statusDatePatch.hired_at || null,
       statusDatePatch.rejected_at || null,
       statusDatePatch.started_at || null,
@@ -2703,7 +2877,14 @@ app.get('/api/interviews', auth, async (req, res) => {
         return parseRuDate(bd) - parseRuDate(ad);
       });
 
-    res.json(normalized);
+    await ensureInterviewCrmMetaForCandidates(req.user.agencyId, normalized);
+
+    const metaMap = await getInterviewCrmMetaMap(
+      req.user.agencyId,
+      normalized.map(item => item.row_number)
+    );
+
+    res.json(normalized.map(item => mergeInterviewCrmMeta(item, metaMap.get(Number(item.row_number)))));
   } catch (err) {
     console.error('Google Sheets read error:', err.message);
     res.status(500).json({ error: 'Failed to read Google Sheet' });
@@ -2745,7 +2926,9 @@ app.get('/api/interviews/:rowNumber', auth, async (req, res) => {
     }
 
     const candidate = normalizeRow(headers, row, rowNumber);
-    res.json(candidate);
+    await ensureInterviewCrmMeta(req.user.agencyId, rowNumber, candidate.created_at);
+    const meta = await getInterviewCrmMeta(req.user.agencyId, rowNumber);
+    res.json(mergeInterviewCrmMeta(candidate, meta));
   } catch (err) {
     console.error('Interview row read error:', err.message);
     res.status(500).json({ error: 'Failed to read interview row' });
@@ -2781,6 +2964,7 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
     });
     const currentRow = currentRowRes.data.values?.[0] || [];
     const currentCandidate = normalizeRow(headers, currentRow, rowNumber);
+    const currentMeta = await ensureInterviewCrmMeta(req.user.agencyId, rowNumber, currentCandidate.created_at);
     const prevInterviewStatus = normalizeInterviewStatus(currentCandidate.status || req.body?.status || '');
 
     // Helper to find column index by field names
@@ -2804,7 +2988,14 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
       return letter;
     };
 
-    const updates = [];
+    const updatesByRange = new Map();
+
+    const addUpdate = (range, value) => {
+      updatesByRange.set(range, {
+        range,
+        values: [[String(value || '').trim()]]
+      });
+    };
 
     // Map request body fields to sheet columns
     const fieldMappings = [
@@ -2837,13 +3028,19 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
             value = normalizeInterviewStatus(value);
           }
 
-          updates.push({
-            range: `${sheetName}!${colLetter}${rowNumber}`,
-            values: [[value]]
-          });
+          addUpdate(`${sheetName}!${colLetter}${rowNumber}`, value);
         }
       }
     }
+
+    const nextRequestedStatus = req.body?.status !== undefined
+      ? normalizeInterviewStatus(req.body.status)
+      : prevInterviewStatus;
+    const interviewTransitionedToCompleted =
+      hasInterviewOccurredByStatus(nextRequestedStatus) &&
+      !hasInterviewOccurredByStatus(prevInterviewStatus);
+
+    const updates = [...updatesByRange.values()];
 
     if (!updates.length) {
       return res.status(400).json({ error: 'No fields to update' });
@@ -2866,14 +3063,24 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
 
     const updatedRow = updatedRowRes.data.values?.[0] || [];
     const candidate = normalizeRow(headers, updatedRow, rowNumber);
+    const now = new Date();
+    const nextMeta = await updateInterviewCrmMeta(
+      req.user.agencyId,
+      rowNumber,
+      {
+        status_changed_at:
+          req.body?.status !== undefined && nextRequestedStatus !== prevInterviewStatus
+            ? now
+            : null,
+        interview_completed_at: interviewTransitionedToCompleted ? now : null
+      },
+      currentMeta?.created_at || currentCandidate.created_at
+    );
+    const candidateWithMeta = mergeInterviewCrmMeta(candidate, nextMeta);
 
-    const nextInterviewStatus = normalizeInterviewStatus(candidate.status || req.body?.status || '');
-    if (
-      nextInterviewStatus === 'Собеседование проведено' &&
-      nextInterviewStatus !== prevInterviewStatus
-    ) {
+    if (interviewTransitionedToCompleted) {
       const interviewId = rowNumber;
-      const createdCandidate = candidate;
+      const createdCandidate = candidateWithMeta;
 
       await appendCrmEvent({
         entity_type: 'interview',
@@ -2881,9 +3088,9 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
         event_type: 'interview_completed',
         agency_id: req.user?.agencyId,
         meta: {
-          name: candidate.name,
-          telegram: candidate.telegram || candidate.tg,
-          platform: candidate.platform || candidate.platforms
+          name: candidateWithMeta.name,
+          telegram: candidateWithMeta.telegram || candidateWithMeta.tg,
+          platform: candidateWithMeta.platform || candidateWithMeta.platforms
         },
         created_by: req.user?.email || req.user?.full_name || ''
       });
@@ -2893,15 +3100,15 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
         entityId: rowNumber,
         eventType: 'interview_completed',
         meta: {
-          platform: candidate.platform || req.body?.platform || '',
-          name: candidate.name || req.body?.name || '',
-          telegram: candidate.telegram || candidate.username || req.body?.telegram || req.body?.username || ''
+          platform: candidateWithMeta.platform || req.body?.platform || '',
+          name: candidateWithMeta.name || req.body?.name || '',
+          telegram: candidateWithMeta.telegram || candidateWithMeta.username || req.body?.telegram || req.body?.username || ''
         },
         createdBy: req.user?.email || String(req.user?.userId || '')
       });
     }
 
-    res.json(candidate);
+    res.json(candidateWithMeta);
   } catch (err) {
     console.error('Interview update error:', err.message);
     res.status(500).json({ error: 'Failed to update interview' });

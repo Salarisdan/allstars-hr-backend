@@ -2202,6 +2202,7 @@
                 <div class="meta-box"><div class="k">Смены</div><div class="v">${escapeHtml(candidate.shift || '—')}</div></div>
                 <div class="meta-box"><div class="k">Топ страницы</div><div class="v">${escapeHtml(candidate.top_pages || '—')}</div></div>
                 <div class="meta-box"><div class="k">Занятость</div><div class="v">${escapeHtml(candidate.job || '—')}</div></div>
+                <div class="meta-box"><div class="k">Дата статуса</div><div class="v">${escapeHtml(formatDate(candidate.status_changed_at || ''))}</div></div>
                 <div class="meta-box"><div class="k">Владелец</div><div class="v">${escapeHtml(candidate.owner_name || '—')}</div></div>
               </div>
 
