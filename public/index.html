@@ -1392,6 +1392,9 @@
         return;
       }
 
+      const platformValue = data.platform || data.platforms || '';
+      const experienceValue = data.experience || data.exp || '';
+
       const setValue = (ids, value) => {
         const idList = Array.isArray(ids) ? ids : [ids];
 
@@ -1458,14 +1461,14 @@
       setValue(['telegram', 'candidateTelegram', 'tg', 'f-tg'], data.telegram || data.username);
       setValue(['username', 'candidateUsername'], data.username);
       setValue(['age', 'candidateAge', 'f-age'], data.age);
-      setValue(['platform', 'candidatePlatform'], data.platform);
+      setValue(['platform', 'candidatePlatform'], platformValue);
       setValue(['avg_check', 'avgCheck', 'f-avgcheck'], data.avg_check);
       setValue(['main_activity', 'mainActivity', 'f-job'], data.main_activity);
       setValue(['schedule_preference', 'schedulePreference'], data.schedule_preference);
 
       // важные поля из карточки собеседования
       setValue(['top_profile', 'topProfile', 'candidateTopProfile', 'f-top'], data.top_profile);
-      setValue(['experience', 'candidateExperience', 'exp_candidate', 'f-exp'], data.experience);
+      setValue(['experience', 'candidateExperience', 'exp_candidate', 'f-exp'], experienceValue);
       setShiftValue(['shift', 'candidateShift'], data.shift);
       setValue(['english_level', 'englishLevel', 'candidateEnglish'], data.english_level);
 
@@ -1476,7 +1479,7 @@
       setValue(['interview_time', 'interviewTime'], data.interview_time);
 
       if (!document.getElementById('platform') && !document.getElementById('candidatePlatform') && !document.getElementById('f-platform')) {
-        setSinglePill(['pills-platforms'], data.platform);
+        setSinglePill(['pills-platforms'], platformValue);
       }
 
       if (!document.getElementById('english_level') && !document.getElementById('englishLevel') && !document.getElementById('candidateEnglish') && !document.getElementById('f-english')) {
