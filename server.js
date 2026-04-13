@@ -1559,6 +1559,7 @@ CREATE TABLE IF NOT EXISTS candidates (
   status TEXT DEFAULT '',
   stage TEXT DEFAULT 'new',
   source TEXT DEFAULT 'manual',
+  lead_source TEXT DEFAULT '',
   notes TEXT DEFAULT '',
   status_changed_at TIMESTAMPTZ,
   hired_at TIMESTAMPTZ,
@@ -1610,6 +1611,7 @@ async function initDb() {
   await pool.query(`
     ALTER TABLE candidates
     ADD COLUMN IF NOT EXISTS status_changed_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS lead_source TEXT DEFAULT '',
     ADD COLUMN IF NOT EXISTS hired_at TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ,
@@ -2339,6 +2341,7 @@ app.post('/candidates', auth, async (req, res) => {
       interview_report: safe(source.interview_report),
       status: normalizeCandidateStatus(source.status || 'Без статуса'),
       source: safe(source.source) || 'manual',
+      lead_source: safe(source.lead_source || source.candidate_source),
       notes: safe(source.notes),
 
       ratings: body.ratings && typeof body.ratings === 'object' && !Array.isArray(body.ratings)
@@ -2383,6 +2386,7 @@ app.post('/candidates', auth, async (req, res) => {
         interview_report,
         status,
         source,
+        lead_source,
         notes,
         status_changed_at,
         hired_at,
@@ -2399,7 +2403,7 @@ app.post('/candidates', auth, async (req, res) => {
         $16, $17, $18, $19, $20,
         $21, $22, $23, $24, $25,
         $26, $27, $28, $29, $30,
-        $31, $32, $33
+        $31, $32, $33, $34
       )
       RETURNING *
       `,
@@ -2429,6 +2433,7 @@ app.post('/candidates', auth, async (req, res) => {
         candidate.interview_report,
         candidate.status,
         candidate.source,
+        candidate.lead_source,
         candidate.notes,
         initialStatusDatePatch.status_changed_at || null,
         initialStatusDatePatch.hired_at || null,
@@ -2547,6 +2552,7 @@ app.patch('/candidates/:id', auth, async (req, res) => {
     interview_report: fields.interview_report ?? row.interview_report,
     status: fields.status !== undefined ? normalizeCandidateStatus(fields.status) : row.status,
     source: fields.source ?? row.source,
+    lead_source: fields.lead_source ?? fields.candidate_source ?? row.lead_source,
     notes: fields.notes ?? row.notes,
     ratings: ratings ?? row.ratings,
     total: total ?? row.total,
@@ -2566,12 +2572,12 @@ app.patch('/candidates/:id', auth, async (req, res) => {
          exp = $11, experience = $12, platform = $13, platforms = $14, shift = $15,
          schedule = $16, schedule_preference = $17, top_pages = $18, top_profile = $19,
          avg_check = $20, job = $21, main_activity = $22, interview_report = $23,
-         status = $24, source = $25, notes = $26, ratings = $27::jsonb, total = $28,
-         status_changed_at = COALESCE($29, status_changed_at),
-         hired_at = COALESCE($30, hired_at),
-         rejected_at = COALESCE($31, rejected_at),
-         started_at = COALESCE($32, started_at),
-         fired_at = COALESCE($33, fired_at)
+         status = $24, source = $25, lead_source = $26, notes = $27, ratings = $28::jsonb, total = $29,
+         status_changed_at = COALESCE($30, status_changed_at),
+         hired_at = COALESCE($31, hired_at),
+         rejected_at = COALESCE($32, rejected_at),
+         started_at = COALESCE($33, started_at),
+         fired_at = COALESCE($34, fired_at)
      WHERE id = $1 AND agency_id = $2
      RETURNING *`,
     [
@@ -2583,7 +2589,7 @@ app.patch('/candidates/:id', auth, async (req, res) => {
       next.exp, next.experience, next.platform, next.platforms, next.shift,
       next.schedule, next.schedule_preference, next.top_pages, next.top_profile,
       next.avg_check, next.job, next.main_activity, next.interview_report,
-      next.status, next.source, next.notes, JSON.stringify(next.ratings), next.total,
+      next.status, next.source, next.lead_source, next.notes, JSON.stringify(next.ratings), next.total,
       statusDatePatch.status_changed_at || null,
       statusDatePatch.hired_at || null,
       statusDatePatch.rejected_at || null,

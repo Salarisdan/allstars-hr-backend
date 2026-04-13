@@ -1377,6 +1377,8 @@
       // Schedule / shifts
       selectShiftPills(candidate.shift || '');
 
+      window.currentLeadSource = candidate.source || '';
+
       // Сохраним row number, чтобы потом при желании можно было связать результат обратно
       window.currentInterviewSheetRow = candidate.row_number || null;
     }
@@ -1394,6 +1396,8 @@
 
       const platformValue = data.platform || data.platforms || '';
       const experienceValue = data.experience || data.exp || '';
+
+      window.currentLeadSource = data.candidate_source || data.lead_source || window.currentLeadSource || '';
 
       const setValue = (ids, value) => {
         const idList = Array.isArray(ids) ? ids : [ids];
@@ -1883,6 +1887,7 @@
         job: mainActivity,
         main_activity: mainActivity,
         status: document.getElementById('f-status-select').value,
+        lead_source: window.currentLeadSource || '',
         notes: buildFinalNotes(combinedNotes, teamleadHandoff),
         interview_report: interviewReport
       };

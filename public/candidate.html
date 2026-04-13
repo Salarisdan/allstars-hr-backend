@@ -1366,6 +1366,7 @@
               <div class="field-box"><div class="k">Средний чек</div><div class="v candidate-avg-check" id="candidateAvgCheck" data-field="avg_check">${escapeHtml(candidate.avg_check || '—')}</div></div>
               <div class="field-box"><div class="k">Смены</div><div class="v candidate-shift" id="candidateShift" data-field="shift">${escapeHtml(candidate.shift || '—')}</div></div>
               <div class="field-box"><div class="k">График</div><div class="v candidate-schedule" id="candidateSchedule" data-field="schedule_preference">${escapeHtml(candidate.schedule_preference || candidate.schedule || '—')}</div></div>
+              <div class="field-box"><div class="k">Откуда пришёл кандидат</div><div class="v">${escapeHtml(candidate.lead_source || '—')}</div></div>
               <div class="field-box"><div class="k">Топ страницы</div><div class="v candidate-top-pages" id="candidateTopPages" data-field="top_profile">${escapeHtml(candidate.top_profile || candidate.top_pages || '—')}</div></div>
               <div class="field-box"><div class="k">Занятость</div><div class="v candidate-study" id="candidateStudy" data-field="main_activity">${escapeHtml(candidate.main_activity || candidate.job || '—')}</div></div>
               <div class="field-box"><div class="k">Владелец</div><div class="v">${escapeHtml(candidate.owner_name || '—')}</div></div>
@@ -1560,6 +1561,7 @@
           status: baseCandidate.status || '',
           notes: nextNotes,
           source: baseCandidate.source || '',
+          lead_source: baseCandidate.lead_source || '',
           ...fieldOverrides
         },
         ratings: baseCandidate.ratings || {},
