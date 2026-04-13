@@ -269,7 +269,32 @@
     }
 
     .interview-card.attention-blue{
-      box-shadow:0 0 0 1px rgba(79,110,247,.20), 0 0 18px rgba(79,110,247,.16), var(--shadow);
+      position:relative;
+      border-color:rgba(125,149,255,.65);
+      box-shadow:0 0 0 1px rgba(125,149,255,.45), 0 0 26px rgba(125,149,255,.28), 0 14px 32px rgba(39,57,130,.36);
+      animation:todayInterviewPulse 2.2s ease-in-out infinite;
+    }
+
+    .interview-card.attention-blue::after{
+      content:'Сегодня';
+      position:absolute;
+      top:10px;
+      right:10px;
+      padding:3px 8px;
+      border-radius:999px;
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+      color:#e8eeff;
+      background:linear-gradient(135deg, rgba(79,110,247,.95), rgba(125,149,255,.92));
+      box-shadow:0 8px 20px rgba(79,110,247,.35);
+      pointer-events:none;
+    }
+
+    @keyframes todayInterviewPulse {
+      0%, 100% { box-shadow:0 0 0 1px rgba(125,149,255,.45), 0 0 18px rgba(125,149,255,.20), 0 14px 32px rgba(39,57,130,.30); }
+      50% { box-shadow:0 0 0 1px rgba(125,149,255,.60), 0 0 30px rgba(125,149,255,.36), 0 20px 42px rgba(39,57,130,.42); }
     }
 
     .card-status{
@@ -1451,10 +1476,10 @@
       }
 
       if (crmFilters.interviewDate) {
-        out = out.filter(item => String(item.interview_date || '').trim() === crmFilters.interviewDate);
+        out = out.filter(item => normalizeInterviewDateToYmd(item.interview_date) === crmFilters.interviewDate);
       }
 
-      return out;
+      return sortInterviewsForDisplay(out);
     }
 
     function renderPipelineBlock(items) {
@@ -1752,16 +1777,79 @@
       return map[status] || 'blue';
     }
 
-    function isTodayDate(value) {
-      if (!value) return false;
-
+    function getTodayYmd() {
       const today = new Date();
       const yyyy = today.getFullYear();
       const mm = String(today.getMonth() + 1).padStart(2, '0');
       const dd = String(today.getDate()).padStart(2, '0');
-      const todayStr = `${yyyy}-${mm}-${dd}`;
+      return `${yyyy}-${mm}-${dd}`;
+    }
 
-      return String(value).trim() === todayStr;
+    function normalizeInterviewDateToYmd(value) {
+      const s = String(value || '').trim();
+      if (!s) return '';
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+      let m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+      if (m) {
+        const [, dd, mm, yyyy] = m;
+        return `${yyyy}-${mm}-${dd}`;
+      }
+
+      m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:[ ,]+\d{1,2}:\d{2})?$/);
+      if (m) {
+        const [, dd, mm, yyyy] = m;
+        return `${yyyy}-${mm}-${dd}`;
+      }
+
+      const d = new Date(s);
+      if (!Number.isNaN(d.getTime())) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      }
+
+      return '';
+    }
+
+    function parseInterviewTimeToMinutes(value) {
+      const s = String(value || '').trim();
+      const m = s.match(/^(\d{1,2}):(\d{2})$/);
+      if (!m) return Number.POSITIVE_INFINITY;
+
+      const hh = Number(m[1]);
+      const mm = Number(m[2]);
+      if (!Number.isFinite(hh) || !Number.isFinite(mm)) return Number.POSITIVE_INFINITY;
+
+      return hh * 60 + mm;
+    }
+
+    function isTodayDate(value) {
+      return normalizeInterviewDateToYmd(value) === getTodayYmd();
+    }
+
+    function sortInterviewsForDisplay(items) {
+      return [...items].sort((a, b) => {
+        const aIsToday = isTodayDate(a.interview_date);
+        const bIsToday = isTodayDate(b.interview_date);
+
+        if (aIsToday !== bIsToday) return aIsToday ? -1 : 1;
+
+        const aDate = normalizeInterviewDateToYmd(a.interview_date);
+        const bDate = normalizeInterviewDateToYmd(b.interview_date);
+
+        if (aDate && bDate && aDate !== bDate) return aDate < bDate ? -1 : 1;
+        if (aDate && !bDate) return -1;
+        if (!aDate && bDate) return 1;
+
+        const aTime = parseInterviewTimeToMinutes(a.interview_time);
+        const bTime = parseInterviewTimeToMinutes(b.interview_time);
+        if (aTime !== bTime) return aTime - bTime;
+
+        return Number(a.id || 0) - Number(b.id || 0);
+      });
     }
 
     function getStatusClass(status) {
