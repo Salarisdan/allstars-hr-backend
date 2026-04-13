@@ -1314,8 +1314,17 @@
           <div class="tools-row">
             <input id="crmSearch" class="crm-search" placeholder="Поиск по имени, Telegram, статусу..." />
             <input id="interviewDateFilter" class="crm-search" type="date" style="max-width:200px;" />
+            <button class="crm-filter-btn" id="filterTodayBtn" type="button" onclick="toggleCrmFilter('onlyToday')">Только сегодня</button>
             <button class="crm-filter-btn" id="filterProblemsBtn" type="button" onclick="toggleCrmFilter('onlyProblems')">Проблемные</button>
             <button class="crm-filter-btn" id="filterNoActionBtn" type="button" onclick="toggleCrmFilter('noAction')">Без действия</button>
+          </div>
+
+          <div style="margin-top:14px; padding:12px; background:rgba(79,110,247,.08); border:1px solid rgba(79,110,247,.16); border-radius:12px; font-size:11px; color:var(--text2);">
+            <div style="display:flex; gap:20px; flex-wrap:wrap;">
+              <div><strong style="color:var(--text);">Всего:</strong> <span id="metricTotal">—</span></div>
+              <div><strong style="color:var(--green);">Приняты:</strong> <span id="metricHired">—</span> (<span id="metricConversion">—</span>%)</div>
+              <div><strong style="color:var(--red);">Отказ:</strong> <span id="metricRejected">—</span> (<span id="metricRejectionRate">—</span>%)</div>
+            </div>
           </div>
           <div class="pipeline" id="pipeline"></div>
         </div>
@@ -1396,7 +1405,8 @@
       onlyProblems: false,
       noAction: false,
       pipeline: '',
-      interviewDate: ''
+      interviewDate: '',
+      onlyToday: false
     };
 
     function getStatusTone(status) {
@@ -1479,6 +1489,10 @@
         out = out.filter(item => normalizeInterviewDateToYmd(item.interview_date) === crmFilters.interviewDate);
       }
 
+      if (crmFilters.onlyToday) {
+        out = out.filter(item => isTodayDate(item.interview_date));
+      }
+
       return sortInterviewsForDisplay(out);
     }
 
@@ -1513,6 +1527,27 @@
     function updateCrmFilterButtons() {
       document.getElementById('filterProblemsBtn')?.classList.toggle('active', crmFilters.onlyProblems);
       document.getElementById('filterNoActionBtn')?.classList.toggle('active', crmFilters.noAction);
+      document.getElementById('filterTodayBtn')?.classList.toggle('active', crmFilters.onlyToday);
+    }
+
+    function calculateConversionMetrics(items) {
+      const total = items.length;
+      if (!total) return { total: 0, hired: 0, rejected: 0, conversionPercent: '—', rejectionPercent: '—' };
+
+      const hired = items.filter(i => {
+        const s = String(i.status || '').toLowerCase();
+        return s.includes('работает') || s.includes('принятый');
+      }).length;
+
+      const rejected = items.filter(i => {
+        const s = String(i.status || '').toLowerCase();
+        return s.includes('отказ');
+      }).length;
+
+      const conversionPercent = ((hired / total) * 100).toFixed(1);
+      const rejectionPercent = ((rejected / total) * 100).toFixed(1);
+
+      return { total, hired, rejected, conversionPercent, rejectionPercent };
     }
 
     function rerenderCrmPage() {
@@ -1526,8 +1561,18 @@
 
       renderPipelineBlock(allCrmItems);
       updateCrmFilterButtons();
+      updateMetricsDisplay(allCrmItems);
 
       render(filtered);
+    }
+
+    function updateMetricsDisplay(items) {
+      const metrics = calculateConversionMetrics(items);
+      document.getElementById('metricTotal').textContent = metrics.total;
+      document.getElementById('metricHired').textContent = metrics.hired;
+      document.getElementById('metricRejected').textContent = metrics.rejected;
+      document.getElementById('metricConversion').textContent = metrics.conversionPercent;
+      document.getElementById('metricRejectionRate').textContent = metrics.rejectionPercent;
     }
 
     document.getElementById('crmSearch')?.addEventListener('input', () => {
@@ -1930,6 +1975,15 @@
       rerenderCrmPage();
     }
 
+    function initializeReminders() {
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+      
+      checkInterviewReminders();
+      setInterval(checkInterviewReminders, 10000);
+    }
+
     async function saveInterviewRow(rowNumber) {
       const status = document.getElementById(`status-${rowNumber}`)?.value || '';
       const interviewer_name = document.getElementById(`interviewer-${rowNumber}`)?.value || '';
@@ -2113,8 +2167,69 @@
       window.location.href = '/index.html';
     }
 
-    function findInterviewItemById(id) {
-      return allCrmItems.find(x => Number(x.id) === Number(id)) || null;
+    function findDuplicates(item) {
+      if (!item) return [];
+      
+      const tg = (item.telegram || item.tg || item.username || '').toLowerCase().trim();
+      if (!tg) return [];
+
+      return allCrmItems.filter(other => {
+        if (other.id === item.id) return false;
+        const otherTg = (other.telegram || other.tg || other.username || '').toLowerCase().trim();
+        return otherTg === tg;
+      });
+    }
+
+    const reminderShownInterviews = new Set();
+
+    function checkInterviewReminders() {
+      const now = new Date();
+      const nowHH = String(now.getHours()).padStart(2, '0');
+      const nowMM = String(now.getMinutes()).padStart(2, '0');
+      const nowTime = `${nowHH}:${nowMM}`;
+
+      allCrmItems.forEach(item => {
+        if (!item.interview_time || !isTodayDate(item.interview_date)) return;
+
+        const interviewTime = String(item.interview_time).trim();
+        const diffMinutes = parseInterviewTimeToMinutes(interviewTime) - parseInterviewTimeToMinutes(nowTime);
+
+        if (diffMinutes >= 15 && diffMinutes <= 30) {
+          if (!reminderShownInterviews.has(item.id)) {
+            reminderShownInterviews.add(item.id);
+            playReminderSound();
+            showReminderNotification(item);
+          }
+        }
+      });
+    }
+
+    function playReminderSound() {
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+
+        oscillator.frequency.value = 800;
+        gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.5);
+      } catch (err) {
+        console.log('Audio reminder failed:', err.message);
+      }
+    }
+
+    function showReminderNotification(item) {
+      const msg = `⏰ Собеседование через 15-30 минут: ${item.name} (${item.interview_time})`;
+      console.log(msg);
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('AllStars CRM', { body: msg });
+      }
     }
 
     function renderInterviewCardModal(item) {
@@ -2140,6 +2255,17 @@
               ${escapeHtml(item.status || 'Без статуса')}
             </div>
           </div>
+
+          ${(() => {
+            const dupes = findDuplicates(item);
+            if (!dupes.length) return '';
+            return `
+              <div style="padding:12px; background:rgba(248,113,113,.12); border:1px solid rgba(248,113,113,.22); border-radius:12px; font-size:11px;">
+                <div style="color:var(--red); font-weight:800; margin-bottom:8px;">⚠️ ${dupes.length} дубл${dupes.length > 1 ? 'ей' : ''} (такой же Telegram):</div>
+                ${dupes.map(d => `<div style="color:var(--text2); margin-bottom:4px;">• ${escapeHtml(d.name || 'Без имени')} — ${escapeHtml(d.status || '—')}</div>`).join('')}
+              </div>
+            `;
+          })()}
 
           <div class="interview-view-grid">
             <div class="interview-view-field">
@@ -2454,6 +2580,7 @@
     async function initInterviewsPage() {
       await loadStatusOptions();
       await loadCandidates();
+      initializeReminders();
     }
 
     initInterviewsPage().catch(err => {
