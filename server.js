@@ -556,9 +556,12 @@ function mapRussianInterviewStatus(status = '') {
 }
 
 function normalizeRow(headers, row, rowIndex) {
+  const normalizedHeaders = headers.map(h => String(h || '').trim().toLowerCase());
+
   const get = (...names) => {
-    for (const name of names) {
-      const idx = headers.indexOf(name);
+    for (const rawName of names) {
+      const name = String(rawName || '').trim().toLowerCase();
+      const idx = normalizedHeaders.indexOf(name);
       if (idx >= 0) return row[idx] ?? '';
     }
     return '';
@@ -575,7 +578,15 @@ function normalizeRow(headers, row, rowIndex) {
     username: get('TG Username', 'Username'),
     telegram_user_id: get('TG ID', 'ID'),
     tg: get('TG Username', 'Username'),
-    source: get('Источник', 'Откуда вы о нас узнали?', 'Откуда пришел кандидат', 'Откуда пришёл кандидат'),
+    source: get(
+      'Источник',
+      'Источник кандидата',
+      'Откуда вы о нас узнали?',
+      'Откуда вы о нас узнали',
+      'Откуда пришел кандидат',
+      'Откуда пришёл кандидат',
+      'Источник (откуда пришел)'
+    ),
     name: get('Имя', 'Как вас зовут?'),
     age: get('Возраст'),
     english: get('Английский', 'Уровень английского'),
