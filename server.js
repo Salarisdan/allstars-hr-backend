@@ -11,9 +11,26 @@ const { Pool } = require('pg');
 const { google } = require('googleapis');
 
 function parseGoogleServiceAccountCredentials() {
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  let raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+
+  if (!raw && process.env.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64) {
+    try {
+      raw = Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64, 'base64').toString('utf8');
+    } catch {
+      throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 is not valid base64');
+    }
+  }
+
   if (!raw) {
     throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is missing');
+  }
+
+  raw = String(raw).trim();
+  const hasOuterSingleQuotes = raw.startsWith("'") && raw.endsWith("'");
+  const hasOuterDoubleQuotes = raw.startsWith('"') && raw.endsWith('"');
+
+  if (hasOuterSingleQuotes || hasOuterDoubleQuotes) {
+    raw = raw.slice(1, -1);
   }
 
   let creds;
@@ -23,14 +40,25 @@ function parseGoogleServiceAccountCredentials() {
     throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON');
   }
 
-  const privateKey = String(creds.private_key || '').replace(/\\n/g, '\n').trim();
+  const privateKeySource = creds.private_key || process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || '';
+  const privateKey = String(privateKeySource)
+    .replace(/\\r\\n/g, '\n')
+    .replace(/\\n/g, '\n')
+    .replace(/\r\n/g, '\n')
+    .trim();
+  const clientEmail = String(creds.client_email || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '').trim();
 
-  if (!creds.client_email || !privateKey) {
+  if (!clientEmail || !privateKey) {
     throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON must include client_email and private_key');
+  }
+
+  if (!privateKey.includes('BEGIN PRIVATE KEY') || !privateKey.includes('END PRIVATE KEY')) {
+    throw new Error('GOOGLE service account private_key has invalid format');
   }
 
   return {
     ...creds,
+    client_email: clientEmail,
     private_key: privateKey
   };
 }
