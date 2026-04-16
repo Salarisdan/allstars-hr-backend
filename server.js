@@ -12,6 +12,9 @@ const { google } = require('googleapis');
 
 function parseGoogleServiceAccountCredentials() {
   let raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  const envClientEmail = String(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '').trim();
+  const envPrivateKeyRaw = String(process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || '').trim();
+  const envProjectId = String(process.env.GOOGLE_PROJECT_ID || '').trim();
 
   if (!raw && process.env.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64) {
     try {
@@ -21,35 +24,34 @@ function parseGoogleServiceAccountCredentials() {
     }
   }
 
-  if (!raw) {
-    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is missing');
+  let creds = {};
+
+  if (raw) {
+    raw = String(raw).trim();
+    const hasOuterSingleQuotes = raw.startsWith("'") && raw.endsWith("'");
+    const hasOuterDoubleQuotes = raw.startsWith('"') && raw.endsWith('"');
+
+    if (hasOuterSingleQuotes || hasOuterDoubleQuotes) {
+      raw = raw.slice(1, -1);
+    }
+
+    try {
+      creds = JSON.parse(raw);
+    } catch {
+      throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON');
+    }
   }
 
-  raw = String(raw).trim();
-  const hasOuterSingleQuotes = raw.startsWith("'") && raw.endsWith("'");
-  const hasOuterDoubleQuotes = raw.startsWith('"') && raw.endsWith('"');
-
-  if (hasOuterSingleQuotes || hasOuterDoubleQuotes) {
-    raw = raw.slice(1, -1);
-  }
-
-  let creds;
-  try {
-    creds = JSON.parse(raw);
-  } catch {
-    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON');
-  }
-
-  const privateKeySource = creds.private_key || process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || '';
+  const privateKeySource = creds.private_key || envPrivateKeyRaw;
   const privateKey = String(privateKeySource)
     .replace(/\\r\\n/g, '\n')
     .replace(/\\n/g, '\n')
     .replace(/\r\n/g, '\n')
     .trim();
-  const clientEmail = String(creds.client_email || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '').trim();
+  const clientEmail = String(creds.client_email || envClientEmail || '').trim();
 
   if (!clientEmail || !privateKey) {
-    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON must include client_email and private_key');
+    throw new Error('Google credentials are missing: set GOOGLE_SERVICE_ACCOUNT_JSON or GOOGLE_SERVICE_ACCOUNT_EMAIL + GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY');
   }
 
   if (!privateKey.includes('BEGIN PRIVATE KEY') || !privateKey.includes('END PRIVATE KEY')) {
@@ -57,7 +59,9 @@ function parseGoogleServiceAccountCredentials() {
   }
 
   return {
+    type: 'service_account',
     ...creds,
+    project_id: creds.project_id || envProjectId || undefined,
     client_email: clientEmail,
     private_key: privateKey
   };
