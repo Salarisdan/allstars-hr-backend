@@ -1590,6 +1590,26 @@
         : ['Ждет собеседования', 'Изучает гайд', 'Ждет тест', 'Тест смена', 'Принятый', 'Отказ'];
     }
 
+    function escapeSingleQuotedJs(value = '') {
+      return String(value).replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+    }
+
+    function getInterviewQuickStatuses() {
+      const preferred = ['Ждет собеседования', 'Изучает гайд', 'Ждет тест', 'Тест смена', 'Отказ'];
+      const available = getInterviewStatusList();
+      const picked = preferred.filter(status => available.includes(status));
+
+      if (picked.length) return picked;
+      return available.slice(0, 5);
+    }
+
+    function buildInterviewQuickActionButtons(rowNumber) {
+      return getInterviewQuickStatuses().map(status => {
+        const escapedStatus = escapeSingleQuotedJs(status);
+        return `<button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${rowNumber}, '${escapedStatus}')">${escapeHtml(status)}</button>`;
+      }).join('');
+    }
+
     function api(path, options = {}) {
       return fetch(path, {
         ...options,
@@ -2090,11 +2110,7 @@
                   Провести собеседование
                 </button>
 
-                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Ждет собеседования')">Собес</button>
-                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Изучает гайд')">Гайд</button>
-                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Ждет тест')">Ждет тест</button>
-                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Тест смена')">Тест смена</button>
-                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetInterviewStatus(${item.id}, 'Отказ')">Отказ</button>
+                ${buildInterviewQuickActionButtons(item.id)}
               </div>
             </div>
           `).join('')}

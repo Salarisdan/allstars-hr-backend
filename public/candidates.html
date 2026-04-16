@@ -1558,6 +1558,25 @@
       `;
     }
 
+    function escapeSingleQuotedJs(value = '') {
+      return String(value).replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+    }
+
+    function getCandidateQuickStatuses() {
+      const preferred = ['Ждет собеседования', 'Изучает гайд', 'Ждет тест', 'Тест смена', 'Работает'];
+      const picked = preferred.filter(status => STATUS_OPTIONS.includes(status));
+
+      if (picked.length) return picked;
+      return STATUS_OPTIONS.slice(0, 5);
+    }
+
+    function buildCandidateQuickActions(candidateId) {
+      return getCandidateQuickStatuses().map(status => {
+        const escapedStatus = escapeSingleQuotedJs(status);
+        return `<button class="quick-btn" type="button" onclick="quickSetStatus(${candidateId}, '${escapedStatus}')">${escapeHtml(status)}</button>`;
+      }).join('');
+    }
+
     function api(path, options = {}) {
       return fetch(path, {
         ...options,
@@ -2207,10 +2226,7 @@
               </div>
 
               <div class="quick-actions">
-                <button class="quick-btn" type="button" onclick="quickSetStatus(${candidate.id}, 'Ждет собеседования')">Собес</button>
-                <button class="quick-btn" type="button" onclick="quickSetStatus(${candidate.id}, 'Изучает гайд')">Гайд</button>
-                <button class="quick-btn" type="button" onclick="quickSetStatus(${candidate.id}, 'Тест смена')">Тест</button>
-                <button class="quick-btn" type="button" onclick="quickSetStatus(${candidate.id}, 'Работает')">Работает</button>
+                ${buildCandidateQuickActions(candidate.id)}
               </div>
 
               <div id="details-${candidate.id}" hidden></div>

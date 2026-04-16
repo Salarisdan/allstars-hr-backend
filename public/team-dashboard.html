@@ -3095,10 +3095,7 @@
               </div>
 
               <div class="quick-actions">
-                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetTeamStatus(${item.row_number}, 'Верификация')">Верификация</button>
-                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetTeamStatus(${item.row_number}, 'Ждет тест')">Ждет тест</button>
-                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetTeamStatus(${item.row_number}, 'Ожидание старта')">Старт</button>
-                <button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetTeamStatus(${item.row_number}, 'Работает')">Работает</button>
+                ${buildTeamQuickActions(item.row_number)}
               </div>
             </div>
           `).join('')}
@@ -3230,6 +3227,27 @@
       const div = document.createElement('div');
       div.textContent = str;
       return div.innerHTML;
+    }
+
+    function escapeSingleQuotedJs(value = '') {
+      return String(value).replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+    }
+
+    function getTeamQuickStatuses() {
+      const preferred = ['Верификация', 'Ждет тест', 'Ожидание старта', 'Работает'];
+      const picked = preferred.filter(status => STATUS_OPTIONS.includes(status));
+
+      if (picked.length) return picked;
+      return STATUS_OPTIONS.slice(0, 4);
+    }
+
+    function buildTeamQuickActions(rowNumber) {
+      return getTeamQuickStatuses().map(status => {
+        const escapedStatus = escapeSingleQuotedJs(status);
+        const shortLabel = status === 'Ожидание старта' ? 'Старт' : status;
+
+        return `<button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetTeamStatus(${rowNumber}, '${escapedStatus}')">${escapeHtml(shortLabel)}</button>`;
+      }).join('');
     }
 
     function getStatusClass(name) {
