@@ -37,7 +37,13 @@ function parseGoogleServiceAccountCredentials() {
 
 async function getGoogleSheet() {
   const creds = parseGoogleServiceAccountCredentials();
-  const doc = new GoogleSpreadsheet(process.env.GOOGLE_SPREADSHEET_NAME);
+  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID || process.env.GOOGLE_SPREADSHEET_NAME;
+
+  if (!spreadsheetId) {
+    throw new Error('GOOGLE_SPREADSHEET_ID is missing');
+  }
+
+  const doc = new GoogleSpreadsheet(spreadsheetId);
 
   await doc.useServiceAccountAuth(creds);
   await doc.loadInfo();
@@ -2844,8 +2850,13 @@ app.get('/dashboard/feed', auth, async (req, res) => {
 app.get('/leads', auth, async (req, res) => {
   try {
     const doc = await getGoogleSheet();
+    const sheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
 
-    const sheet = doc.sheetsByTitle['AllStarsLeads']; // главный лист
+    const sheet = doc.sheetsByTitle[sheetName] || doc.sheetsByTitle['AllStarsLeads'];
+    if (!sheet) {
+      return res.status(500).json({ error: `Sheet tab not found: ${sheetName}` });
+    }
+
     const rows = await sheet.getRows();
 
     const leads = rows.map(row => ({
