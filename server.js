@@ -10,8 +10,33 @@ const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
 const { google } = require('googleapis');
 
+function parseGoogleServiceAccountCredentials() {
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  if (!raw) {
+    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is missing');
+  }
+
+  let creds;
+  try {
+    creds = JSON.parse(raw);
+  } catch {
+    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON');
+  }
+
+  const privateKey = String(creds.private_key || '').replace(/\\n/g, '\n').trim();
+
+  if (!creds.client_email || !privateKey) {
+    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON must include client_email and private_key');
+  }
+
+  return {
+    ...creds,
+    private_key: privateKey
+  };
+}
+
 async function getGoogleSheet() {
-  const creds = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+  const creds = parseGoogleServiceAccountCredentials();
   const doc = new GoogleSpreadsheet(process.env.GOOGLE_SPREADSHEET_NAME);
 
   await doc.useServiceAccountAuth(creds);
@@ -131,12 +156,7 @@ async function query(text, params = []) {
 }
 
 function getGoogleCreds() {
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  if (!raw) {
-    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is missing');
-  }
-
-  return JSON.parse(raw);
+  return parseGoogleServiceAccountCredentials();
 }
 
 async function getSheetsClient() {
