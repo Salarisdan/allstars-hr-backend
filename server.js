@@ -1559,6 +1559,242 @@ async function teamSheetHasCandidateByTelegram(telegram) {
   return rows.some(row => String(row[telegramIdx] || '').trim().toLowerCase() === normalized);
 }
 
+function normalizeTelegramKey(value) {
+  return String(value || '').trim().toLowerCase().replace(/^@+/, '');
+}
+
+async function syncInterviewSheetStatus({ status, telegram, name }) {
+  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+  const sheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
+  const normalizedStatus = normalizeInterviewStatus(status);
+  const telegramKey = normalizeTelegramKey(telegram);
+  const personName = String(name || '').trim();
+
+  if (!spreadsheetId || !normalizedStatus || (!telegramKey && !personName)) {
+    return { updated: 0 };
+  }
+
+  const sheets = await getSheetsClient();
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${sheetName}!A1:AU5000`
+  });
+
+  const values = response.data.values || [];
+  if (!values.length) return { updated: 0 };
+
+  const headers = values[0] || [];
+  const rows = values.slice(1);
+
+  const statusIdx = findHeaderIndex(headers, ['Статус'], ['статус']);
+  const tgIdx = findHeaderIndex(headers, ['TG Username', 'Username'], ['username', 'tg username', 'telegram']);
+  const nameIdx = findHeaderIndex(headers, ['Имя', 'Как вас зовут?'], ['имя']);
+
+  if (statusIdx < 0) return { updated: 0 };
+
+  const updates = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i] || [];
+    const rowNumber = i + 2;
+    const rowStatus = String(row[statusIdx] || '').trim();
+    const rowTelegramKey = tgIdx >= 0 ? normalizeTelegramKey(row[tgIdx]) : '';
+    const rowName = nameIdx >= 0 ? String(row[nameIdx] || '').trim() : '';
+
+    const matchedByTelegram = telegramKey && rowTelegramKey && rowTelegramKey === telegramKey;
+    const matchedByName = !telegramKey && personName && rowName && namesLooselyMatch(personName, rowName);
+
+    if ((matchedByTelegram || matchedByName) && rowStatus !== normalizedStatus) {
+      const colLetter = columnToLetter(statusIdx + 1);
+      updates.push({
+        range: `${sheetName}!${colLetter}${rowNumber}`,
+        values: [[normalizedStatus]]
+      });
+    }
+  }
+
+  if (!updates.length) return { updated: 0 };
+
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      valueInputOption: 'USER_ENTERED',
+      data: updates
+    }
+  });
+
+  return { updated: updates.length };
+}
+
+async function syncTeamSheetStatus({ status, telegram, name }) {
+  const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
+  const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
+  const normalizedStatus = normalizeTeamStatus(status);
+  const telegramKey = normalizeTelegramKey(telegram);
+  const personName = String(name || '').trim();
+
+  if (!spreadsheetId || !normalizedStatus || (!telegramKey && !personName)) {
+    return { updated: 0 };
+  }
+
+  const sheets = await getSheetsClient();
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${sheetName}!A1:AU5000`
+  });
+
+  const values = response.data.values || [];
+  if (!values.length) return { updated: 0 };
+
+  const headers = values[0] || [];
+  const rows = values.slice(1);
+
+  const statusIdx = findHeaderIndex(headers, ['Актуальный статус кандидата (Hr)'], ['статус кандидата', 'актуальный статус', 'status']);
+  const tgIdx = findHeaderIndex(headers, ['Телеграм', 'Telegram', 'TG Username', 'Username'], ['телеграм', 'telegram', 'username']);
+  const nameIdx = findHeaderIndex(headers, ['Имя', 'Имя / ник', 'Ник'], ['имя', 'ник']);
+
+  if (statusIdx < 0) return { updated: 0 };
+
+  const updates = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i] || [];
+    const rowNumber = i + 2;
+    const rowStatus = String(row[statusIdx] || '').trim();
+    const rowTelegramKey = tgIdx >= 0 ? normalizeTelegramKey(row[tgIdx]) : '';
+    const rowName = nameIdx >= 0 ? String(row[nameIdx] || '').trim() : '';
+
+    const matchedByTelegram = telegramKey && rowTelegramKey && rowTelegramKey === telegramKey;
+    const matchedByName = !telegramKey && personName && rowName && namesLooselyMatch(personName, rowName);
+
+    if ((matchedByTelegram || matchedByName) && rowStatus !== normalizedStatus) {
+      const colLetter = columnToLetter(statusIdx + 1);
+      updates.push({
+        range: `${sheetName}!${colLetter}${rowNumber}`,
+        values: [[normalizedStatus]]
+      });
+    }
+  }
+
+  if (!updates.length) return { updated: 0 };
+
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      valueInputOption: 'USER_ENTERED',
+      data: updates
+    }
+  });
+
+  teamStatsCache = { data: null, ts: 0 };
+
+  return { updated: updates.length };
+}
+
+async function syncCandidatesStatusInDb({ agencyId, status, telegram, name, updatedByUserId }) {
+  const normalizedStatus = normalizeCandidateStatus(status);
+  const telegramKey = normalizeTelegramKey(telegram);
+  const personName = String(name || '').trim();
+
+  if (!agencyId || !normalizedStatus || (!telegramKey && !personName)) {
+    return { updated: 0 };
+  }
+
+  const result = await query(
+    `SELECT id, status, name, tg, telegram
+     FROM candidates
+     WHERE agency_id = $1`,
+    [agencyId]
+  );
+
+  const matched = result.rows.filter(row => {
+    const rowTelegramKey = normalizeTelegramKey(row.telegram || row.tg);
+    if (telegramKey && rowTelegramKey) {
+      return rowTelegramKey === telegramKey;
+    }
+
+    return !telegramKey && personName && namesLooselyMatch(personName, row.name || '');
+  });
+
+  let updated = 0;
+
+  for (const row of matched) {
+    const prevStatus = String(row.status || '').trim();
+    if (prevStatus === normalizedStatus) continue;
+
+    const statusDatePatch = getStatusDatePatch(normalizedStatus);
+
+    await query(
+      `UPDATE candidates
+       SET status = $2,
+           updated_by_user_id = $3,
+           updated_at = NOW(),
+           status_changed_at = COALESCE($4, status_changed_at),
+           hired_at = COALESCE($5, hired_at),
+           rejected_at = COALESCE($6, rejected_at),
+           started_at = COALESCE($7, started_at),
+           fired_at = COALESCE($8, fired_at)
+       WHERE id = $1`,
+      [
+        row.id,
+        normalizedStatus,
+        updatedByUserId || null,
+        statusDatePatch.status_changed_at || null,
+        statusDatePatch.hired_at || null,
+        statusDatePatch.rejected_at || null,
+        statusDatePatch.started_at || null,
+        statusDatePatch.fired_at || null
+      ]
+    );
+
+    await query(
+      `INSERT INTO candidate_status_history(candidate_id, status, changed_by_user_id)
+       VALUES ($1, $2, $3)`,
+      [row.id, normalizedStatus, updatedByUserId || null]
+    );
+
+    updated += 1;
+  }
+
+  return { updated };
+}
+
+async function syncStatusAcrossSources({
+  source,
+  agencyId,
+  status,
+  telegram,
+  name,
+  updatedByUserId
+}) {
+  const tasks = [];
+
+  if (source !== 'interviews') {
+    tasks.push(syncInterviewSheetStatus({ status, telegram, name }));
+  }
+
+  if (source !== 'team') {
+    tasks.push(syncTeamSheetStatus({ status, telegram, name }));
+  }
+
+  if (source !== 'candidates') {
+    tasks.push(syncCandidatesStatusInDb({
+      agencyId,
+      status,
+      telegram,
+      name,
+      updatedByUserId
+    }));
+  }
+
+  const settled = await Promise.allSettled(tasks);
+  for (const result of settled) {
+    if (result.status === 'rejected') {
+      console.error('syncStatusAcrossSources error:', result.reason?.message || result.reason);
+    }
+  }
+}
+
 const bootstrapSql = `
 CREATE TABLE IF NOT EXISTS agencies (
   id SERIAL PRIMARY KEY,
@@ -2701,6 +2937,15 @@ app.patch('/candidates/:id', auth, async (req, res) => {
         console.error('Move candidate to team sheet error:', teamErr.message);
       }
     }
+
+    await syncStatusAcrossSources({
+      source: 'candidates',
+      agencyId: req.user.agencyId,
+      status: next.status,
+      telegram: next.telegram || next.tg,
+      name: next.name,
+      updatedByUserId: req.user.userId
+    });
   }
 
   const ai = buildAiInsight(updated.rows[0]);
@@ -3167,6 +3412,17 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
           telegram: candidateWithMeta.telegram || candidateWithMeta.username || req.body?.telegram || req.body?.username || ''
         },
         createdBy: req.user?.email || String(req.user?.userId || '')
+      });
+    }
+
+    if (nextRequestedStatus && nextRequestedStatus !== prevInterviewStatus) {
+      await syncStatusAcrossSources({
+        source: 'interviews',
+        agencyId: req.user.agencyId,
+        status: nextRequestedStatus,
+        telegram: candidateWithMeta.telegram || candidateWithMeta.username || req.body?.telegram || req.body?.username || '',
+        name: candidateWithMeta.name || req.body?.name || '',
+        updatedByUserId: req.user.userId
       });
     }
 
@@ -4489,6 +4745,15 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
           name: candidateName
         },
         createdBy: req.user?.email || String(req.user?.userId || '')
+      });
+
+      await syncStatusAcrossSources({
+        source: 'team',
+        agencyId: req.user.agencyId,
+        status: nextStatus,
+        telegram: candidateTelegram,
+        name: candidateName,
+        updatedByUserId: req.user.userId
       });
     }
 
