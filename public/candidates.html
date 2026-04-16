@@ -1638,6 +1638,7 @@
         `Топ страниц: ${data.top_pages || data.top_profile || '—'}`,
         `Ср чек: ${data.avg_check || data.average_check || '—'}`,
         `Смена: ${data.shift || '—'}`,
+        `Откуда вы о нас узнали: ${data.lead_source || data.candidate_source || '—'}`,
         `Есть ли основная деятельность/учеба: ${data.main_activity || data.study_info || '—'}`,
         '',
         `График 5/2 или 6/1: ${data.schedule_preference || '—'}`
@@ -1965,6 +1966,7 @@
         top_profile: candidate.top_profile || '',
         avg_check: candidate.avg_check || '',
         shift: candidate.shift || '',
+        lead_source: candidate.lead_source || candidate.candidate_source || '',
         main_activity: candidate.main_activity || candidate.job || '',
         schedule_preference: candidate.schedule_preference || candidate.schedule || ''
       });
@@ -1982,6 +1984,7 @@
         top_pages: document.getElementById('m-top')?.value.trim() || '',
         avg_check: document.getElementById('m-avgcheck')?.value.trim() || '',
         shift: document.getElementById('m-shift')?.value.trim() || '',
+        lead_source: allCandidates.find(x => Number(x.id) === Number(currentEditId))?.lead_source || '',
         main_activity: document.getElementById('m-job')?.value.trim() || '',
         schedule_preference: document.getElementById('m-schedule')?.value.trim() || ''
       };

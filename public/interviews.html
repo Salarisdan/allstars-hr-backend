@@ -596,6 +596,38 @@
       background:var(--surface2);
     }
 
+    .editor-chip-group{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:6px;
+    }
+
+    .editor-chip-btn{
+      border:1px solid var(--border);
+      background:rgba(21,27,47,.72);
+      color:var(--text2);
+      border-radius:999px;
+      padding:8px 12px;
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:.02em;
+      cursor:pointer;
+      transition:border-color .18s ease, color .18s ease, transform .12s ease, background .18s ease;
+    }
+
+    .editor-chip-btn:hover{
+      color:var(--text);
+      border-color:var(--accent-border);
+    }
+
+    .editor-chip-btn.active{
+      background:rgba(99,156,255,.2);
+      color:#dbeafe;
+      border-color:rgba(99,156,255,.55);
+      box-shadow:0 0 0 1px rgba(99,156,255,.24) inset;
+    }
+
     .editor-textarea {
       min-height:120px;
       resize:vertical;
@@ -1363,6 +1395,8 @@
     let allCandidates = [];
     let allCrmItems = [];
     let STATUS_OPTIONS = [];
+    const INTERVIEW_PLATFORM_OPTIONS = ['OnlyFans', 'Fansly'];
+    const INTERVIEW_SHIFT_OPTIONS = ['00-06', '06-12', '12-18', '18-00'];
 
     /* ─── CRM JS (общий блок) ──────────────────────────────────── */
     const CRM_STATUS_GROUPS = [
@@ -2238,6 +2272,88 @@
       }
     }
 
+    function splitCsvValues(raw) {
+      return String(raw || '')
+        .split(/[,;\n]+/)
+        .map(v => v.trim())
+        .filter(Boolean);
+    }
+
+    function parseMultiSelections(raw, options, aliases = {}) {
+      const optionMap = new Map(options.map(opt => [opt.toLowerCase(), opt]));
+      const selected = new Set();
+      const extra = [];
+
+      splitCsvValues(raw).forEach(token => {
+        const key = token.toLowerCase();
+        if (aliases[key]) {
+          aliases[key].forEach(value => selected.add(value));
+          return;
+        }
+
+        if (optionMap.has(key)) {
+          selected.add(optionMap.get(key));
+          return;
+        }
+
+        extra.push(token);
+      });
+
+      return {
+        selected: [...selected],
+        extra
+      };
+    }
+
+    function renderEditorChipGroup(groupId, options, selectedValues, multi = true) {
+      const selected = new Set((selectedValues || []).map(v => String(v || '').trim()).filter(Boolean));
+      return `
+        <div class="editor-chip-group" id="${groupId}" data-multi="${multi ? '1' : '0'}">
+          ${options.map(value => {
+            const isActive = selected.has(value);
+            return `<button type="button" class="editor-chip-btn ${isActive ? 'active' : ''}" data-value="${escapeHtml(value)}" onclick="toggleEditorChip('${groupId}', this, ${multi ? 'true' : 'false'})">${escapeHtml(value)}</button>`;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    function toggleEditorChip(groupId, btn, multi) {
+      const group = document.getElementById(groupId);
+      if (!group || !btn) return;
+
+      if (!multi) {
+        group.querySelectorAll('.editor-chip-btn').forEach(node => node.classList.remove('active'));
+        btn.classList.add('active');
+      } else {
+        btn.classList.toggle('active');
+      }
+
+      const id = Number(document.getElementById('iv-row-id')?.value || 0);
+      if (id) autosaveInterviewCard(id, false);
+    }
+
+    function getChipValues(groupId) {
+      const group = document.getElementById(groupId);
+      if (!group) return [];
+      return [...group.querySelectorAll('.editor-chip-btn.active')]
+        .map(btn => String(btn.getAttribute('data-value') || '').trim())
+        .filter(Boolean);
+    }
+
+    function collectButtonAndCustomValue(groupId, customInputId) {
+      const values = getChipValues(groupId);
+      const extraValues = splitCsvValues(document.getElementById(customInputId)?.value || '');
+      const out = [];
+      [...values, ...extraValues].forEach(value => {
+        if (!out.some(item => item.toLowerCase() === value.toLowerCase())) {
+          out.push(value);
+        }
+      });
+      return out.join(', ');
+    }
+
+    window.toggleEditorChip = toggleEditorChip;
+
     function renderInterviewCardModal(item) {
       const content = document.getElementById('interviewCardContent');
       const title = document.getElementById('interviewCardTitle');
@@ -2245,10 +2361,17 @@
       if (!content || !title) return;
 
       const tone = getStatusTone(item.status);
+      const platformState = parseMultiSelections(item.platform || item.platforms || '', INTERVIEW_PLATFORM_OPTIONS, {
+        'обе платформы': INTERVIEW_PLATFORM_OPTIONS,
+        'both': INTERVIEW_PLATFORM_OPTIONS,
+        'onlyfans fansly': INTERVIEW_PLATFORM_OPTIONS
+      });
+      const shiftState = parseMultiSelections(item.shift || '', INTERVIEW_SHIFT_OPTIONS);
       title.textContent = item.name ? `Карточка — ${item.name}` : 'Карточка кандидата';
 
       content.innerHTML = `
         <div class="interview-editor">
+          <input type="hidden" id="iv-row-id" value="${Number(item.id) || 0}">
           <div class="interview-editor-head status-${tone}" id="interviewEditorHead">
             <div>
               <div class="interview-editor-name">${escapeHtml(item.name || 'Без имени')}</div>
@@ -2315,7 +2438,7 @@
 
             <div class="interview-view-field">
               <div class="interview-view-label">Откуда вы о нас узнали?</div>
-              <input class="editor-input" id="iv-source" value="${escapeHtml(item.source || '')}" readonly>
+              <input class="editor-input" id="iv-source" value="${escapeHtml(item.source || '')}">
             </div>
 
             <div class="interview-view-field">
@@ -2330,7 +2453,8 @@
 
             <div class="interview-view-field">
               <div class="interview-view-label">Платформа</div>
-              <input class="editor-input" id="iv-platform" value="${escapeHtml(item.platform || '')}">
+              ${renderEditorChipGroup('iv-platform-group', INTERVIEW_PLATFORM_OPTIONS, platformState.selected, true)}
+              <input class="editor-input" id="iv-platform-custom" value="${escapeHtml(platformState.extra.join(', '))}" placeholder="Другое (если нужно)" style="margin-top:8px;">
             </div>
 
             <div class="interview-view-field">
@@ -2345,7 +2469,8 @@
 
             <div class="interview-view-field">
               <div class="interview-view-label">Выбранная смена</div>
-              <input class="editor-input" id="iv-shift" value="${escapeHtml(item.shift || '')}">
+              ${renderEditorChipGroup('iv-shift-group', INTERVIEW_SHIFT_OPTIONS, shiftState.selected, true)}
+              <input class="editor-input" id="iv-shift-custom" value="${escapeHtml(shiftState.extra.join(', '))}" placeholder="Доп. смены (если нужно)" style="margin-top:8px;">
             </div>
 
             <div class="interview-view-field">
@@ -2414,12 +2539,13 @@
       return {
         name: document.getElementById('iv-name')?.value || '',
         status: document.getElementById('iv-status')?.value || '',
+        source: document.getElementById('iv-source')?.value || '',
         telegram: document.getElementById('iv-telegram')?.value || '',
         age: document.getElementById('iv-age')?.value || '',
-        platform: document.getElementById('iv-platform')?.value || '',
+        platform: collectButtonAndCustomValue('iv-platform-group', 'iv-platform-custom'),
         top_profile: document.getElementById('iv-top-profile')?.value || '',
         experience: document.getElementById('iv-experience')?.value || '',
-        shift: document.getElementById('iv-shift')?.value || '',
+        shift: collectButtonAndCustomValue('iv-shift-group', 'iv-shift-custom'),
         english_level: document.getElementById('iv-english')?.value || '',
         interviewer_name: document.getElementById('iv-interviewer')?.value || '',
         interview_date: document.getElementById('iv-date')?.value || '',
@@ -2467,12 +2593,13 @@
     function bindInterviewCardAutosave(id) {
       const inputIds = [
         'iv-name',
+        'iv-source',
         'iv-telegram',
         'iv-age',
-        'iv-platform',
+        'iv-platform-custom',
         'iv-top-profile',
         'iv-experience',
-        'iv-shift',
+        'iv-shift-custom',
         'iv-english',
         'iv-interviewer',
         'iv-date',

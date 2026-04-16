@@ -3311,6 +3311,7 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
       { field: 'username', names: ['TG Username', 'Username'] },
       { field: 'age', names: ['Возраст'] },
       { field: 'platform', names: ['Платформа'] },
+      { field: 'source', names: ['Источник', 'Источник кандидата', 'Откуда вы о нас узнали?', 'Откуда вы о нас узнали'] },
       { field: 'top_profile', names: ['Анкеты', 'С какими анкетами работал-а (топ, %)'] },
       { field: 'experience', names: ['Опыт', 'Опыт работы', 'Опыт работы (лет)', 'Опыт в adult', 'Опыт в adult (лет)'] },
       { field: 'shift', names: ['Смены', 'Смена'] },

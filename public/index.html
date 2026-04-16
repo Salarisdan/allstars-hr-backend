@@ -1888,6 +1888,7 @@
         `Топ страниц: ${data.top_pages || data.top_profile || '—'}`,
         `Ср чек: ${data.avg_check || data.average_check || '—'}`,
         `Смена: ${data.shift || '—'}`,
+        `Откуда вы о нас узнали: ${data.lead_source || data.candidate_source || '—'}`,
         `Есть ли основная деятельность/учеба: ${data.main_activity || data.study_info || '—'}`,
         '',
         `График 5/2 или 6/1: ${data.schedule_preference || '—'}`
@@ -1927,6 +1928,7 @@
         top_profile: topPages,
         avg_check: avgCheck,
         shift,
+        lead_source: window.currentLeadSource || '',
         main_activity: mainActivity,
         schedule_preference: schedulePreference
       });
