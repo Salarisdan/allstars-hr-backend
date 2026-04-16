@@ -236,60 +236,36 @@ function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
 }
 
-const CANDIDATE_STATUSES = [
-  'Изучает гайд',
-  'Тест смена',
-  'Принятый',
-  'Отказ',
-  'Работает',
-  'Ожидание старта',
-  'Верификация',
-  'Ждет тест',
-  'Хочу взять',
+const UNIFIED_STATUS_OPTIONS = [
+  'Назначено собеседование',
   'Ждет собеседования',
+  'Изучает гайд',
+  'Ждет тест',
+  'Тест смена',
+  'Хочу взять',
+  'Верификация',
+  'Ожидание старта',
+  'Принятый',
+  'Работает',
   'Лист ожидания',
+  'Нет ответа',
+  'Отказ',
   'Уволен',
   'Не рассчитан',
-  'Нет ответа',
   'Убрать'
 ];
 
-const INTERVIEW_STATUSES = [
-  'Назначено собеседование',
-  'Ждет собеседования',
-  'Работает',
-  'Ожидание старта',
-  'Верификация',
-  'Ждет тест',
-  'Изучает гайд',
-  'Хочу взять',
-  'Лист ожидания',
-  'Уволен',
-  'Не рассчитан',
-  'Нет ответа',
-  'Убрать',
-  'Тест смена',
-  'Принятый',
-  'Отказ'
-];
+const STATUS_ALIASES = {
+  'Принят': 'Принятый',
+  'Тест-смена': 'Тест смена',
+  'Собеседование': 'Ждет собеседования',
+  'Отписал': 'Ждет собеседования',
+  'Не пришел на собес': 'Отказ'
+};
 
-const TEAM_STATUSES = [
-  'Работает',
-  'Ожидание старта',
-  'Верификация',
-  'Ждет тест',
-  'Изучает гайд',
-  'Хочу взять',
-  'Ждет собеседования',
-  'Лист ожидания',
-  'Уволен',
-  'Не рассчитан',
-  'Нет ответа',
-  'Убрать',
-  'Тест смена',
-  'Принятый',
-  'Отказ'
-];
+const CANDIDATE_STATUSES = [...UNIFIED_STATUS_OPTIONS];
+const INTERVIEW_STATUSES = [...UNIFIED_STATUS_OPTIONS];
+const TEAM_STATUSES = [...UNIFIED_STATUS_OPTIONS];
 
 const TEAM_STATUSES_CLEAR_TRANSACTION_ENDING = new Set([
   'Уволен',
@@ -542,18 +518,23 @@ async function clearSexterEndingByName(personName) {
 }
 
 function normalizeCandidateStatus(value) {
-  const s = String(value || '').trim();
+  const s = normalizeStatusAlias(value);
   return CANDIDATE_STATUSES.includes(s) ? s : '';
 }
 
 function normalizeInterviewStatus(value) {
-  const s = String(value || '').trim();
+  const s = normalizeStatusAlias(value);
   return INTERVIEW_STATUSES.includes(s) ? s : '';
 }
 
 function normalizeTeamStatus(value) {
-  const s = String(value || '').trim();
+  const s = normalizeStatusAlias(value);
   return TEAM_STATUSES.includes(s) ? s : '';
+}
+
+function normalizeStatusAlias(value) {
+  const raw = String(value || '').trim();
+  return STATUS_ALIASES[raw] || raw;
 }
 
 function parseNumberLoose(value) {
@@ -2199,6 +2180,7 @@ app.get('/auth/me', auth, async (req, res) => {
 
 app.get('/api/status-options', auth, async (_req, res) => {
   res.json({
+    unified: UNIFIED_STATUS_OPTIONS,
     candidates: CANDIDATE_STATUSES,
     interviews: INTERVIEW_STATUSES,
     team: TEAM_STATUSES

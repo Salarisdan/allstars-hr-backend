@@ -1364,26 +1364,6 @@
     let allCrmItems = [];
     let STATUS_OPTIONS = [];
 
-    // Unified interview statuses
-    const INTERVIEW_STATUSES = [
-      'Назначено собеседование',
-      'Ждет собеседования',
-      'Работает',
-      'Ожидание старта',
-      'Верификация',
-      'Ждет тест',
-      'Изучает гайд',
-      'Хочу взять',
-      'Лист ожидания',
-      'Уволен',
-      'Не рассчитан',
-      'Нет ответа',
-      'Убрать',
-      'Тест смена',
-      'Принятый',
-      'Отказ'
-    ];
-
     /* ─── CRM JS (общий блок) ──────────────────────────────────── */
     const CRM_STATUS_GROUPS = [
       { key: 'Назначено собеседование', label: 'Назначено собеседование', values: ['Назначено собеседование'] },
@@ -1602,6 +1582,12 @@
       return STATUS_OPTIONS.map(status => `
         <option value="${escapeHtml(status)}" ${currentStatus === status ? 'selected' : ''}>${escapeHtml(status)}</option>
       `).join('');
+    }
+
+    function getInterviewStatusList() {
+      return STATUS_OPTIONS.length
+        ? STATUS_OPTIONS
+        : ['Ждет собеседования', 'Изучает гайд', 'Ждет тест', 'Тест смена', 'Принятый', 'Отказ'];
     }
 
     function api(path, options = {}) {
@@ -2280,7 +2266,7 @@
             <div class="interview-view-field">
               <div class="interview-view-label">Актуальный статус</div>
               <select class="editor-select interview-status-select status-${tone}" id="iv-status" onchange="previewInterviewStatusColor()">
-                ${INTERVIEW_STATUSES.map(status => `
+                ${getInterviewStatusList().map(status => `
                   <option value="${status}" ${item.status === status ? 'selected' : ''}>${status}</option>
                 `).join('')}
               </select>
@@ -2294,6 +2280,11 @@
             <div class="interview-view-field">
               <div class="interview-view-label">Время собеседования</div>
               <input class="editor-input" id="iv-time" type="time" value="${escapeHtml(item.interview_time || '')}">
+            </div>
+
+            <div class="interview-view-field">
+              <div class="interview-view-label">Кто проводит собеседование</div>
+              <input class="editor-input" id="iv-interviewer" value="${escapeHtml(item.interviewer_name || item.interviewer || '')}">
             </div>
 
             <div class="interview-view-field">
@@ -2414,6 +2405,7 @@
         experience: document.getElementById('iv-experience')?.value || '',
         shift: document.getElementById('iv-shift')?.value || '',
         english_level: document.getElementById('iv-english')?.value || '',
+        interviewer_name: document.getElementById('iv-interviewer')?.value || '',
         interview_date: document.getElementById('iv-date')?.value || '',
         interview_time: document.getElementById('iv-time')?.value || '',
         notes: document.getElementById('iv-notes')?.value || ''
@@ -2466,6 +2458,7 @@
         'iv-experience',
         'iv-shift',
         'iv-english',
+        'iv-interviewer',
         'iv-date',
         'iv-time',
         'iv-notes'

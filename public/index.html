@@ -1288,6 +1288,7 @@
     const tokenKey = 'allstars_token';
     const meKey = 'allstars_me';
     const token = localStorage.getItem(tokenKey);
+    let STATUS_OPTIONS = [];
 
     if (!token) {
       window.location.href = '/login.html';
@@ -1308,6 +1309,35 @@
           ...(options.headers || {})
         }
       });
+    }
+
+    function renderStatusSelectOptions() {
+      const statusSelect = document.getElementById('f-status-select');
+      if (!statusSelect) return;
+
+      const currentValue = statusSelect.value || '';
+      const statuses = STATUS_OPTIONS.length
+        ? STATUS_OPTIONS
+        : ['Изучает гайд', 'Тест смена', 'Принятый', 'Отказ'];
+
+      statusSelect.innerHTML = [
+        '<option value="">Выбери статус</option>',
+        ...statuses.map(status => `<option value="${status}">${status}</option>`)
+      ].join('');
+
+      statusSelect.value = statuses.includes(currentValue) ? currentValue : '';
+    }
+
+    async function loadStatusOptions() {
+      const res = await api('/api/status-options');
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Не удалось загрузить статусы');
+      }
+
+      STATUS_OPTIONS = Array.isArray(data.candidates) ? data.candidates : [];
+      renderStatusSelectOptions();
     }
 
     function initPills(id, multi = false) {
@@ -1713,6 +1743,7 @@
     initPills('pills-schedule');
 
     document.addEventListener('DOMContentLoaded', async () => {
+      await loadStatusOptions();
       await loadCandidateFromSheetRow();
       fillInterviewFormFromStorage();
 

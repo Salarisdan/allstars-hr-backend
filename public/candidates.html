@@ -1594,7 +1594,7 @@
     function getCandidateVerdictKey(candidate = {}) {
       const status = String(candidate.status || '').trim();
 
-      if (status === 'Принят' || status === 'Работает') return 'hire';
+      if (status === 'Принят' || status === 'Принятый' || status === 'Работает') return 'hire';
       if (['Отказ', 'Уволен', 'Не рассчитан', 'Убрать', 'Не пришел на собес'].includes(status)) return 'reject';
       if (status) return 'review';
       return 'unrated';
@@ -1628,8 +1628,8 @@
     }
 
     function statusMeta(status) {
-      if (status === 'Принят') return 'green';
-      if (status === 'Тест-смена') return 'purple';
+      if (status === 'Принят' || status === 'Принятый') return 'green';
+      if (status === 'Тест-смена' || status === 'Тест смена') return 'purple';
       if (status === 'Изучает гайд') return 'yellow';
       if (status === 'Отказ') return 'red';
       return 'blue';
@@ -1763,8 +1763,8 @@
 
     function renderStats() {
       const total = allCandidates.length;
-      const hired = allCandidates.filter(x => x.status === 'Принят').length;
-      const trial = allCandidates.filter(x => x.status === 'Тест-смена').length;
+      const hired = allCandidates.filter(x => ['Принят', 'Принятый'].includes(String(x.status || '').trim())).length;
+      const trial = allCandidates.filter(x => ['Тест-смена', 'Тест смена'].includes(String(x.status || '').trim())).length;
       const guide = allCandidates.filter(x => x.status === 'Изучает гайд').length;
       const avg = total ? (allCandidates.reduce((a,b)=>a + Number(b.total || 0), 0) / total).toFixed(1) : '0.0';
 

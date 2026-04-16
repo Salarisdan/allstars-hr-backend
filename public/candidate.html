@@ -814,6 +814,7 @@
     const leftCol = document.getElementById('leftCol');
     const rightCol = document.getElementById('rightCol');
     let currentCandidate = null;
+    let STATUS_OPTIONS = [];
 
     function api(path, options = {}) {
       return fetch(path, {
@@ -824,6 +825,17 @@
           ...(options.headers || {})
         }
       });
+    }
+
+    async function loadStatusOptions() {
+      const res = await api('/api/status-options');
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Не удалось загрузить статусы');
+      }
+
+      STATUS_OPTIONS = Array.isArray(data.candidates) ? data.candidates : [];
     }
 
     async function generateCandidateAISummary() {
@@ -1024,10 +1036,23 @@
     function getCandidateVerdictKey(candidate = {}) {
       const status = String(candidate.status || '').trim();
 
-      if (status === 'Принят' || status === 'Работает') return 'hire';
+      if (status === 'Принят' || status === 'Принятый' || status === 'Работает') return 'hire';
       if (['Отказ', 'Уволен', 'Не рассчитан', 'Убрать', 'Не пришел на собес'].includes(status)) return 'reject';
       if (status) return 'review';
       return 'unrated';
+    }
+
+    function buildCandidateStatusOptions(currentStatus = '') {
+      const statuses = STATUS_OPTIONS.length
+        ? STATUS_OPTIONS
+        : ['Изучает гайд', 'Тест смена', 'Принятый', 'Отказ'];
+
+      return [
+        `<option value="" ${!currentStatus ? 'selected' : ''}>Без статуса</option>`,
+        ...statuses.map(status => `
+          <option value="${escapeHtml(status)}" ${currentStatus === status ? 'selected' : ''}>${escapeHtml(status)}</option>
+        `)
+      ].join('');
     }
 
     function verdictMeta(candidate = {}) {
@@ -1170,8 +1195,8 @@
     }
 
     function statusMeta(status) {
-      if (status === 'Принят') return 'green';
-      if (status === 'Тест-смена') return 'purple';
+      if (status === 'Принят' || status === 'Принятый') return 'green';
+      if (status === 'Тест-смена' || status === 'Тест смена') return 'purple';
       if (status === 'Изучает гайд') return 'yellow';
       if (status === 'Отказ') return 'red';
       return 'blue';
@@ -1344,11 +1369,7 @@
               <label>Быстро изменить статус</label>
               <div class="quick-edit-row">
                 <select id="quick-status">
-                  <option value="" ${!candidate.status ? 'selected' : ''}>Без статуса</option>
-                  <option value="Изучает гайд" ${candidate.status === 'Изучает гайд' ? 'selected' : ''}>Изучает гайд</option>
-                  <option value="Тест-смена" ${candidate.status === 'Тест-смена' ? 'selected' : ''}>Тест-смена</option>
-                  <option value="Принят" ${candidate.status === 'Принят' ? 'selected' : ''}>Принят</option>
-                  <option value="Отказ" ${candidate.status === 'Отказ' ? 'selected' : ''}>Отказ</option>
+                  ${buildCandidateStatusOptions(candidate.status)}
                 </select>
                 <button class="btn btn-primary" onclick="quickUpdateStatus()">Сохранить статус</button>
               </div>
@@ -1512,6 +1533,10 @@
         document.getElementById('pageSub').textContent = 'Не передан id кандидата';
         leftCol.innerHTML = '<div class="empty">Не передан id кандидата</div>';
         return;
+      }
+
+      if (!STATUS_OPTIONS.length) {
+        await loadStatusOptions();
       }
 
       const res = await api('/candidates');
