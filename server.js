@@ -258,6 +258,9 @@ const UNIFIED_STATUS_OPTIONS = [
 const STATUS_ALIASES = {
   'Принят': 'Принятый',
   'Тест-смена': 'Тест смена',
+  'Ждёт тест': 'Ждет тест',
+  'ждет тест': 'Ждет тест',
+  'ждёт тест': 'Ждет тест',
   'Собеседование': 'Ждет собеседования',
   'Отписал': 'Ждет собеседования',
   'Не пришел на собес': 'Отказ'
@@ -1258,7 +1261,7 @@ async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
   }
 
   for (const item of candidateStatusHistory) {
-    const status = String(item.status || '').trim();
+    const status = normalizeStatusAlias(item.status);
     if (!DASHBOARD_TRACKED_STATUSES.has(status)) continue;
 
     const eventDate = normalizeDateInput(item.created_at);
@@ -3597,23 +3600,30 @@ function createDashboardPlatformBreakdown() {
   };
 }
 
-function getDashboardPlatformBucket(value) {
+function getDashboardPlatformBuckets(value) {
   const platform = String(value || '').trim().toLowerCase();
   const hasOnlyFans = platform.includes('onlyfans') || platform.includes('only fans');
   const hasFansly = platform.includes('fansly');
 
-  if (hasOnlyFans && !hasFansly) return 'onlyfans';
-  if (hasFansly && !hasOnlyFans) return 'fansly';
-  return 'unknown';
+  const buckets = [];
+
+  if (hasOnlyFans) buckets.push('onlyfans');
+  if (hasFansly) buckets.push('fansly');
+  if (!buckets.length) buckets.push('unknown');
+
+  return buckets;
 }
 
 function incrementDashboardPlatformMetric(platformBreakdown, platformValue, metric) {
-  const bucket = getDashboardPlatformBucket(platformValue);
-  if (!platformBreakdown[bucket]) {
-    platformBreakdown[bucket] = createDashboardPlatformStats();
-  }
+  const buckets = getDashboardPlatformBuckets(platformValue);
 
-  platformBreakdown[bucket][metric] += 1;
+  for (const bucket of buckets) {
+    if (!platformBreakdown[bucket]) {
+      platformBreakdown[bucket] = createDashboardPlatformStats();
+    }
+
+    platformBreakdown[bucket][metric] += 1;
+  }
 }
 
 function buildDashboardWorkingSnapshot(teamMembers) {
@@ -3629,8 +3639,10 @@ function buildDashboardWorkingSnapshot(teamMembers) {
       continue;
     }
 
-    const bucket = getDashboardPlatformBucket(member?.platform || '');
-    snapshot[bucket] += 1;
+    const buckets = getDashboardPlatformBuckets(member?.platform || '');
+    for (const bucket of buckets) {
+      snapshot[bucket] += 1;
+    }
     snapshot.total += 1;
   }
 
@@ -3724,7 +3736,7 @@ function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
     const dayRow = dailyMap.get(dateStr);
     const platform = String(meta.platform || '').toLowerCase();
     const createdBy = getDashboardEventAuthor(event);
-    const nextStatus = String(event.new_value || '').trim();
+    const nextStatus = normalizeStatusAlias(event.new_value);
 
     if (event.event_type === 'lead_created') {
       const leadKey = getDashboardLeadKey(event);
