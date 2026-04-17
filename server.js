@@ -3799,7 +3799,7 @@ function buildDashboardRangeStats(events, rangeStart, rangeEnd) {
       }
     }
 
-    if (isDashboardTrialStatus(nextStatus)) {
+    if (isDashboardTrialStatus(nextStatus) || nextStatus === WAITING_TEST_CANDIDATE_STATUS) {
       if (!countedTestShiftKeys.has(personKey)) {
         countedTestShiftKeys.add(personKey);
         summary.test_shift += 1;
