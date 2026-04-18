@@ -587,7 +587,7 @@
       <div class="topbar">
         <div class="page-title">
           <h1>Рефералы</h1>
-          <p>Здесь отображаются только явные рефералы: источник с отметкой человека (например @username) или с формулировкой рекомендации.</p>
+          <p>Здесь отображаются кандидаты с валидно заполненным источником из базы кандидатов и таблицы собеседований.</p>
         </div>
 
         <div class="top-actions">
@@ -715,7 +715,44 @@
     }
 
     function resolveLeadSource(candidate = {}) {
-      return String(candidate.lead_source || candidate.candidate_source || candidate.source_name || '').trim();
+      const variants = [
+        candidate.lead_source,
+        candidate.candidate_source,
+        candidate.source_name,
+        candidate.referral_source,
+        candidate.source,
+        candidate['Источник'],
+        candidate['Откуда вы о нас узнали?'],
+        candidate['Откуда пришел кандидат'],
+        candidate['Откуда пришёл кандидат']
+      ];
+
+      for (const value of variants) {
+        const normalized = String(value || '').trim();
+        if (normalized) return normalized;
+      }
+
+      return '';
+    }
+
+    function isLikelyDateTimeText(value = '') {
+      const s = String(value || '').trim();
+      if (!s) return false;
+      if (/^\d{2}\.\d{2}\.\d{4}(?:\s+\d{1,2}:\d{2})?$/.test(s)) return true;
+      if (/^\d{4}-\d{2}-\d{2}(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$/.test(s)) return true;
+      return false;
+    }
+
+    function isValidLeadSource(source = '') {
+      const value = String(source || '').trim();
+      if (!value) return false;
+      if (isLikelyDateTimeText(value)) return false;
+
+      const normalized = value.toLowerCase();
+      if (normalized === '-' || normalized === '—' || normalized === 'не знаю') return false;
+
+      const pipelineValues = new Set(['manual', 'new', 'screening', 'interview', 'test_task', 'test_shift', 'hired', 'rejected']);
+      return !pipelineValues.has(normalized);
     }
 
     function looksLikeReferralSource(source = '') {
@@ -741,15 +778,13 @@
 
     function isReferralCandidate(candidate = {}) {
       const source = resolveLeadSource(candidate);
-      if (!source) return false;
-      const normalized = source.toLowerCase();
-      if (normalized === '-' || normalized === '—' || normalized === 'не знаю') return false;
-      return looksLikeReferralSource(source);
+      return isValidLeadSource(source);
     }
 
     function normalizeCandidate(raw = {}) {
       return {
         id: raw.id,
+        interviewId: raw.interview_id || raw.row_number || null,
         name: raw.name || '',
         tg: raw.telegram || raw.tg || raw.username || '',
         age: raw.age || '',
@@ -764,6 +799,31 @@
         statusChangedAt: raw.status_changed_at || '',
         createdAt: raw.created_at || raw.updated_at || raw.status_changed_at || ''
       };
+    }
+
+    function dedupeReferrals(items = []) {
+      const map = new Map();
+
+      for (const item of items) {
+        const tgKey = String(item.tg || '').trim().toLowerCase();
+        const nameKey = String(item.name || '').trim().toLowerCase();
+        const sourceKey = String(item.source || '').trim().toLowerCase();
+        const key = `${tgKey}::${nameKey}::${sourceKey}`;
+
+        const existing = map.get(key);
+        if (!existing) {
+          map.set(key, item);
+          continue;
+        }
+
+        const existingHasId = Number.isFinite(Number(existing.id)) && Number(existing.id) > 0;
+        const nextHasId = Number.isFinite(Number(item.id)) && Number(item.id) > 0;
+        if (!existingHasId && nextHasId) {
+          map.set(key, item);
+        }
+      }
+
+      return [...map.values()];
     }
 
     function isWorkingStatus(status = '') {
@@ -1017,7 +1077,9 @@
             </div>
 
             <div class="card-actions">
-              <a class="btn btn-ghost" href="/candidate.html?id=${encodeURIComponent(item.id)}">Открыть карточку</a>
+              ${Number.isFinite(Number(item.id)) && Number(item.id) > 0
+                ? `<a class="btn btn-ghost" href="/candidate.html?id=${encodeURIComponent(item.id)}">Открыть карточку</a>`
+                : `<button class="btn btn-ghost" type="button" disabled title="Кандидат есть только в собеседованиях">Только собеседования</button>`}
             </div>
           </div>
         </article>
@@ -1029,16 +1091,27 @@
     }
 
     async function loadReferrals() {
-      const res = await api('/candidates');
-      if (!res.ok) {
+      const [candidatesRes, interviewsRes] = await Promise.all([
+        api('/candidates'),
+        api('/api/interviews')
+      ]);
+
+      const candidatesRaw = candidatesRes.ok ? await candidatesRes.json().catch(() => []) : [];
+      const interviewsRaw = interviewsRes.ok ? await interviewsRes.json().catch(() => []) : [];
+
+      if (!candidatesRes.ok && !interviewsRes.ok) {
         throw new Error('Не удалось загрузить рефералов');
       }
 
-      const raw = await res.json();
-      const rows = Array.isArray(raw) ? raw : [];
-      referralCandidates = rows
-        .filter(isReferralCandidate)
-        .map(normalizeCandidate);
+      const candidates = (Array.isArray(candidatesRaw) ? candidatesRaw : []).map(normalizeCandidate);
+      const interviews = (Array.isArray(interviewsRaw) ? interviewsRaw : []).map(row => normalizeCandidate({
+        ...row,
+        id: null,
+        interview_id: row.id
+      }));
+
+      referralCandidates = dedupeReferrals([...candidates, ...interviews])
+        .filter(isReferralCandidate);
 
       renderStats();
       renderFilters();
