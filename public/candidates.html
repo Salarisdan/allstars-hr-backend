@@ -61,28 +61,62 @@
     }
 
     .sidebar{
-      width:230px;
+      width:238px;
       flex-shrink:0;
       position:fixed;
       left:0;
       top:0;
       bottom:0;
-      background:var(--surface);
-      border-right:1px solid var(--border);
-      padding:1.2rem 0 1.5rem;
+      background:
+        radial-gradient(160% 120% at 10% 0%, rgba(56,189,248,.12), rgba(56,189,248,0) 55%),
+        radial-gradient(130% 100% at 90% 15%, rgba(79,110,247,.18), rgba(79,110,247,0) 58%),
+        linear-gradient(180deg, #0f1320 0%, #0e1321 44%, #0c101c 100%);
+      border-right:1px solid rgba(157,178,255,.16);
+      padding:1rem .7rem 1.2rem;
       overflow-y:auto;
       z-index:10;
+      box-shadow:
+        24px 0 44px rgba(0,0,0,.38),
+        inset -1px 0 0 rgba(255,255,255,.05);
+      backdrop-filter:blur(8px);
+    }
+
+    .sidebar::before{
+      content:'';
+      position:absolute;
+      left:10px;
+      right:10px;
+      top:10px;
+      height:140px;
+      border-radius:18px;
+      border:1px solid rgba(125,149,255,.14);
+      background:linear-gradient(180deg, rgba(125,149,255,.06), rgba(125,149,255,0));
+      pointer-events:none;
     }
 
     .sidebar-logo{
-      margin:0 .7rem .8rem;
-      padding:.85rem .85rem .9rem;
+      position:relative;
+      margin:0 0 .95rem;
+      padding:.9rem .9rem .95rem;
       border:1px solid var(--accent-border);
-      border-radius:14px;
+      border-radius:16px;
       background:
-        radial-gradient(130% 90% at 0% 0%, rgba(125,149,255,.22), rgba(125,149,255,0) 50%),
-        linear-gradient(145deg, rgba(79,110,247,.18), rgba(79,110,247,.04));
-      box-shadow:0 10px 22px rgba(0,0,0,.28);
+        radial-gradient(130% 100% at 0% 0%, rgba(125,149,255,.28), rgba(125,149,255,0) 52%),
+        linear-gradient(145deg, rgba(79,110,247,.2), rgba(79,110,247,.03));
+      box-shadow:0 10px 24px rgba(0,0,0,.32);
+      overflow:hidden;
+    }
+
+    .sidebar-logo::after{
+      content:'';
+      position:absolute;
+      width:96px;
+      height:96px;
+      right:-26px;
+      top:-36px;
+      border-radius:999px;
+      background:radial-gradient(circle, rgba(56,189,248,.34) 0%, rgba(56,189,248,0) 72%);
+      pointer-events:none;
     }
 
     .brand-row{
@@ -134,38 +168,113 @@
 
     .sidebar-section{
       font-size:10px;
-      font-weight:700;
-      letter-spacing:.08em;
+      font-weight:800;
+      letter-spacing:.14em;
       text-transform:uppercase;
-      color:var(--text3);
-      padding:.45rem 1rem .25rem;
+      color:#7d89ae;
+      padding:.42rem .34rem .32rem;
+      margin:0 0 .2rem;
     }
 
     .nav-item{
       display:flex;
       align-items:center;
-      gap:8px;
-      padding:7px 1rem;
+      gap:10px;
+      padding:10px 10px;
       text-decoration:none;
-      color:var(--text2);
+      color:#b6c0df;
       font-size:var(--fs-sm);
-      border-left:2px solid transparent;
-      transition:.15s;
+      border:1px solid transparent;
+      border-radius:13px;
+      transition:transform .16s ease, color .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease;
+      position:relative;
+      margin-bottom:2px;
     }
 
     .nav-item:hover{
       color:var(--text);
-      background:rgba(255,255,255,.03);
+      background:rgba(125,149,255,.08);
+      border-color:rgba(125,149,255,.22);
+      transform:translateX(2px);
+      box-shadow:0 8px 18px rgba(0,0,0,.2);
     }
 
     .nav-item.active{
-      color:var(--accent2);
-      border-left-color:var(--accent);
-      background:var(--accent-bg);
+      color:#ebf0ff;
+      border-color:rgba(125,149,255,.4);
+      background:
+        linear-gradient(90deg, rgba(79,110,247,.3), rgba(79,110,247,.08)),
+        rgba(255,255,255,.02);
+      box-shadow:
+        inset 0 0 0 1px rgba(125,149,255,.24),
+        0 10px 18px rgba(18,27,55,.38);
+      transform:translateX(2px);
+    }
+
+    .nav-item::before{
+      content:'';
+      position:absolute;
+      left:-7px;
+      top:50%;
+      width:3px;
+      height:0;
+      border-radius:999px;
+      transform:translateY(-50%);
+      background:linear-gradient(180deg, #9fb3ff, #38bdf8);
+      opacity:0;
+      transition:height .16s ease, opacity .16s ease;
+    }
+
+    .nav-item.active::before{
+      height:18px;
+      opacity:1;
+    }
+
+    .nav-icon{
+      width:24px;
+      height:24px;
+      flex:0 0 auto;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,.14);
+      background:linear-gradient(160deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      font-size:13px;
+      box-shadow:inset 0 -1px 0 rgba(255,255,255,.06);
+      transition:transform .16s ease, border-color .16s ease, background .16s ease;
+    }
+
+    .nav-label{
+      flex:1;
+      line-height:1.2;
+      font-weight:700;
+    }
+
+    .nav-dot{
+      width:6px;
+      height:6px;
+      border-radius:999px;
+      background:rgba(157,178,255,.45);
+      opacity:0;
+      transform:scale(.6);
+      transition:opacity .16s ease, transform .16s ease;
+    }
+
+    .nav-item:hover .nav-icon,
+    .nav-item.active .nav-icon{
+      transform:translateY(-1px) scale(1.03);
+      border-color:rgba(157,178,255,.32);
+      background:linear-gradient(160deg, rgba(125,149,255,.24), rgba(125,149,255,.08));
+    }
+
+    .nav-item.active .nav-dot{
+      opacity:1;
+      transform:scale(1);
     }
 
     .main{
-      margin-left:230px;
+      margin-left:238px;
       width:100%;
       padding:1.6rem 1.6rem 3rem;
     }
@@ -1155,12 +1264,15 @@
         transform:translateX(-100%);
         transition:transform .2s ease;
         z-index:60;
-        background:var(--surface);
+        background:
+          radial-gradient(160% 120% at 10% 0%, rgba(56,189,248,.12), rgba(56,189,248,0) 55%),
+          radial-gradient(130% 100% at 90% 15%, rgba(79,110,247,.18), rgba(79,110,247,0) 58%),
+          linear-gradient(180deg, #0f1320 0%, #0e1321 44%, #0c101c 100%);
       }
       body.nav-open .sidebar{transform:translateX(0)}
       .sidebar-logo,.sidebar-section{display:block}
-      .nav-item{display:flex;border-left:2px solid transparent;border-bottom:none;border-radius:0;padding:7px 1rem;white-space:normal;background:none}
-      .nav-item.active{border-bottom:none;border-left-color:var(--accent)}
+      .nav-item{padding:10px 10px;white-space:normal}
+      .nav-item::before{left:-5px}
       .main{margin-left:0;padding:4.75rem 1rem 1.25rem}
     }
 
@@ -1248,14 +1360,14 @@
       </div>
 
       <div class="sidebar-section">Навигация</div>
-      <a class="nav-item" href="/index.html">🧑‍💼 Новый кандидат</a>
-      <a class="nav-item active" href="/candidates.html">👥 Кандидаты</a>
-      <a class="nav-item" href="/referrals.html">🤝 Рефералы</a>
-      <a class="nav-item" href="/interviews.html">📞 Собеседования</a>
-      <a class="nav-item" href="/dashboard.html">📊 Dashboard</a>
-      <a class="nav-item" href="/team-dashboard.html">🫂 Действующие</a>
-      <a class="nav-item" href="/hr-needs.html">🎯 Потребности HR</a>
-      <a class="nav-item" href="/team.html">👥 Команда</a>
+      <a class="nav-item" href="/index.html"><span class="nav-icon">🧑‍💼</span><span class="nav-label">Новый кандидат</span><span class="nav-dot"></span></a>
+      <a class="nav-item active" href="/candidates.html"><span class="nav-icon">👥</span><span class="nav-label">Кандидаты</span><span class="nav-dot"></span></a>
+      <a class="nav-item" href="/referrals.html"><span class="nav-icon">🤝</span><span class="nav-label">Рефералы</span><span class="nav-dot"></span></a>
+      <a class="nav-item" href="/interviews.html"><span class="nav-icon">📞</span><span class="nav-label">Собеседования</span><span class="nav-dot"></span></a>
+      <a class="nav-item" href="/dashboard.html"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span><span class="nav-dot"></span></a>
+      <a class="nav-item" href="/team-dashboard.html"><span class="nav-icon">🫂</span><span class="nav-label">Действующие</span><span class="nav-dot"></span></a>
+      <a class="nav-item" href="/hr-needs.html"><span class="nav-icon">🎯</span><span class="nav-label">Потребности HR</span><span class="nav-dot"></span></a>
+      <a class="nav-item" href="/team.html"><span class="nav-icon">👥</span><span class="nav-label">Команда</span><span class="nav-dot"></span></a>
     </aside>
 
     <main class="main">
@@ -1413,6 +1525,7 @@
   </div>
 
   <script src="/app-config.js"></script>
+  <script src="/navfx.js"></script>
   <script>
     const tokenKey = 'allstars_token';
     const meKey = 'allstars_me';
