@@ -1,0 +1,8 @@
+{
+  "appId": "com.allstars.crm",
+  "appName": "AllStars CRM",
+  "webDir": "public",
+  "server": {
+    "cleartext": true
+  }
+}

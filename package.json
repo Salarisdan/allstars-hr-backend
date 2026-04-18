@@ -6,9 +6,19 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "db:init": "node scripts/init-db.js"
+    "db:init": "node scripts/init-db.js",
+    "mobile:sync": "npx cap sync",
+    "mobile:copy": "npx cap copy",
+    "mobile:add:android": "npx cap add android",
+    "mobile:add:ios": "npx cap add ios",
+    "mobile:open:android": "npx cap open android",
+    "mobile:open:ios": "npx cap open ios",
+    "mobile:build:android": "cd android && gradlew.bat assembleDebug",
+    "mobile:build:android:clean": "cd android && gradlew.bat clean assembleDebug"
   },
   "dependencies": {
+    "@capacitor/android": "^7.6.2",
+    "@capacitor/core": "^7.4.3",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.6",
@@ -18,5 +28,8 @@
     "googleapis": "^171.4.0",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.20.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.3"
   }
 }

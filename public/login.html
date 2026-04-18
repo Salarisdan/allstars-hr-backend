@@ -129,8 +129,8 @@ a{text-decoration:none;color:inherit}
     </div>
   </div>
 
+  <script src="/app-config.js"></script>
   <script>
-const API = window.location.origin;
 const tokenKey = 'allstars_token';
 const meKey = 'allstars_me';
 
@@ -144,7 +144,8 @@ async function api(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API}${path}`, { ...options, headers });
+  const resolvedPath = window.AllStarsConfig?.resolveApiPath?.(path) || path;
+  const res = await fetch(resolvedPath, { ...options, headers });
   if (res.status === 401) { clearSession(); throw new Error('Unauthorized'); }
   const text = await res.text();
   const data = text ? JSON.parse(text) : {};

@@ -1364,6 +1364,10 @@
           <input id="m-job" />
         </div>
         <div class="field">
+          <label>Откуда вы о нас узнали?</label>
+          <input id="m-source" />
+        </div>
+        <div class="field">
           <label>Статус</label>
           <select id="m-status">
             <option value="">Без статуса</option>
@@ -1716,6 +1720,10 @@
       return map[value] || { label:'Этап не задан', cls:'blue' };
     }
 
+    function getLeadSource(candidate = {}) {
+      return String(candidate.lead_source || candidate.candidate_source || candidate.source_name || '').trim();
+    }
+
     function escapeHtml(str = '') {
       return String(str)
         .replaceAll('&', '&amp;')
@@ -2001,6 +2009,7 @@
       document.getElementById('m-schedule').value = candidate.schedule_preference || candidate.schedule || '';
       document.getElementById('m-top').value = candidate.top_profile || candidate.top_pages || '';
       document.getElementById('m-job').value = candidate.main_activity || candidate.job || '';
+      document.getElementById('m-source').value = getLeadSource(candidate);
       document.getElementById('m-status').value = candidate.status || '';
       document.getElementById('m-notes').value = candidate.notes || '';
       document.getElementById('m-report').value = candidate.interview_report || buildCandidateInterviewReport({
@@ -2032,7 +2041,7 @@
         top_pages: document.getElementById('m-top')?.value.trim() || '',
         avg_check: document.getElementById('m-avgcheck')?.value.trim() || '',
         shift: document.getElementById('m-shift')?.value.trim() || '',
-        lead_source: allCandidates.find(x => Number(x.id) === Number(currentEditId))?.lead_source || '',
+        lead_source: document.getElementById('m-source')?.value.trim() || '',
         main_activity: document.getElementById('m-job')?.value.trim() || '',
         schedule_preference: document.getElementById('m-schedule')?.value.trim() || ''
       };
@@ -2075,6 +2084,9 @@
           avg_check: document.getElementById('m-avgcheck').value.trim(),
           job: document.getElementById('m-job').value.trim(),
           main_activity: document.getElementById('m-job').value.trim(),
+          lead_source: document.getElementById('m-source').value.trim(),
+          candidate_source: document.getElementById('m-source').value.trim(),
+          source_name: document.getElementById('m-source').value.trim(),
           interview_report: document.getElementById('m-report').value.trim(),
           status: document.getElementById('m-status').value,
           notes: document.getElementById('m-notes').value.trim()
@@ -2272,6 +2284,7 @@
                 <div class="meta-box"><div class="k">Смены</div><div class="v">${escapeHtml(candidate.shift || '—')}</div></div>
                 <div class="meta-box"><div class="k">Топ страницы</div><div class="v">${escapeHtml(candidate.top_pages || '—')}</div></div>
                 <div class="meta-box"><div class="k">Занятость</div><div class="v">${escapeHtml(candidate.job || '—')}</div></div>
+                <div class="meta-box"><div class="k">Источник</div><div class="v">${escapeHtml(getLeadSource(candidate) || '—')}</div></div>
                 <div class="meta-box"><div class="k">Дата статуса</div><div class="v">${escapeHtml(formatDate(candidate.status_changed_at || ''))}</div></div>
                 <div class="meta-box"><div class="k">Владелец</div><div class="v">${escapeHtml(candidate.owner_name || '—')}</div></div>
               </div>

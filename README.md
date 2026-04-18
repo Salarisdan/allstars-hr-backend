@@ -59,3 +59,62 @@
 - drag-and-drop pipeline
 - реальный AI scoring через LLM
 - onboarding wizard
+
+## Мобильное приложение (без риска для текущего сайта)
+
+Сайт продолжает работать как раньше. Мобильная часть подключается отдельно через Capacitor.
+
+1. Установить зависимости:
+   ```bash
+   npm install
+   ```
+2. Добавить мобильную платформу (один раз):
+   ```bash
+   npm run mobile:add:android
+   npm run mobile:add:ios
+   ```
+3. Скопировать текущий web UI в мобильную оболочку:
+   ```bash
+   npm run mobile:sync
+   ```
+4. Открыть проект платформы:
+   ```bash
+   npm run mobile:open:android
+   npm run mobile:open:ios
+   ```
+
+Примечание: веб-сборка берется из `public/`, поэтому это самый безопасный старт без изменения серверной логики.
+
+### API для мобильного режима
+
+Веб-режим продолжает использовать относительные пути (`/api/...`) как раньше.
+
+Для мобильной оболочки можно задать отдельный backend URL:
+
+1. Один раз открыть приложение с параметром `apiBase`:
+   - пример: `.../login.html?apiBase=https://your-api.example.com`
+2. URL сохранится локально и будет использоваться на всех страницах.
+3. Сбросить сохраненный URL можно в консоли WebView:
+   ```js
+   window.AllStarsConfig.clearApiBase()
+   ```
+
+### Android: первый билд APK
+
+1. Синхронизировать веб-часть:
+   ```bash
+   npm run mobile:sync
+   ```
+2. Собрать debug APK:
+   ```bash
+   npm run mobile:build:android
+   ```
+3. Готовый файл:
+   `android/app/build/outputs/apk/debug/app-debug.apk`
+
+Если в терминале ошибка `JAVA_HOME is not set`, укажите JDK из Android Studio:
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+```

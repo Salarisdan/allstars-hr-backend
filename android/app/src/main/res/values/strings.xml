@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AllStars CRM</string>
+    <string name="title_activity_main">AllStars CRM</string>
+    <string name="package_name">com.allstars.crm</string>
+    <string name="custom_url_scheme">com.allstars.crm</string>
+</resources>
