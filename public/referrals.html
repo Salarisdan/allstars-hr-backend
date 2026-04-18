@@ -587,7 +587,7 @@
       <div class="topbar">
         <div class="page-title">
           <h1>Рефералы</h1>
-          <p>Здесь отображаются кандидаты с валидно заполненным источником из базы кандидатов и таблицы собеседований.</p>
+          <p>Здесь отображаются только кандидаты, у которых в источнике указан Telegram username человека в формате @username.</p>
         </div>
 
         <div class="top-actions">
@@ -758,27 +758,12 @@
     function looksLikeReferralSource(source = '') {
       const value = String(source || '').trim();
       if (!value) return false;
-
-      const hasTaggedReferrer = /(^|\s)@[a-zA-Z0-9_]{3,}/.test(value);
-      if (hasTaggedReferrer) return true;
-
-      const normalized = value.toLowerCase();
-      const referralPhrases = [
-        /узнал[аи]?\s+от/u,
-        /по\s+рекомендац/u,
-        /пригласил[аи]?/u,
-        /реферал/u,
-        /\bреф\b/u,
-        /referral/i,
-        /\bref\b/i
-      ];
-
-      return referralPhrases.some(pattern => pattern.test(normalized));
+      return /(^|\s)@[a-zA-Z0-9_]{3,}\b/.test(value);
     }
 
     function isReferralCandidate(candidate = {}) {
       const source = resolveLeadSource(candidate);
-      return isValidLeadSource(source);
+      return isValidLeadSource(source) && looksLikeReferralSource(source);
     }
 
     function normalizeCandidate(raw = {}) {
