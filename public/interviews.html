@@ -2053,6 +2053,31 @@
       return '';
     }
 
+    function resolveInterviewSource(item = {}) {
+      const variants = [
+        item.source,
+        item.lead_source,
+        item.candidate_source,
+        item.source_name,
+        item.referral_source,
+        item['Источник'],
+        item['источник'],
+        item['Откуда вы о нас узнали?'],
+        item['Откуда пришел кандидат'],
+        item['Откуда пришёл кандидат'],
+        item['source'],
+        item['lead source'],
+        item['candidate source']
+      ];
+
+      for (const value of variants) {
+        const normalized = String(value || '').trim();
+        if (normalized) return normalized;
+      }
+
+      return '';
+    }
+
     async function loadCandidates() {
       const res = await api('/api/interviews');
       if (!res.ok) throw new Error('Не удалось загрузить заявки из таблицы');
@@ -2073,6 +2098,7 @@
         exp: item.exp || item.experience || '',
         shift: item.shift || '',
         english_level: item.english_level || '',
+        source: resolveInterviewSource(item),
         notes: item.notes || '',
         status: item.status || '',
         crm_created_at: item.crm_created_at || '',
@@ -2201,7 +2227,7 @@
               </div>
 
               <div class="crm-meta-hints">
-                ${item.source ? `<div class="crm-hint">Откуда вы о нас узнали: ${escapeHtml(item.source)}</div>` : ''}
+                ${resolveInterviewSource(item) ? `<div class="crm-hint">Откуда вы о нас узнали: ${escapeHtml(resolveInterviewSource(item))}</div>` : ''}
                 ${item.experience ? `<div class="crm-hint">Опыт: ${escapeHtml(item.experience)}</div>` : ''}
                 ${item.crm_created_at ? `<div class="crm-hint">Карточка: ${escapeHtml(formatCrmDate(item.crm_created_at))}</div>` : ''}
                 ${item.crm_status_changed_at ? `<div class="crm-hint">Статус: ${escapeHtml(formatCrmDate(item.crm_status_changed_at))}</div>` : ''}
@@ -2262,7 +2288,7 @@
         interview_date: item.interview_date || '',
         interview_time: item.interview_time || '',
         notes: item.notes || '',
-        candidate_source: item.source || item.lead_source || item['Источник'] || item['Откуда вы о нас узнали?'] || item['Откуда пришел кандидат'] || item['Откуда пришёл кандидат'] || '',
+        candidate_source: resolveInterviewSource(item),
         status: item.status || ''
       };
 
@@ -2509,7 +2535,7 @@
 
             <div class="interview-view-field">
               <div class="interview-view-label">Откуда вы о нас узнали?</div>
-              <input class="editor-input" id="iv-source" value="${escapeHtml(item.source || '')}">
+              <input class="editor-input" id="iv-source" value="${escapeHtml(resolveInterviewSource(item))}">
             </div>
 
             <div class="interview-view-field">
