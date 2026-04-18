@@ -597,6 +597,25 @@ function mapRussianInterviewStatus(status = '') {
   return s;
 }
 
+function extractSourceFromText(value = '') {
+  const text = String(value || '').trim();
+  if (!text) return '';
+
+  const patterns = [
+    /(?:^|\n)\s*источник\s*[:\-]\s*([^\n]+)/iu,
+    /(?:^|\n)\s*откуда\s+вы\s+о\s+нас\s+узнали\??\s*[:\-]\s*([^\n]+)/iu,
+    /(?:^|\n)\s*откуда\s+приш[её]л\s+кандидат\s*[:\-]\s*([^\n]+)/iu
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    const found = String(match?.[1] || '').trim();
+    if (found) return found;
+  }
+
+  return '';
+}
+
 function normalizeRow(headers, row, rowIndex) {
   const normalizedHeaders = headers.map(h => String(h || '').trim().toLowerCase());
 
@@ -606,8 +625,32 @@ function normalizeRow(headers, row, rowIndex) {
       const idx = normalizedHeaders.indexOf(name);
       if (idx >= 0) return row[idx] ?? '';
     }
+
+    for (const rawName of names) {
+      const name = String(rawName || '').trim().toLowerCase();
+      if (!name) continue;
+
+      const idx = normalizedHeaders.findIndex(header =>
+        header.includes(name) || name.includes(header)
+      );
+
+      if (idx >= 0) return row[idx] ?? '';
+    }
+
     return '';
   };
+
+  const rawComments = get('Комментарии', 'Комментарий', 'Comment', 'Comments');
+  const sourceFromColumns = get(
+    'Источник',
+    'Источник кандидата',
+    'Откуда вы о нас узнали?',
+    'Откуда вы о нас узнали',
+    'Откуда пришел кандидат',
+    'Откуда пришёл кандидат',
+    'Источник (откуда пришел)'
+  );
+  const source = String(sourceFromColumns || '').trim() || extractSourceFromText(rawComments);
 
   return {
     id: rowIndex,
@@ -620,15 +663,7 @@ function normalizeRow(headers, row, rowIndex) {
     username: get('TG Username', 'Username'),
     telegram_user_id: get('TG ID', 'ID'),
     tg: get('TG Username', 'Username'),
-    source: get(
-      'Источник',
-      'Источник кандидата',
-      'Откуда вы о нас узнали?',
-      'Откуда вы о нас узнали',
-      'Откуда пришел кандидат',
-      'Откуда пришёл кандидат',
-      'Источник (откуда пришел)'
-    ),
+    source,
     name: get('Имя', 'Как вас зовут?'),
     age: get('Возраст'),
     english: get('Английский', 'Уровень английского'),
@@ -648,8 +683,8 @@ function normalizeRow(headers, row, rowIndex) {
     interview_date: get('Дата собеседования'),
     interview_time: get('Время собеседования'),
     completed_at: get('completed_at', 'Completed At', 'Дата завершения'),
-    notes: get('Комментарии'),
-    comments: get('Комментарии')
+    notes: rawComments,
+    comments: rawComments
   };
 }
 
@@ -3283,6 +3318,19 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
         const idx = headers.indexOf(name);
         if (idx >= 0) return idx + 1; // Column numbers are 1-indexed
       }
+
+      const loweredHeaders = headers.map(h => String(h || '').trim().toLowerCase());
+      for (const rawName of names) {
+        const name = String(rawName || '').trim().toLowerCase();
+        if (!name) continue;
+
+        const idx = loweredHeaders.findIndex(header =>
+          header.includes(name) || name.includes(header)
+        );
+
+        if (idx >= 0) return idx + 1;
+      }
+
       return -1;
     };
 
