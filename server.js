@@ -1841,6 +1841,111 @@ async function syncInterviewSheetStatus({ status, telegram, name }) {
   return { updated: updates.length };
 }
 
+async function syncInterviewSheetPlatform({ platform, telegram, name }) {
+  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+  const sheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
+  const nextPlatform = String(platform || '').trim();
+  const telegramKey = normalizeTelegramKey(telegram);
+  const personName = String(name || '').trim();
+
+  if (!spreadsheetId || !nextPlatform || (!telegramKey && !personName)) {
+    return { updated: 0 };
+  }
+
+  const sheets = await getSheetsClient();
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${sheetName}!A1:ZZ5000`
+  });
+
+  const values = response.data.values || [];
+  if (!values.length) return { updated: 0 };
+
+  const headers = values[0] || [];
+  const rows = values.slice(1);
+
+  const platformIdx = findHeaderIndex(headers, ['Платформа', 'OnlyFans / Fansly'], ['платформа', 'onlyfans', 'fansly']);
+  const tgIdx = findHeaderIndex(headers, ['TG Username', 'Username'], ['username', 'tg username', 'telegram']);
+  const nameIdx = findHeaderIndex(headers, ['Имя', 'Как вас зовут?'], ['имя']);
+
+  if (platformIdx < 0) return { updated: 0 };
+
+  const updates = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i] || [];
+    const rowNumber = i + 2;
+    const rowPlatform = String(row[platformIdx] || '').trim();
+    const rowTelegramKey = tgIdx >= 0 ? normalizeTelegramKey(row[tgIdx]) : '';
+    const rowName = nameIdx >= 0 ? String(row[nameIdx] || '').trim() : '';
+
+    const matchedByTelegram = telegramKey && rowTelegramKey && rowTelegramKey === telegramKey;
+    const matchedByName = !telegramKey && personName && rowName && namesLooselyMatch(personName, rowName);
+
+    if ((matchedByTelegram || matchedByName) && rowPlatform !== nextPlatform) {
+      const colLetter = columnToLetter(platformIdx + 1);
+      updates.push({
+        range: `${sheetName}!${colLetter}${rowNumber}`,
+        values: [[nextPlatform]]
+      });
+    }
+  }
+
+  if (!updates.length) return { updated: 0 };
+
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      valueInputOption: 'USER_ENTERED',
+      data: updates
+    }
+  });
+
+  return { updated: updates.length };
+}
+
+async function syncCandidatesPlatformFromInterview({ agencyId, platform, telegram, name, updatedByUserId }) {
+  const nextPlatform = String(platform || '').trim();
+  const telegramKey = normalizeTelegramKey(telegram);
+  const personName = String(name || '').trim();
+
+  if (!agencyId || !nextPlatform || (!telegramKey && !personName)) {
+    return { updated: 0 };
+  }
+
+  const result = await query(
+    `SELECT id, tg, telegram, name, platform, platforms
+     FROM candidates
+     WHERE agency_id = $1`,
+    [agencyId]
+  );
+
+  const matchedIds = result.rows
+    .filter(row => {
+      const rowTgKey = normalizeTelegramKey(row.telegram || row.tg);
+      const byTelegram = telegramKey && rowTgKey && rowTgKey === telegramKey;
+      const byName = !telegramKey && personName && row.name && namesLooselyMatch(personName, row.name);
+      return byTelegram || byName;
+    })
+    .filter(row => String(row.platform || row.platforms || '').trim() !== nextPlatform)
+    .map(row => Number(row.id))
+    .filter(id => Number.isInteger(id) && id > 0);
+
+  if (!matchedIds.length) return { updated: 0 };
+
+  await query(
+    `UPDATE candidates
+     SET platform = $3,
+         platforms = $3,
+         updated_at = NOW(),
+         updated_by_user_id = COALESCE($4, updated_by_user_id)
+     WHERE agency_id = $1 AND id = ANY($2::int[])`,
+    [agencyId, matchedIds, nextPlatform, updatedByUserId || null]
+  );
+
+  return { updated: matchedIds.length };
+}
+
 async function syncTeamSheetStatus({ status, telegram, name }) {
   const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
   const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
@@ -3100,6 +3205,18 @@ app.patch('/candidates/:id', auth, async (req, res) => {
     ]
   );
 
+  if (String(next.platform || '').trim() && String(next.platform || '').trim() !== String(row.platform || '').trim()) {
+    try {
+      await syncInterviewSheetPlatform({
+        platform: next.platform,
+        telegram: next.telegram || next.tg,
+        name: next.name
+      });
+    } catch (syncErr) {
+      console.error('syncInterviewSheetPlatform error:', syncErr.message);
+    }
+  }
+
   if (next.status && next.status !== row.status) {
     const candidateId = req.params.id;
     const prevStatus = row.status;
@@ -3697,6 +3814,18 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
         name: candidateWithMeta.name || req.body?.name || '',
         updatedByUserId: req.user.userId
       });
+    }
+
+    try {
+      await syncCandidatesPlatformFromInterview({
+        agencyId: req.user.agencyId,
+        platform: candidateWithMeta.platform || req.body?.platform || '',
+        telegram: candidateWithMeta.telegram || candidateWithMeta.username || req.body?.telegram || req.body?.username || '',
+        name: candidateWithMeta.name || req.body?.name || '',
+        updatedByUserId: req.user.userId
+      });
+    } catch (syncErr) {
+      console.error('syncCandidatesPlatformFromInterview error:', syncErr.message);
     }
 
     res.json(candidateWithMeta);
