@@ -1841,14 +1841,16 @@ async function syncInterviewSheetStatus({ status, telegram, name }) {
   return { updated: updates.length };
 }
 
-async function syncInterviewSheetPlatform({ platform, telegram, name }) {
+async function syncInterviewSheetPlatform({ platform, shift, englishLevel, telegram, name }) {
   const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
   const sheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
   const nextPlatform = String(platform || '').trim();
+  const nextShift = String(shift || '').trim();
+  const nextEnglish = String(englishLevel || '').trim();
   const telegramKey = normalizeTelegramKey(telegram);
   const personName = String(name || '').trim();
 
-  if (!spreadsheetId || !nextPlatform || (!telegramKey && !personName)) {
+  if (!spreadsheetId || (!nextPlatform && !nextShift && !nextEnglish) || (!telegramKey && !personName)) {
     return { updated: 0 };
   }
 
@@ -1865,29 +1867,51 @@ async function syncInterviewSheetPlatform({ platform, telegram, name }) {
   const rows = values.slice(1);
 
   const platformIdx = findHeaderIndex(headers, ['Платформа', 'OnlyFans / Fansly'], ['платформа', 'onlyfans', 'fansly']);
+  const shiftIdx = findHeaderIndex(headers, ['Смены', 'Смена'], ['смены', 'смена', 'shift']);
+  const englishIdx = findHeaderIndex(headers, ['Английский', 'Уровень английского'], ['англий', 'english']);
   const tgIdx = findHeaderIndex(headers, ['TG Username', 'Username'], ['username', 'tg username', 'telegram']);
   const nameIdx = findHeaderIndex(headers, ['Имя', 'Как вас зовут?'], ['имя']);
 
-  if (platformIdx < 0) return { updated: 0 };
+  if (platformIdx < 0 && shiftIdx < 0 && englishIdx < 0) return { updated: 0 };
 
   const updates = [];
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i] || [];
     const rowNumber = i + 2;
-    const rowPlatform = String(row[platformIdx] || '').trim();
+    const rowPlatform = platformIdx >= 0 ? String(row[platformIdx] || '').trim() : '';
+    const rowShift = shiftIdx >= 0 ? String(row[shiftIdx] || '').trim() : '';
+    const rowEnglish = englishIdx >= 0 ? String(row[englishIdx] || '').trim() : '';
     const rowTelegramKey = tgIdx >= 0 ? normalizeTelegramKey(row[tgIdx]) : '';
     const rowName = nameIdx >= 0 ? String(row[nameIdx] || '').trim() : '';
 
     const matchedByTelegram = telegramKey && rowTelegramKey && rowTelegramKey === telegramKey;
     const matchedByName = !telegramKey && personName && rowName && namesLooselyMatch(personName, rowName);
 
-    if ((matchedByTelegram || matchedByName) && rowPlatform !== nextPlatform) {
-      const colLetter = columnToLetter(platformIdx + 1);
-      updates.push({
-        range: `${sheetName}!${colLetter}${rowNumber}`,
-        values: [[nextPlatform]]
-      });
+    if (matchedByTelegram || matchedByName) {
+      if (nextPlatform && platformIdx >= 0 && rowPlatform !== nextPlatform) {
+        const colLetter = columnToLetter(platformIdx + 1);
+        updates.push({
+          range: `${sheetName}!${colLetter}${rowNumber}`,
+          values: [[nextPlatform]]
+        });
+      }
+
+      if (nextShift && shiftIdx >= 0 && rowShift !== nextShift) {
+        const colLetter = columnToLetter(shiftIdx + 1);
+        updates.push({
+          range: `${sheetName}!${colLetter}${rowNumber}`,
+          values: [[nextShift]]
+        });
+      }
+
+      if (nextEnglish && englishIdx >= 0 && rowEnglish !== nextEnglish) {
+        const colLetter = columnToLetter(englishIdx + 1);
+        updates.push({
+          range: `${sheetName}!${colLetter}${rowNumber}`,
+          values: [[nextEnglish]]
+        });
+      }
     }
   }
 
@@ -1904,17 +1928,19 @@ async function syncInterviewSheetPlatform({ platform, telegram, name }) {
   return { updated: updates.length };
 }
 
-async function syncCandidatesPlatformFromInterview({ agencyId, platform, telegram, name, updatedByUserId }) {
+async function syncCandidatesPlatformFromInterview({ agencyId, platform, shift, englishLevel, telegram, name, updatedByUserId }) {
   const nextPlatform = String(platform || '').trim();
+  const nextShift = String(shift || '').trim();
+  const nextEnglish = String(englishLevel || '').trim();
   const telegramKey = normalizeTelegramKey(telegram);
   const personName = String(name || '').trim();
 
-  if (!agencyId || !nextPlatform || (!telegramKey && !personName)) {
+  if (!agencyId || (!nextPlatform && !nextShift && !nextEnglish) || (!telegramKey && !personName)) {
     return { updated: 0 };
   }
 
   const result = await query(
-    `SELECT id, tg, telegram, name, platform, platforms
+    `SELECT id, tg, telegram, name, platform, platforms, shift, english, english_level
      FROM candidates
      WHERE agency_id = $1`,
     [agencyId]
@@ -1927,7 +1953,12 @@ async function syncCandidatesPlatformFromInterview({ agencyId, platform, telegra
       const byName = !telegramKey && personName && row.name && namesLooselyMatch(personName, row.name);
       return byTelegram || byName;
     })
-    .filter(row => String(row.platform || row.platforms || '').trim() !== nextPlatform)
+    .filter(row => {
+      const platformDiff = nextPlatform && String(row.platform || row.platforms || '').trim() !== nextPlatform;
+      const shiftDiff = nextShift && String(row.shift || '').trim() !== nextShift;
+      const englishDiff = nextEnglish && String(row.english_level || row.english || '').trim() !== nextEnglish;
+      return platformDiff || shiftDiff || englishDiff;
+    })
     .map(row => Number(row.id))
     .filter(id => Number.isInteger(id) && id > 0);
 
@@ -1935,12 +1966,15 @@ async function syncCandidatesPlatformFromInterview({ agencyId, platform, telegra
 
   await query(
     `UPDATE candidates
-     SET platform = $3,
-         platforms = $3,
+     SET platform = CASE WHEN $3 <> '' THEN $3 ELSE platform END,
+         platforms = CASE WHEN $3 <> '' THEN $3 ELSE platforms END,
+         shift = CASE WHEN $4 <> '' THEN $4 ELSE shift END,
+         english = CASE WHEN $5 <> '' THEN $5 ELSE english END,
+         english_level = CASE WHEN $5 <> '' THEN $5 ELSE english_level END,
          updated_at = NOW(),
-         updated_by_user_id = COALESCE($4, updated_by_user_id)
+         updated_by_user_id = COALESCE($6, updated_by_user_id)
      WHERE agency_id = $1 AND id = ANY($2::int[])`,
-    [agencyId, matchedIds, nextPlatform, updatedByUserId || null]
+    [agencyId, matchedIds, nextPlatform, nextShift, nextEnglish, updatedByUserId || null]
   );
 
   return { updated: matchedIds.length };
@@ -3205,10 +3239,16 @@ app.patch('/candidates/:id', auth, async (req, res) => {
     ]
   );
 
-  if (String(next.platform || '').trim() && String(next.platform || '').trim() !== String(row.platform || '').trim()) {
+  const platformChanged = String(next.platform || '').trim() && String(next.platform || '').trim() !== String(row.platform || '').trim();
+  const shiftChanged = String(next.shift || '').trim() && String(next.shift || '').trim() !== String(row.shift || '').trim();
+  const englishChanged = String(next.english_level || next.english || '').trim() && String(next.english_level || next.english || '').trim() !== String(row.english_level || row.english || '').trim();
+
+  if (platformChanged || shiftChanged || englishChanged) {
     try {
       await syncInterviewSheetPlatform({
         platform: next.platform,
+        shift: next.shift,
+        englishLevel: next.english_level || next.english,
         telegram: next.telegram || next.tg,
         name: next.name
       });
@@ -3755,7 +3795,7 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
     // Get updated row and return it
     const updatedRowRes = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `${sheetName}!A${rowNumber}:AU${rowNumber}`
+      range: `${sheetName}!A${rowNumber}:ZZ${rowNumber}`
     });
 
     const updatedRow = updatedRowRes.data.values?.[0] || [];
@@ -3820,6 +3860,8 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
       await syncCandidatesPlatformFromInterview({
         agencyId: req.user.agencyId,
         platform: candidateWithMeta.platform || req.body?.platform || '',
+        shift: candidateWithMeta.shift || req.body?.shift || '',
+        englishLevel: candidateWithMeta.english_level || req.body?.english_level || '',
         telegram: candidateWithMeta.telegram || candidateWithMeta.username || req.body?.telegram || req.body?.username || '',
         name: candidateWithMeta.name || req.body?.name || '',
         updatedByUserId: req.user.userId

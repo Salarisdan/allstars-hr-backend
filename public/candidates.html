@@ -828,6 +828,20 @@
       flex-wrap:wrap;
     }
 
+    .autosave-status{
+      margin-right:auto;
+      font-size:12px;
+      font-weight:700;
+      color:var(--text3);
+      min-height:18px;
+      display:flex;
+      align-items:center;
+    }
+
+    .autosave-status.ok{color:#4ade80}
+    .autosave-status.saving{color:#fbbf24}
+    .autosave-status.error{color:#f87171}
+
     @keyframes mobileSheetIn{
       from{transform:translateY(24px);opacity:0}
       to{transform:translateY(0);opacity:1}
@@ -1391,6 +1405,7 @@
       </div>
 
       <div class="modal-actions">
+        <div class="autosave-status" id="candidateModalSaveStatus"></div>
         <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
         <button class="btn btn-primary" onclick="saveEdit()">Сохранить</button>
       </div>
@@ -1416,11 +1431,14 @@
     const sortSelect = document.getElementById('sortSelect');
     const refreshBtn = document.getElementById('refreshBtn');
     const editModal = document.getElementById('editModal');
+    const modalSaveStatusEl = document.getElementById('candidateModalSaveStatus');
 
     let allCandidates = [];
     let allCrmItems = [];
     let currentEditId = null;
     let STATUS_OPTIONS = [];
+    let modalAutosaveTimer = null;
+    let modalAutosaveClearTimer = null;
 
     /* ─── CRM JS (общий блок) ──────────────────────────────────── */
     const CRM_STATUS_GROUPS = [
@@ -2055,6 +2073,8 @@
         main_activity: candidate.main_activity || candidate.job || '',
         schedule_preference: candidate.schedule_preference || candidate.schedule || ''
       });
+      bindModalAutosaveHandlers();
+      setModalSaveStatus('', '');
       editModal.classList.add('show');
     }
 
@@ -2082,15 +2102,35 @@
     }
 
     function closeModal() {
+      if (modalAutosaveTimer) {
+        clearTimeout(modalAutosaveTimer);
+        modalAutosaveTimer = null;
+      }
       currentEditId = null;
+      setModalSaveStatus('', '');
       editModal.classList.remove('show');
     }
 
-    async function saveEdit() {
-      const candidate = allCandidates.find(x => Number(x.id) === Number(currentEditId));
-      if (!candidate) return;
+    function setModalSaveStatus(text, mode = '') {
+      if (!modalSaveStatusEl) return;
+      if (modalAutosaveClearTimer) {
+        clearTimeout(modalAutosaveClearTimer);
+        modalAutosaveClearTimer = null;
+      }
+      modalSaveStatusEl.textContent = text || '';
+      modalSaveStatusEl.className = `autosave-status${mode ? ` ${mode}` : ''}`;
+      if (text && (mode === 'ok' || mode === 'error')) {
+        modalAutosaveClearTimer = setTimeout(() => {
+          if (modalSaveStatusEl) {
+            modalSaveStatusEl.textContent = '';
+            modalSaveStatusEl.className = 'autosave-status';
+          }
+        }, 1800);
+      }
+    }
 
-      const payload = {
+    function buildEditPayload(candidate) {
+      return {
         fields: {
           name: document.getElementById('m-name').value.trim(),
           tg: document.getElementById('m-tg').value.trim(),
@@ -2122,6 +2162,41 @@
         ratings: candidate.ratings || {},
         total: candidate.total || 0
       };
+    }
+
+    function bindModalAutosaveHandlers() {
+      const ids = [
+        'm-name','m-tg','m-age','m-exp','m-english','m-avgcheck','m-platforms','m-shift',
+        'm-schedule','m-top','m-job','m-source','m-status','m-notes','m-report'
+      ];
+
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el || el.dataset.autosaveBound === '1') return;
+        const handler = () => scheduleModalAutosave();
+        el.addEventListener('input', handler);
+        el.addEventListener('change', handler);
+        el.dataset.autosaveBound = '1';
+      });
+    }
+
+    function scheduleModalAutosave() {
+      if (!currentEditId || !editModal.classList.contains('show')) return;
+      if (modalAutosaveTimer) {
+        clearTimeout(modalAutosaveTimer);
+      }
+      setModalSaveStatus('Сохранение...', 'saving');
+      modalAutosaveTimer = setTimeout(async () => {
+        modalAutosaveTimer = null;
+        await saveEdit({ closeOnSuccess: false, reloadOnSuccess: false, silent: true });
+      }, 650);
+    }
+
+    async function saveEdit(options = {}) {
+      const { closeOnSuccess = true, reloadOnSuccess = true, silent = false } = options;
+      const candidate = allCandidates.find(x => Number(x.id) === Number(currentEditId));
+      if (!candidate) return;
+      const payload = buildEditPayload(candidate);
 
       const res = await api(`/candidates/${currentEditId}`, {
         method:'PATCH',
@@ -2130,12 +2205,25 @@
 
       if (!res.ok) {
         const err = await res.json().catch(()=>({}));
-        alert(err.error || 'Не удалось сохранить');
+        if (!silent) {
+          alert(err.error || 'Не удалось сохранить');
+        }
+        setModalSaveStatus('Ошибка сохранения', 'error');
         return;
       }
 
-      closeModal();
-      await loadCandidates();
+      Object.assign(candidate, payload.fields);
+      setModalSaveStatus('Сохранено', 'ok');
+
+      if (reloadOnSuccess) {
+        await loadCandidates();
+      } else {
+        rerenderCrmPage();
+      }
+
+      if (closeOnSuccess) {
+        closeModal();
+      }
     }
 
     async function toggleDetails(id) {
