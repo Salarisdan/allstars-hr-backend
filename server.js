@@ -688,6 +688,91 @@ function normalizeRow(headers, row, rowIndex) {
   };
 }
 
+function normalizeTelegramKey(value = '') {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^@/, '');
+}
+
+function normalizeNameKey(value = '') {
+  return String(value || '')
+    .trim()
+    .toLowerCase();
+}
+
+async function buildInterviewSourceFallbackMap(agencyId, interviews = []) {
+  const tgSet = new Set();
+  const nameSet = new Set();
+
+  for (const item of interviews) {
+    const tgKey = normalizeTelegramKey(item.telegram || item.tg || item.username || item.telegram_username);
+    if (tgKey) tgSet.add(tgKey);
+
+    const nameKey = normalizeNameKey(item.name);
+    if (nameKey) nameSet.add(nameKey);
+  }
+
+  if (!tgSet.size && !nameSet.size) {
+    return { byTelegram: new Map(), byName: new Map() };
+  }
+
+  const tgKeys = [...tgSet];
+  const nameKeys = [...nameSet];
+
+  const result = await query(
+    `SELECT name, tg, telegram, lead_source, source
+     FROM candidates
+     WHERE agency_id = $1
+       AND (
+         lower(regexp_replace(coalesce(tg, ''), '^@', '')) = ANY($2::text[])
+         OR lower(regexp_replace(coalesce(telegram, ''), '^@', '')) = ANY($2::text[])
+         OR lower(coalesce(name, '')) = ANY($3::text[])
+       )`,
+    [agencyId, tgKeys, nameKeys]
+  );
+
+  const byTelegram = new Map();
+  const byName = new Map();
+
+  for (const row of result.rows) {
+    const source = String(row.lead_source || row.source || '').trim();
+    if (!source) continue;
+
+    const tgKey = normalizeTelegramKey(row.tg || row.telegram);
+    if (tgKey && !byTelegram.has(tgKey)) {
+      byTelegram.set(tgKey, source);
+    }
+
+    const nameKey = normalizeNameKey(row.name);
+    if (nameKey && !byName.has(nameKey)) {
+      byName.set(nameKey, source);
+    }
+  }
+
+  return { byTelegram, byName };
+}
+
+function applyInterviewSourceFallback(item, sourceMap) {
+  const current = String(item.source || '').trim();
+  if (current) return item;
+
+  const tgKey = normalizeTelegramKey(item.telegram || item.tg || item.username || item.telegram_username);
+  const nameKey = normalizeNameKey(item.name);
+
+  const fallback =
+    sourceMap?.byTelegram?.get(tgKey) ||
+    sourceMap?.byName?.get(nameKey) ||
+    '';
+
+  if (!fallback) return item;
+
+  return {
+    ...item,
+    source: fallback
+  };
+}
+
 function mergeInterviewCrmMeta(candidate, meta) {
   if (!meta) return candidate;
 
@@ -3222,14 +3307,17 @@ app.get('/api/interviews', auth, async (req, res) => {
         return parseRuDate(bd) - parseRuDate(ad);
       });
 
-    await ensureInterviewCrmMetaForCandidates(req.user.agencyId, normalized);
+    const sourceFallbackMap = await buildInterviewSourceFallbackMap(req.user.agencyId, normalized);
+    const normalizedWithSource = normalized.map(item => applyInterviewSourceFallback(item, sourceFallbackMap));
+
+    await ensureInterviewCrmMetaForCandidates(req.user.agencyId, normalizedWithSource);
 
     const metaMap = await getInterviewCrmMetaMap(
       req.user.agencyId,
-      normalized.map(item => item.row_number)
+      normalizedWithSource.map(item => item.row_number)
     );
 
-    res.json(normalized.map(item => mergeInterviewCrmMeta(item, metaMap.get(Number(item.row_number)))));
+    res.json(normalizedWithSource.map(item => mergeInterviewCrmMeta(item, metaMap.get(Number(item.row_number)))));
   } catch (err) {
     console.error('Google Sheets read error:', err.message);
     res.status(500).json({ error: 'Failed to read Google Sheet' });
@@ -3271,9 +3359,12 @@ app.get('/api/interviews/:rowNumber', auth, async (req, res) => {
     }
 
     const candidate = normalizeRow(headers, row, rowNumber);
-    await ensureInterviewCrmMeta(req.user.agencyId, rowNumber, candidate.created_at);
+    const sourceFallbackMap = await buildInterviewSourceFallbackMap(req.user.agencyId, [candidate]);
+    const candidateWithSource = applyInterviewSourceFallback(candidate, sourceFallbackMap);
+
+    await ensureInterviewCrmMeta(req.user.agencyId, rowNumber, candidateWithSource.created_at);
     const meta = await getInterviewCrmMeta(req.user.agencyId, rowNumber);
-    res.json(mergeInterviewCrmMeta(candidate, meta));
+    res.json(mergeInterviewCrmMeta(candidateWithSource, meta));
   } catch (err) {
     console.error('Interview row read error:', err.message);
     res.status(500).json({ error: 'Failed to read interview row' });
