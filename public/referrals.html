@@ -1,0 +1,1095 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AllStars - Рефералы</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0d0f14;
+      --surface:#141720;
+      --surface2:#1b1f2c;
+      --surface3:#232840;
+      --border:rgba(255,255,255,.07);
+      --border2:rgba(255,255,255,.12);
+      --accent:#4f6ef7;
+      --accent2:#7d95ff;
+      --accent-bg:rgba(79,110,247,.12);
+      
+      --brand-pill-text:#c8b6ff;
+      --brand-pill-border:rgba(167,139,250,.34);
+      --brand-pill-bg:rgba(109,40,217,.18);
+      --text:#e8eaf0;
+      --text2:#9ba3bd;
+      --text3:#58607c;
+      --green:#34d399;
+      --green-bg:rgba(52,211,153,.10);
+      --green-border:rgba(52,211,153,.22);
+      --yellow:#fbbf24;
+      --yellow-bg:rgba(251,191,36,.10);
+      --yellow-border:rgba(251,191,36,.22);
+      --red:#f87171;
+      --red-bg:rgba(248,113,113,.10);
+      --red-border:rgba(248,113,113,.22);
+      --purple:#a78bfa;
+      --purple-bg:rgba(167,139,250,.10);
+      --purple-border:rgba(167,139,250,.22);
+      --shadow:0 10px 40px rgba(0,0,0,.24);
+      --fs:14px;
+      --fs-sm:12px;
+      --fs-xs:11px;
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+
+    body{
+      font-family:'Manrope',sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      min-height:100vh;
+      font-size:var(--fs);
+    }
+
+    .layout{display:flex;min-height:100vh}
+
+    .sidebar{
+      width:230px;
+      flex-shrink:0;
+      position:fixed;
+      left:0;
+      top:0;
+      bottom:0;
+      background:var(--surface);
+      border-right:1px solid var(--border);
+      padding:1.2rem 0 1.5rem;
+      overflow-y:auto;
+      z-index:10;
+    }
+
+    .sidebar-logo{
+      margin:0 .7rem .8rem;
+      padding:.85rem .85rem .9rem;
+      border:1px solid var(--accent-border);
+      border-radius:14px;
+      background:
+        radial-gradient(130% 90% at 0% 0%, rgba(125,149,255,.22), rgba(125,149,255,0) 50%),
+        linear-gradient(145deg, rgba(79,110,247,.18), rgba(79,110,247,.04));
+      box-shadow:0 10px 22px rgba(0,0,0,.28);
+    }
+
+    .brand-row{
+      display:flex;
+      align-items:center;
+      gap:9px;
+    }
+
+    .brand-mark{
+      width:24px;
+      height:24px;
+      flex:0 0 auto;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,.22);
+      background:linear-gradient(145deg, rgba(125,149,255,.35), rgba(79,110,247,.2));
+      color:#dbe4ff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:13px;
+      box-shadow:inset 0 0 14px rgba(125,149,255,.25);
+    }
+
+    .brand{
+      font-family:'Unbounded', 'Manrope', sans-serif;
+      font-size:20px;
+      font-weight:800;
+      letter-spacing:.03em;
+      line-height:1;
+      background:linear-gradient(180deg, #f5f7ff 8%, #9fb3ff 60%, #7d95ff 100%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      text-shadow:0 0 26px rgba(125,149,255,.36);
+    }
+    .sidebar-logo .sub{
+      margin-top:8px;
+      width:max-content;
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--brand-pill-text);
+      border:1px solid var(--brand-pill-border);
+      background:var(--brand-pill-bg);
+      border-radius:999px;
+      padding:4px 8px;
+    }
+
+    .sidebar-section{
+      font-size:10px;
+      font-weight:700;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--text3);
+      padding:.45rem 1rem .25rem;
+    }
+
+    .nav-item{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 1rem;
+      text-decoration:none;
+      color:var(--text2);
+      font-size:var(--fs-sm);
+      border-left:2px solid transparent;
+      transition:.15s;
+    }
+
+    .nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
+    .nav-item.active{color:var(--accent2);border-left-color:var(--accent);background:var(--accent-bg)}
+
+    .main{
+      margin-left:230px;
+      width:100%;
+      padding:1.6rem 1.6rem 2.2rem;
+    }
+
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      flex-wrap:wrap;
+      margin-bottom:1.1rem;
+    }
+
+    .page-title h1{
+      font-size:30px;
+      font-weight:800;
+      line-height:1.1;
+      letter-spacing:-.03em;
+    }
+
+    .page-title p{
+      color:var(--text2);
+      margin-top:6px;
+      font-size:13px;
+      max-width:660px;
+    }
+
+    .top-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+    .btn{
+      border:none;
+      cursor:pointer;
+      font-family:'Manrope',sans-serif;
+      font-weight:700;
+      font-size:13px;
+      border-radius:12px;
+      padding:.78rem 1rem;
+      transition:.15s;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .btn-primary{background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent2)}
+    .btn-primary:hover{background:rgba(79,110,247,.18)}
+    .btn-ghost{background:var(--surface2);border:1px solid var(--border);color:var(--text2)}
+    .btn-ghost:hover{border-color:var(--border2);color:var(--text)}
+
+    .stats{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      margin-bottom:1rem;
+    }
+
+    .stat{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:.95rem 1rem;
+      box-shadow:var(--shadow);
+    }
+
+    .stat .val{font-size:24px;font-weight:800}
+    .stat .label{
+      color:var(--text3);
+      font-size:11px;
+      margin-top:4px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-weight:800;
+    }
+
+    .toolbar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:1rem;
+      align-items:center;
+    }
+
+    .payout-filters{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin:-2px 0 1rem;
+    }
+
+    .payout-chip{
+      border:1px solid var(--border);
+      background:var(--surface2);
+      color:var(--text2);
+      border-radius:999px;
+      padding:7px 11px;
+      font-size:12px;
+      font-weight:700;
+      cursor:pointer;
+      transition:.15s;
+      font-family:'Manrope',sans-serif;
+    }
+
+    .payout-chip:hover{
+      color:var(--text);
+      border-color:var(--border2);
+    }
+
+    .payout-chip.active{
+      color:var(--accent2);
+      border-color:var(--accent-border);
+      background:var(--accent-bg);
+    }
+
+    .search,
+    .select{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:.78rem .95rem;
+      color:var(--text);
+      font-family:'Manrope',sans-serif;
+      outline:none;
+      min-width:170px;
+    }
+
+    .search{flex:1;min-width:240px}
+    .search::placeholder{color:var(--text3)}
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(350px,1fr));
+      gap:14px;
+    }
+
+    .ref-card{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .card-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+      padding:.95rem 1rem .8rem;
+      border-bottom:1px solid var(--border);
+    }
+
+    .candidate-name{font-size:18px;font-weight:800;letter-spacing:-.02em}
+    .candidate-tg{margin-top:4px;color:var(--text2);font-size:13px}
+
+    .status-badge{
+      font-size:11px;
+      font-weight:800;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:var(--surface3);
+      white-space:nowrap;
+    }
+
+    .status-green{color:var(--green);background:var(--green-bg);border-color:var(--green-border)}
+    .status-red{color:var(--red);background:var(--red-bg);border-color:var(--red-border)}
+    .status-yellow{color:var(--yellow);background:var(--yellow-bg);border-color:var(--yellow-border)}
+    .status-purple{color:var(--purple);background:var(--purple-bg);border-color:var(--purple-border)}
+
+    .card-body{padding:1rem}
+
+    .source-spotlight{
+      margin-bottom:.92rem;
+      border:1px solid var(--accent-border);
+      border-radius:14px;
+      background:linear-gradient(135deg, rgba(79,110,247,.18), rgba(79,110,247,.08));
+      padding:.8rem .85rem;
+    }
+
+    .source-label{
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:var(--accent2);
+      font-weight:800;
+      margin-bottom:5px;
+    }
+
+    .source-value{
+      font-size:14px;
+      font-weight:700;
+      line-height:1.35;
+      word-break:break-word;
+    }
+
+    .ref-tag{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-size:11px;
+      font-weight:800;
+      padding:5px 9px;
+      border-radius:999px;
+      border:1px solid var(--purple-border);
+      background:var(--purple-bg);
+      color:var(--purple);
+      margin-bottom:.8rem;
+    }
+
+    .work-report{
+      margin-bottom:.9rem;
+      border:1px solid var(--green-border);
+      background:var(--green-bg);
+      border-radius:14px;
+      padding:.8rem .85rem;
+    }
+
+    .work-report-head{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+      margin-bottom:.55rem;
+    }
+
+    .work-report-title{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:var(--green);
+      font-weight:800;
+    }
+
+    .work-report-badge{
+      border:1px solid var(--border);
+      border-radius:999px;
+      padding:4px 8px;
+      font-size:11px;
+      font-weight:800;
+      white-space:nowrap;
+    }
+
+    .work-report-badge.ok{
+      border-color:var(--green-border);
+      color:var(--green);
+      background:rgba(52,211,153,.16);
+    }
+
+    .work-report-badge.warn{
+      border-color:var(--yellow-border);
+      color:var(--yellow);
+      background:var(--yellow-bg);
+    }
+
+    .work-report-badge.alert{
+      border-color:var(--red-border);
+      color:var(--red);
+      background:var(--red-bg);
+    }
+
+    .work-report-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:8px;
+    }
+
+    .work-report-item{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:.52rem .62rem;
+    }
+
+    .work-report-k{
+      color:var(--text3);
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-weight:800;
+    }
+
+    .work-report-v{
+      margin-top:5px;
+      font-size:13px;
+      font-weight:700;
+      line-height:1.3;
+    }
+
+    .meta-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:8px;
+    }
+
+    .meta-item{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:11px;
+      padding:.62rem .68rem;
+      min-height:62px;
+    }
+
+    .meta-k{
+      color:var(--text3);
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-weight:800;
+    }
+
+    .meta-v{
+      margin-top:6px;
+      font-size:13px;
+      line-height:1.35;
+      word-break:break-word;
+    }
+
+    .card-actions{
+      display:flex;
+      gap:8px;
+      margin-top:.9rem;
+      flex-wrap:wrap;
+    }
+
+    .empty{
+      grid-column:1/-1;
+      text-align:center;
+      padding:1.4rem;
+      border-radius:14px;
+      background:var(--surface2);
+      border:1px dashed var(--border2);
+      color:var(--text2);
+    }
+
+    .mobile-nav-toggle,
+    .mobile-nav-backdrop{display:none}
+
+    @media (max-width:1024px){
+      .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+
+    @media (max-width:920px){
+      .mobile-nav-toggle{
+        position:fixed;
+        top:12px;
+        right:12px;
+        z-index:50;
+        width:46px;
+        height:46px;
+        border-radius:12px;
+        border:1px solid var(--border2);
+        background:rgba(20,23,32,.92);
+        color:var(--text);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        flex-direction:column;
+        gap:4px;
+        cursor:pointer;
+      }
+
+      .mobile-nav-toggle span{display:block;width:18px;height:2px;background:var(--text2)}
+
+      .mobile-nav-backdrop{
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,.45);
+        z-index:30;
+      }
+
+      body.nav-open .mobile-nav-backdrop{display:block}
+
+      .sidebar{
+        transform:translateX(-100%);
+        transition:transform .2s ease;
+        z-index:40;
+      }
+
+      body.nav-open .sidebar{transform:translateX(0)}
+
+      .main{margin-left:0;padding:4.6rem 1rem 1.2rem}
+      .sidebar-logo,.sidebar-section{display:block}
+      .nav-item{display:flex;border-left:2px solid transparent;border-bottom:none;border-radius:0;padding:7px 1rem;white-space:normal;background:none}
+      .nav-item.active{border-bottom:none;border-left-color:var(--accent)}
+      .grid{grid-template-columns:1fr}
+    }
+
+    @media (max-width:640px){
+      .topbar{flex-direction:column;align-items:stretch}
+      .top-actions .btn{width:100%}
+      .stats{grid-template-columns:1fr}
+      .meta-grid{grid-template-columns:1fr}
+      .search{min-width:100%}
+      .toolbar{flex-direction:column;align-items:stretch}
+      .select{width:100%}
+      .payout-filters{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+      .payout-chip{text-align:center}
+    }
+  </style>
+</head>
+<body>
+  <button class="mobile-nav-toggle" id="mobileNavToggle" type="button" aria-label="Открыть меню">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+  <div class="mobile-nav-backdrop" id="mobileNavBackdrop"></div>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="brand-row">
+          <div class="brand-mark">✦</div>
+          <div class="brand">AllStars</div>
+        </div>
+        <div class="sub">Рефералы</div>
+      </div>
+
+      <div class="sidebar-section">Навигация</div>
+      <a class="nav-item" href="/index.html">🧑‍💼 Новый кандидат</a>
+      <a class="nav-item" href="/candidates.html">👥 Кандидаты</a>
+      <a class="nav-item active" href="/referrals.html">🤝 Рефералы</a>
+      <a class="nav-item" href="/interviews.html">📞 Собеседования</a>
+      <a class="nav-item" href="/dashboard.html">📊 Dashboard</a>
+      <a class="nav-item" href="/team-dashboard.html">🫂 Действующие</a>
+      <a class="nav-item" href="/hr-needs.html">🎯 Потребности HR</a>
+      <a class="nav-item" href="/team.html">👥 Команда</a>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="page-title">
+          <h1>Рефералы</h1>
+          <p>Здесь отображаются только явные рефералы: источник с отметкой человека (например @username) или с формулировкой рекомендации.</p>
+        </div>
+
+        <div class="top-actions">
+          <button class="btn btn-ghost" id="refreshBtn" type="button">Обновить</button>
+          <a class="btn btn-primary" href="/candidates.html">Открыть базу кандидатов</a>
+        </div>
+      </div>
+
+      <div class="stats" id="stats"></div>
+
+      <div class="toolbar">
+        <input class="search" id="searchInput" placeholder="Поиск по имени, Telegram, источнику..." />
+        <select class="select" id="sourceFilter">
+          <option value="">Все источники</option>
+        </select>
+        <select class="select" id="statusFilter">
+          <option value="">Все статусы</option>
+        </select>
+      </div>
+
+      <div class="payout-filters" id="payoutFilters">
+        <button class="payout-chip active" type="button" data-mode="all">Все выплаты</button>
+        <button class="payout-chip" type="button" data-mode="today">Выплата сегодня</button>
+        <button class="payout-chip" type="button" data-mode="week">В течение 7 дней</button>
+        <button class="payout-chip" type="button" data-mode="overdue">Просрочено</button>
+      </div>
+
+      <div class="grid" id="grid"></div>
+    </main>
+  </div>
+
+  <script src="/app-config.js"></script>
+  <script>
+    const tokenKey = 'allstars_token';
+    const token = localStorage.getItem(tokenKey);
+
+    if (!token) {
+      window.location.href = '/login.html';
+    }
+
+    const statsEl = document.getElementById('stats');
+    const gridEl = document.getElementById('grid');
+    const searchInput = document.getElementById('searchInput');
+    const sourceFilter = document.getElementById('sourceFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const payoutFiltersEl = document.getElementById('payoutFilters');
+    const refreshBtn = document.getElementById('refreshBtn');
+
+    let referralCandidates = [];
+    let payoutFilterMode = 'all';
+
+    function api(path, options = {}) {
+      return fetch(window.AllStarsConfig?.resolveApiPath?.(path) || path, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...(options.headers || {})
+        }
+      });
+    }
+
+    function escapeHtml(str = '') {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function formatDate(date) {
+      if (!date) return '-';
+      const d = new Date(date);
+      if (Number.isNaN(d.getTime())) return '-';
+      return d.toLocaleString('ru-RU', {
+        day:'2-digit',
+        month:'2-digit',
+        year:'numeric',
+        hour:'2-digit',
+        minute:'2-digit'
+      });
+    }
+
+    function formatDateOnly(date) {
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '-';
+      return date.toLocaleDateString('ru-RU', {
+        day:'2-digit',
+        month:'2-digit',
+        year:'numeric'
+      });
+    }
+
+    function parseDateSafe(value) {
+      if (!value) return null;
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return null;
+      return d;
+    }
+
+    function startOfDay(date) {
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    }
+
+    function addOneCalendarMonth(date) {
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const day = date.getDate();
+
+      const targetMonth = month + 1;
+      const targetYear = year + Math.floor(targetMonth / 12);
+      const targetMonthNormalized = ((targetMonth % 12) + 12) % 12;
+      const lastDayTargetMonth = new Date(targetYear, targetMonthNormalized + 1, 0).getDate();
+      const targetDay = Math.min(day, lastDayTargetMonth);
+
+      return new Date(
+        targetYear,
+        targetMonthNormalized,
+        targetDay,
+        date.getHours(),
+        date.getMinutes(),
+        date.getSeconds(),
+        date.getMilliseconds()
+      );
+    }
+
+    function resolveLeadSource(candidate = {}) {
+      return String(candidate.lead_source || candidate.candidate_source || candidate.source_name || '').trim();
+    }
+
+    function looksLikeReferralSource(source = '') {
+      const value = String(source || '').trim();
+      if (!value) return false;
+
+      const hasTaggedReferrer = /(^|\s)@[a-zA-Z0-9_]{3,}/.test(value);
+      if (hasTaggedReferrer) return true;
+
+      const normalized = value.toLowerCase();
+      const referralPhrases = [
+        /узнал[аи]?\s+от/u,
+        /по\s+рекомендац/u,
+        /пригласил[аи]?/u,
+        /реферал/u,
+        /\bреф\b/u,
+        /referral/i,
+        /\bref\b/i
+      ];
+
+      return referralPhrases.some(pattern => pattern.test(normalized));
+    }
+
+    function isReferralCandidate(candidate = {}) {
+      const source = resolveLeadSource(candidate);
+      if (!source) return false;
+      const normalized = source.toLowerCase();
+      if (normalized === '-' || normalized === '—' || normalized === 'не знаю') return false;
+      return looksLikeReferralSource(source);
+    }
+
+    function normalizeCandidate(raw = {}) {
+      return {
+        id: raw.id,
+        name: raw.name || '',
+        tg: raw.telegram || raw.tg || raw.username || '',
+        age: raw.age || '',
+        english: raw.english_level || raw.english || '',
+        platform: raw.platform || raw.platforms || '',
+        shifts: raw.shift || '',
+        experience: raw.experience || raw.exp || '',
+        topProfile: raw.top_profile || raw.top_pages || '',
+        verification: raw.verification || '',
+        status: raw.status || '',
+        source: resolveLeadSource(raw),
+        statusChangedAt: raw.status_changed_at || '',
+        createdAt: raw.created_at || raw.updated_at || raw.status_changed_at || ''
+      };
+    }
+
+    function isWorkingStatus(status = '') {
+      return String(status).toLowerCase().includes('работает');
+    }
+
+    function getWorkReport(item = {}) {
+      if (!isWorkingStatus(item.status)) return null;
+
+      const workStartDate = parseDateSafe(item.statusChangedAt || item.createdAt);
+      if (!workStartDate) return null;
+
+      const payoutDate = addOneCalendarMonth(workStartDate);
+
+      const today = startOfDay(new Date());
+      const payoutDay = startOfDay(payoutDate);
+      const msPerDay = 24 * 60 * 60 * 1000;
+      const daysDiff = Math.round((payoutDay.getTime() - today.getTime()) / msPerDay);
+
+      if (daysDiff > 0) {
+        return {
+          daysDiff,
+          badgeText: `До выплаты ${daysDiff} дн.`,
+          badgeClass: 'warn',
+          remainingDaysText: `${daysDiff} дн.`
+        };
+      }
+
+      if (daysDiff === 0) {
+        return {
+          daysDiff,
+          badgeText: 'Выплата сегодня',
+          badgeClass: 'ok',
+          remainingDaysText: '0 дн.'
+        };
+      }
+
+      return {
+        daysDiff,
+        badgeText: `Просрочено ${Math.abs(daysDiff)} дн.`,
+        badgeClass: 'alert',
+        remainingDaysText: `-${Math.abs(daysDiff)} дн.`
+      };
+    }
+
+    function getPayoutBucket(item = {}) {
+      const report = getWorkReport(item);
+      if (!report) return 'none';
+
+      if (report.daysDiff < 0) return 'overdue';
+      if (report.daysDiff === 0) return 'today';
+      if (report.daysDiff <= 7) return 'week';
+      return 'later';
+    }
+
+    function renderPayoutQuickFilters() {
+      if (!payoutFiltersEl) return;
+
+      const counters = {
+        all: referralCandidates.filter(item => getWorkReport(item)).length,
+        today: referralCandidates.filter(item => getPayoutBucket(item) === 'today').length,
+        week: referralCandidates.filter(item => {
+          const bucket = getPayoutBucket(item);
+          return bucket === 'today' || bucket === 'week';
+        }).length,
+        overdue: referralCandidates.filter(item => getPayoutBucket(item) === 'overdue').length
+      };
+
+      payoutFiltersEl.querySelectorAll('.payout-chip').forEach(btn => {
+        const mode = btn.dataset.mode;
+        if (!mode) return;
+
+        btn.classList.toggle('active', payoutFilterMode === mode);
+
+        if (mode === 'all') {
+          btn.textContent = `Все выплаты (${counters.all})`;
+        }
+        if (mode === 'today') {
+          btn.textContent = `Выплата сегодня (${counters.today})`;
+        }
+        if (mode === 'week') {
+          btn.textContent = `В течение 7 дней (${counters.week})`;
+        }
+        if (mode === 'overdue') {
+          btn.textContent = `Просрочено (${counters.overdue})`;
+        }
+      });
+    }
+
+    function renderWorkReport(item = {}) {
+      const report = getWorkReport(item);
+      if (!report) return '';
+
+      const workStartDate = parseDateSafe(item.statusChangedAt || item.createdAt);
+      const payoutDate = addOneCalendarMonth(workStartDate);
+
+      return `
+        <div class="work-report">
+          <div class="work-report-head">
+            <div class="work-report-title">Отчет работы</div>
+            <div class="work-report-badge ${report.badgeClass}">${report.badgeText}</div>
+          </div>
+
+          <div class="work-report-grid">
+            <div class="work-report-item">
+              <div class="work-report-k">Статус Работает с</div>
+              <div class="work-report-v">${escapeHtml(formatDate(workStartDate))}</div>
+            </div>
+            <div class="work-report-item">
+              <div class="work-report-k">Дата выплаты</div>
+              <div class="work-report-v">${escapeHtml(formatDateOnly(payoutDate))}</div>
+            </div>
+            <div class="work-report-item" style="grid-column:1/-1;">
+              <div class="work-report-k">Отсчет</div>
+              <div class="work-report-v">${escapeHtml(report.remainingDaysText)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function statusClass(status = '') {
+      const s = String(status).toLowerCase();
+      if (s.includes('работает') || s.includes('принят')) return 'status-green';
+      if (s.includes('отказ') || s.includes('уволен') || s.includes('не рассчитан')) return 'status-red';
+      if (s.includes('вериф') || s.includes('тест')) return 'status-purple';
+      return 'status-yellow';
+    }
+
+    function hasVerification(item = {}) {
+      const v = String(item.verification || '').trim().toLowerCase();
+      const status = String(item.status || '').trim().toLowerCase();
+      if (v === 'да' || v === 'yes' || v === 'true' || v === '1') return true;
+      return status.includes('вериф');
+    }
+
+    function renderStats() {
+      const total = referralCandidates.length;
+      const withAt = referralCandidates.filter(x => String(x.source || '').includes('@')).length;
+      const verified = referralCandidates.filter(hasVerification).length;
+      const newToday = referralCandidates.filter(x => {
+        if (!x.createdAt) return false;
+        const d = new Date(x.createdAt);
+        const now = new Date();
+        return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      }).length;
+
+      statsEl.innerHTML = `
+        <div class="stat"><div class="val">${total}</div><div class="label">Всего рефералов</div></div>
+        <div class="stat"><div class="val">${withAt}</div><div class="label">С тегом @ в источнике</div></div>
+        <div class="stat"><div class="val">${verified}</div><div class="label">Верифицированы</div></div>
+        <div class="stat"><div class="val">${newToday}</div><div class="label">Добавлено сегодня</div></div>
+      `;
+    }
+
+    function renderFilters() {
+      const sourceValue = sourceFilter.value;
+      const statusValue = statusFilter.value;
+
+      const uniqueSources = [...new Set(referralCandidates.map(x => x.source).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru'));
+      const uniqueStatuses = [...new Set(referralCandidates.map(x => x.status).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru'));
+
+      sourceFilter.innerHTML = '<option value="">Все источники</option>' + uniqueSources
+        .map(source => `<option value="${escapeHtml(source)}">${escapeHtml(source)}</option>`)
+        .join('');
+
+      statusFilter.innerHTML = '<option value="">Все статусы</option>' + uniqueStatuses
+        .map(status => `<option value="${escapeHtml(status)}">${escapeHtml(status)}</option>`)
+        .join('');
+
+      sourceFilter.value = uniqueSources.includes(sourceValue) ? sourceValue : '';
+      statusFilter.value = uniqueStatuses.includes(statusValue) ? statusValue : '';
+    }
+
+    function getFiltered() {
+      const q = String(searchInput.value || '').trim().toLowerCase();
+      const sourceValue = sourceFilter.value;
+      const statusValue = statusFilter.value;
+
+      let rows = [...referralCandidates];
+
+      if (q) {
+        rows = rows.filter(item => {
+          const hay = [item.name, item.tg, item.source, item.platform, item.experience, item.status].join(' ').toLowerCase();
+          return hay.includes(q);
+        });
+      }
+
+      if (sourceValue) {
+        rows = rows.filter(item => item.source === sourceValue);
+      }
+
+      if (statusValue) {
+        rows = rows.filter(item => item.status === statusValue);
+      }
+
+      if (payoutFilterMode === 'today') {
+        rows = rows.filter(item => getPayoutBucket(item) === 'today');
+      }
+
+      if (payoutFilterMode === 'week') {
+        rows = rows.filter(item => {
+          const bucket = getPayoutBucket(item);
+          return bucket === 'today' || bucket === 'week';
+        });
+      }
+
+      if (payoutFilterMode === 'overdue') {
+        rows = rows.filter(item => getPayoutBucket(item) === 'overdue');
+      }
+
+      rows.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      return rows;
+    }
+
+    function renderCards(items) {
+      if (!items.length) {
+        gridEl.innerHTML = '<div class="empty">По строгим критериям рефералов кандидаты не найдены</div>';
+        return;
+      }
+
+      gridEl.innerHTML = items.map(item => `
+        <article class="ref-card">
+          <div class="card-head">
+            <div>
+              <div class="candidate-name">${escapeHtml(item.name || 'Без имени')}</div>
+              <div class="candidate-tg">${escapeHtml(item.tg || '-')}</div>
+            </div>
+            <div class="status-badge ${statusClass(item.status)}">${escapeHtml(item.status || 'Без статуса')}</div>
+          </div>
+
+          <div class="card-body">
+            <div class="source-spotlight">
+              <div class="source-label">Источник</div>
+              <div class="source-value">${escapeHtml(item.source || '-')}</div>
+            </div>
+
+            <div class="ref-tag">🤝 Реферальный кандидат</div>
+
+            ${renderWorkReport(item)}
+
+            <div class="meta-grid">
+              <div class="meta-item"><div class="meta-k">Возраст</div><div class="meta-v">${escapeHtml(item.age || '-')}</div></div>
+              <div class="meta-item"><div class="meta-k">Английский</div><div class="meta-v">${escapeHtml(item.english || '-')}</div></div>
+              <div class="meta-item"><div class="meta-k">Платформа</div><div class="meta-v">${escapeHtml(item.platform || '-')}</div></div>
+              <div class="meta-item"><div class="meta-k">Смены</div><div class="meta-v">${escapeHtml(item.shifts || '-')}</div></div>
+              <div class="meta-item"><div class="meta-k">Опыт</div><div class="meta-v">${escapeHtml(item.experience || '-')}</div></div>
+              <div class="meta-item"><div class="meta-k">Анкеты</div><div class="meta-v">${escapeHtml(item.topProfile || '-')}</div></div>
+              <div class="meta-item"><div class="meta-k">Верификация</div><div class="meta-v">${hasVerification(item) ? 'Да' : 'Нет данных'}</div></div>
+              <div class="meta-item"><div class="meta-k">Время</div><div class="meta-v">${escapeHtml(formatDate(item.createdAt))}</div></div>
+            </div>
+
+            <div class="card-actions">
+              <a class="btn btn-ghost" href="/candidate.html?id=${encodeURIComponent(item.id)}">Открыть карточку</a>
+            </div>
+          </div>
+        </article>
+      `).join('');
+    }
+
+    function rerender() {
+      renderCards(getFiltered());
+    }
+
+    async function loadReferrals() {
+      const res = await api('/candidates');
+      if (!res.ok) {
+        throw new Error('Не удалось загрузить рефералов');
+      }
+
+      const raw = await res.json();
+      const rows = Array.isArray(raw) ? raw : [];
+      referralCandidates = rows
+        .filter(isReferralCandidate)
+        .map(normalizeCandidate);
+
+      renderStats();
+      renderFilters();
+      renderPayoutQuickFilters();
+      rerender();
+    }
+
+    refreshBtn.addEventListener('click', () => {
+      loadReferrals().catch(err => {
+        gridEl.innerHTML = `<div class="empty">${escapeHtml(err.message || 'Ошибка загрузки')}</div>`;
+      });
+    });
+
+    searchInput.addEventListener('input', rerender);
+    sourceFilter.addEventListener('change', rerender);
+    statusFilter.addEventListener('change', rerender);
+
+    payoutFiltersEl?.addEventListener('click', (event) => {
+      const target = event.target.closest('.payout-chip');
+      if (!target) return;
+
+      const mode = target.dataset.mode;
+      if (!mode) return;
+
+      payoutFilterMode = mode;
+      renderPayoutQuickFilters();
+      rerender();
+    });
+
+    loadReferrals().catch(err => {
+      gridEl.innerHTML = `<div class="empty">${escapeHtml(err.message || 'Ошибка загрузки')}</div>`;
+    });
+  </script>
+
+  <script>
+    (function () {
+      const toggle = document.getElementById('mobileNavToggle');
+      const backdrop = document.getElementById('mobileNavBackdrop');
+      const closeMobileNav = () => document.body.classList.remove('nav-open');
+      const toggleMobileNav = () => document.body.classList.toggle('nav-open');
+
+      toggle?.addEventListener('click', toggleMobileNav);
+      backdrop?.addEventListener('click', closeMobileNav);
+      document.querySelectorAll('.sidebar .nav-item').forEach(link => link.addEventListener('click', closeMobileNav));
+      window.addEventListener('resize', () => {
+        if (window.innerWidth > 920) closeMobileNav();
+      });
+    })();
+  </script>
+</body>
+</html>
+
+
+

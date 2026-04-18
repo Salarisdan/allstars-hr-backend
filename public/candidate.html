@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AllStars — Кандидат</title>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@700;800&display=swap" rel="stylesheet">
   <style>
     :root{
       --bg:#0d0f14;
@@ -16,7 +16,10 @@
       --accent:#4f6ef7;
       --accent2:#7d95ff;
       --accent-bg:rgba(79,110,247,.12);
-      --accent-border:rgba(79,110,247,.32);
+      
+      --brand-pill-text:#b7c4ff;
+      --brand-pill-border:rgba(125,149,255,.34);
+      --brand-pill-bg:rgba(79,110,247,.16);
       --text:#e8eaf0;
       --text2:#9ba3bd;
       --text3:#58607c;
@@ -58,13 +61,62 @@
     }
 
     .sidebar-logo{
-      padding:0 1rem 1.15rem;
-      border-bottom:1px solid var(--border);
-      margin-bottom:.7rem;
+      margin:0 .7rem .8rem;
+      padding:.85rem .85rem .9rem;
+      border:1px solid var(--accent-border);
+      border-radius:14px;
+      background:
+        radial-gradient(130% 90% at 0% 0%, rgba(125,149,255,.22), rgba(125,149,255,0) 50%),
+        linear-gradient(145deg, rgba(79,110,247,.18), rgba(79,110,247,.04));
+      box-shadow:0 10px 22px rgba(0,0,0,.28);
     }
 
-    .brand{font-size:16px;font-weight:800;color:var(--text)}
-    .sub{font-size:11px;color:var(--text3);margin-top:3px}
+    .brand-row{
+      display:flex;
+      align-items:center;
+      gap:9px;
+    }
+
+    .brand-mark{
+      width:24px;
+      height:24px;
+      flex:0 0 auto;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,.22);
+      background:linear-gradient(145deg, rgba(125,149,255,.35), rgba(79,110,247,.2));
+      color:#dbe4ff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:13px;
+      box-shadow:inset 0 0 14px rgba(125,149,255,.25);
+    }
+
+    .brand{
+      font-family:'Unbounded', 'Manrope', sans-serif;
+      font-size:20px;
+      font-weight:800;
+      letter-spacing:.03em;
+      line-height:1;
+      background:linear-gradient(180deg, #f5f7ff 8%, #9fb3ff 60%, #7d95ff 100%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      text-shadow:0 0 26px rgba(125,149,255,.36);
+    }
+    .sidebar-logo .sub{
+      margin-top:8px;
+      width:max-content;
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--brand-pill-text);
+      border:1px solid var(--brand-pill-border);
+      background:var(--brand-pill-bg);
+      border-radius:999px;
+      padding:4px 8px;
+    }
 
     .sidebar-section{
       font-size:10px;
@@ -342,8 +394,7 @@
       margin-top:4px;
       word-break:break-word;
     }
-
-    .sub{
+    .card .sub{
       color:var(--text3);
       font-size:12px;
       margin-top:5px;
@@ -401,6 +452,86 @@
       flex-direction:column;
       gap:10px;
       margin-top:1rem;
+    }
+
+    .work-report{
+      margin-top:1rem;
+      border:1px solid var(--green-border);
+      background:var(--green-bg);
+      border-radius:14px;
+      padding:.82rem .9rem;
+    }
+
+    .work-report-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:.6rem;
+    }
+
+    .work-report-title{
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:var(--green);
+      font-weight:800;
+    }
+
+    .work-report-badge{
+      border-radius:999px;
+      padding:4px 9px;
+      border:1px solid var(--border);
+      font-size:11px;
+      font-weight:800;
+      white-space:nowrap;
+    }
+
+    .work-report-badge.ok{
+      border-color:var(--green-border);
+      color:var(--green);
+      background:rgba(52,211,153,.16);
+    }
+
+    .work-report-badge.warn{
+      border-color:var(--yellow-border);
+      color:var(--yellow);
+      background:var(--yellow-bg);
+    }
+
+    .work-report-badge.alert{
+      border-color:var(--red-border);
+      color:var(--red);
+      background:var(--red-bg);
+    }
+
+    .work-report-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:8px;
+    }
+
+    .work-report-item{
+      background:var(--surface3);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:.55rem .62rem;
+    }
+
+    .work-report-k{
+      font-size:10px;
+      color:var(--text3);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-weight:800;
+    }
+
+    .work-report-v{
+      margin-top:5px;
+      font-size:13px;
+      font-weight:700;
+      line-height:1.35;
     }
 
     .field-box{
@@ -748,7 +879,7 @@
     @media (max-width:768px){
       .main{padding:4.6rem .9rem 1rem}
       .topbar,.quick-edit-row,.editor-actions{flex-direction:column;align-items:stretch}
-      .notes-grid,.ai-cols{grid-template-columns:1fr}
+      .notes-grid,.ai-cols,.work-report-grid{grid-template-columns:1fr}
       .editor-box textarea,.comment-box textarea,.candidate-report-textarea{min-height:160px}
     }
 
@@ -770,13 +901,17 @@
   <div class="layout">
     <aside class="sidebar">
       <div class="sidebar-logo">
-        <div class="brand">AllStars</div>
+        <div class="brand-row">
+          <div class="brand-mark">✦</div>
+          <div class="brand">AllStars</div>
+        </div>
         <div class="sub">Карточка кандидата</div>
       </div>
 
       <div class="sidebar-section">Навигация</div>
       <a class="nav-item" href="/index.html">🧑‍💼 Новый кандидат</a>
       <a class="nav-item active" href="/candidates.html">👥 Кандидаты</a>
+      <a class="nav-item" href="/referrals.html">🤝 Рефералы</a>
       <a class="nav-item" href="/interviews.html">📞 Собеседования</a>
       <a class="nav-item" href="/dashboard.html">📊 Dashboard</a>
       <a class="nav-item" href="/team-dashboard.html">🫂 Действующие</a>
@@ -803,6 +938,7 @@
     </main>
   </div>
 
+  <script src="/app-config.js"></script>
   <script>
     const tokenKey = 'allstars_token';
     const token = localStorage.getItem(tokenKey);
@@ -817,7 +953,7 @@
     let STATUS_OPTIONS = [];
 
     function api(path, options = {}) {
-      return fetch(path, {
+      return fetch(window.AllStarsConfig?.resolveApiPath?.(path) || path, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
@@ -1033,6 +1169,48 @@
       });
     }
 
+    function formatDateOnly(date) {
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '—';
+      return date.toLocaleDateString('ru-RU', {
+        day:'2-digit',
+        month:'2-digit',
+        year:'numeric'
+      });
+    }
+
+    function parseDateSafe(value) {
+      if (!value) return null;
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return null;
+      return d;
+    }
+
+    function startOfDay(date) {
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    }
+
+    function addOneCalendarMonth(date) {
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const day = date.getDate();
+
+      const targetMonth = month + 1;
+      const targetYear = year + Math.floor(targetMonth / 12);
+      const targetMonthNormalized = ((targetMonth % 12) + 12) % 12;
+      const lastDayTargetMonth = new Date(targetYear, targetMonthNormalized + 1, 0).getDate();
+      const targetDay = Math.min(day, lastDayTargetMonth);
+
+      return new Date(
+        targetYear,
+        targetMonthNormalized,
+        targetDay,
+        date.getHours(),
+        date.getMinutes(),
+        date.getSeconds(),
+        date.getMilliseconds()
+      );
+    }
+
     function getCandidateVerdictKey(candidate = {}) {
       const status = String(candidate.status || '').trim();
 
@@ -1236,6 +1414,104 @@
       return '';
     }
 
+    function looksLikeReferralSource(source = '') {
+      const value = String(source || '').trim();
+      if (!value) return false;
+
+      const hasTaggedReferrer = /(^|\s)@[a-zA-Z0-9_]{3,}/.test(value);
+      if (hasTaggedReferrer) return true;
+
+      const normalized = value.toLowerCase();
+      const referralPhrases = [
+        /узнал[аи]?\s+от/u,
+        /по\s+рекомендац/u,
+        /пригласил[аи]?/u,
+        /реферал/u,
+        /\bреф\b/u,
+        /referral/i,
+        /\bref\b/i
+      ];
+
+      return referralPhrases.some(pattern => pattern.test(normalized));
+    }
+
+    function isWorkingStatus(status = '') {
+      return String(status || '').toLowerCase().includes('работает');
+    }
+
+    function getWorkReport(candidate = {}) {
+      const leadSource = resolveLeadSource(candidate);
+      if (!looksLikeReferralSource(leadSource)) return null;
+      if (!isWorkingStatus(candidate.status || '')) return null;
+
+      const workStartDate = parseDateSafe(candidate.status_changed_at || candidate.updated_at || candidate.created_at);
+      if (!workStartDate) return null;
+
+      const payoutDate = addOneCalendarMonth(workStartDate);
+
+      const today = startOfDay(new Date());
+      const payoutDay = startOfDay(payoutDate);
+      const msPerDay = 24 * 60 * 60 * 1000;
+      const daysDiff = Math.round((payoutDay.getTime() - today.getTime()) / msPerDay);
+
+      if (daysDiff > 0) {
+        return {
+          workStartDate,
+          payoutDate,
+          badgeText: `До выплаты ${daysDiff} дн.`,
+          badgeClass: 'warn',
+          remainingDaysText: `${daysDiff} дн.`
+        };
+      }
+
+      if (daysDiff === 0) {
+        return {
+          workStartDate,
+          payoutDate,
+          badgeText: 'Выплата сегодня',
+          badgeClass: 'ok',
+          remainingDaysText: '0 дн.'
+        };
+      }
+
+      return {
+        workStartDate,
+        payoutDate,
+        badgeText: `Просрочено ${Math.abs(daysDiff)} дн.`,
+        badgeClass: 'alert',
+        remainingDaysText: `-${Math.abs(daysDiff)} дн.`
+      };
+    }
+
+    function renderWorkReport(candidate = {}) {
+      const report = getWorkReport(candidate);
+      if (!report) return '';
+
+      return `
+        <div class="work-report">
+          <div class="work-report-head">
+            <div class="work-report-title">Отчет работы</div>
+            <div class="work-report-badge ${report.badgeClass}">${report.badgeText}</div>
+          </div>
+
+          <div class="work-report-grid">
+            <div class="work-report-item">
+              <div class="work-report-k">Статус Работает с</div>
+              <div class="work-report-v">${escapeHtml(formatDate(report.workStartDate))}</div>
+            </div>
+            <div class="work-report-item">
+              <div class="work-report-k">Дата выплаты</div>
+              <div class="work-report-v">${escapeHtml(formatDateOnly(report.payoutDate))}</div>
+            </div>
+            <div class="work-report-item" style="grid-column:1/-1;">
+              <div class="work-report-k">Отсчет</div>
+              <div class="work-report-v">${escapeHtml(report.remainingDaysText)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     function parseStructuredNotes(notes = '') {
       const raw = String(notes || '').trim();
       if (!raw) return { intro:'', sections:[], plain:'' };
@@ -1366,6 +1642,8 @@
               ${(candidate.platform || candidate.platforms) ? `<span class="badge blue candidate-platform" id="candidatePlatform" data-field="platform">${escapeHtml(candidate.platform || candidate.platforms)}</span>` : ''}
               ${(candidate.english_level || candidate.english) ? `<span class="badge purple candidate-english" id="candidateEnglish" data-field="english_level">${escapeHtml(candidate.english_level || candidate.english)}</span>` : ''}
             </div>
+
+            ${renderWorkReport(candidate)}
 
             <div class="score-box">
               <div class="score-label">Итоговый балл</div>
@@ -1745,3 +2023,5 @@
   </script>
 </body>
 </html>
+
+
