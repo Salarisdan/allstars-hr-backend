@@ -616,8 +616,18 @@ function extractSourceFromText(value = '') {
   return '';
 }
 
+function normalizeHeaderMatchKey(value = '') {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
 function normalizeRow(headers, row, rowIndex) {
   const normalizedHeaders = headers.map(h => String(h || '').trim().toLowerCase());
+  const normalizedHeaderKeys = headers.map(h => normalizeHeaderMatchKey(h));
 
   const get = (...names) => {
     for (const rawName of names) {
@@ -627,11 +637,22 @@ function normalizeRow(headers, row, rowIndex) {
     }
 
     for (const rawName of names) {
-      const name = String(rawName || '').trim().toLowerCase();
-      if (!name) continue;
+      const nameKey = normalizeHeaderMatchKey(rawName);
+      if (!nameKey) continue;
 
-      const idx = normalizedHeaders.findIndex(header =>
-        header.includes(name) || name.includes(header)
+      const idx = normalizedHeaderKeys.findIndex(headerKey => headerKey === nameKey);
+      if (idx >= 0) return row[idx] ?? '';
+    }
+
+    for (const rawName of names) {
+      const nameKey = normalizeHeaderMatchKey(rawName);
+      if (!nameKey || nameKey.length < 4) continue;
+
+      const idx = normalizedHeaderKeys.findIndex(headerKey =>
+        Boolean(headerKey) && (
+          headerKey.includes(nameKey) ||
+          (nameKey.includes(headerKey) && headerKey.length >= 7)
+        )
       );
 
       if (idx >= 0) return row[idx] ?? '';
@@ -644,8 +665,11 @@ function normalizeRow(headers, row, rowIndex) {
   const sourceFromColumns = get(
     'Источник',
     'Источник кандидата',
+    'Источник кандидата / реферал',
+    'Источник/реферал',
     'Откуда вы о нас узнали?',
     'Откуда вы о нас узнали',
+    'Откуда узнали о нас',
     'Откуда пришел кандидат',
     'Откуда пришёл кандидат',
     'Источник (откуда пришел)'
@@ -3411,15 +3435,36 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
       }
 
       const loweredHeaders = headers.map(h => String(h || '').trim().toLowerCase());
+      const normalizedHeaderKeys = headers.map(h => normalizeHeaderMatchKey(h));
       for (const rawName of names) {
         const name = String(rawName || '').trim().toLowerCase();
         if (!name) continue;
 
+        const nameKey = normalizeHeaderMatchKey(rawName);
+        if (nameKey) {
+          const idxExactNormalized = normalizedHeaderKeys.findIndex(headerKey => headerKey === nameKey);
+          if (idxExactNormalized >= 0) return idxExactNormalized + 1;
+        }
+
         const idx = loweredHeaders.findIndex(header =>
-          header.includes(name) || name.includes(header)
+          Boolean(header) && (
+            header.includes(name) ||
+            (name.includes(header) && header.length >= 7)
+          )
         );
 
         if (idx >= 0) return idx + 1;
+
+        if (nameKey && nameKey.length >= 4) {
+          const idxNormalized = normalizedHeaderKeys.findIndex(headerKey =>
+            Boolean(headerKey) && (
+              headerKey.includes(nameKey) ||
+              (nameKey.includes(headerKey) && headerKey.length >= 7)
+            )
+          );
+
+          if (idxNormalized >= 0) return idxNormalized + 1;
+        }
       }
 
       return -1;
@@ -3458,8 +3503,11 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
         names: [
           'Источник',
           'Источник кандидата',
+          'Источник кандидата / реферал',
+          'Источник/реферал',
           'Откуда вы о нас узнали?',
           'Откуда вы о нас узнали',
+          'Откуда узнали о нас',
           'Откуда пришел кандидат',
           'Откуда пришёл кандидат',
           'Источник (откуда пришел)'
