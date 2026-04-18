@@ -625,6 +625,37 @@ function normalizeHeaderMatchKey(value = '') {
     .replace(/\s+/g, ' ');
 }
 
+function isLikelyDateTimeText(value = '') {
+  const s = String(value || '').trim();
+  if (!s) return false;
+
+  if (/^\d{2}\.\d{2}\.\d{4}(?:\s+\d{1,2}:\d{2})?$/.test(s)) return true;
+  if (/^\d{4}-\d{2}-\d{2}(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$/.test(s)) return true;
+
+  return false;
+}
+
+function isValidInterviewSourceValue(value = '') {
+  const s = String(value || '').trim();
+  if (!s) return false;
+  if (isLikelyDateTimeText(s)) return false;
+
+  const normalized = s.toLowerCase();
+  const disallowed = new Set([
+    'manual',
+    'new',
+    'screening',
+    'interview',
+    'test_task',
+    'test_shift',
+    'hired',
+    'rejected'
+  ]);
+
+  if (disallowed.has(normalized)) return false;
+  return true;
+}
+
 function normalizeRow(headers, row, rowIndex) {
   const normalizedHeaders = headers.map(h => String(h || '').trim().toLowerCase());
   const normalizedHeaderKeys = headers.map(h => normalizeHeaderMatchKey(h));
@@ -674,7 +705,8 @@ function normalizeRow(headers, row, rowIndex) {
     'Откуда пришёл кандидат',
     'Источник (откуда пришел)'
   );
-  const source = String(sourceFromColumns || '').trim() || extractSourceFromText(rawComments);
+  const rawSource = String(sourceFromColumns || '').trim() || extractSourceFromText(rawComments);
+  const source = isValidInterviewSourceValue(rawSource) ? rawSource : '';
 
   return {
     id: rowIndex,
@@ -745,7 +777,7 @@ async function buildInterviewSourceFallbackMap(agencyId, interviews = []) {
   const nameKeys = [...nameSet];
 
   const result = await query(
-    `SELECT name, tg, telegram, lead_source, source
+    `SELECT name, tg, telegram, lead_source
      FROM candidates
      WHERE agency_id = $1
        AND (
@@ -760,8 +792,8 @@ async function buildInterviewSourceFallbackMap(agencyId, interviews = []) {
   const byName = new Map();
 
   for (const row of result.rows) {
-    const source = String(row.lead_source || row.source || '').trim();
-    if (!source) continue;
+    const source = String(row.lead_source || '').trim();
+    if (!isValidInterviewSourceValue(source)) continue;
 
     const tgKey = normalizeTelegramKey(row.tg || row.telegram);
     if (tgKey && !byTelegram.has(tgKey)) {
@@ -779,7 +811,7 @@ async function buildInterviewSourceFallbackMap(agencyId, interviews = []) {
 
 function applyInterviewSourceFallback(item, sourceMap) {
   const current = String(item.source || '').trim();
-  if (current) return item;
+  if (isValidInterviewSourceValue(current)) return item;
 
   const tgKey = normalizeTelegramKey(item.telegram || item.tg || item.username || item.telegram_username);
   const nameKey = normalizeNameKey(item.name);
@@ -789,7 +821,10 @@ function applyInterviewSourceFallback(item, sourceMap) {
     sourceMap?.byName?.get(nameKey) ||
     '';
 
-  if (!fallback) return item;
+  if (!isValidInterviewSourceValue(fallback)) return {
+    ...item,
+    source: ''
+  };
 
   return {
     ...item,
