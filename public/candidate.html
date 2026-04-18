@@ -1404,6 +1404,12 @@
       const leadSource = String(candidate.lead_source || '').trim();
       if (leadSource) return leadSource;
 
+      const candidateSource = String(candidate.candidate_source || '').trim();
+      if (candidateSource) return candidateSource;
+
+      const sourceName = String(candidate.source_name || '').trim();
+      if (sourceName) return sourceName;
+
       const pipelineValues = new Set(['manual', 'new', 'screening', 'interview', 'test_task', 'test_shift', 'hired', 'rejected']);
       const rawSource = String(candidate.source || '').trim();
 
@@ -1885,7 +1891,9 @@
           status: baseCandidate.status || '',
           notes: nextNotes,
           source: baseCandidate.source || '',
-          lead_source: baseCandidate.lead_source || '',
+          lead_source: resolveLeadSource(baseCandidate),
+          candidate_source: resolveLeadSource(baseCandidate),
+          source_name: resolveLeadSource(baseCandidate),
           ...fieldOverrides
         },
         ratings: baseCandidate.ratings || {},

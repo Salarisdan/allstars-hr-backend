@@ -1526,6 +1526,8 @@
     function applyCrmFilters(items) {
       let out = [...items];
 
+      out = out.filter(item => !isExcludedFromInterviewBoard(item.status));
+
       if (crmFilters.q) {
         const q = crmFilters.q.toLowerCase();
         out = out.filter(item => {
@@ -1976,7 +1978,6 @@
       const activeStatuses = [
         'назначено собеседование',
         'ждет собеседования',
-        'работает',
         'ожидание старта',
         'верификация',
         'хочу взять',
@@ -1986,15 +1987,29 @@
       return activeStatuses.some(active => s.includes(active));
     }
 
+    function isExcludedFromInterviewBoard(status) {
+      const s = String(status || '').trim().toLowerCase();
+      if (!s) return false;
+
+      const excludedStatuses = [
+        'работает',
+        'принят',
+        'принятый',
+        'уволен',
+        'не рассчитан',
+        'убрать',
+        'отказ',
+        'не пришел на собес',
+        'не пришёл на собес'
+      ];
+
+      return excludedStatuses.some(excluded => s.includes(excluded));
+    }
+
     function sortInterviewsForDisplay(items) {
       return [...items].sort((a, b) => {
-        const aHasInterview = hasActiveInterviewStatus(a.status);
-        const bHasInterview = hasActiveInterviewStatus(b.status);
-
-        if (aHasInterview !== bHasInterview) return aHasInterview ? -1 : 1;
-
-        const aCreatedStr = String(a.crm_created_at || '').trim();
-        const bCreatedStr = String(b.crm_created_at || '').trim();
+        const aCreatedStr = String(a.crm_created_at || a.created_at || a.updated_at || '').trim();
+        const bCreatedStr = String(b.crm_created_at || b.created_at || b.updated_at || '').trim();
 
         if (aCreatedStr && bCreatedStr) {
           const aTime = new Date(aCreatedStr).getTime();

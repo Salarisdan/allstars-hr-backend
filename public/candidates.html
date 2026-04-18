@@ -1562,7 +1562,7 @@
       renderPipelineBlock(allCrmItems);
       updateCrmFilterButtons();
 
-      render(filtered);
+      render(sortCandidatesForDisplay(filtered));
     }
 
     document.getElementById('crmSearch')?.addEventListener('input', () => {
@@ -1724,6 +1724,22 @@
       return String(candidate.lead_source || candidate.candidate_source || candidate.source_name || '').trim();
     }
 
+    function sortCandidatesForDisplay(rows = [], sortValue = sortSelect?.value || 'new') {
+      const list = [...rows];
+
+      if (sortValue === 'old') {
+        list.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+      } else if (sortValue === 'score_desc') {
+        list.sort((a, b) => Number(b.total || 0) - Number(a.total || 0));
+      } else if (sortValue === 'score_asc') {
+        list.sort((a, b) => Number(a.total || 0) - Number(b.total || 0));
+      } else {
+        list.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      }
+
+      return list;
+    }
+
     function escapeHtml(str = '') {
       return String(str)
         .replaceAll('&', '&amp;')
@@ -1882,17 +1898,7 @@
         rows = rows.filter(x => getCandidateVerdictKey(x) === verdict);
       }
 
-      if (sort === 'new') {
-        rows.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
-      } else if (sort === 'old') {
-        rows.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
-      } else if (sort === 'score_desc') {
-        rows.sort((a,b) => Number(b.total || 0) - Number(a.total || 0));
-      } else if (sort === 'score_asc') {
-        rows.sort((a,b) => Number(a.total || 0) - Number(b.total || 0));
-      }
-
-      return rows;
+      return sortCandidatesForDisplay(rows, sort);
     }
 
     async function loadCandidateHistory(id) {
