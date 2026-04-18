@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AllStars � �������</title>
+  <title>AllStars - Команда</title>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@700;800&display=swap" rel="stylesheet">
   <style>
     :root{
@@ -458,7 +458,7 @@
   <link rel="stylesheet" href="/navfx.css">
 </head>
 <body>
-  <button class="mobile-nav-toggle" id="mobileNavToggle" type="button" aria-label="������� ����">
+  <button class="mobile-nav-toggle" id="mobileNavToggle" type="button" aria-label="Открыть меню">
     <span></span>
     <span></span>
     <span></span>
@@ -471,39 +471,39 @@
           <div class="brand-mark">✦</div>
           <div class="brand">AllStars</div>
         </div>
-        <div class="sub">�������</div>
+        <div class="sub">Команда</div>
       </div>
 
-      <div class="sidebar-section">���������</div>
-      <a class="nav-item" href="/index.html">????? ����� ��������</a>
-      <a class="nav-item" href="/candidates.html">?? ���������</a>
-      <a class="nav-item" href="/referrals.html">?? ��������</a>
-      <a class="nav-item" href="/interviews.html">?? �������������</a>
-      <a class="nav-item" href="/dashboard.html">?? Dashboard</a>
-      <a class="nav-item" href="/team-dashboard.html">?? �����������</a>
-      <a class="nav-item" href="/hr-needs.html">?? ����������� HR</a>
-      <a class="nav-item active" href="/team.html">?? �������</a>
+      <div class="sidebar-section">Навигация</div>
+      <a class="nav-item" href="/index.html">🧑‍💼 Новый кандидат</a>
+      <a class="nav-item" href="/candidates.html">👥 Кандидаты</a>
+      <a class="nav-item" href="/referrals.html">🤝 Рефералы</a>
+      <a class="nav-item" href="/interviews.html">📞 Собеседования</a>
+      <a class="nav-item" href="/dashboard.html">📊 Dashboard</a>
+      <a class="nav-item" href="/team-dashboard.html">🫂 Действующие</a>
+      <a class="nav-item" href="/hr-needs.html">🎯 Потребности HR</a>
+      <a class="nav-item active" href="/team.html">👥 Команда</a>
     </aside>
 
     <main class="main">
       <div class="topbar">
         <div class="title">
-          <h1>�������</h1>
-          <p>���������� ��������� ������������� CRM.</p>
+          <h1>Команда</h1>
+          <p>Управление аккаунтами пользователей CRM.</p>
         </div>
 
         <div class="toolbar">
-          <button class="btn btn-primary" id="refreshBtn" type="button">��������</button>
+          <button class="btn btn-primary" id="refreshBtn" type="button">Обновить</button>
         </div>
       </div>
 
       <section class="panel">
-        <div class="panel-title">�������� ������������</div>
+        <div class="panel-title">Создать пользователя</div>
 
         <div class="form-grid">
           <div class="field">
-            <label>���</label>
-            <input class="input" id="userName" placeholder="��������: Roma">
+            <label>Имя</label>
+            <input class="input" id="userName" placeholder="Например: Roma">
           </div>
 
           <div class="field">
@@ -512,12 +512,12 @@
           </div>
 
           <div class="field">
-            <label>������</label>
-            <input class="input" id="userPassword" type="password" placeholder="������� 6 ��������">
+            <label>Пароль</label>
+            <input class="input" id="userPassword" type="password" placeholder="Минимум 6 символов">
           </div>
 
           <div class="field">
-            <label>����</label>
+            <label>Роль</label>
             <select class="select" id="userRole">
               <option value="hr">HR</option>
               <option value="teamlead">Teamlead</option>
@@ -527,16 +527,16 @@
         </div>
 
         <div class="form-actions">
-          <button class="btn btn-primary" type="button" id="createUserBtn">������� ������������</button>
+          <button class="btn btn-primary" type="button" id="createUserBtn">Создать пользователя</button>
         </div>
 
         <div class="helper-text" id="createUserHint">
-          ����� �������� ��������� �������� email � ������. ���� ��� ���� ����� <strong>/login.html</strong>, ��������� ����������� �� �����.
+          После создания покажется временный email и пароль. Вход для всех через <strong>/login.html</strong>, затем пользователь меняет пароль у себя.
         </div>
       </section>
 
       <div id="usersContent">
-        <div class="loading">��������� �������������...</div>
+        <div class="loading">Загрузка пользователей...</div>
       </div>
     </main>
   </div>
@@ -581,7 +581,7 @@
     }
 
     function formatDate(value) {
-      if (!value) return '�';
+      if (!value) return '-';
       const d = new Date(value);
       if (Number.isNaN(d.getTime())) return value;
       return d.toLocaleString('ru-RU');
@@ -589,7 +589,7 @@
 
     function renderUsers(users) {
       if (!users.length) {
-        usersContent.innerHTML = `<div class="empty">������������� ���� ���</div>`;
+        usersContent.innerHTML = `<div class="empty">Пользователей пока нет</div>`;
         return;
       }
 
@@ -599,30 +599,30 @@
             <div class="user-card">
               <div class="user-head">
                 <div>
-                  <div class="user-name">${escapeHtml(user.name || '��� �����')}</div>
+                  <div class="user-name">${escapeHtml(user.name || 'Без имени')}</div>
                   <div class="user-email">${escapeHtml(user.email || '')}</div>
                 </div>
 
                 <div class="badge ${user.is_active ? 'badge-green' : 'badge-red'}">
-                  ${user.is_active ? '�������' : '��������'}
+                  ${user.is_active ? 'Активен' : 'Отключен'}
                 </div>
               </div>
 
               <div class="user-meta">
                 <div><span class="badge badge-role">${escapeHtml(user.role || 'hr')}</span></div>
                 <div><strong>ID:</strong> ${user.id}</div>
-                <div><strong>������:</strong> ${formatDate(user.created_at)}</div>
+                <div><strong>Создан:</strong> ${formatDate(user.created_at)}</div>
               </div>
 
               <div class="user-actions">
                 ${
                   user.is_active
-                    ? `<button class="btn-small btn-disable" type="button" onclick="toggleUserStatus(${user.id}, false)">��������������</button>`
-                    : `<button class="btn-small btn-enable" type="button" onclick="toggleUserStatus(${user.id}, true)">������������</button>`
+                    ? `<button class="btn-small btn-disable" type="button" onclick="toggleUserStatus(${user.id}, false)">Отключить</button>`
+                    : `<button class="btn-small btn-enable" type="button" onclick="toggleUserStatus(${user.id}, true)">Включить</button>`
                 }
 
                 <button class="btn-small btn-delete" type="button" onclick="deleteUser(${user.id}, '${escapeHtml(user.email || '')}')">
-                  �������
+                  Удалить
                 </button>
               </div>
             </div>
@@ -632,13 +632,13 @@
     }
 
     async function loadUsers() {
-      usersContent.innerHTML = `<div class="loading">��������� �������������...</div>`;
+      usersContent.innerHTML = `<div class="loading">Загрузка пользователей...</div>`;
 
       const res = await api('/api/users');
       const data = await res.json().catch(() => ([]));
 
       if (!res.ok) {
-        usersContent.innerHTML = `<div class="error-box">${data.error || '�� ������� ��������� �������������'}</div>`;
+        usersContent.innerHTML = `<div class="error-box">${data.error || 'Не удалось загрузить пользователей'}</div>`;
         return;
       }
 
@@ -651,7 +651,7 @@
       const password = document.getElementById('userPassword').value;
       const role = document.getElementById('userRole').value;
 
-      createUserHint.innerHTML = '������ ������������...';
+      createUserHint.innerHTML = 'Создаем пользователя...';
 
       const res = await api('/api/users', {
         method: 'POST',
@@ -661,8 +661,8 @@
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        createUserHint.textContent = data.error || '�� ������� ������� ������������';
-        alert(data.error || '�� ������� ������� ������������');
+        createUserHint.textContent = data.error || 'Не удалось создать пользователя';
+        alert(data.error || 'Не удалось создать пользователя');
         return;
       }
 
@@ -670,7 +670,7 @@
       document.getElementById('userEmail').value = '';
       document.getElementById('userPassword').value = '';
       document.getElementById('userRole').value = 'hr';
-      createUserHint.innerHTML = `������������ <strong>${escapeHtml(data.email || email)}</strong> ������. ��������� ��� email � ������, ���� ����� <strong>/login.html</strong>.`;
+      createUserHint.innerHTML = `Пользователь <strong>${escapeHtml(data.email || email)}</strong> создан. Передайте ему email и пароль, вход через <strong>/login.html</strong>.`;
 
       await loadUsers();
     }
@@ -684,7 +684,7 @@
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        alert(data.error || '�� ������� �������� ������ ������������');
+        alert(data.error || 'Не удалось изменить статус пользователя');
         return;
       }
 
@@ -692,7 +692,7 @@
     }
 
     async function deleteUser(id, email) {
-      if (!confirm(`������� ������������ ${email}?`)) return;
+      if (!confirm(`Удалить пользователя ${email}?`)) return;
 
       const res = await api(`/api/users/${id}`, {
         method: 'DELETE'
@@ -701,7 +701,7 @@
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        alert(data.error || '�� ������� ������� ������������');
+        alert(data.error || 'Не удалось удалить пользователя');
         return;
       }
 
