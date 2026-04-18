@@ -929,6 +929,38 @@
       line-height:1.55;
     }
 
+    .picker-group{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-bottom:8px;
+    }
+
+    .picker-btn{
+      border:1px solid var(--border);
+      background:var(--surface2);
+      color:var(--text2);
+      border-radius:999px;
+      padding:.4rem .7rem;
+      font-size:12px;
+      font-weight:700;
+      cursor:pointer;
+      font-family:'Manrope',sans-serif;
+      transition:.16s;
+    }
+
+    .picker-btn:hover{
+      color:var(--text);
+      border-color:var(--accent-border);
+    }
+
+    .picker-btn.active{
+      color:var(--accent2);
+      border-color:var(--accent-border);
+      background:var(--accent-bg);
+      box-shadow:inset 0 0 0 1px rgba(79,110,247,.25);
+    }
+
     .modal-actions{
       display:flex;
       justify-content:flex-end;
@@ -1472,11 +1504,13 @@
         </div>
         <div class="field">
           <label>Платформы</label>
-          <input id="m-platforms" />
+          <div class="picker-group" id="m-platform-group"></div>
+          <input id="m-platform-custom" placeholder="Другое (если нужно)" />
         </div>
         <div class="field">
           <label>Смены</label>
-          <input id="m-shift" />
+          <div class="picker-group" id="m-shift-group"></div>
+          <input id="m-shift-custom" placeholder="Доп. смены (если нужно)" />
         </div>
         <div class="field">
           <label>График</label>
@@ -1499,7 +1533,7 @@
           <select id="m-status">
             <option value="">Без статуса</option>
             <option value="Изучает гайд">Изучает гайд</option>
-            <option value="Тест-смена">Тест-смена</option>
+            <option value="Тест смена">Тест-смена</option>
             <option value="Принят">Принят</option>
             <option value="Отказ">Отказ</option>
           </select>
@@ -1546,6 +1580,8 @@
     const refreshBtn = document.getElementById('refreshBtn');
     const editModal = document.getElementById('editModal');
     const modalSaveStatusEl = document.getElementById('candidateModalSaveStatus');
+    const CANDIDATE_PLATFORM_OPTIONS = ['OnlyFans', 'Fansly'];
+    const CANDIDATE_SHIFT_OPTIONS = ['00-06', '06-12', '12-18', '18-00'];
 
     let allCandidates = [];
     let allCrmItems = [];
@@ -2165,8 +2201,17 @@
       document.getElementById('m-exp').value = candidate.experience || candidate.exp || '';
       document.getElementById('m-english').value = candidate.english_level || candidate.english || '';
       document.getElementById('m-avgcheck').value = candidate.avg_check || '';
-      document.getElementById('m-platforms').value = candidate.platform || candidate.platforms || '';
-      document.getElementById('m-shift').value = candidate.shift || '';
+      const platformState = parseMultiSelections(candidate.platform || candidate.platforms || '', CANDIDATE_PLATFORM_OPTIONS, {
+        'обе платформы': CANDIDATE_PLATFORM_OPTIONS,
+        both: CANDIDATE_PLATFORM_OPTIONS,
+        'onlyfans fansly': CANDIDATE_PLATFORM_OPTIONS
+      });
+      const shiftState = parseMultiSelections(candidate.shift || '', CANDIDATE_SHIFT_OPTIONS);
+
+      document.getElementById('m-platform-group').innerHTML = renderPickerGroup('m-platform-group', CANDIDATE_PLATFORM_OPTIONS, platformState.selected);
+      document.getElementById('m-shift-group').innerHTML = renderPickerGroup('m-shift-group', CANDIDATE_SHIFT_OPTIONS, shiftState.selected);
+      document.getElementById('m-platform-custom').value = platformState.extra.join(', ');
+      document.getElementById('m-shift-custom').value = shiftState.extra.join(', ');
       document.getElementById('m-schedule').value = candidate.schedule_preference || candidate.schedule || '';
       document.getElementById('m-top').value = candidate.top_profile || candidate.top_pages || '';
       document.getElementById('m-job').value = candidate.main_activity || candidate.job || '';
@@ -2196,7 +2241,7 @@
 
     function generateCandidateReport() {
       const payload = {
-        platform: document.getElementById('m-platforms')?.value.trim() || '',
+        platform: collectPickerValue('m-platform-group', 'm-platform-custom'),
         name: document.getElementById('m-name')?.value.trim() || '',
         telegram: document.getElementById('m-tg')?.value.trim() || '',
         age: document.getElementById('m-age')?.value.trim() || '',
@@ -2204,7 +2249,7 @@
         experience: document.getElementById('m-exp')?.value.trim() || '',
         top_pages: document.getElementById('m-top')?.value.trim() || '',
         avg_check: document.getElementById('m-avgcheck')?.value.trim() || '',
-        shift: document.getElementById('m-shift')?.value.trim() || '',
+        shift: collectPickerValue('m-shift-group', 'm-shift-custom'),
         lead_source: document.getElementById('m-source')?.value.trim() || '',
         main_activity: document.getElementById('m-job')?.value.trim() || '',
         schedule_preference: document.getElementById('m-schedule')?.value.trim() || ''
@@ -2280,9 +2325,9 @@
           english_level: document.getElementById('m-english').value.trim(),
           exp: document.getElementById('m-exp').value.trim(),
           experience: document.getElementById('m-exp').value.trim(),
-          platforms: document.getElementById('m-platforms').value.trim(),
-          platform: document.getElementById('m-platforms').value.trim(),
-          shift: document.getElementById('m-shift').value.trim(),
+          platforms: collectPickerValue('m-platform-group', 'm-platform-custom'),
+          platform: collectPickerValue('m-platform-group', 'm-platform-custom'),
+          shift: collectPickerValue('m-shift-group', 'm-shift-custom'),
           schedule: document.getElementById('m-schedule').value.trim(),
           schedule_preference: document.getElementById('m-schedule').value.trim(),
           top: document.getElementById('m-top').value.trim(),
@@ -2306,7 +2351,7 @@
 
     function bindModalAutosaveHandlers() {
       const ids = [
-        'm-name','m-tg','m-age','m-exp','m-english','m-avgcheck','m-platforms','m-shift',
+        'm-name','m-tg','m-age','m-exp','m-english','m-avgcheck','m-platform-custom','m-shift-custom',
         'm-schedule','m-top','m-job','m-source','m-status','m-notes','m-report'
       ];
 
@@ -2318,6 +2363,94 @@
         el.addEventListener('change', handler);
         el.dataset.autosaveBound = '1';
       });
+
+      ['m-platform-group', 'm-shift-group'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el || el.dataset.autosaveBound === '1') return;
+        el.addEventListener('click', () => scheduleModalAutosave());
+        el.dataset.autosaveBound = '1';
+      });
+    }
+
+    function parseMultiSelections(rawValue, options = [], aliases = {}) {
+      const raw = String(rawValue || '').trim();
+      if (!raw) return { selected: [], extra: [] };
+
+      const normalizedMap = new Map();
+      const known = new Set();
+      options.forEach(opt => {
+        const key = String(opt || '').toLowerCase();
+        known.add(key);
+        normalizedMap.set(key, opt);
+      });
+
+      const tokens = raw
+        .replace(/[;|]+/g, ',')
+        .replace(/\s+\+\s+/g, ',')
+        .split(',')
+        .map(x => x.trim())
+        .filter(Boolean);
+
+      const selected = [];
+      const extra = [];
+      const pushUnique = (arr, value) => {
+        if (!arr.includes(value)) arr.push(value);
+      };
+
+      tokens.forEach(token => {
+        const low = token.toLowerCase();
+        if (aliases[low]) {
+          aliases[low].forEach(v => pushUnique(selected, v));
+          return;
+        }
+        if (known.has(low)) {
+          pushUnique(selected, normalizedMap.get(low));
+          return;
+        }
+        pushUnique(extra, token);
+      });
+
+      if (!tokens.length && aliases[raw.toLowerCase()]) {
+        aliases[raw.toLowerCase()].forEach(v => pushUnique(selected, v));
+      }
+
+      return { selected, extra };
+    }
+
+    function renderPickerGroup(groupId, options, selectedValues = []) {
+      return options.map(option => {
+        const active = selectedValues.includes(option) ? 'active' : '';
+        return `<button type="button" class="picker-btn ${active}" data-value="${escapeHtml(option)}" onclick="toggleModalPickerOption('${groupId}', '${escapeHtml(option)}')">${escapeHtml(option)}</button>`;
+      }).join('');
+    }
+
+    function toggleModalPickerOption(groupId, value) {
+      const group = document.getElementById(groupId);
+      if (!group) return;
+
+      const btn = Array.from(group.querySelectorAll('.picker-btn')).find(x => (x.dataset.value || '') === value);
+      if (!btn) return;
+
+      btn.classList.toggle('active');
+      scheduleModalAutosave();
+    }
+
+    window.toggleModalPickerOption = toggleModalPickerOption;
+
+    function collectPickerValue(groupId, customInputId) {
+      const group = document.getElementById(groupId);
+      const customInput = document.getElementById(customInputId);
+
+      const selected = group
+        ? Array.from(group.querySelectorAll('.picker-btn.active')).map(btn => btn.dataset.value || '').filter(Boolean)
+        : [];
+
+      const custom = String(customInput?.value || '')
+        .split(',')
+        .map(x => x.trim())
+        .filter(Boolean);
+
+      return [...selected, ...custom].join(', ');
     }
 
     function scheduleModalAutosave() {
