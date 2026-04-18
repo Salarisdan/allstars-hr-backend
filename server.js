@@ -656,6 +656,36 @@ function isValidInterviewSourceValue(value = '') {
   return true;
 }
 
+function findInterviewSourceColumnIndex(headers = []) {
+  const normalized = (headers || []).map(h => normalizeHeaderMatchKey(h));
+
+  // 1) Exact canonical matches first.
+  const exactCandidates = [
+    'источник',
+    'источник кандидата',
+    'откуда вы о нас узнали',
+    'откуда пришел кандидат',
+    'откуда пришел кандидат',
+    'источник откуда пришел'
+  ];
+
+  for (const candidate of exactCandidates) {
+    const idx = normalized.findIndex(h => h === candidate);
+    if (idx >= 0) return idx;
+  }
+
+  // 2) Token-based tolerant match (handles typos like "отдкуда").
+  const idxByTokens = normalized.findIndex(h => {
+    if (!h) return false;
+    const hasSourceWord = h.includes('источник') || h.includes('реферал');
+    const hasDiscoveryPhrase = h.includes('узнали') && (h.includes('откуда') || h.includes('отдкуда'));
+    const hasFromCandidate = h.includes('пришел') && h.includes('кандидат');
+    return hasSourceWord || hasDiscoveryPhrase || hasFromCandidate;
+  });
+
+  return idxByTokens;
+}
+
 function normalizeRow(headers, row, rowIndex) {
   const normalizedHeaders = headers.map(h => String(h || '').trim().toLowerCase());
   const normalizedHeaderKeys = headers.map(h => normalizeHeaderMatchKey(h));
@@ -693,18 +723,21 @@ function normalizeRow(headers, row, rowIndex) {
   };
 
   const rawComments = get('Комментарии', 'Комментарий', 'Comment', 'Comments');
-  const sourceFromColumns = get(
-    'Источник',
-    'Источник кандидата',
-    'Источник кандидата / реферал',
-    'Источник/реферал',
-    'Откуда вы о нас узнали?',
-    'Откуда вы о нас узнали',
-    'Откуда узнали о нас',
-    'Откуда пришел кандидат',
-    'Откуда пришёл кандидат',
-    'Источник (откуда пришел)'
-  );
+  const sourceColIdx = findInterviewSourceColumnIndex(headers);
+  const sourceFromColumns = sourceColIdx >= 0
+    ? (row[sourceColIdx] ?? '')
+    : get(
+      'Источник',
+      'Источник кандидата',
+      'Источник кандидата / реферал',
+      'Источник/реферал',
+      'Откуда вы о нас узнали?',
+      'Откуда вы о нас узнали',
+      'Откуда узнали о нас',
+      'Откуда пришел кандидат',
+      'Откуда пришёл кандидат',
+      'Источник (откуда пришел)'
+    );
   const rawSource = String(sourceFromColumns || '').trim() || extractSourceFromText(rawComments);
   const source = isValidInterviewSourceValue(rawSource) ? rawSource : '';
 
@@ -3527,6 +3560,7 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
     };
 
     // Map request body fields to sheet columns
+    const sourceColumnIdx = findInterviewSourceColumnIndex(headers);
     const fieldMappings = [
       { field: 'name', names: ['Имя', 'Как вас зовут?'] },
       { field: 'telegram', names: ['TG Username', 'Username'] },
@@ -3562,7 +3596,9 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
 
     for (const mapping of fieldMappings) {
       if (req.body?.[mapping.field] !== undefined) {
-        const colIdx = findColumnIndex(...mapping.names);
+        const colIdx = mapping.field === 'source' && sourceColumnIdx >= 0
+          ? sourceColumnIdx + 1
+          : findColumnIndex(...mapping.names);
         if (colIdx > 0) {
           const colLetter = columnToLetter(colIdx);
           let value = String(req.body[mapping.field] || '').trim();
