@@ -1690,7 +1690,7 @@
         `Топ страниц: ${data.top_pages || data.top_profile || '—'}`,
         `Ср чек: ${data.avg_check || data.average_check || '—'}`,
         `Смена: ${data.shift || '—'}`,
-        `Откуда вы о нас узнали: ${data.lead_source || data.candidate_source || '—'}`,
+        `Откуда вы о нас узнали: ${getLeadSource(data) || '—'}`,
         `Есть ли основная деятельность/учеба: ${data.main_activity || data.study_info || '—'}`,
         '',
         `График 5/2 или 6/1: ${data.schedule_preference || '—'}`
@@ -1721,7 +1721,29 @@
     }
 
     function getLeadSource(candidate = {}) {
-      return String(candidate.lead_source || candidate.candidate_source || candidate.source_name || '').trim();
+      const isLikelyDateTime = (value = '') => {
+        const s = String(value || '').trim();
+        if (!s) return false;
+        if (/^\d{2}\.\d{2}\.\d{4}(?:\s+\d{1,2}:\d{2})?$/.test(s)) return true;
+        if (/^\d{4}-\d{2}-\d{2}(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$/.test(s)) return true;
+        return false;
+      };
+
+      const isValidSource = (value = '') => {
+        const s = String(value || '').trim();
+        if (!s || isLikelyDateTime(s)) return false;
+
+        const pipelineValues = new Set(['manual', 'new', 'screening', 'interview', 'test_task', 'test_shift', 'hired', 'rejected']);
+        return !pipelineValues.has(s.toLowerCase());
+      };
+
+      const variants = [candidate.lead_source, candidate.candidate_source, candidate.source_name, candidate.source];
+      for (const variant of variants) {
+        const value = String(variant || '').trim();
+        if (isValidSource(value)) return value;
+      }
+
+      return '';
     }
 
     function sortCandidatesForDisplay(rows = [], sortValue = sortSelect?.value || 'new') {

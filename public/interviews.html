@@ -960,6 +960,43 @@
       padding:5px 9px;
     }
 
+    .source-health{
+      margin-top:10px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:11px;
+      font-weight:800;
+      color:var(--text2);
+      padding:8px 10px;
+      border-radius:10px;
+      border:1px solid var(--border);
+      background:var(--surface2);
+    }
+
+    .source-health .dot{
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:#64748b;
+      box-shadow:0 0 0 3px rgba(100,116,139,.2);
+    }
+
+    .source-health.ok .dot{
+      background:#22c55e;
+      box-shadow:0 0 0 3px rgba(34,197,94,.18);
+    }
+
+    .source-health.warn .dot{
+      background:#f59e0b;
+      box-shadow:0 0 0 3px rgba(245,158,11,.2);
+    }
+
+    .source-health.bad .dot{
+      background:#ef4444;
+      box-shadow:0 0 0 3px rgba(239,68,68,.2);
+    }
+
     .candidate-name{font-size:15px;font-weight:800;line-height:1.2;}
     .candidate-telegram{color:var(--accent2);font-size:13px;margin-top:3px;}
 
@@ -1413,6 +1450,10 @@
               <div><strong style="color:var(--red);">Отказ:</strong> <span id="metricRejected">—</span> (<span id="metricRejectionRate">—</span>%)</div>
             </div>
           </div>
+          <div class="source-health" id="sourceHealthIndicator">
+            <span class="dot"></span>
+            <span id="sourceHealthText">Проверка источника...</span>
+          </div>
           <div class="pipeline" id="pipeline"></div>
         </div>
       </div>
@@ -1634,6 +1675,7 @@
       renderPipelineBlock(allCrmItems);
       updateCrmFilterButtons();
       updateMetricsDisplay(allCrmItems);
+      updateSourceHealthIndicator(allCrmItems);
 
       render(filtered);
     }
@@ -1645,6 +1687,32 @@
       document.getElementById('metricRejected').textContent = metrics.rejected;
       document.getElementById('metricConversion').textContent = metrics.conversionPercent;
       document.getElementById('metricRejectionRate').textContent = metrics.rejectionPercent;
+    }
+
+    function updateSourceHealthIndicator(items = []) {
+      const box = document.getElementById('sourceHealthIndicator');
+      const text = document.getElementById('sourceHealthText');
+      if (!box || !text) return;
+
+      const total = items.length;
+      if (!total) {
+        box.className = 'source-health';
+        text.textContent = 'Источник: нет данных для проверки';
+        return;
+      }
+
+      const withSource = items.filter(item => Boolean(resolveInterviewSource(item))).length;
+      const percent = Math.round((withSource / total) * 100);
+
+      if (percent >= 80) {
+        box.className = 'source-health ok';
+      } else if (percent >= 45) {
+        box.className = 'source-health warn';
+      } else {
+        box.className = 'source-health bad';
+      }
+
+      text.textContent = `Источник заполнен: ${withSource}/${total} (${percent}%)`;
     }
 
     document.getElementById('crmSearch')?.addEventListener('input', () => {
@@ -2054,6 +2122,22 @@
     }
 
     function resolveInterviewSource(item = {}) {
+      const isLikelyDateTime = (value = '') => {
+        const s = String(value || '').trim();
+        if (!s) return false;
+        if (/^\d{2}\.\d{2}\.\d{4}(?:\s+\d{1,2}:\d{2})?$/.test(s)) return true;
+        if (/^\d{4}-\d{2}-\d{2}(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$/.test(s)) return true;
+        return false;
+      };
+
+      const isValidSource = (value = '') => {
+        const s = String(value || '').trim();
+        if (!s || isLikelyDateTime(s)) return false;
+
+        const pipelineValues = new Set(['manual', 'new', 'screening', 'interview', 'test_task', 'test_shift', 'hired', 'rejected']);
+        return !pipelineValues.has(s.toLowerCase());
+      };
+
       const variants = [
         item.source,
         item.lead_source,
@@ -2072,7 +2156,7 @@
 
       for (const value of variants) {
         const normalized = String(value || '').trim();
-        if (normalized) return normalized;
+        if (isValidSource(normalized)) return normalized;
       }
 
       return '';
