@@ -3189,7 +3189,7 @@ app.get('/api/interviews', auth, async (req, res) => {
     const sheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
     const sheets = await getSheetsClient();
 
-    const range = `${sheetName}!A1:AU5000`;
+    const range = `${sheetName}!A1:ZZ5000`;
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
@@ -3255,11 +3255,11 @@ app.get('/api/interviews/:rowNumber', auth, async (req, res) => {
     const [headersRes, rowRes] = await Promise.all([
       sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: `${sheetName}!A1:AU1`
+        range: `${sheetName}!A1:ZZ1`
       }),
       sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: `${sheetName}!A${rowNumber}:AU${rowNumber}`
+        range: `${sheetName}!A${rowNumber}:ZZ${rowNumber}`
       })
     ]);
 
@@ -3299,13 +3299,13 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
     // Get headers first
     const headersRes = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `${sheetName}!A1:AU1`
+      range: `${sheetName}!A1:ZZ1`
     });
 
     const headers = headersRes.data.values?.[0] || [];
     const currentRowRes = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `${sheetName}!A${rowNumber}:AU${rowNumber}`
+      range: `${sheetName}!A${rowNumber}:ZZ${rowNumber}`
     });
     const currentRow = currentRowRes.data.values?.[0] || [];
     const currentCandidate = normalizeRow(headers, currentRow, rowNumber);
@@ -3362,7 +3362,18 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
       { field: 'username', names: ['TG Username', 'Username'] },
       { field: 'age', names: ['Возраст'] },
       { field: 'platform', names: ['Платформа'] },
-      { field: 'source', names: ['Источник', 'Источник кандидата', 'Откуда вы о нас узнали?', 'Откуда вы о нас узнали'] },
+      {
+        field: 'source',
+        names: [
+          'Источник',
+          'Источник кандидата',
+          'Откуда вы о нас узнали?',
+          'Откуда вы о нас узнали',
+          'Откуда пришел кандидат',
+          'Откуда пришёл кандидат',
+          'Источник (откуда пришел)'
+        ]
+      },
       { field: 'top_profile', names: ['Анкеты', 'С какими анкетами работал-а (топ, %)'] },
       { field: 'experience', names: ['Опыт', 'Опыт работы', 'Опыт работы (лет)', 'Опыт в adult', 'Опыт в adult (лет)'] },
       { field: 'shift', names: ['Смены', 'Смена'] },
