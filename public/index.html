@@ -1001,6 +1001,7 @@
     }
   </style>
   <link rel="stylesheet" href="/navfx.css">
+  <link rel="stylesheet" href="/visual-v2.css">
 </head>
 <body>
   <button class="mobile-nav-toggle" id="mobileNavToggle" type="button" aria-label="Открыть меню">
@@ -1446,55 +1447,7 @@
 
   <script src="/app-config.js"></script>
   <script src="/navfx.js"></script>
-  <script>
-    (function () {
-      const logo = document.querySelector('.sidebar-logo');
-      if (!logo) return;
-
-      const brandMark = logo.querySelector('.brand-mark');
-      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (reduceMotion) return;
-
-      logo.addEventListener('pointermove', (event) => {
-        if (window.matchMedia('(pointer: coarse)').matches) return;
-
-        const rect = logo.getBoundingClientRect();
-        const px = ((event.clientX - rect.left) / rect.width);
-        const py = ((event.clientY - rect.top) / rect.height);
-        const clampedX = Math.max(0, Math.min(1, px));
-        const clampedY = Math.max(0, Math.min(1, py));
-
-        logo.style.setProperty('--mx', `${(clampedX * 100).toFixed(2)}%`);
-        logo.style.setProperty('--my', `${(clampedY * 100).toFixed(2)}%`);
-
-        if (brandMark) {
-          const tiltX = (0.5 - clampedY) * 5;
-          const tiltY = (clampedX - 0.5) * 7;
-          brandMark.style.transform = `translateZ(0) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg)`;
-        }
-      });
-
-      logo.addEventListener('pointerleave', () => {
-        logo.style.setProperty('--mx', '50%');
-        logo.style.setProperty('--my', '50%');
-        if (brandMark) brandMark.style.transform = 'translateZ(0)';
-      });
-
-      const shootingStar = document.createElement('span');
-      shootingStar.className = 'brand-shooting-star';
-      logo.appendChild(shootingStar);
-
-      const triggerComet = () => {
-        const nextTop = 14 + Math.random() * 28;
-        shootingStar.style.top = `${nextTop.toFixed(1)}px`;
-        shootingStar.classList.remove('is-active');
-        void shootingStar.offsetWidth;
-        shootingStar.classList.add('is-active');
-      };
-
-      setInterval(triggerComet, 4200);
-    })();
-  </script>
+  <script src="/visual-v2.js"></script>
   <script>
     const tokenKey = 'allstars_token';
     const meKey = 'allstars_me';
