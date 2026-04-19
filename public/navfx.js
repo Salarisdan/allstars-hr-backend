@@ -1,4 +1,17 @@
 (() => {
+  function isLiteEnvironment() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return true;
+    if (window.matchMedia('(pointer: coarse)').matches) return true;
+
+    const lowHardware = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)
+      || (navigator.deviceMemory && navigator.deviceMemory <= 4);
+
+    const forcedLite = new URLSearchParams(window.location.search).get('litefx') === '1'
+      || localStorage.getItem('allstars_lite_fx') === '1';
+
+    return lowHardware || forcedLite;
+  }
+
   function ensureNavStructure(sidebar) {
     const items = Array.from(sidebar.querySelectorAll('.nav-item'));
 
@@ -44,6 +57,8 @@
   }
 
   function bindInteractiveTilt(sidebar) {
+    if (isLiteEnvironment()) return;
+
     const items = Array.from(sidebar.querySelectorAll('.nav-item'));
 
     items.forEach(item => {
@@ -123,7 +138,7 @@
     if (!logo || logo.dataset.navfxBrandReady === '1') return;
     logo.dataset.navfxBrandReady = '1';
 
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (isLiteEnvironment()) return;
 
     const brandMark = logo.querySelector('.brand-mark');
     const shootingStar = logo.querySelector('.brand-shooting-star');
@@ -168,6 +183,10 @@
   function init() {
     const sidebar = document.querySelector('.sidebar');
     if (!sidebar) return;
+
+    if (isLiteEnvironment()) {
+      sidebar.classList.add('navfx-lite');
+    }
 
     ensureNavStructure(sidebar);
     bindInteractiveTilt(sidebar);

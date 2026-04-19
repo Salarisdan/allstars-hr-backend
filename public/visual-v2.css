@@ -8,10 +8,10 @@
   --v2-shadow-soft:0 14px 30px rgba(2,6,22,.32);
   --v2-shadow-focus:0 0 0 1px rgba(125,149,255,.35), 0 10px 26px rgba(22,34,72,.42);
   --v2-ease:cubic-bezier(.2,.7,.2,1);
-  --v2-atmo-aqua:.08;
-  --v2-atmo-indigo:.12;
-  --v2-grid-opacity:.16;
-  --v2-card-blur:8px;
+  --v2-atmo-aqua:.05;
+  --v2-atmo-indigo:.08;
+  --v2-grid-opacity:0;
+  --v2-card-blur:0px;
   --v2-hover-border:rgba(173,194,255,.25);
   --v2-btn-lift:-1px;
   --v2-btn-shadow:0 10px 18px rgba(10,18,40,.26);
@@ -35,10 +35,10 @@ body[data-visual-intensity='low']{
 }
 
 body[data-visual-intensity='medium']{
-  --v2-atmo-aqua:.08;
-  --v2-atmo-indigo:.12;
-  --v2-grid-opacity:.16;
-  --v2-card-blur:8px;
+  --v2-atmo-aqua:.05;
+  --v2-atmo-indigo:.08;
+  --v2-grid-opacity:0;
+  --v2-card-blur:0px;
   --v2-shadow-soft:0 14px 30px rgba(2,6,22,.32);
   --v2-hover-border:rgba(173,194,255,.25);
   --v2-btn-lift:-1px;
@@ -51,8 +51,8 @@ body[data-visual-intensity='medium']{
 body[data-visual-intensity='ultra']{
   --v2-atmo-aqua:.13;
   --v2-atmo-indigo:.2;
-  --v2-grid-opacity:.24;
-  --v2-card-blur:12px;
+  --v2-grid-opacity:.2;
+  --v2-card-blur:6px;
   --v2-shadow-soft:0 18px 36px rgba(2,6,22,.4);
   --v2-hover-border:rgba(173,194,255,.32);
   --v2-btn-lift:-2px;
@@ -90,7 +90,7 @@ body::before{
   background-image:linear-gradient(to right, rgba(255,255,255,.02) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,.015) 1px, transparent 1px);
   background-size:28px 28px;
   opacity:var(--v2-grid-opacity);
-  mask-image:linear-gradient(180deg, rgba(0,0,0,.56), rgba(0,0,0,0));
+  mask-image:linear-gradient(180deg, rgba(0,0,0,.45), rgba(0,0,0,0));
 }
 
 .page-title h1,
@@ -127,6 +127,27 @@ h1{
   border-color:var(--v2-border-soft) !important;
   border-radius:var(--v2-radius-md) !important;
   box-shadow:var(--v2-shadow-soft) !important;
+  backdrop-filter:none;
+}
+
+body[data-visual-intensity='ultra'] .card,
+body[data-visual-intensity='ultra'] .section,
+body[data-visual-intensity='ultra'] .panel,
+body[data-visual-intensity='ultra'] .note-box,
+body[data-visual-intensity='ultra'] .field-box,
+body[data-visual-intensity='ultra'] .score-box,
+body[data-visual-intensity='ultra'] .quick-edit,
+body[data-visual-intensity='ultra'] .pipeline-box,
+body[data-visual-intensity='ultra'] .editor-box,
+body[data-visual-intensity='ultra'] .comment-box,
+body[data-visual-intensity='ultra'] .ai-box,
+body[data-visual-intensity='ultra'] .candidate-report-card,
+body[data-visual-intensity='ultra'] .modal-content,
+body[data-visual-intensity='ultra'] .filters,
+body[data-visual-intensity='ultra'] .stats-card,
+body[data-visual-intensity='ultra'] .stat-card,
+body[data-visual-intensity='ultra'] .table-wrap,
+body[data-visual-intensity='ultra'] .list-card{
   backdrop-filter:blur(var(--v2-card-blur));
 }
 
@@ -179,7 +200,7 @@ select:focus-visible{
 }
 
 @media (max-width:768px){
-  .main::before{opacity:.1}
+  .main::before{opacity:0}
   .card,
   .section,
   .panel,
@@ -200,6 +221,10 @@ select:focus-visible{
   .list-card{
     border-radius:14px !important;
   }
+}
+
+@media (max-width:1200px){
+  .main::before{opacity:0}
 }
 
 @media (prefers-reduced-motion:reduce){

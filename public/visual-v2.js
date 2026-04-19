@@ -9,7 +9,10 @@
     const stored = localStorage.getItem(INTENSITY_KEY);
     if (stored && MODES.has(stored)) return stored;
 
-    return 'medium';
+    const lowHardware = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)
+      || (navigator.deviceMemory && navigator.deviceMemory <= 4);
+
+    return lowHardware ? 'low' : 'medium';
   }
 
   function setVisualIntensity(mode, persist = true) {
@@ -32,6 +35,9 @@
 
     window.setVisualIntensity = mode => setVisualIntensity(mode, true);
     window.getVisualIntensity = () => document.body.dataset.visualIntensity || 'medium';
+
+    const currentMode = document.body.dataset.visualIntensity || 'medium';
+    if (currentMode === 'low') return;
 
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 

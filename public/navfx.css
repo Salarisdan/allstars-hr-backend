@@ -138,6 +138,18 @@
   animation:navfx-shooting-star 1.15s cubic-bezier(.16,.88,.3,1) both;
 }
 
+.sidebar.navfx-lite .brand-sparkles,
+.sidebar.navfx-lite .brand-shooting-star{
+  display:none !important;
+}
+
+.sidebar.navfx-lite .brand,
+.sidebar.navfx-lite .brand-mark,
+.sidebar.navfx-lite .brand-star{
+  animation:none !important;
+  filter:none !important;
+}
+
 .sidebar .sidebar-section{
   font-weight:800;
   letter-spacing:.14em;
@@ -174,6 +186,11 @@
     opacity .2s ease;
   animation:navfx-enter .52s cubic-bezier(.2,.7,.2,1) both;
   animation-delay:var(--delay);
+}
+
+.sidebar.navfx-lite .nav-item{
+  animation:none !important;
+  transition:color .12s ease, border-color .12s ease, background .12s ease !important;
 }
 
 .sidebar .nav-item::before{
@@ -265,6 +282,11 @@
   transform:translateX(-120%);
   animation:navfx-shimmer 2.4s ease-in-out infinite;
   pointer-events:none;
+}
+
+.sidebar.navfx-lite .nav-item.active::after{
+  animation:none !important;
+  display:none;
 }
 
 @keyframes navfx-enter{
