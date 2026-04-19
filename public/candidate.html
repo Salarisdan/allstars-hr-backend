@@ -83,47 +83,101 @@
     .sidebar-logo{
       position:relative;
       margin:0 0 .95rem;
-      padding:.9rem .9rem .95rem;
-      border:1px solid var(--accent-border);
-      border-radius:16px;
-      background:
-        radial-gradient(130% 100% at 0% 0%, rgba(125,149,255,.28), rgba(125,149,255,0) 52%),
-        linear-gradient(145deg, rgba(79,110,247,.2), rgba(79,110,247,.03));
-      box-shadow:0 10px 24px rgba(0,0,0,.32);
+      padding:.95rem .95rem 1rem;
+      border:1px solid rgba(157,178,255,.28);
+      border-radius:18px;
+      isolation:isolate;
       overflow:hidden;
+      --mx:50%;
+      --my:50%;
+      background:
+        radial-gradient(135% 115% at 0% 0%, rgba(125,149,255,.34), rgba(125,149,255,0) 52%),
+        radial-gradient(130% 130% at 100% 100%, rgba(56,189,248,.16), rgba(56,189,248,0) 56%),
+        linear-gradient(145deg, rgba(79,110,247,.24), rgba(79,110,247,.02));
+      box-shadow:
+        0 12px 26px rgba(0,0,0,.34),
+        inset 0 1px 0 rgba(255,255,255,.16),
+        inset 0 -12px 24px rgba(24,35,72,.35);
+      transform:translateZ(0);
+      transition:transform .2s ease, box-shadow .2s ease;
+    }
+
+    .sidebar-logo::before{
+      content:'';
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(210px 150px at var(--mx) var(--my), rgba(255,255,255,.16), rgba(255,255,255,0) 62%),
+        linear-gradient(115deg, rgba(255,255,255,0) 22%, rgba(255,255,255,.15) 50%, rgba(255,255,255,0) 78%);
+      mix-blend-mode:screen;
+      opacity:.58;
+      animation:brandSweep 4.8s ease-in-out infinite;
+      pointer-events:none;
+      z-index:0;
     }
 
     .sidebar-logo::after{
       content:'';
       position:absolute;
-      width:96px;
-      height:96px;
-      right:-26px;
-      top:-36px;
+      width:116px;
+      height:116px;
+      right:-32px;
+      top:-42px;
       border-radius:999px;
-      background:radial-gradient(circle, rgba(56,189,248,.34) 0%, rgba(56,189,248,0) 72%);
+      background:radial-gradient(circle, rgba(56,189,248,.36) 0%, rgba(56,189,248,0) 72%);
+      filter:blur(.5px);
       pointer-events:none;
+      z-index:0;
     }
 
     .brand-row{
       display:flex;
       align-items:center;
       gap:9px;
+      position:relative;
+      z-index:2;
     }
 
     .brand-mark{
-      width:24px;
-      height:24px;
+      width:28px;
+      height:28px;
       flex:0 0 auto;
-      border-radius:8px;
-      border:1px solid rgba(255,255,255,.22);
-      background:linear-gradient(145deg, rgba(125,149,255,.35), rgba(79,110,247,.2));
-      color:#dbe4ff;
+      border-radius:10px;
+      border:1px solid rgba(198,216,255,.42);
+      background:linear-gradient(145deg, rgba(176,197,255,.44), rgba(79,110,247,.2));
       display:flex;
       align-items:center;
       justify-content:center;
-      font-size:13px;
-      box-shadow:inset 0 0 14px rgba(125,149,255,.25);
+      font-size:14px;
+      box-shadow:
+        inset 0 0 16px rgba(125,149,255,.28),
+        0 0 20px rgba(125,149,255,.32);
+      position:relative;
+      transform:translateZ(0);
+      animation:starPulse 2.8s ease-in-out infinite;
+    }
+
+    .brand-mark::before{
+      content:'';
+      position:absolute;
+      inset:-6px;
+      border-radius:14px;
+      background:conic-gradient(from 120deg, rgba(125,149,255,0), rgba(157,178,255,.56), rgba(56,189,248,.26), rgba(125,149,255,0));
+      filter:blur(5px);
+      opacity:.52;
+      animation:starOrbit 4.4s linear infinite;
+      pointer-events:none;
+      z-index:-1;
+    }
+
+    .brand-star{
+      line-height:1;
+      color:#e9efff;
+      text-shadow:
+        0 0 6px rgba(255,255,255,.95),
+        0 0 14px rgba(157,178,255,.9),
+        0 0 26px rgba(125,149,255,.62);
+      animation:starTwinkle 2.4s ease-in-out infinite;
     }
 
     .brand{
@@ -132,11 +186,70 @@
       font-weight:800;
       letter-spacing:.03em;
       line-height:1;
-      background:linear-gradient(180deg, #f5f7ff 8%, #9fb3ff 60%, #7d95ff 100%);
+      position:relative;
+      display:inline-block;
+      background:linear-gradient(180deg, #f5f7ff 5%, #b4c4ff 45%, #86a0ff 100%);
       -webkit-background-clip:text;
       background-clip:text;
       color:transparent;
-      text-shadow:0 0 26px rgba(125,149,255,.36);
+      text-shadow:0 0 26px rgba(125,149,255,.42);
+      filter:drop-shadow(0 0 10px rgba(125,149,255,.28));
+      animation:brandGlow 3.2s ease-in-out infinite;
+    }
+
+    .brand::before,
+    .brand::after{
+      content:'';
+      position:absolute;
+      pointer-events:none;
+      opacity:0;
+      transition:opacity .22s ease, transform .22s ease;
+    }
+
+    .brand::before{
+      left:-18px;
+      right:-18px;
+      top:36%;
+      height:10px;
+      border-radius:999px;
+      background:linear-gradient(90deg, rgba(125,149,255,0), rgba(198,216,255,.78), rgba(56,189,248,0));
+      filter:blur(7px);
+      transform:translateX(-12px) scaleX(.78);
+    }
+
+    .brand::after{
+      right:-30px;
+      top:42%;
+      width:26px;
+      height:2px;
+      border-radius:999px;
+      background:linear-gradient(90deg, rgba(255,255,255,.7), rgba(56,189,248,0));
+      transform:translateX(-8px) rotate(-8deg);
+      filter:drop-shadow(0 0 8px rgba(198,216,255,.75));
+    }
+
+    .sidebar-logo.is-hover .brand::before{
+      opacity:.9;
+      transform:translateX(5px) scaleX(1.06);
+    }
+
+    .sidebar-logo.is-hover .brand::after{
+      opacity:.95;
+      transform:translateX(6px) rotate(-8deg);
+    }
+
+    .brand .brand-char{
+      display:inline-block;
+      will-change:transform, filter, opacity;
+      transition:transform .2s ease;
+    }
+
+    .sidebar-logo.is-hover .brand .brand-char{
+      transform:translateY(-.4px);
+    }
+
+    .brand .brand-char.is-sparkle{
+      animation:charSparkle .56s ease;
     }
     .sidebar-logo .sub{
       margin-top:8px;
@@ -150,6 +263,238 @@
       background:var(--brand-pill-bg);
       border-radius:999px;
       padding:4px 8px;
+      position:relative;
+      z-index:2;
+    }
+
+    .brand-sparkles{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      z-index:1;
+      overflow:hidden;
+    }
+
+    .brand-supernova{
+      position:absolute;
+      left:26px;
+      top:18px;
+      width:8px;
+      height:8px;
+      border-radius:999px;
+      pointer-events:none;
+      opacity:0;
+      z-index:1;
+    }
+
+    .brand-supernova::before,
+    .brand-supernova::after{
+      content:'';
+      position:absolute;
+      inset:0;
+      border-radius:999px;
+      pointer-events:none;
+    }
+
+    .brand-supernova::before{
+      background:radial-gradient(circle, rgba(255,255,255,.98) 0%, rgba(198,216,255,.88) 34%, rgba(125,149,255,.16) 76%, rgba(125,149,255,0) 100%);
+      transform:scale(.6);
+      opacity:0;
+    }
+
+    .brand-supernova::after{
+      border:1.5px solid rgba(186,208,255,.64);
+      transform:scale(.42);
+      opacity:0;
+      box-shadow:0 0 18px rgba(198,216,255,.64);
+    }
+
+    .sidebar-logo.is-supernova{
+      animation:logoSupernova 1.05s ease;
+    }
+
+    .sidebar-logo.is-supernova .brand-supernova::before{
+      animation:supernovaFlash .95s cubic-bezier(.2,.82,.26,1) both;
+    }
+
+    .sidebar-logo.is-supernova .brand-supernova::after{
+      animation:supernovaRing .95s cubic-bezier(.2,.82,.26,1) both;
+    }
+
+    .sidebar-logo.is-supernova .brand{
+      animation:brandGlow 3.2s ease-in-out infinite, supernovaText 1.05s ease;
+    }
+
+    .brand-constellation{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      z-index:1;
+      overflow:hidden;
+    }
+
+    .brand-constellation .constellation-dot{
+      position:absolute;
+      width:3px;
+      height:3px;
+      border-radius:999px;
+      background:rgba(231,240,255,.96);
+      box-shadow:0 0 10px rgba(186,208,255,.82);
+      opacity:0;
+      animation:constellationDot .84s ease both;
+      animation-delay:var(--delay, 0s);
+    }
+
+    .brand-constellation .constellation-link{
+      position:absolute;
+      height:1.2px;
+      border-radius:999px;
+      transform-origin:0 50%;
+      background:linear-gradient(90deg, rgba(186,208,255,.12), rgba(215,232,255,.86), rgba(186,208,255,.12));
+      box-shadow:0 0 7px rgba(186,208,255,.52);
+      opacity:0;
+      animation:constellationLink .9s ease both;
+      animation-delay:var(--delay, 0s);
+    }
+
+    .brand-sparkles span{
+      --size:2px;
+      position:absolute;
+      width:var(--size);
+      height:var(--size);
+      border-radius:999px;
+      background:rgba(226,236,255,.95);
+      box-shadow:0 0 10px rgba(186,208,255,.9);
+      opacity:0;
+      animation:brandSparkle 2.8s ease-in-out infinite;
+      animation-delay:var(--delay, 0s);
+      left:var(--x, 50%);
+      top:var(--y, 50%);
+    }
+
+    .brand-shooting-star{
+      position:absolute;
+      left:-24px;
+      top:28px;
+      width:70px;
+      height:1.8px;
+      border-radius:999px;
+      background:linear-gradient(90deg, rgba(255,255,255,0), rgba(215,232,255,.95), rgba(56,189,248,0));
+      opacity:0;
+      transform:rotate(-14deg) translateX(-25px);
+      pointer-events:none;
+      z-index:1;
+    }
+
+    .brand-shooting-star.is-active{
+      animation:shootingStar 1.15s cubic-bezier(.16,.88,.3,1) both;
+    }
+
+    .brand-shooting-star.alt{
+      width:56px;
+      height:1.6px;
+      top:42px;
+      background:linear-gradient(90deg, rgba(255,255,255,0), rgba(191,245,255,.92), rgba(56,189,248,0));
+      transform:rotate(-8deg) translateX(-20px);
+      filter:drop-shadow(0 0 6px rgba(125,149,255,.55));
+    }
+
+    .brand-shooting-star.alt.is-active{
+      animation:shootingStarAlt 1.24s cubic-bezier(.2,.86,.3,1) both;
+    }
+
+    .brand-mark.is-flare .brand-star{
+      animation:starFlare .44s ease;
+    }
+
+    @keyframes brandSweep{
+      0%, 100%{transform:translateX(-22%)}
+      50%{transform:translateX(22%)}
+    }
+
+    @keyframes starPulse{
+      0%, 100%{transform:translateY(0) scale(1)}
+      50%{transform:translateY(-1px) scale(1.035)}
+    }
+
+    @keyframes starOrbit{
+      0%{transform:rotate(0deg)}
+      100%{transform:rotate(360deg)}
+    }
+
+    @keyframes starTwinkle{
+      0%, 100%{opacity:.9; transform:scale(.98)}
+      45%{opacity:1; transform:scale(1.08)}
+      72%{opacity:.8; transform:scale(1)}
+    }
+
+    @keyframes brandGlow{
+      0%, 100%{letter-spacing:.03em; filter:drop-shadow(0 0 10px rgba(125,149,255,.28))}
+      50%{letter-spacing:.04em; filter:drop-shadow(0 0 16px rgba(125,149,255,.44))}
+    }
+
+    @keyframes brandSparkle{
+      0%, 100%{opacity:0; transform:scale(.5)}
+      32%{opacity:.95; transform:scale(1)}
+      62%{opacity:.2; transform:scale(.7)}
+    }
+
+    @keyframes starFlare{
+      0%{transform:scale(1)}
+      50%{transform:scale(1.24)}
+      100%{transform:scale(1)}
+    }
+
+    @keyframes shootingStar{
+      0%{opacity:0; transform:rotate(-14deg) translateX(-26px)}
+      18%{opacity:1}
+      100%{opacity:0; transform:rotate(-14deg) translateX(232px)}
+    }
+
+    @keyframes shootingStarAlt{
+      0%{opacity:0; transform:rotate(-8deg) translateX(-22px)}
+      22%{opacity:1}
+      100%{opacity:0; transform:rotate(-8deg) translateX(206px)}
+    }
+
+    @keyframes charSparkle{
+      0%{transform:translateY(0) scale(1); opacity:1; filter:drop-shadow(0 0 0 rgba(255,255,255,0))}
+      45%{transform:translateY(-1.2px) scale(1.09); opacity:1; filter:drop-shadow(0 0 10px rgba(225,239,255,.9))}
+      100%{transform:translateY(0) scale(1); opacity:1; filter:drop-shadow(0 0 0 rgba(255,255,255,0))}
+    }
+
+    @keyframes logoSupernova{
+      0%, 100%{transform:translateZ(0) scale(1)}
+      40%{transform:translateZ(0) scale(1.015)}
+    }
+
+    @keyframes supernovaFlash{
+      0%{opacity:0; transform:scale(.5)}
+      20%{opacity:1; transform:scale(2.7)}
+      100%{opacity:0; transform:scale(5.2)}
+    }
+
+    @keyframes supernovaRing{
+      0%{opacity:0; transform:scale(.45)}
+      28%{opacity:.9; transform:scale(3.1)}
+      100%{opacity:0; transform:scale(5.6)}
+    }
+
+    @keyframes supernovaText{
+      0%, 100%{filter:drop-shadow(0 0 10px rgba(125,149,255,.28))}
+      40%{filter:drop-shadow(0 0 24px rgba(198,216,255,.85))}
+    }
+
+    @keyframes constellationDot{
+      0%{opacity:0; transform:scale(.4)}
+      34%{opacity:1; transform:scale(1)}
+      100%{opacity:0; transform:scale(.72)}
+    }
+
+    @keyframes constellationLink{
+      0%{opacity:0; transform:scaleX(.25)}
+      40%{opacity:.95; transform:scaleX(1)}
+      100%{opacity:0; transform:scaleX(1)}
     }
 
     .sidebar-section{
@@ -1009,6 +1354,34 @@
       .mobile-nav-toggle{top:10px;right:10px;width:44px;height:44px}
       .sidebar{width:min(88vw,300px)}
     }
+
+    @media (prefers-reduced-motion:reduce){
+      .sidebar-logo,
+      .sidebar-logo::before,
+      .brand,
+      .brand-mark,
+      .brand-mark::before,
+      .brand-star,
+      .brand-sparkles span,
+      .brand-supernova,
+      .brand-supernova::before,
+      .brand-supernova::after,
+      .brand-constellation,
+      .brand-constellation .constellation-dot,
+      .brand-constellation .constellation-link,
+      .brand-shooting-star,
+      .brand-shooting-star.alt,
+      .brand .brand-char,
+      .brand .brand-char.is-sparkle,
+      .brand-mark.is-flare .brand-star,
+      .sidebar-logo.is-supernova,
+      .sidebar-logo.is-supernova .brand,
+      .sidebar-logo.is-hover .brand::before,
+      .sidebar-logo.is-hover .brand::after{
+        animation:none !important;
+        transition:none !important;
+      }
+    }
   </style>
   <link rel="stylesheet" href="/navfx.css">
 </head>
@@ -1023,9 +1396,21 @@
     <aside class="sidebar">
       <div class="sidebar-logo">
         <div class="brand-row">
-          <div class="brand-mark">✦</div>
+          <div class="brand-mark" aria-hidden="true"><span class="brand-star">✦</span></div>
           <div class="brand">AllStars</div>
         </div>
+        <div class="brand-sparkles" aria-hidden="true">
+          <span style="--x:12%; --y:23%; --delay:.1s; --size:2px"></span>
+          <span style="--x:28%; --y:14%; --delay:.62s; --size:2.4px"></span>
+          <span style="--x:48%; --y:30%; --delay:1.14s; --size:2px"></span>
+          <span style="--x:66%; --y:22%; --delay:1.66s; --size:2.8px"></span>
+          <span style="--x:82%; --y:18%; --delay:2.2s; --size:2px"></span>
+          <span style="--x:58%; --y:46%; --delay:.38s; --size:1.8px"></span>
+          <span style="--x:20%; --y:54%; --delay:1.82s; --size:2.2px"></span>
+          <span style="--x:76%; --y:48%; --delay:2.46s; --size:2.2px"></span>
+        </div>
+        <div class="brand-supernova" aria-hidden="true"></div>
+        <div class="brand-constellation" aria-hidden="true"></div>
         <div class="sub">Карточка кандидата</div>
       </div>
 
@@ -1061,6 +1446,210 @@
 
   <script src="/app-config.js"></script>
   <script src="/navfx.js"></script>
+  <script>
+    (function () {
+      const logo = document.querySelector('.sidebar-logo');
+      if (!logo) return;
+
+      const brandMark = logo.querySelector('.brand-mark');
+      const brandLabel = logo.querySelector('.brand');
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      if (brandLabel && !brandLabel.dataset.splitReady) {
+        const text = brandLabel.textContent || '';
+        brandLabel.textContent = '';
+
+        for (const char of text) {
+          const node = document.createElement('span');
+          node.className = 'brand-char';
+          node.textContent = char;
+          brandLabel.appendChild(node);
+        }
+
+        brandLabel.dataset.splitReady = '1';
+      }
+
+      if (!reduceMotion) {
+        logo.addEventListener('pointerenter', () => {
+          logo.classList.add('is-hover');
+        });
+
+        logo.addEventListener('pointermove', (event) => {
+          if (window.matchMedia('(pointer: coarse)').matches) return;
+
+          const rect = logo.getBoundingClientRect();
+          const px = ((event.clientX - rect.left) / rect.width);
+          const py = ((event.clientY - rect.top) / rect.height);
+          const clampedX = Math.max(0, Math.min(1, px));
+          const clampedY = Math.max(0, Math.min(1, py));
+
+          logo.style.setProperty('--mx', `${(clampedX * 100).toFixed(2)}%`);
+          logo.style.setProperty('--my', `${(clampedY * 100).toFixed(2)}%`);
+
+          if (brandMark) {
+            const tiltX = (0.5 - clampedY) * 6;
+            const tiltY = (clampedX - 0.5) * 8;
+            brandMark.style.transform = `translateZ(0) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg)`;
+          }
+        });
+
+        logo.addEventListener('pointerleave', () => {
+          logo.style.setProperty('--mx', '50%');
+          logo.style.setProperty('--my', '50%');
+          logo.classList.remove('is-hover');
+          if (brandMark) brandMark.style.transform = 'translateZ(0)';
+        });
+
+        brandLabel?.addEventListener('mouseenter', () => {
+          logo.classList.add('is-hover');
+        });
+
+        const shootingStar = document.createElement('span');
+        shootingStar.className = 'brand-shooting-star';
+        logo.appendChild(shootingStar);
+
+  const shootingStarAlt = document.createElement('span');
+  shootingStarAlt.className = 'brand-shooting-star alt';
+  logo.appendChild(shootingStarAlt);
+
+  const constellationLayer = logo.querySelector('.brand-constellation');
+
+  const chars = Array.from(logo.querySelectorAll('.brand-char'));
+
+        const triggerFlare = () => {
+          if (!brandMark) return;
+          brandMark.classList.remove('is-flare');
+          void brandMark.offsetWidth;
+          brandMark.classList.add('is-flare');
+        };
+
+        const triggerComet = () => {
+          const nextTop = 14 + Math.random() * 28;
+          shootingStar.style.top = `${nextTop.toFixed(1)}px`;
+          shootingStar.classList.remove('is-active');
+          void shootingStar.offsetWidth;
+          shootingStar.classList.add('is-active');
+          triggerFlare();
+        };
+
+        const triggerAltComet = () => {
+          const nextTop = 36 + Math.random() * 18;
+          shootingStarAlt.style.top = `${nextTop.toFixed(1)}px`;
+          shootingStarAlt.classList.remove('is-active');
+          void shootingStarAlt.offsetWidth;
+          shootingStarAlt.classList.add('is-active');
+        };
+
+        const triggerCharSparkle = () => {
+          if (!chars.length) return;
+          const count = Math.min(2, chars.length);
+          for (let i = 0; i < count; i += 1) {
+            const idx = Math.floor(Math.random() * chars.length);
+            const node = chars[idx];
+            if (!node) continue;
+            node.classList.remove('is-sparkle');
+            void node.offsetWidth;
+            node.classList.add('is-sparkle');
+            setTimeout(() => node.classList.remove('is-sparkle'), 620);
+          }
+        };
+
+        const drawConstellationLink = (a, b, delay) => {
+          if (!constellationLayer) return;
+
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const length = Math.hypot(dx, dy);
+          const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+          const link = document.createElement('span');
+          link.className = 'constellation-link';
+          link.style.left = `${a.x}%`;
+          link.style.top = `${a.y}%`;
+          link.style.width = `${length}%`;
+          link.style.transform = `rotate(${angle}deg)`;
+          link.style.setProperty('--delay', `${delay}s`);
+          constellationLayer.appendChild(link);
+        };
+
+        const triggerConstellation = () => {
+          if (!constellationLayer) return;
+
+          constellationLayer.innerHTML = '';
+
+          const points = Array.from({ length: 4 }, () => ({
+            x: 12 + Math.random() * 74,
+            y: 14 + Math.random() * 44
+          }));
+
+          points.forEach((point, idx) => {
+            const dot = document.createElement('span');
+            dot.className = 'constellation-dot';
+            dot.style.left = `${point.x}%`;
+            dot.style.top = `${point.y}%`;
+            dot.style.setProperty('--delay', `${idx * 0.06}s`);
+            constellationLayer.appendChild(dot);
+          });
+
+          drawConstellationLink(points[0], points[1], 0.04);
+          drawConstellationLink(points[1], points[2], 0.09);
+          drawConstellationLink(points[2], points[3], 0.14);
+          drawConstellationLink(points[0], points[2], 0.18);
+
+          setTimeout(() => {
+            if (constellationLayer) constellationLayer.innerHTML = '';
+          }, 980);
+        };
+
+        const triggerSupernova = () => {
+          logo.classList.remove('is-supernova');
+          void logo.offsetWidth;
+          logo.classList.add('is-supernova');
+          setTimeout(() => {
+            logo.classList.remove('is-supernova');
+          }, 1200);
+        };
+
+        const scheduleSupernova = () => {
+          const delay = 12000 + Math.random() * 3000;
+          setTimeout(() => {
+            triggerSupernova();
+            scheduleSupernova();
+          }, delay);
+        };
+
+        const scheduleAltComet = () => {
+          const delay = 8200 + Math.random() * 2600;
+          setTimeout(() => {
+            triggerAltComet();
+            scheduleAltComet();
+          }, delay);
+        };
+
+        const scheduleCharSparkle = () => {
+          const delay = 1700 + Math.random() * 1700;
+          setTimeout(() => {
+            triggerCharSparkle();
+            scheduleCharSparkle();
+          }, delay);
+        };
+
+        const scheduleConstellation = () => {
+          const delay = 9800 + Math.random() * 3800;
+          setTimeout(() => {
+            triggerConstellation();
+            scheduleConstellation();
+          }, delay);
+        };
+
+        setInterval(triggerComet, 4200);
+        scheduleSupernova();
+        scheduleAltComet();
+        scheduleCharSparkle();
+        scheduleConstellation();
+      }
+    })();
+  </script>
   <script>
     const tokenKey = 'allstars_token';
     const token = localStorage.getItem(tokenKey);
