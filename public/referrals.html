@@ -774,6 +774,7 @@
       return {
         id: raw.id,
         interviewId: raw.interview_id || raw.row_number || null,
+        origin: raw.origin || 'candidate',
         name: raw.name || '',
         tg: raw.telegram || raw.tg || raw.username || '',
         age: raw.age || '',
@@ -1080,26 +1081,19 @@
     }
 
     async function loadReferrals() {
-      const [candidatesRes, interviewsRes] = await Promise.all([
-        api('/candidates'),
-        api('/api/interviews')
-      ]);
-
+      const candidatesRes = await api('/candidates');
       const candidatesRaw = candidatesRes.ok ? await candidatesRes.json().catch(() => []) : [];
-      const interviewsRaw = interviewsRes.ok ? await interviewsRes.json().catch(() => []) : [];
 
-      if (!candidatesRes.ok && !interviewsRes.ok) {
+      if (!candidatesRes.ok) {
         throw new Error('Не удалось загрузить рефералов');
       }
 
-      const candidates = (Array.isArray(candidatesRaw) ? candidatesRaw : []).map(normalizeCandidate);
-      const interviews = (Array.isArray(interviewsRaw) ? interviewsRaw : []).map(row => normalizeCandidate({
+      const candidates = (Array.isArray(candidatesRaw) ? candidatesRaw : []).map(row => normalizeCandidate({
         ...row,
-        id: null,
-        interview_id: row.id
+        origin: 'candidate'
       }));
 
-      referralCandidates = dedupeReferrals([...candidates, ...interviews])
+      referralCandidates = dedupeReferrals(candidates)
         .filter(isReferralCandidate);
 
       renderStats();
