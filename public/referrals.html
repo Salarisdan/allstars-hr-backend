@@ -786,9 +786,51 @@
         verification: raw.verification || '',
         status: raw.status || '',
         source: resolveLeadSource(raw),
+        hiredAt: raw.hired_at || '',
+        startedAt: raw.started_at || '',
         statusChangedAt: raw.status_changed_at || '',
         createdAt: raw.created_at || raw.updated_at || raw.status_changed_at || ''
       };
+    }
+
+    function buildCandidateLookup(items = []) {
+      const byTg = new Map();
+      const byName = new Map();
+
+      for (const item of items) {
+        const tgKey = String(item.tg || '').trim().toLowerCase();
+        const nameKey = String(item.name || '').trim().toLowerCase();
+
+        if (tgKey) byTg.set(tgKey, item);
+        if (nameKey) byName.set(nameKey, item);
+      }
+
+      return { byTg, byName };
+    }
+
+    function mergeInterviewReferralData(candidates = [], interviews = []) {
+      const base = [...candidates];
+      const lookup = buildCandidateLookup(base);
+
+      for (const interview of interviews) {
+        if (!isReferralCandidate(interview)) continue;
+
+        const tgKey = String(interview.tg || '').trim().toLowerCase();
+        const nameKey = String(interview.name || '').trim().toLowerCase();
+
+        const matched = (tgKey && lookup.byTg.get(tgKey)) || (nameKey && lookup.byName.get(nameKey));
+        if (!matched) continue;
+
+        if (!isValidLeadSource(matched.source) && isValidLeadSource(interview.source)) {
+          matched.source = interview.source;
+        }
+
+        if (!matched.status && interview.status) {
+          matched.status = interview.status;
+        }
+      }
+
+      return base;
     }
 
     function dedupeReferrals(items = []) {
@@ -1081,10 +1123,15 @@
     }
 
     async function loadReferrals() {
-      const candidatesRes = await api('/candidates');
-      const candidatesRaw = candidatesRes.ok ? await candidatesRes.json().catch(() => []) : [];
+      const [candidatesRes, interviewsRes] = await Promise.all([
+        api('/candidates'),
+        api('/api/interviews')
+      ]);
 
-      if (!candidatesRes.ok) {
+      const candidatesRaw = candidatesRes.ok ? await candidatesRes.json().catch(() => []) : [];
+      const interviewsRaw = interviewsRes.ok ? await interviewsRes.json().catch(() => []) : [];
+
+      if (!candidatesRes.ok && !interviewsRes.ok) {
         throw new Error('Не удалось загрузить рефералов');
       }
 
@@ -1093,7 +1140,14 @@
         origin: 'candidate'
       }));
 
-      referralCandidates = dedupeReferrals(candidates)
+      const interviews = (Array.isArray(interviewsRaw) ? interviewsRaw : []).map(row => normalizeCandidate({
+        ...row,
+        id: null,
+        interview_id: row.id,
+        origin: 'interview'
+      }));
+
+      referralCandidates = dedupeReferrals(mergeInterviewReferralData(candidates, interviews))
         .filter(isReferralCandidate);
 
       renderStats();
