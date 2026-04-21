@@ -1969,12 +1969,25 @@
       return String(status || '').toLowerCase().includes('работает');
     }
 
+    function resolveWorkStartDate(candidate = {}) {
+      const hiredAt = parseDateSafe(candidate.hired_at);
+      if (hiredAt) return hiredAt;
+
+      const startedAt = parseDateSafe(candidate.started_at);
+      if (startedAt) return startedAt;
+
+      const statusChangedAt = parseDateSafe(candidate.status_changed_at);
+      if (statusChangedAt) return statusChangedAt;
+
+      return parseDateSafe(candidate.updated_at || candidate.created_at);
+    }
+
     function getWorkReport(candidate = {}) {
       const leadSource = resolveLeadSource(candidate);
       if (!looksLikeReferralSource(leadSource)) return null;
       if (!isWorkingStatus(candidate.status || '')) return null;
 
-      const workStartDate = parseDateSafe(candidate.status_changed_at || candidate.updated_at || candidate.created_at);
+      const workStartDate = resolveWorkStartDate(candidate);
       if (!workStartDate) return null;
 
       const payoutDate = addOneCalendarMonth(workStartDate);

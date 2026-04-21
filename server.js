@@ -1660,11 +1660,12 @@ function summarizeDashboardEvents(events, from, to) {
   };
 }
 
-function getStatusDatePatch(status) {
+function getStatusDatePatch(status, existingDates = {}) {
   const normalizedStatus = String(status || '').trim();
   if (!normalizedStatus) return {};
 
   const now = new Date();
+  const hasValue = value => value !== null && value !== undefined && String(value).trim() !== '';
   const patch = {
     status_changed_at: now
   };
@@ -1672,19 +1673,27 @@ function getStatusDatePatch(status) {
   switch (normalizedStatus) {
     case 'Принятый':
     case 'Работает':
-      patch.hired_at = now;
+      if (!hasValue(existingDates.hired_at)) {
+        patch.hired_at = now;
+      }
       break;
 
     case REJECTED_CANDIDATE_STATUS:
-      patch.rejected_at = now;
+      if (!hasValue(existingDates.rejected_at)) {
+        patch.rejected_at = now;
+      }
       break;
 
     case STARTED_CANDIDATE_STATUS:
-      patch.started_at = now;
+      if (!hasValue(existingDates.started_at)) {
+        patch.started_at = now;
+      }
       break;
 
     case FIRED_CANDIDATE_STATUS:
-      patch.fired_at = now;
+      if (!hasValue(existingDates.fired_at)) {
+        patch.fired_at = now;
+      }
       break;
 
     default:
@@ -2055,7 +2064,7 @@ async function syncCandidatesStatusInDb({ agencyId, status, telegram, name, upda
   }
 
   const result = await query(
-    `SELECT id, status, name, tg, telegram
+    `SELECT id, status, name, tg, telegram, hired_at, rejected_at, started_at, fired_at
      FROM candidates
      WHERE agency_id = $1`,
     [agencyId]
@@ -2076,7 +2085,7 @@ async function syncCandidatesStatusInDb({ agencyId, status, telegram, name, upda
     const prevStatus = String(row.status || '').trim();
     if (prevStatus === normalizedStatus) continue;
 
-    const statusDatePatch = getStatusDatePatch(normalizedStatus);
+    const statusDatePatch = getStatusDatePatch(normalizedStatus, row);
 
     await query(
       `UPDATE candidates
@@ -2994,7 +3003,7 @@ app.post('/candidates', auth, async (req, res) => {
     };
 
     const initialStatusDatePatch = candidate.status
-      ? getStatusDatePatch(candidate.status)
+      ? getStatusDatePatch(candidate.status, {})
       : {};
 
     console.log('POST /candidates NORMALIZED =', candidate);
@@ -3201,7 +3210,7 @@ app.patch('/candidates/:id', auth, async (req, res) => {
   };
 
   const statusDatePatch = next.status && next.status !== row.status
-    ? getStatusDatePatch(next.status)
+    ? getStatusDatePatch(next.status, row)
     : {};
 
   const updated = await query(
