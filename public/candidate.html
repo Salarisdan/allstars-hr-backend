@@ -1976,10 +1976,22 @@
       const startedAt = parseDateSafe(candidate.started_at);
       if (startedAt) return startedAt;
 
-      const statusChangedAt = parseDateSafe(candidate.status_changed_at);
-      if (statusChangedAt) return statusChangedAt;
+      const candidates = [
+        parseDateSafe(candidate.created_at),
+        parseDateSafe(candidate.status_changed_at),
+        parseDateSafe(candidate.updated_at)
+      ].filter(Boolean);
 
-      return parseDateSafe(candidate.updated_at || candidate.created_at);
+      if (!candidates.length) return null;
+
+      // If hire date is missing, keep the earliest known lifecycle date
+      // so payout countdown does not shift after later status edits.
+      let earliest = candidates[0];
+      for (const d of candidates) {
+        if (d.getTime() < earliest.getTime()) earliest = d;
+      }
+
+      return earliest;
     }
 
     function getWorkReport(candidate = {}) {
