@@ -637,7 +637,7 @@
     async function loadUsers() {
       usersContent.innerHTML = `<div class="loading">Загрузка пользователей...</div>`;
 
-      const res = await api('/api/users');
+      const res = await cachedApi('/api/users');
       const data = await res.json().catch(() => ([]));
 
       if (!res.ok) {

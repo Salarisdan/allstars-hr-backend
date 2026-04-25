@@ -1388,7 +1388,7 @@
     }
 
     async function loadStatusOptions() {
-      const res = await api('/api/status-options');
+      const res = await cachedApi('/api/status-options');
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
@@ -2276,7 +2276,7 @@
         await loadStatusOptions();
       }
 
-      const res = await api('/candidates');
+      const res = await cachedApi('/candidates');
       if (!res.ok) throw new Error('Не удалось загрузить кандидатов');
       const candidates = await res.json();
       const candidate = candidates.find(x => String(x.id) === String(candidateId));

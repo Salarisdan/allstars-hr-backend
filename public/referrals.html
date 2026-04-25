@@ -1124,8 +1124,8 @@
 
     async function loadReferrals() {
       const [candidatesRes, interviewsRes] = await Promise.all([
-        api('/candidates'),
-        api('/api/interviews')
+        cachedApi('/candidates'),
+        cachedApi('/api/interviews')
       ]);
 
       const candidatesRaw = candidatesRes.ok ? await candidatesRes.json().catch(() => []) : [];

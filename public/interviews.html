@@ -1718,9 +1718,9 @@
       text.textContent = `Источник заполнен: ${withSource}/${total} (${percent}%)`;
     }
 
-    document.getElementById('crmSearch')?.addEventListener('input', () => {
+    document.getElementById('crmSearch')?.addEventListener('input', debounce(() => {
       rerenderCrmPage();
-    });
+    }, 400));
 
     document.getElementById('interviewDateFilter')?.addEventListener('change', () => {
       rerenderCrmPage();
@@ -1731,7 +1731,7 @@
 
 
     async function loadStatusOptions() {
-      const res = await api('/api/status-options');
+      const res = await cachedApi('/api/status-options');
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
@@ -2166,7 +2166,7 @@
     }
 
     async function loadCandidates() {
-      const res = await api('/api/interviews');
+      const res = await cachedApi('/api/interviews');
       if (!res.ok) throw new Error('Не удалось загрузить заявки из таблицы');
 
       const allInterviews = await res.json();
@@ -2336,9 +2336,9 @@
       `;
     }
 
-    document.getElementById('crmSearch')?.addEventListener('input', () => {
+    document.getElementById('crmSearch')?.addEventListener('input', debounce(() => {
       rerenderCrmPage();
-    });
+    }, 400));
 
     window.saveInterviewRow = saveInterviewRow;
     window.sendInterviewNotification = sendInterviewNotification;

@@ -1731,9 +1731,9 @@
       render(sortCandidatesForDisplay(filtered));
     }
 
-    document.getElementById('crmSearch')?.addEventListener('input', () => {
+    document.getElementById('crmSearch')?.addEventListener('input', debounce(() => {
       rerenderCrmPage();
-    });
+    }, 400));
 
     window.quickSetStatus = quickSetStatus;
     window.rerenderCrmPage = rerenderCrmPage;
@@ -2033,7 +2033,7 @@
     }
 
     async function loadCandidates() {
-      const res = await api('/candidates');
+      const res = await cachedApi('/candidates');
       if (!res.ok) throw new Error('Не удалось загрузить кандидатов');
       allCandidates = await res.json();
       allCrmItems = Array.isArray(allCandidates) ? allCandidates : [];
@@ -2694,7 +2694,9 @@
     }
 
     refreshBtn.addEventListener('click', loadCandidates);
-    searchInput.addEventListener('input', rerenderCrmPage);
+    searchInput.addEventListener('input', debounce(() => {
+      rerenderCrmPage();
+    }, 400));
     statusFilter.addEventListener('change', rerenderCrmPage);
     pipelineFilter.addEventListener('change', rerenderCrmPage);
     verdictFilter.addEventListener('change', rerenderCrmPage);

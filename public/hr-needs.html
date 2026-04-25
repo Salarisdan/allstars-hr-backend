@@ -954,7 +954,7 @@
     async function loadHrNeedsPage() {
       content.innerHTML = `<div class="loading">Загружаем потребности...</div>`;
 
-      const res = await api('/api/hr-needs');
+      const res = await cachedApi('/api/hr-needs');
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {

@@ -3236,14 +3236,16 @@
       await loadTeamStatsPage();
     }
 
-    document.getElementById('crmSearch')?.addEventListener('input', rerenderCrmPage);
+    document.getElementById('crmSearch')?.addEventListener('input', debounce(() => {
+      rerenderCrmPage();
+    }, 400));
 
     window.rerenderCrmPage = rerenderCrmPage;
     /* ─── конец CRM JS ─────────────────────────────────────────── */
 
 
     async function loadStatusOptions() {
-      const res = await api('/api/status-options');
+      const res = await cachedApi('/api/status-options');
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
@@ -3393,7 +3395,7 @@
           content.innerHTML = `<div class="loading">Загружаем страницу действующие...</div>`;
         }
 
-        const res = await api('/api/team-stats');
+        const res = await cachedApi('/api/team-stats');
         const data = await res.json().catch(() => ({}));
 
         if (!res.ok) {
