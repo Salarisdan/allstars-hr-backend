@@ -2945,10 +2945,7 @@
       }
 
       if (crmFilters.pipeline) {
-        const group = CRM_STATUS_GROUPS.find(x => x.key === crmFilters.pipeline);
-        if (group) {
-          out = out.filter(item => group.values.includes(item.status));
-        }
+        out = out.filter(item => item.status === crmFilters.pipeline);
       }
 
       if (crmFilters.platform) {
@@ -2976,9 +2973,8 @@
     }
 
     function getDropStatusFromPipelineKey(key) {
-      const group = CRM_STATUS_GROUPS.find(x => x.key === key);
-      if (!group || !Array.isArray(group.values) || !group.values.length) return '';
-      return group.values[0];
+      // Direct return for any status key (used in drag-drop operations)
+      return String(key || '');
     }
 
     function clearPipelineDropStates() {
@@ -3060,19 +3056,34 @@
     function renderPipelineBlock(items) {
       const el = document.getElementById('pipeline');
       if (!el) return;
-      el.innerHTML = CRM_STATUS_GROUPS.map(group => {
-        const count = items.filter(item => group.values.includes(item.status)).length;
-        const visualClass = getPipelineVisualClass(group.key);
+
+      // Collect all unique statuses from items
+      const statusMap = new Map();
+      items.forEach(item => {
+        const status = item.status || 'Без статуса';
+        const count = statusMap.get(status) || 0;
+        statusMap.set(status, count + 1);
+      });
+
+      // Sort by count descending, then alphabetically
+      const sortedStatuses = Array.from(statusMap.entries())
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ru'))
+        .map(([status]) => status);
+
+      el.innerHTML = sortedStatuses.map(status => {
+        const count = statusMap.get(status);
+        const visualClass = getPipelineVisualClass(status);
+        const isActive = crmFilters.pipeline === status ? 'active' : '';
 
         return `
           <div
-            class="pipeline-item ${visualClass} ${crmFilters.pipeline === group.key ? 'active' : ''}"
-            onclick="setCrmPipeline('${group.key}')"
-            ondragover="onPipelineDragOver(event, '${group.key}')"
+            class="pipeline-item ${visualClass} ${isActive}"
+            onclick="setCrmPipeline('${status.replace(/'/g, "\\'")}')"
+            ondragover="onPipelineDragOver(event, '${status.replace(/'/g, "\\'")}')"
             ondragleave="onPipelineDragLeave(event)"
-            ondrop="onPipelineDrop(event, '${group.key}')"
+            ondrop="onPipelineDrop(event, '${status.replace(/'/g, "\\'")}')"
           >
-            <div class="pipeline-label">${group.label}</div>
+            <div class="pipeline-label">${status}</div>
             <div class="pipeline-count">${count}</div>
           </div>
         `;
@@ -3085,18 +3096,24 @@
       const metricsEl = document.getElementById('statusMetrics');
       if (!metricsEl) return;
 
-      const statusCounts = {};
-      
-      CRM_STATUS_GROUPS.forEach(group => {
-        statusCounts[group.key] = items.filter(i => group.values.includes(i.status)).length;
+      // Collect all unique statuses from items
+      const statusMap = new Map();
+      items.forEach(item => {
+        const status = item.status || 'Без статуса';
+        const count = statusMap.get(status) || 0;
+        statusMap.set(status, count + 1);
       });
 
-      metricsEl.innerHTML = CRM_STATUS_GROUPS.map(group => {
-        const count = statusCounts[group.key] || 0;
-        const isActive = crmFilters.pipeline === group.key ? 'active' : '';
+      // Sort by count descending
+      const sortedStatuses = Array.from(statusMap.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 9); // Show top 9 statuses
+
+      metricsEl.innerHTML = sortedStatuses.map(([status, count]) => {
+        const isActive = crmFilters.pipeline === status ? 'active' : '';
         return `
-          <div class="status-metric-block ${isActive}" onclick="setCrmPipeline('${group.key}')">
-            <div class="status-metric-label">${group.label}</div>
+          <div class="status-metric-block ${isActive}" onclick="setCrmPipeline('${status.replace(/'/g, "\\'")}')" title="${status}">
+            <div class="status-metric-label">${status}</div>
             <div class="status-metric-value">${count}</div>
           </div>
         `;
