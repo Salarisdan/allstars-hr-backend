@@ -53,31 +53,17 @@
       flex-shrink:0;
       position:fixed;
       left:0;top:0;bottom:0;
-      background:
-        radial-gradient(160% 120% at 10% 0%, rgba(56,189,248,.12), rgba(56,189,248,0) 55%),
-        radial-gradient(130% 100% at 90% 15%, rgba(79,110,247,.18), rgba(79,110,247,0) 58%),
-        linear-gradient(180deg, #0f1320 0%, #0e1321 44%, #0c101c 100%);
+      background:linear-gradient(180deg, #0f1320 0%, #0e1321 44%, #0c101c 100%);
       border-right:1px solid rgba(157,178,255,.16);
       padding:1rem .7rem 1.2rem;
       overflow-y:auto;
       z-index:10;
-      box-shadow:
-        24px 0 44px rgba(0,0,0,.38),
-        inset -1px 0 0 rgba(255,255,255,.05);
-      backdrop-filter:blur(8px);
+      box-shadow:24px 0 44px rgba(0,0,0,.38);
+      contain:layout, paint;
     }
 
     .sidebar::before{
-      content:'';
-      position:absolute;
-      left:10px;
-      right:10px;
-      top:10px;
-      height:140px;
-      border-radius:18px;
-      border:1px solid rgba(125,149,255,.14);
-      background:linear-gradient(180deg, rgba(125,149,255,.06), rgba(125,149,255,0));
-      pointer-events:none;
+      display:none;
     }
 
     .sidebar-logo{
@@ -86,48 +72,18 @@
       padding:.95rem .95rem 1rem;
       border:1px solid rgba(157,178,255,.28);
       border-radius:18px;
-      isolation:isolate;
       overflow:hidden;
-      --mx:50%;
-      --my:50%;
-      background:
-        radial-gradient(135% 115% at 0% 0%, rgba(125,149,255,.34), rgba(125,149,255,0) 52%),
-        radial-gradient(130% 130% at 100% 100%, rgba(56,189,248,.16), rgba(56,189,248,0) 56%),
-        linear-gradient(145deg, rgba(79,110,247,.24), rgba(79,110,247,.02));
-      box-shadow:
-        0 12px 26px rgba(0,0,0,.34),
-        inset 0 1px 0 rgba(255,255,255,.16),
-        inset 0 -12px 24px rgba(24,35,72,.35);
-      transform:translateZ(0);
-      transition:transform .2s ease, box-shadow .2s ease;
+      background:linear-gradient(145deg, rgba(79,110,247,.18), rgba(79,110,247,.06));
+      box-shadow:0 12px 26px rgba(0,0,0,.34);
+      contain:layout, paint;
     }
 
     .sidebar-logo::before{
-      content:'';
-      position:absolute;
-      inset:0;
-      background:
-        radial-gradient(210px 150px at var(--mx) var(--my), rgba(255,255,255,.16), rgba(255,255,255,0) 62%),
-        linear-gradient(115deg, rgba(255,255,255,0) 22%, rgba(255,255,255,.15) 50%, rgba(255,255,255,0) 78%);
-      mix-blend-mode:screen;
-      opacity:.58;
-      animation:brandSweep 4.8s ease-in-out infinite;
-      pointer-events:none;
-      z-index:0;
+      display:none;
     }
 
     .sidebar-logo::after{
-      content:'';
-      position:absolute;
-      width:116px;
-      height:116px;
-      right:-32px;
-      top:-42px;
-      border-radius:999px;
-      background:radial-gradient(circle, rgba(56,189,248,.36) 0%, rgba(56,189,248,0) 72%);
-      filter:blur(.5px);
-      pointer-events:none;
-      z-index:0;
+      display:none;
     }
 
     .brand-row{
@@ -149,35 +105,18 @@
       align-items:center;
       justify-content:center;
       font-size:14px;
-      box-shadow:
-        inset 0 0 16px rgba(125,149,255,.28),
-        0 0 20px rgba(125,149,255,.32);
+      box-shadow:inset 0 0 16px rgba(125,149,255,.28);
       position:relative;
-      transform:translateZ(0);
-      animation:starPulse 2.8s ease-in-out infinite;
     }
 
     .brand-mark::before{
-      content:'';
-      position:absolute;
-      inset:-6px;
-      border-radius:14px;
-      background:conic-gradient(from 120deg, rgba(125,149,255,0), rgba(157,178,255,.56), rgba(56,189,248,.26), rgba(125,149,255,0));
-      filter:blur(5px);
-      opacity:.52;
-      animation:starOrbit 4.4s linear infinite;
-      pointer-events:none;
-      z-index:-1;
+      display:none;
     }
 
     .brand-star{
       line-height:1;
       color:#e9efff;
-      text-shadow:
-        0 0 6px rgba(255,255,255,.95),
-        0 0 14px rgba(157,178,255,.9),
-        0 0 26px rgba(125,149,255,.62);
-      animation:starTwinkle 2.4s ease-in-out infinite;
+      text-shadow:0 0 6px rgba(255,255,255,.95);
     }
 
     .brand{
@@ -192,9 +131,6 @@
       -webkit-background-clip:text;
       background-clip:text;
       color:transparent;
-      text-shadow:0 0 26px rgba(125,149,255,.42);
-      filter:drop-shadow(0 0 10px rgba(125,149,255,.28));
-      animation:brandGlow 3.2s ease-in-out infinite;
     }
 
     .brand::before,
@@ -240,17 +176,12 @@
 
     .brand .brand-char{
       display:inline-block;
-      will-change:transform, filter, opacity;
-      transition:transform .2s ease;
     }
 
     .sidebar-logo.is-hover .brand .brand-char{
       transform:translateY(-.4px);
     }
 
-    .brand .brand-char.is-sparkle{
-      animation:charSparkle .56s ease;
-    }
     .sidebar-logo .sub{
       margin-top:8px;
       width:max-content;
@@ -268,23 +199,11 @@
     }
 
     .brand-sparkles{
-      position:absolute;
-      inset:0;
-      pointer-events:none;
-      z-index:1;
-      overflow:hidden;
+      display:none;
     }
 
     .brand-supernova{
-      position:absolute;
-      left:26px;
-      top:18px;
-      width:8px;
-      height:8px;
-      border-radius:999px;
-      pointer-events:none;
-      opacity:0;
-      z-index:1;
+      display:none;
     }
 
     .brand-supernova::before,
@@ -326,11 +245,7 @@
     }
 
     .brand-constellation{
-      position:absolute;
-      inset:0;
-      pointer-events:none;
-      z-index:1;
-      overflow:hidden;
+      display:none;
     }
 
     .brand-constellation .constellation-dot{
