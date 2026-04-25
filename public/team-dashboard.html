@@ -2841,15 +2841,20 @@
     ]);
 
     const CRM_STATUS_GROUPS = [
-      { key: 'Работает', label: 'Работает', values: ['Работает'] },
+      { key: 'Изучает гайд',    label: 'Изучает гайд',    values: ['Изучает гайд'] },
+      { key: 'Ждет тест',       label: 'Ждет тест',       values: ['Ждет тест'] },
+      { key: 'Тест смена',      label: 'Тест смена',      values: ['Тест смена'] },
+      { key: 'Хочу взять',      label: 'Хочу взять',      values: ['Хочу взять'] },
+      { key: 'Верификация',     label: 'Верификация',     values: ['Верификация'] },
       { key: 'Ожидание старта', label: 'Ожидание старта', values: ['Ожидание старта'] },
-      { key: 'Верификация', label: 'Верификация', values: ['Верификация'] },
-      { key: 'Ждет тест', label: 'Ждет тест', values: ['Ждет тест', 'Тест смена'] },
-      { key: 'Изучает гайд', label: 'Изучает гайд', values: ['Изучает гайд'] },
-      { key: 'Хочу взять', label: 'Хочу взять', values: ['Хочу взять'] },
-      { key: 'Ждет собеседования', label: 'Ждет собеседования', values: ['Ждет собеседования'] },
-      { key: 'Лист ожидания', label: 'Лист ожидания', values: ['Лист ожидания'] },
-      { key: 'Не рассчитан', label: 'Не рассчитан', values: ['Не рассчитан'] }
+      { key: 'Принятый',        label: 'Принятый',        values: ['Принятый'] },
+      { key: 'Работает',        label: 'Работает',        values: ['Работает'] },
+      { key: 'Лист ожидания',   label: 'Лист ожидания',  values: ['Лист ожидания'] },
+      { key: 'Нет ответа',      label: 'Нет ответа',      values: ['Нет ответа'] },
+      { key: 'Отказ',           label: 'Отказ',           values: ['Отказ'] },
+      { key: 'Уволен',          label: 'Уволен',          values: ['Уволен'] },
+      { key: 'Не рассчитан',    label: 'Не рассчитан',   values: ['Не рассчитан'] },
+      { key: 'Убрать',          label: 'Убрать',          values: ['Убрать'] }
     ];
 
     const crmFilters = {
@@ -2945,7 +2950,10 @@
       }
 
       if (crmFilters.pipeline) {
-        out = out.filter(item => item.status === crmFilters.pipeline);
+        const group = CRM_STATUS_GROUPS.find(x => x.key === crmFilters.pipeline);
+        if (group) {
+          out = out.filter(item => group.values.includes(item.status));
+        }
       }
 
       if (crmFilters.platform) {
@@ -2961,13 +2969,16 @@
       const key = String(groupKey || '').trim().toLowerCase();
 
       if (key === 'работает') return 'state-work';
+      if (key === 'принятый') return 'state-work';
       if (key === 'ожидание старта') return 'state-start';
       if (key === 'верификация') return 'state-verification';
       if (key === 'ждет тест') return 'state-test';
+      if (key === 'тест смена') return 'state-test';
       if (key === 'изучает гайд') return 'state-guide';
       if (key === 'хочу взять') return 'state-want';
-      if (key === 'ждет собеседования' || key === 'лист ожидания') return 'state-waiting';
-      if (key === 'не рассчитан') return 'state-fired';
+      if (key === 'лист ожидания') return 'state-waiting';
+      if (key === 'нет ответа') return 'state-neutral';
+      if (key === 'отказ' || key === 'уволен' || key === 'не рассчитан' || key === 'убрать') return 'state-fired';
 
       return '';
     }
@@ -3057,33 +3068,20 @@
       const el = document.getElementById('pipeline');
       if (!el) return;
 
-      // Collect all unique statuses from items
-      const statusMap = new Map();
-      items.forEach(item => {
-        const status = item.status || 'Без статуса';
-        const count = statusMap.get(status) || 0;
-        statusMap.set(status, count + 1);
-      });
-
-      // Sort by count descending, then alphabetically
-      const sortedStatuses = Array.from(statusMap.entries())
-        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ru'))
-        .map(([status]) => status);
-
-      el.innerHTML = sortedStatuses.map(status => {
-        const count = statusMap.get(status);
-        const visualClass = getPipelineVisualClass(status);
-        const isActive = crmFilters.pipeline === status ? 'active' : '';
+      el.innerHTML = CRM_STATUS_GROUPS.map(group => {
+        const count = items.filter(item => group.values.includes(item.status)).length;
+        const visualClass = getPipelineVisualClass(group.key);
+        const isActive = crmFilters.pipeline === group.key ? 'active' : '';
 
         return `
           <div
             class="pipeline-item ${visualClass} ${isActive}"
-            onclick="setCrmPipeline('${status.replace(/'/g, "\\'")}')"
-            ondragover="onPipelineDragOver(event, '${status.replace(/'/g, "\\'")}')"
+            onclick="setCrmPipeline('${group.key.replace(/'/g, "\\'")}')"
+            ondragover="onPipelineDragOver(event, '${group.key.replace(/'/g, "\\'")}')"
             ondragleave="onPipelineDragLeave(event)"
-            ondrop="onPipelineDrop(event, '${status.replace(/'/g, "\\'")}')"
+            ondrop="onPipelineDrop(event, '${group.key.replace(/'/g, "\\'")}')"
           >
-            <div class="pipeline-label">${status}</div>
+            <div class="pipeline-label">${group.label}</div>
             <div class="pipeline-count">${count}</div>
           </div>
         `;
