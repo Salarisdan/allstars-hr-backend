@@ -1164,6 +1164,44 @@
       color:var(--accent2);
     }
 
+    .status-metric-block{
+      flex:0 1 auto;
+      min-width:100px;
+      padding:10px 14px;
+      background:rgba(15,18,32,0.8);
+      border:1px solid rgba(79,110,247,0.2);
+      border-radius:10px;
+      cursor:pointer;
+      transition:all 0.2s;
+      text-align:center;
+      user-select:none;
+    }
+
+    .status-metric-block:hover{
+      border-color:rgba(79,110,247,0.4);
+      background:rgba(15,18,32,1);
+    }
+
+    .status-metric-block.active{
+      background:rgba(79,110,247,0.2);
+      border-color:rgba(79,110,247,0.6);
+      color:var(--accent2);
+    }
+
+    .status-metric-label{
+      font-size:10px;
+      color:var(--text2);
+      text-transform:uppercase;
+      margin-bottom:4px;
+      font-weight:600;
+    }
+
+    .status-metric-value{
+      font-size:18px;
+      font-weight:700;
+      color:var(--text);
+    }
+
     .pipeline{
       display:grid;
       grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
@@ -2676,19 +2714,6 @@
           <div class="tools-row">
             <input id="crmSearch" class="crm-search" placeholder="Поиск по имени, Telegram, статусу..." />
 
-            <select id="statusFilter" class="crm-search" style="flex: 0.6; min-width: 160px; cursor: pointer;">
-              <option value="">Все статусы</option>
-              <option value="Работает">Работает</option>
-              <option value="Ожидание старта">Ожидание старта</option>
-              <option value="Верификация">Верификация</option>
-              <option value="Ждет тест">Ждет тест</option>
-              <option value="Изучает гайд">Изучает гайд</option>
-              <option value="Хочу взять">Хочу взять</option>
-              <option value="Ждет собеседования">Ждет собеседования</option>
-              <option value="Лист ожидания">Лист ожидания</option>
-              <option value="Не рассчитан">Не рассчитан</option>
-            </select>
-
             <button class="crm-filter-btn of" id="filterOnlyFansBtn" type="button" onclick="setCrmPlatform('onlyfans')">
               OnlyFans
             </button>
@@ -2698,13 +2723,8 @@
             </button>
           </div>
 
-          <div style="margin-top:14px; padding:12px; background:rgba(79,110,247,.08); border:1px solid rgba(79,110,247,.16); border-radius:12px; font-size:11px; color:var(--text2);">
-            <div style="display:flex; gap:20px; flex-wrap:wrap;">
-              <div><strong style="color:var(--text);">Всего:</strong> <span id="metricTotal">—</span></div>
-              <div><strong style="color:var(--green);">Работает:</strong> <span id="metricWork">—</span></div>
-              <div><strong style="color:var(--yellow);">На тесте:</strong> <span id="metricTest">—</span></div>
-              <div><strong style="color:var(--text3);">Прочие:</strong> <span id="metricOther">—</span></div>
-            </div>
+          <div class="status-metrics" id="statusMetrics" style="display:flex; gap:12px; flex-wrap:wrap; margin-top:14px; padding:14px; background:rgba(79,110,247,.08); border:1px solid rgba(79,110,247,.16); border-radius:12px;">
+            <!-- Status blocks will be rendered here -->
           </div>
 
           <div class="pipeline-hint" id="pipelineHint">
@@ -3062,15 +3082,25 @@
     }
 
     function updateTeamMetrics(items) {
-      const total = items.length;
-      const work = items.filter(i => i.status === 'Работает').length;
-      const test = items.filter(i => i.status === 'Ждет тест' || i.status === 'Тест смена').length;
-      const other = total - work - test;
+      const metricsEl = document.getElementById('statusMetrics');
+      if (!metricsEl) return;
 
-      document.getElementById('metricTotal').textContent = total;
-      document.getElementById('metricWork').textContent = work;
-      document.getElementById('metricTest').textContent = test;
-      document.getElementById('metricOther').textContent = other;
+      const statusCounts = {};
+      
+      CRM_STATUS_GROUPS.forEach(group => {
+        statusCounts[group.key] = items.filter(i => group.values.includes(i.status)).length;
+      });
+
+      metricsEl.innerHTML = CRM_STATUS_GROUPS.map(group => {
+        const count = statusCounts[group.key] || 0;
+        const isActive = crmFilters.pipeline === group.key ? 'active' : '';
+        return `
+          <div class="status-metric-block ${isActive}" onclick="setCrmPipeline('${group.key}')">
+            <div class="status-metric-label">${group.label}</div>
+            <div class="status-metric-value">${count}</div>
+          </div>
+        `;
+      }).join('');
     }
 
     function setCrmPipeline(key) {
@@ -3252,12 +3282,6 @@
     document.getElementById('crmSearch')?.addEventListener('input', debounce(() => {
       rerenderCrmPage();
     }, 400));
-
-    document.getElementById('statusFilter')?.addEventListener('change', () => {
-      const statusValue = document.getElementById('statusFilter').value;
-      crmFilters.pipeline = statusValue;
-      rerenderCrmPage();
-    });
 
     window.rerenderCrmPage = rerenderCrmPage;
     /* ─── конец CRM JS ─────────────────────────────────────────── */
