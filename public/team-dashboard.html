@@ -2723,6 +2723,10 @@
             </button>
           </div>
 
+          <div class="status-metrics" id="statusMetrics" style="display:flex; gap:12px; flex-wrap:wrap; margin-top:14px; padding:14px; background:rgba(79,110,247,.08); border:1px solid rgba(79,110,247,.16); border-radius:12px;">
+            <!-- Status blocks will be rendered here -->
+          </div>
+
           <div class="pipeline-hint" id="pipelineHint">
             💡 Перетащи карточку сотрудника на статус, чтобы быстро изменить этап
             <span class="pipeline-hint-close" onclick="closePipelineHint()">✕</span>
@@ -3836,8 +3840,10 @@
         'Хочу взять',
         'Ждет собеседования',
         'Лист ожидания',
+        'Уволен',
         'Не рассчитан',
-        'Тест смена'
+        'Нет ответа',
+        'Убрать'
       ],
 
       'OnlyFans / Fansly': [
@@ -4370,7 +4376,9 @@
                             class="editor-dropdown-btn"
                             onclick="toggleEditorDropdown(event)"
                           >
-                            <span class="editor-chip chip-neutral">— выбрать —</span>
+                            <span class="editor-chip ${getOptionChipClass(field.label, field.value || '— выбрать —')}">
+                              ${field.value || '— выбрать —'}
+                            </span>
                           </button>
 
                           <div class="editor-dropdown-menu">
@@ -4388,8 +4396,10 @@
                       `
                       : long
                         ? `<textarea class="editor-textarea" data-field-index="${idx}" data-field-type="text">${field.value || ''}</textarea>`
-                        : `<input class="editor-input" data-field-index="${idx}" data-field-type="text" value="">`
-            }
+                        : `<input class="editor-input" data-field-index="${idx}" data-field-type="text" value="${safeValue}">`
+                }
+              </div>
+            `;
           }).join('')}
         </div>
       `;
@@ -4645,7 +4655,9 @@
                         ? `<textarea class="editor-textarea" data-field-index="${idx}" data-field-type="text"></textarea>`
                         : `<input class="editor-input" data-field-index="${idx}" data-field-type="text" value="">`
             }
-          }).join('')}
+          </div>
+        `;
+      }).join('')}
         </div>
       `;
 
@@ -4775,9 +4787,7 @@
         syncTeamListItemFromUpdates(currentMemberEditorRow, updates);
         rerenderCrmPage();
 
-        currentMemberEditorItem = currentMemberEditorRow
-          ? findTeamMemberByRowNumber(currentMemberEditorRow)
-          : null;
+        currentMemberEditorItem = findTeamMemberByRowNumber(currentMemberEditorRow) || currentMemberEditorItem;
         if (document.getElementById('transactionEndingModal')?.classList.contains('show')) {
           await openTransactionEndingModal();
         }
