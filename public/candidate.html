@@ -2130,25 +2130,7 @@
               </div>
             </div>
 
-            <div class="pipeline-box">
-              <label>Этап pipeline</label>
-              <div class="pipeline-row">
-                <span class="pipeline-badge">${pipelineLabel(candidate.source || '')}</span>
-              </div>
-              <div class="pipeline-row">
-                <select id="quick-pipeline" class="pipeline-select">
-                  <option value="" ${!(candidate.source) ? 'selected' : ''}>Не задан</option>
-                  <option value="new" ${candidate.source === 'new' ? 'selected' : ''}>Новый</option>
-                  <option value="screening" ${candidate.source === 'screening' ? 'selected' : ''}>Скрининг</option>
-                  <option value="interview" ${candidate.source === 'interview' ? 'selected' : ''}>Интервью</option>
-                  <option value="test_task" ${candidate.source === 'test_task' ? 'selected' : ''}>Тестовое</option>
-                  <option value="test_shift" ${candidate.source === 'test_shift' ? 'selected' : ''}>Тест-смена</option>
-                  <option value="hired" ${candidate.source === 'hired' ? 'selected' : ''}>Нанят</option>
-                  <option value="rejected" ${candidate.source === 'rejected' ? 'selected' : ''}>Отказ</option>
-                </select>
-                <button class="btn btn-ghost" onclick="savePipeline()">Сохранить этап</button>
-              </div>
-            </div>
+
 
             <div class="field-list">
               <div class="field-box"><div class="k">Возраст</div><div class="v candidate-age" id="candidateAge" data-field="age">${escapeHtml(candidate.age || '—')}</div></div>
@@ -2383,6 +2365,12 @@
         return;
       }
 
+      localStorage.setItem('candidateStatusUpdated', JSON.stringify({
+        candidateId,
+        status,
+        timestamp: Date.now()
+      }));
+
       await load();
     }
 
@@ -2432,37 +2420,9 @@
       await load();
     }
 
-    async function savePipeline() {
-      if (!currentCandidate) return;
-
-      const pipeline = document.getElementById('quick-pipeline')?.value || '';
-
-      const split = splitInternalComment(currentCandidate.notes || '');
-      const notes = mergeInternalComment(split.publicNotes, split.internalComment);
-
-      const payload = buildCandidatePatchPayload(currentCandidate, {
-        notes,
-        source: pipeline
-      });
-
-      const res = await api(`/candidates/${candidateId}`, {
-        method: 'PATCH',
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert(err.error || 'Не удалось сохранить этап');
-        return;
-      }
-
-      await load();
-    }
-
     window.quickUpdateStatus = quickUpdateStatus;
     window.saveNotes = saveNotes;
     window.saveInternalComment = saveInternalComment;
-    window.savePipeline = savePipeline;
     window.generateCandidateReport = generateCandidateReport;
     window.copyCandidateReport = copyCandidateReport;
 

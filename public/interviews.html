@@ -2905,6 +2905,12 @@
       await loadStatusOptions();
       await loadCandidates();
       initializeReminders();
+
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'candidateStatusUpdated') {
+          loadCandidates();
+        }
+      });
     }
 
     initInterviewsPage().catch(err => {

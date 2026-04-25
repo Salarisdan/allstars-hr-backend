@@ -2716,6 +2716,12 @@
     async function initCandidatesPage() {
       await loadStatusOptions();
       await loadCandidates();
+
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'candidateStatusUpdated') {
+          loadCandidates();
+        }
+      });
     }
 
     initCandidatesPage().catch(err => {

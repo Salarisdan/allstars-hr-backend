@@ -2685,6 +2685,15 @@
             </button>
           </div>
 
+          <div style="margin-top:14px; padding:12px; background:rgba(79,110,247,.08); border:1px solid rgba(79,110,247,.16); border-radius:12px; font-size:11px; color:var(--text2);">
+            <div style="display:flex; gap:20px; flex-wrap:wrap;">
+              <div><strong style="color:var(--text);">Всего:</strong> <span id="metricTotal">—</span></div>
+              <div><strong style="color:var(--green);">Работает:</strong> <span id="metricWork">—</span></div>
+              <div><strong style="color:var(--yellow);">На тесте:</strong> <span id="metricTest">—</span></div>
+              <div><strong style="color:var(--text3);">Прочие:</strong> <span id="metricOther">—</span></div>
+            </div>
+          </div>
+
           <div class="pipeline-hint" id="pipelineHint">
             💡 Перетащи карточку сотрудника на статус, чтобы быстро изменить этап
             <span class="pipeline-hint-close" onclick="closePipelineHint()">✕</span>
@@ -3035,6 +3044,20 @@
           </div>
         `;
       }).join('');
+
+      updateTeamMetrics(items);
+    }
+
+    function updateTeamMetrics(items) {
+      const total = items.length;
+      const work = items.filter(i => i.status === 'Работает').length;
+      const test = items.filter(i => i.status === 'Ждет тест' || i.status === 'Тест смена').length;
+      const other = total - work - test;
+
+      document.getElementById('metricTotal').textContent = total;
+      document.getElementById('metricWork').textContent = work;
+      document.getElementById('metricTest').textContent = test;
+      document.getElementById('metricOther').textContent = other;
     }
 
     function setCrmPipeline(key) {
@@ -3412,6 +3435,12 @@
       await loadStatusOptions();
       await loadTeamStatsPage();
       initPipelineHint();
+
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'candidateStatusUpdated') {
+          loadTeamStatsPage();
+        }
+      });
     }
 
     initTeamDashboardPage().catch(err => {

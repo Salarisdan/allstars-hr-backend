@@ -717,6 +717,12 @@
     refreshBtn.addEventListener('click', loadUsers);
     createUserBtn.addEventListener('click', createUser);
 
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'candidateStatusUpdated') {
+        loadUsers();
+      }
+    });
+
     loadUsers();
   </script>
   <script>

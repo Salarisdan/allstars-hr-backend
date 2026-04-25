@@ -1308,6 +1308,12 @@
     document.addEventListener('DOMContentLoaded', () => {
       loadDashboardStats();
       startDashboardAutoRefresh();
+
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'candidateStatusUpdated') {
+          loadDashboardStats(true);
+        }
+      });
     });
 
     window.addEventListener('beforeunload', stopDashboardAutoRefresh);
