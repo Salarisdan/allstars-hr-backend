@@ -2676,6 +2676,19 @@
           <div class="tools-row">
             <input id="crmSearch" class="crm-search" placeholder="Поиск по имени, Telegram, статусу..." />
 
+            <select id="statusFilter" class="crm-search" style="flex: 0.6; min-width: 160px; cursor: pointer;">
+              <option value="">Все статусы</option>
+              <option value="Работает">Работает</option>
+              <option value="Ожидание старта">Ожидание старта</option>
+              <option value="Верификация">Верификация</option>
+              <option value="Ждет тест">Ждет тест</option>
+              <option value="Изучает гайд">Изучает гайд</option>
+              <option value="Хочу взять">Хочу взять</option>
+              <option value="Ждет собеседования">Ждет собеседования</option>
+              <option value="Лист ожидания">Лист ожидания</option>
+              <option value="Не рассчитан">Не рассчитан</option>
+            </select>
+
             <button class="crm-filter-btn of" id="filterOnlyFansBtn" type="button" onclick="setCrmPlatform('onlyfans')">
               OnlyFans
             </button>
@@ -3239,6 +3252,12 @@
     document.getElementById('crmSearch')?.addEventListener('input', debounce(() => {
       rerenderCrmPage();
     }, 400));
+
+    document.getElementById('statusFilter')?.addEventListener('change', () => {
+      const statusValue = document.getElementById('statusFilter').value;
+      crmFilters.pipeline = statusValue;
+      rerenderCrmPage();
+    });
 
     window.rerenderCrmPage = rerenderCrmPage;
     /* ─── конец CRM JS ─────────────────────────────────────────── */
