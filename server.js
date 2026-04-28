@@ -2198,6 +2198,7 @@ CREATE TABLE IF NOT EXISTS candidates (
   job TEXT DEFAULT '',
   main_activity TEXT DEFAULT '',
   interview_report TEXT DEFAULT '',
+  team_card_meta JSONB NOT NULL DEFAULT '{}'::jsonb,
   status TEXT DEFAULT '',
   stage TEXT DEFAULT 'new',
   source TEXT DEFAULT 'manual',
@@ -2247,7 +2248,8 @@ async function initDb() {
     ADD COLUMN IF NOT EXISTS schedule_preference TEXT DEFAULT '',
     ADD COLUMN IF NOT EXISTS top_profile TEXT DEFAULT '',
     ADD COLUMN IF NOT EXISTS main_activity TEXT DEFAULT '',
-    ADD COLUMN IF NOT EXISTS interview_report TEXT DEFAULT ''
+    ADD COLUMN IF NOT EXISTS interview_report TEXT DEFAULT '',
+    ADD COLUMN IF NOT EXISTS team_card_meta JSONB NOT NULL DEFAULT '{}'::jsonb
   `).catch(() => {});
 
   await pool.query(`
@@ -4964,6 +4966,10 @@ app.get('/api/team-member/:rowNumber', auth, async (req, res) => {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
+    const meta = row.team_card_meta && typeof row.team_card_meta === 'object' && !Array.isArray(row.team_card_meta)
+      ? row.team_card_meta
+      : {};
+
     const fields = [
       { label: 'Имя', value: row.name || '' },
       { label: 'Telegram', value: row.telegram || row.tg || '' },
@@ -4973,6 +4979,20 @@ app.get('/api/team-member/:rowNumber', auth, async (req, res) => {
       { label: 'Смены (основные)', value: row.shift || '' },
       { label: 'Модели (основные)', value: row.top_pages || '' },
       { label: 'Актуальная модель', value: row.top_profile || '' },
+      { label: 'Верификация (HR)', value: meta['Верификация (HR)'] || '' },
+      { label: 'Соглашение (NDA)', value: meta['Соглашение (NDA)'] || '' },
+      { label: 'Номер кошелька', value: meta['Номер кошелька'] || meta['Кошелек'] || '' },
+      { label: 'Кошелек USDT (TRC20)', value: meta['Кошелек USDT (TRC20)'] || '' },
+      { label: 'Доступы CRM', value: meta['Доступы CRM'] || '' },
+      { label: 'Доступы Notion', value: meta['Доступы Notion'] || '' },
+      { label: 'Доступ к табличке с расписанием OF', value: meta['Доступ к табличке с расписанием OF'] || '' },
+      { label: 'Доступ к Telegram чатам OF', value: meta['Доступ к Telegram чатам OF'] || '' },
+      { label: 'Доступ к табличке с расписанием Fansly', value: meta['Доступ к табличке с расписанием Fansly'] || '' },
+      { label: 'Доступ к Telegram чатам Fansly', value: meta['Доступ к Telegram чатам Fansly'] || '' },
+      { label: 'Transaction ending (есть/нет в табл.)@dvedenis', value: meta['Transaction ending (есть/нет в табл.)@dvedenis'] || '' },
+      { label: 'Замены (да/нет)', value: meta['Замены (да/нет)'] || '' },
+      { label: 'Логин CRM', value: meta['Логин CRM'] || '' },
+      { label: 'Пароль CRM', value: meta['Пароль CRM'] || '' },
       { label: 'Возраст', value: row.age || '' },
       { label: 'Английский', value: row.english_level || row.english || '' },
       { label: 'График/предпочтение', value: row.schedule_preference || row.schedule || '' },
@@ -5051,6 +5071,32 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       notes: getUpdate('Комментарий')
     };
 
+    const mappedLabels = new Set([
+      'Имя', 'Telegram', 'ТГ', 'Telegram / username',
+      'Возраст', 'Английский', 'Опыт, мес.',
+      'OnlyFans / Fansly', 'Платформа',
+      'Смены (основные)',
+      'График/предпочтение', 'График',
+      'Модели (основные)', 'Топ страниц',
+      'Актуальная модель',
+      'Средний чек',
+      'Основная деятельность/учеба',
+      'Отчет интервью',
+      'Актуальный статус кандидата (Hr)',
+      'Источник',
+      'Комментарий'
+    ]);
+
+    const prevMeta = row.team_card_meta && typeof row.team_card_meta === 'object' && !Array.isArray(row.team_card_meta)
+      ? row.team_card_meta
+      : {};
+    const nextMeta = { ...prevMeta };
+    for (const [label, value] of Object.entries(updates)) {
+      if (!mappedLabels.has(String(label || '').trim())) {
+        nextMeta[String(label || '').trim()] = String(value ?? '');
+      }
+    }
+
     const next = {
       name: fields.name ?? row.name,
       tg: fields.tg ?? row.tg,
@@ -5071,6 +5117,7 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       job: fields.job ?? row.job,
       main_activity: fields.main_activity ?? row.main_activity ?? row.job,
       interview_report: fields.interview_report ?? row.interview_report,
+      team_card_meta: nextMeta,
       status: fields.status !== undefined ? normalizeCandidateStatus(fields.status) : row.status,
       source: fields.source ?? row.source,
       notes: fields.notes ?? row.notes
@@ -5104,13 +5151,14 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
            english = $22,
            english_level = $23,
            notes = $24,
-           updated_by_user_id = $25,
+             team_card_meta = $25::jsonb,
+             updated_by_user_id = $26,
            updated_at = NOW(),
-           status_changed_at = COALESCE($26, status_changed_at),
-           hired_at = COALESCE($27, hired_at),
-           rejected_at = COALESCE($28, rejected_at),
-           started_at = COALESCE($29, started_at),
-           fired_at = COALESCE($30, fired_at)
+             status_changed_at = COALESCE($27, status_changed_at),
+             hired_at = COALESCE($28, hired_at),
+             rejected_at = COALESCE($29, rejected_at),
+             started_at = COALESCE($30, started_at),
+             fired_at = COALESCE($31, fired_at)
        WHERE id = $1 AND agency_id = $2
        RETURNING *`,
       [
@@ -5138,6 +5186,7 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
         next.english,
         next.english_level,
         next.notes,
+        JSON.stringify(next.team_card_meta || {}),
         req.user.userId,
         statusDatePatch.status_changed_at || null,
         statusDatePatch.hired_at || null,
