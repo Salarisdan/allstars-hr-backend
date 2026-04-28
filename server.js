@@ -6310,6 +6310,10 @@ app.post('/api/admin/restore-candidates-from-sheets', auth, requireRole('owner',
     const dryRun =
       req.body?.dryRun === true ||
       String(req.query?.dryRun || '').trim() === '1';
+    const sourceModeRaw = String(req.body?.source || req.query?.source || 'both').trim().toLowerCase();
+    const sourceMode = ['both', 'newcomers', 'active'].includes(sourceModeRaw)
+      ? sourceModeRaw
+      : 'both';
 
     const agencyId = req.user.agencyId;
 
@@ -6393,8 +6397,12 @@ app.post('/api/admin/restore-candidates-from-sheets', auth, requireRole('owner',
     });
 
     const sourceRows = [
-      ...(newcomersSheet.rows || []).map(row => ({ source: 'newcomers', ...row })),
-      ...(activeSheet.rows || []).map(row => ({ source: 'active', ...row }))
+      ...(sourceMode !== 'active'
+        ? (newcomersSheet.rows || []).map(row => ({ source: 'newcomers', ...row }))
+        : []),
+      ...(sourceMode !== 'newcomers'
+        ? (activeSheet.rows || []).map(row => ({ source: 'active', ...row }))
+        : [])
     ];
 
     const candidateDrafts = new Map();
@@ -6530,6 +6538,7 @@ app.post('/api/admin/restore-candidates-from-sheets', auth, requireRole('owner',
     res.json({
       ok: true,
       dry_run: dryRun,
+      source_mode: sourceMode,
       processed_rows: processed,
       matched_rows: matched,
       unmatched_rows: unmatched.length,
