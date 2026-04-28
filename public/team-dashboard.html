@@ -2723,8 +2723,8 @@
             </button>
           </div>
 
-          <div class="status-metrics" id="statusMetrics" style="display:flex; gap:12px; flex-wrap:wrap; margin-top:14px; padding:14px; background:rgba(79,110,247,.08); border:1px solid rgba(79,110,247,.16); border-radius:12px;">
-            <!-- Status blocks will be rendered here -->
+          <div class="status-metrics" id="modelFilters" style="display:flex; gap:12px; flex-wrap:wrap; margin-top:14px; padding:14px; background:rgba(79,110,247,.08); border:1px solid rgba(79,110,247,.16); border-radius:12px;">
+            <!-- Model filters will be rendered here -->
           </div>
 
           <div class="pipeline-hint" id="pipelineHint">
@@ -2858,8 +2858,20 @@
     const crmFilters = {
       q: '',
       pipeline: '',
-      platform: ''
+      platform: '',
+      model: ''
     };
+
+    function normalizeModelToken(value) {
+      return String(value || '').trim().toLowerCase();
+    }
+
+    function splitModelValues(value) {
+      return String(value || '')
+        .split(',')
+        .map(x => x.trim())
+        .filter(Boolean);
+    }
 
     function getStatusTone(status) {
       const s = String(status || '').trim().toLowerCase();
@@ -2937,6 +2949,7 @@
             item.name,
             item.status,
             item.platform,
+            item.model,
               item.transactionEnding,
               ...telegramCandidates
             ]
@@ -2958,6 +2971,13 @@
         out = out.filter(item =>
           String(item.platform || '').toLowerCase().includes(crmFilters.platform)
         );
+      }
+
+      if (crmFilters.model) {
+        out = out.filter(item => {
+          const models = splitModelValues(item.model || item.raw?.['Модели (основные)'] || '');
+          return models.some(model => normalizeModelToken(model) === normalizeModelToken(crmFilters.model));
+        });
       }
 
       return out;
@@ -3085,31 +3105,36 @@
         `;
       }).join('');
 
-      updateTeamMetrics(items);
+      renderModelFilters(items);
     }
 
-    function updateTeamMetrics(items) {
-      const metricsEl = document.getElementById('statusMetrics');
+    function renderModelFilters(items) {
+      const metricsEl = document.getElementById('modelFilters');
       if (!metricsEl) return;
 
-      // Collect all unique statuses from items
-      const statusMap = new Map();
+      const modelMap = new Map();
       items.forEach(item => {
-        const status = item.status || 'Без статуса';
-        const count = statusMap.get(status) || 0;
-        statusMap.set(status, count + 1);
+        const models = splitModelValues(item.model || item.raw?.['Модели (основные)'] || '');
+        models.forEach(model => {
+          const key = model.trim();
+          if (!key) return;
+          modelMap.set(key, (modelMap.get(key) || 0) + 1);
+        });
       });
 
-      // Sort by count descending
-      const sortedStatuses = Array.from(statusMap.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 9); // Show top 9 statuses
+      const sortedModels = Array.from(modelMap.entries())
+        .sort((a, b) => b[1] - a[1]);
 
-      metricsEl.innerHTML = sortedStatuses.map(([status, count]) => {
-        const isActive = crmFilters.pipeline === status ? 'active' : '';
+      if (!sortedModels.length) {
+        metricsEl.innerHTML = `<div class="crm-hint">По текущим карточкам модели не заполнены</div>`;
+        return;
+      }
+
+      metricsEl.innerHTML = sortedModels.map(([model, count]) => {
+        const isActive = normalizeModelToken(crmFilters.model) === normalizeModelToken(model) ? 'active' : '';
         return `
-          <div class="status-metric-block ${isActive}" onclick="setCrmPipeline('${status.replace(/'/g, "\\'")}')" title="${status}">
-            <div class="status-metric-label">${status}</div>
+          <div class="status-metric-block ${isActive}" onclick="setCrmModel('${model.replace(/'/g, "\\'")}')" title="${model}">
+            <div class="status-metric-label">${model}</div>
             <div class="status-metric-value">${count}</div>
           </div>
         `;
@@ -3129,6 +3154,13 @@
     }
 
     window.setCrmPlatform = setCrmPlatform;
+
+    function setCrmModel(model) {
+      crmFilters.model = crmFilters.model === model ? '' : model;
+      rerenderCrmPage();
+    }
+
+    window.setCrmModel = setCrmModel;
 
     function updatePlatformFilterButtons() {
       document.getElementById('filterOnlyFansBtn')?.classList.toggle('active', crmFilters.platform === 'onlyfans');
@@ -3223,6 +3255,7 @@
 
               <div class="crm-meta-hints">
                 ${item.platform ? `<div class="crm-hint">${escapeHtml(item.platform)}</div>` : ''}
+                ${item.model ? `<div class="crm-hint">Модель: ${escapeHtml(item.model)}</div>` : ''}
                 ${item.transactionEnding ? `<div class="crm-hint">Transaction ending: ${escapeHtml(item.transactionEnding)}</div>` : ''}
               </div>
 
@@ -3470,6 +3503,7 @@
             username: item.username || '',
             status: item.status || '',
             platform: item.platform || '',
+            model: item.model || item.raw?.['Модели (основные)'] || '',
             experience_months: item.experience_months || '',
             work_days: item.work_days || '',
             transactionEnding: item.transactionEnding || '',

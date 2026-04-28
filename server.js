@@ -4641,6 +4641,7 @@ function invalidateTeamStatsCache() {
 function buildTeamItemFromCandidate(candidate) {
   const status = normalizeStatusAlias(candidate.status || '') || String(candidate.status || '').trim();
   const startedAtRaw = candidate.started_at || candidate.hired_at || null;
+  const model = String(candidate.top_profile || candidate.top_pages || candidate.main_activity || '').trim();
 
   let workDays = '';
   if (startedAtRaw) {
@@ -4659,6 +4660,7 @@ function buildTeamItemFromCandidate(candidate) {
       'Telegram / username': candidate.telegram || candidate.tg || '',
       'Актуальный статус кандидата (Hr)': status,
       'OnlyFans / Fansly': candidate.platform || candidate.platforms || '',
+      'Модели (основные)': model,
       'Опыт, мес.': candidate.exp || candidate.experience || '',
       'Срок работы, дни': workDays,
       'Дата старта': startedAtRaw ? String(startedAtRaw) : ''
@@ -4667,6 +4669,7 @@ function buildTeamItemFromCandidate(candidate) {
     telegram: candidate.telegram || candidate.tg || '',
     status,
     platform: candidate.platform || candidate.platforms || '',
+    model,
     experience_months: candidate.exp || candidate.experience || '',
     work_days: workDays,
     start_date: startedAtRaw ? String(startedAtRaw) : '',
@@ -4676,7 +4679,7 @@ function buildTeamItemFromCandidate(candidate) {
 
 async function loadTeamItemsFromCandidatesDb(agencyId) {
   const result = await query(
-    `SELECT id, name, tg, telegram, status, platform, platforms, exp, experience, started_at, hired_at
+    `SELECT id, name, tg, telegram, status, platform, platforms, top_pages, top_profile, main_activity, exp, experience, started_at, hired_at
      FROM candidates
      WHERE agency_id = $1
      ORDER BY created_at DESC`,
