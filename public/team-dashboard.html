@@ -2827,17 +2827,9 @@
     }
 
 
-    const TEAM_VISIBLE_STATUSES = new Set([
-      'Работает',
-      'Ожидание старта',
-      'Верификация',
-      'Ждет тест',
-      'Изучает гайд',
-      'Хочу взять',
-      'Ждет собеседования',
-      'Лист ожидания',
-      'Не рассчитан',
-      'Тест смена'
+    const TEAM_VISIBLE_EXCLUDED_STATUSES = new Set([
+      'Назначено собеседование',
+      'Ждет собеседования'
     ]);
 
     const CRM_STATUS_GROUPS = [
@@ -2856,6 +2848,12 @@
       { key: 'Не рассчитан',    label: 'Не рассчитан',   values: ['Не рассчитан'] },
       { key: 'Убрать',          label: 'Убрать',          values: ['Убрать'] }
     ];
+
+    const TEAM_VISIBLE_STATUSES = new Set(
+      CRM_STATUS_GROUPS
+        .flatMap(group => group.values)
+        .filter(status => !TEAM_VISIBLE_EXCLUDED_STATUSES.has(status))
+    );
 
     const crmFilters = {
       q: '',
@@ -2894,7 +2892,7 @@
       if (status.includes('изучает гайд')) return 'state-guide';
       if (status.includes('хочу взять')) return 'state-want';
       if (status.includes('лист ожидания') || status.includes('ждет собеседования')) return 'state-waiting';
-      if (status.includes('не рассчитан')) return 'state-fired';
+      if (status.includes('не рассчитан') || status.includes('уволен') || status.includes('отказ') || status.includes('нет ответа') || status.includes('убрать')) return 'state-fired';
 
       return 'state-neutral';
     }

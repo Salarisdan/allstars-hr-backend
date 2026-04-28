@@ -276,18 +276,14 @@ const TEAM_STATUSES_CLEAR_TRANSACTION_ENDING = new Set([
   'Убрать'
 ]);
 
-const TEAM_DASHBOARD_VISIBLE_STATUSES = new Set([
-  'Работает',
-  'Ожидание старта',
-  'Верификация',
-  'Ждет тест',
-  'Изучает гайд',
-  'Хочу взять',
-  'Ждет собеседования',
-  'Лист ожидания',
-  'Не рассчитан',
-  'Тест смена'
+const TEAM_DASHBOARD_EXCLUDED_STATUSES = new Set([
+  'Назначено собеседование',
+  'Ждет собеседования'
 ]);
+
+const TEAM_DASHBOARD_VISIBLE_STATUSES = new Set(
+  UNIFIED_STATUS_OPTIONS.filter(status => !TEAM_DASHBOARD_EXCLUDED_STATUSES.has(status))
+);
 
 const HIRED_CANDIDATE_STATUSES = new Set([
   'Принятый',
@@ -4651,12 +4647,15 @@ app.get('/api/team-stats', auth, async (req, res) => {
         obj[header] = row[colIndex] || '';
       });
 
+      const rawStatus = obj['Актуальный статус кандидата (Hr)'] || '';
+      const normalizedStatus = normalizeStatusAlias(rawStatus) || rawStatus;
+
       return {
         row_number: index + 2,
         raw: obj,
         name: obj['Имя'] || '',
         telegram: obj['Telegram'] || obj['ТГ'] || obj['Telegram / username'] || '',
-        status: obj['Актуальный статус кандидата (Hr)'] || '',
+        status: normalizedStatus,
         platform: obj['OnlyFans / Fansly'] || obj['Платформа'] || '',
         experience_months: obj['Опыт, мес.'] || obj['Опыт КД, мес'] || '',
         work_days: obj['Срок работы, дни'] || '',
@@ -4709,7 +4708,7 @@ app.get('/api/team-status-members', auth, async (req, res) => {
   try {
     const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
     const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
-    const requestedStatus = String(req.query.status || '').trim();
+    const requestedStatus = normalizeStatusAlias(req.query.status);
 
     if (!spreadsheetId) {
       return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
@@ -4758,7 +4757,8 @@ app.get('/api/team-status-members', auth, async (req, res) => {
     const members = rows
       .filter(row => row.some(cell => String(cell || '').trim() !== ''))
       .map((row, index) => {
-        const status = String(safeGet(row, statusIdx) || '').trim() || 'Без статуса';
+        const rawStatus = String(safeGet(row, statusIdx) || '').trim();
+        const status = normalizeStatusAlias(rawStatus) || rawStatus || 'Без статуса';
 
         return {
           row_number: index + 2,
@@ -4817,7 +4817,7 @@ app.get('/api/team-all-members', auth, async (req, res) => {
         row_number: index + 2,
         name: safeGet(row, nameIdx),
         telegram: safeGet(row, telegramIdx),
-        status: safeGet(row, statusIdx) || 'Без статуса',
+        status: normalizeStatusAlias(safeGet(row, statusIdx)) || safeGet(row, statusIdx) || 'Без статуса',
         platform: safeGet(row, platformIdx),
         transactionEnding: safeGet(row, transactionEndingIdx),
         start_date: safeGet(row, startDateIdx),
