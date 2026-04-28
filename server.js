@@ -236,108 +236,6 @@ function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
 }
 
-const UNIFIED_STATUS_OPTIONS = [
-  'Назначено собеседование',
-  'Ждет собеседования',
-  'Изучает гайд',
-  'Ждет тест',
-  'Тест смена',
-  'Хочу взять',
-  'Верификация',
-  'Ожидание старта',
-  'Принятый',
-  'Работает',
-  'Лист ожидания',
-  'Нет ответа',
-  'Отказ',
-  'Уволен',
-  'Не рассчитан',
-  'Убрать'
-];
-
-const STATUS_ALIASES = {
-  'Принят': 'Принятый',
-  'Тест-смена': 'Тест смена',
-  'Ждёт тест': 'Ждет тест',
-  'ждет тест': 'Ждет тест',
-  'ждёт тест': 'Ждет тест',
-  'Собеседование': 'Ждет собеседования',
-  'Отписал': 'Ждет собеседования',
-  'Не пришел на собес': 'Отказ'
-};
-
-const CANDIDATE_STATUSES = [...UNIFIED_STATUS_OPTIONS];
-const INTERVIEW_STATUSES = [...UNIFIED_STATUS_OPTIONS];
-const TEAM_STATUSES = [...UNIFIED_STATUS_OPTIONS];
-
-const TEAM_STATUSES_CLEAR_TRANSACTION_ENDING = new Set([
-  'Уволен',
-  'Нет ответа',
-  'Убрать'
-]);
-
-const TEAM_DASHBOARD_EXCLUDED_STATUSES = new Set([
-  'Назначено собеседование',
-  'Ждет собеседования'
-]);
-
-const TEAM_DASHBOARD_VISIBLE_STATUSES = new Set(
-  UNIFIED_STATUS_OPTIONS.filter(status => !TEAM_DASHBOARD_EXCLUDED_STATUSES.has(status))
-);
-
-const HIRED_CANDIDATE_STATUSES = new Set([
-  'Принятый',
-  'Работает'
-]);
-const DASHBOARD_HIRED_CANDIDATE_STATUSES = new Set([
-  ...HIRED_CANDIDATE_STATUSES,
-  'Принят'
-]);
-
-const REJECTED_CANDIDATE_STATUS = 'Отказ';
-const STARTED_CANDIDATE_STATUS = 'Ожидание старта';
-const FIRED_CANDIDATE_STATUS = 'Уволен';
-const TRIAL_CANDIDATE_STATUS = 'Тест смена';
-const DASHBOARD_TRIAL_CANDIDATE_STATUSES = new Set([
-  TRIAL_CANDIDATE_STATUS,
-  'Тест-смена'
-]);
-const WAITING_TEST_CANDIDATE_STATUS = 'Ждет тест';
-const UNPAID_CANDIDATE_STATUS = 'Не рассчитан';
-const OFFBOARDED_CANDIDATE_STATUSES = new Set([
-  FIRED_CANDIDATE_STATUS,
-  UNPAID_CANDIDATE_STATUS
-]);
-const DASHBOARD_TRACKED_STATUSES = new Set([
-  ...DASHBOARD_HIRED_CANDIDATE_STATUSES,
-  REJECTED_CANDIDATE_STATUS,
-  STARTED_CANDIDATE_STATUS,
-  FIRED_CANDIDATE_STATUS,
-  ...DASHBOARD_TRIAL_CANDIDATE_STATUSES,
-  WAITING_TEST_CANDIDATE_STATUS,
-  UNPAID_CANDIDATE_STATUS
-]);
-
-function isVisibleTeamDashboardStatus(status) {
-  return TEAM_DASHBOARD_VISIBLE_STATUSES.has(String(status || '').trim());
-}
-
-function isHiredCandidateStatus(status) {
-  return HIRED_CANDIDATE_STATUSES.has(String(status || '').trim());
-}
-
-function isDashboardHiredStatus(status) {
-  return DASHBOARD_HIRED_CANDIDATE_STATUSES.has(String(status || '').trim());
-}
-
-function isDashboardTrialStatus(status) {
-  return DASHBOARD_TRIAL_CANDIDATE_STATUSES.has(String(status || '').trim());
-}
-
-function shouldClearTransactionEndingByStatus(status) {
-  return TEAM_STATUSES_CLEAR_TRANSACTION_ENDING.has(String(status || '').trim());
-}
-
 function normalizePersonKey(value) {
   return String(value || '')
     .trim()
@@ -2398,7 +2296,9 @@ function signToken(user) {
 async function auth(req, res, next) {
   try {
     const header = req.headers.authorization || '';
-    const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+    const bearerToken = header.startsWith('Bearer ') ? header.slice(7) : '';
+    const queryToken = String(req.query?.token || '').trim();
+    const token = bearerToken || queryToken;
 
     if (!token) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -3299,22 +3199,6 @@ app.patch('/candidates/:id', auth, async (req, res) => {
       },
       createdBy: req.user?.email || String(req.user?.userId || '')
     });
-
-    if (isVisibleTeamDashboardStatus(normalizeStatusAlias(next.status))) {
-      try {
-        const candidateTg = updated.rows[0].tg || updated.rows[0].telegram || '';
-        const alreadyExists = await teamSheetHasCandidateByTelegram(candidateTg);
-
-        if (!alreadyExists) {
-          await moveCandidateToTeamSheet({
-            ...updated.rows[0],
-            teamStatus: normalizeStatusAlias(next.status)
-          });
-        }
-      } catch (teamErr) {
-        console.error('Move candidate to team sheet error:', teamErr.message);
-      }
-    }
 
     await syncStatusAcrossSources({
       source: 'candidates',
@@ -4630,57 +4514,63 @@ function invalidateTeamStatsCache() {
   broadcastTeamUpdate();
 }
 
+function toTeamDashboardItemFromCandidate(candidate) {
+  const status = normalizeStatusAlias(candidate.status || '') || (candidate.status || '');
+  const startedAt = candidate.started_at || candidate.hired_at || null;
+  let workDays = '';
+
+  if (startedAt) {
+    const start = new Date(startedAt);
+    if (!Number.isNaN(start.getTime())) {
+      const days = Math.max(0, Math.floor((Date.now() - start.getTime()) / (1000 * 60 * 60 * 24)));
+      workDays = String(days);
+    }
+  }
+
+  return {
+    row_number: Number(candidate.id),
+    raw: {
+      'Имя': candidate.name || '',
+      'Telegram': candidate.telegram || candidate.tg || '',
+      'Актуальный статус кандидата (Hr)': status,
+      'OnlyFans / Fansly': candidate.platform || candidate.platforms || '',
+      'Опыт, мес.': candidate.exp || candidate.experience || '',
+      'Срок работы, дни': workDays,
+      'Дата старта': startedAt ? String(startedAt) : ''
+    },
+    name: candidate.name || '',
+    telegram: candidate.telegram || candidate.tg || '',
+    status,
+    platform: candidate.platform || candidate.platforms || '',
+    experience_months: candidate.exp || candidate.experience || '',
+    work_days: workDays,
+    start_date: startedAt ? String(startedAt) : '',
+    transactionEnding: ''
+  };
+}
+
+async function loadTeamCandidatesFromDb(agencyId) {
+  const result = await query(
+    `SELECT id, name, tg, telegram, status, platform, platforms, exp, experience, started_at, hired_at
+     FROM candidates
+     WHERE agency_id = $1
+     ORDER BY created_at DESC`,
+    [agencyId]
+  );
+
+  const rows = result.rows || [];
+  return rows
+    .map(toTeamDashboardItemFromCandidate)
+    .filter(item => isVisibleTeamDashboardStatus(item.status));
+}
+
 app.get('/api/team-stats', auth, async (req, res) => {
   try {
-    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
-    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
-
-    if (!spreadsheetId) {
-      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
+    if (teamStatsCache.data && Date.now() - teamStatsCache.ts < TEAM_STATS_CACHE_TTL) {
+      return res.json(teamStatsCache.data);
     }
 
-    const sheets = await getSheetsClient();
-
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${sheetName}!A1:AU1000`
-    });
-
-    const values = response.data.values || [];
-    if (!values.length) {
-      return res.json({
-        totals: {},
-        averages: {},
-        items: []
-      });
-    }
-
-    const headers = values[0] || [];
-    const rows = values.slice(1);
-
-    const allItems = rows.map((row, index) => {
-      const obj = {};
-      headers.forEach((header, colIndex) => {
-        obj[header] = row[colIndex] || '';
-      });
-
-      const rawStatus = obj['Актуальный статус кандидата (Hr)'] || '';
-      const normalizedStatus = normalizeStatusAlias(rawStatus) || rawStatus;
-
-      return {
-        row_number: index + 2,
-        raw: obj,
-        name: obj['Имя'] || '',
-        telegram: obj['Telegram'] || obj['ТГ'] || obj['Telegram / username'] || '',
-        status: normalizedStatus,
-        platform: obj['OnlyFans / Fansly'] || obj['Платформа'] || '',
-        experience_months: obj['Опыт, мес.'] || obj['Опыт КД, мес'] || '',
-        work_days: obj['Срок работы, дни'] || '',
-        transactionEnding: obj['Transaction ending'] || ''
-      };
-    });
-
-    const items = allItems.filter(item => isVisibleTeamDashboardStatus(item.status));
+    const items = await loadTeamCandidatesFromDb(req.user.agencyId);
 
     const toNumber = (value) => {
       const n = Number(String(value || '').replace(',', '.').trim());
@@ -4708,13 +4598,20 @@ app.get('/api/team-stats', auth, async (req, res) => {
       work_days: avg(workDayValues)
     };
 
-    res.json({
+    const payload = {
       totals: {
         ...totals
       },
       averages,
       items
-    });
+    };
+
+    teamStatsCache = {
+      data: payload,
+      ts: Date.now()
+    };
+
+    res.json(payload);
   } catch (err) {
     console.error('Team stats error:', err);
     res.status(500).json({ error: 'Не удалось загрузить страницу действующие' });
@@ -4723,71 +4620,23 @@ app.get('/api/team-stats', auth, async (req, res) => {
 
 app.get('/api/team-status-members', auth, async (req, res) => {
   try {
-    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
-    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
     const requestedStatus = normalizeStatusAlias(req.query.status);
-
-    if (!spreadsheetId) {
-      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
-    }
 
     if (!requestedStatus) {
       return res.status(400).json({ error: 'status query is required' });
     }
 
-    const sheets = await getSheetsClient();
-
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${sheetName}!A1:Z5000`
-    });
-
-    const values = response.data.values || [];
-    if (!values.length) {
-      return res.json([]);
-    }
-
-    const headers = values[0];
-    const rows = values.slice(1);
-
-    const idx = (name) => headers.indexOf(name);
-    const safeGet = (row, i) => (i >= 0 && i < row.length ? row[i] : '');
-
-    const statusIdx = idx('Актуальный статус кандидата (Hr)');
-    const nameIdx =
-      idx('Имя') >= 0 ? idx('Имя')
-      : idx('Имя / ник') >= 0 ? idx('Имя / ник')
-      : idx('Ник') >= 0 ? idx('Ник')
-      : -1;
-
-    const telegramIdx =
-      idx('Телеграм') >= 0 ? idx('Телеграм')
-      : idx('Telegram') >= 0 ? idx('Telegram')
-      : idx('Username') >= 0 ? idx('Username')
-      : idx('TG Username') >= 0 ? idx('TG Username')
-      : -1;
-
-    const platformIdx = idx('OnlyFans / Fansly');
-    const startDateIdx = idx('Дата старта');
-    const workDaysIdx = idx('Срок работы, дни');
-
-    const members = rows
-      .filter(row => row.some(cell => String(cell || '').trim() !== ''))
-      .map((row, index) => {
-        const rawStatus = String(safeGet(row, statusIdx) || '').trim();
-        const status = normalizeStatusAlias(rawStatus) || rawStatus || 'Без статуса';
-
-        return {
-          row_number: index + 2,
-          status,
-          name: String(safeGet(row, nameIdx) || '').trim(),
-          telegram: String(safeGet(row, telegramIdx) || '').trim(),
-          platform: String(safeGet(row, platformIdx) || '').trim(),
-          start_date: String(safeGet(row, startDateIdx) || '').trim(),
-          work_days: String(safeGet(row, workDaysIdx) || '').trim()
-        };
-      })
-      .filter(person => String(person.status).trim() === requestedStatus);
+    const members = (await loadTeamCandidatesFromDb(req.user.agencyId))
+      .filter(person => String(person.status).trim() === requestedStatus)
+      .map(person => ({
+        row_number: person.row_number,
+        status: person.status,
+        name: person.name,
+        telegram: person.telegram,
+        platform: person.platform,
+        start_date: person.start_date,
+        work_days: person.work_days
+      }));
 
     res.json(members);
   } catch (err) {
@@ -4798,50 +4647,7 @@ app.get('/api/team-status-members', auth, async (req, res) => {
 
 app.get('/api/team-all-members', auth, async (req, res) => {
   try {
-    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
-    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
-
-    if (!spreadsheetId) {
-      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
-    }
-
-    const sheets = await getSheetsClient();
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${sheetName}!A1:Z5000`
-    });
-
-    const values = response.data.values || [];
-    if (!values.length) return res.json([]);
-
-    const headers = values[0];
-    const rows = values.slice(1);
-
-    const idx = (name) => headers.indexOf(name);
-    const safeGet = (row, i) => (i >= 0 && i < row.length ? String(row[i] || '').trim() : '');
-
-    const statusIdx = idx('Актуальный статус кандидата (Hr)');
-    const nameIdx = idx('Имя') >= 0 ? idx('Имя') : idx('Имя / ник') >= 0 ? idx('Имя / ник') : idx('Ник');
-    const telegramIdx = idx('Телеграм') >= 0 ? idx('Телеграм') : idx('Telegram') >= 0 ? idx('Telegram') : idx('TG Username');
-    const platformIdx = idx('OnlyFans / Fansly');
-    const transactionEndingIdx = idx('Transaction ending');
-    const startDateIdx = idx('Дата старта');
-    const workDaysIdx = idx('Срок работы, дни');
-
-    const members = rows
-      .filter(row => row.some(cell => String(cell || '').trim() !== ''))
-      .map((row, index) => ({
-        row_number: index + 2,
-        name: safeGet(row, nameIdx),
-        telegram: safeGet(row, telegramIdx),
-        status: normalizeStatusAlias(safeGet(row, statusIdx)) || safeGet(row, statusIdx) || 'Без статуса',
-        platform: safeGet(row, platformIdx),
-        transactionEnding: safeGet(row, transactionEndingIdx),
-        start_date: safeGet(row, startDateIdx),
-        work_days: safeGet(row, workDaysIdx)
-      }))
-      .filter(row => isVisibleTeamDashboardStatus(row.status));
-
+    const members = await loadTeamCandidatesFromDb(req.user.agencyId);
     res.json(members);
   } catch (err) {
     console.error('Team all members read error:', err.message);
@@ -4963,44 +4769,19 @@ app.post('/api/endings/free', auth, async (req, res) => {
 
 app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
   try {
-    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
-    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
-    const rowNumber = Number(req.body?.row_number);
-
-    if (!spreadsheetId) {
-      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
+    const ending = Number(req.body?.row_number);
+    if (!ending || ending < 1 || ending > 99) {
+      return res.status(400).json({ error: 'Некорректный ending' });
     }
 
-    if (!rowNumber || rowNumber < 2) {
-      return res.status(400).json({ error: 'Некорректный row_number' });
-    }
-
-    const sheets = await getSheetsClient();
-
-    const headersRes = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${sheetName}!A1:AU1`
-    });
-
-    const headers = headersRes.data.values?.[0] || [];
-    const txIdx = headers.findIndex(
-      h => String(h || '').trim() === 'Transaction ending'
+    await pool.query(
+      `UPDATE transaction_endings
+       SET assigned_to = NULL,
+           assigned_user_id = NULL,
+           updated_at = NOW()
+       WHERE ending = $1`,
+      [ending]
     );
-
-    if (txIdx === -1) {
-      return res.status(400).json({ error: 'Колонка Transaction ending не найдена' });
-    }
-
-    const colLetter = columnToLetter(txIdx + 1);
-
-    await sheets.spreadsheets.values.update({
-      spreadsheetId,
-      range: `${sheetName}!${colLetter}${rowNumber}`,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [['']]
-      }
-    });
 
     res.json({ ok: true });
   } catch (err) {
@@ -5011,53 +4792,37 @@ app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
 
 app.get('/api/team-member/:rowNumber', auth, async (req, res) => {
   try {
-    const rowNumber = Number(req.params.rowNumber);
+    const candidateId = Number(req.params.rowNumber);
 
-    if (!Number.isFinite(rowNumber) || rowNumber < 2) {
-      return res.status(400).json({ error: 'Некорректный номер строки' });
+    if (!Number.isFinite(candidateId) || candidateId < 1) {
+      return res.status(400).json({ error: 'Некорректный id кандидата' });
     }
 
-    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
-    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
+    const found = await query(
+      `SELECT * FROM candidates WHERE id = $1 AND agency_id = $2 LIMIT 1`,
+      [candidateId, req.user.agencyId]
+    );
 
-    if (!spreadsheetId) {
-      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
+    const row = found.rows[0];
+    if (!row) {
+      return res.status(404).json({ error: 'Кандидат не найден' });
     }
 
-    const sheets = await getSheetsClient();
-
-    // Заголовки
-    const headerRes = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${sheetName}!A1:AU1`
-    });
-
-    const headers = headerRes.data.values?.[0] || [];
-
-    if (!headers.length) {
-      return res.status(500).json({ error: 'Не удалось прочитать заголовки таблицы' });
+    if (!canSeeCandidate(row, req.user)) {
+      return res.status(403).json({ error: 'Forbidden' });
     }
 
-    // ЧИТАЕМ ИМЕННО ЭТУ СТРОКУ, А НЕ ИНДЕКС В МАССИВЕ
-    const rowRes = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${sheetName}!A${rowNumber}:AU${rowNumber}`
-    });
+    const fields = [
+      { label: 'Имя', value: row.name || '' },
+      { label: 'Telegram', value: row.telegram || row.tg || '' },
+      { label: 'OnlyFans / Fansly', value: row.platform || row.platforms || '' },
+      { label: 'Актуальный статус кандидата (Hr)', value: normalizeStatusAlias(row.status || '') || row.status || '' },
+      { label: 'Опыт, мес.', value: row.exp || row.experience || '' },
+      { label: 'Смены (основные)', value: row.shift || '' },
+      { label: 'Комментарий', value: row.notes || '' }
+    ];
 
-    const row = rowRes.data.values?.[0] || [];
-    if (!row.length) {
-      return res.status(404).json({ error: 'Строка не найдена' });
-    }
-
-    const fields = headers.map((label, idx) => ({
-      label,
-      value: row[idx] || ''
-    }));
-
-    res.json({
-      row_number: rowNumber,
-      fields
-    });
+    res.json({ row_number: candidateId, fields });
   } catch (err) {
     console.error('GET /api/team-member/:rowNumber error:', err);
     res.status(500).json({ error: 'Не удалось загрузить карточку сотрудника' });
@@ -5066,16 +4831,10 @@ app.get('/api/team-member/:rowNumber', auth, async (req, res) => {
 
 app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
   try {
-    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
-    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
     const rowNumber = Number(req.params.rowNumber);
     const updates = req.body?.updates || {};
 
-    if (!spreadsheetId) {
-      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
-    }
-
-    if (!rowNumber || rowNumber < 2) {
+    if (!rowNumber || rowNumber < 1) {
       return res.status(400).json({ error: 'Invalid row number' });
     }
 
@@ -5083,157 +4842,112 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       return res.status(400).json({ error: 'updates object is required' });
     }
 
-    const sheets = await getSheetsClient();
-
-    const headersRes = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${sheetName}!A1:AU1`
-    });
-
-    const headers = headersRes.data.values?.[0] || [];
-    if (!headers.length) {
-      return res.status(500).json({ error: 'Headers not found in team sheet' });
-    }
-
-    const currentRowRes = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${sheetName}!A${rowNumber}:AU${rowNumber}`
-    });
-    const currentRow = currentRowRes.data.values?.[0] || [];
-    const currentRowData = normalizeRow(headers, currentRow, rowNumber);
-
-    const statusIdx = findHeaderIndex(headers, ['Актуальный статус кандидата (Hr)'], ['статус кандидата', 'актуальный статус', 'status']);
-    const statusLabel = statusIdx >= 0 ? String(headers[statusIdx] || '').trim() : 'Актуальный статус кандидата (Hr)';
-    const updatedAtIdx = findHeaderIndex(headers, ['Updated At', 'Дата обновления'], ['updated at', 'дата обновления', 'обновлен', 'обновлён']);
-    const firedDateIdx = findHeaderIndex(
-      headers,
-      ['Дата увольнения', 'Дата уволен', 'Дата расчета', 'Дата расчёта'],
-      ['дата уволь', 'увольнен', 'дата увол', 'дата расчет', 'дата расчёт']
+    const existing = await query(
+      'SELECT * FROM candidates WHERE id = $1 AND agency_id = $2 LIMIT 1',
+      [rowNumber, req.user.agencyId]
     );
-    const nowSheetValue = new Date().toISOString();
 
-    const data = [];
-
-    for (const [label, value] of Object.entries(updates)) {
-      const colIndex = headers.findIndex(h => String(h || '').trim() === String(label || '').trim());
-      if (colIndex === -1) continue;
-
-      const columnLetter = columnToLetter(colIndex + 1);
-      const normalizedLabel = String(label || '').trim();
-      let nextValue = value ?? '';
-
-      if (normalizedLabel === statusLabel) {
-        nextValue = normalizeTeamStatus(value);
-      }
-
-      data.push({
-        range: `${sheetName}!${columnLetter}${rowNumber}`,
-        values: [[nextValue]]
-      });
+    const row = existing.rows[0];
+    if (!row) {
+      return res.status(404).json({ error: 'Кандидат не найден' });
     }
 
-    if (updatedAtIdx >= 0) {
-      const columnLetter = columnToLetter(updatedAtIdx + 1);
-      data.push({
-        range: `${sheetName}!${columnLetter}${rowNumber}`,
-        values: [[nowSheetValue]]
-      });
+    if (!canSeeCandidate(row, req.user)) {
+      return res.status(403).json({ error: 'Forbidden' });
     }
 
-    const normalizedNextStatus = normalizeTeamStatus(updates[statusLabel] || '');
-    if (firedDateIdx >= 0 && OFFBOARDED_CANDIDATE_STATUSES.has(normalizedNextStatus)) {
-      const columnLetter = columnToLetter(firedDateIdx + 1);
-      data.push({
-        range: `${sheetName}!${columnLetter}${rowNumber}`,
-        values: [[nowSheetValue]]
-      });
-    }
+    const nextStatus = updates['Актуальный статус кандидата (Hr)'] !== undefined
+      ? normalizeCandidateStatus(updates['Актуальный статус кандидата (Hr)'])
+      : row.status;
+    const nextName = updates['Имя'] !== undefined ? String(updates['Имя'] || '') : row.name;
+    const nextTelegram = updates['Telegram'] !== undefined
+      ? String(updates['Telegram'] || '')
+      : (updates['ТГ'] !== undefined ? String(updates['ТГ'] || '') : (row.telegram || row.tg || ''));
+    const nextPlatform = updates['OnlyFans / Fansly'] !== undefined
+      ? String(updates['OnlyFans / Fansly'] || '')
+      : (row.platform || row.platforms || '');
+    const nextExp = updates['Опыт, мес.'] !== undefined
+      ? String(updates['Опыт, мес.'] || '')
+      : (row.exp || row.experience || '');
+    const nextShift = updates['Смены (основные)'] !== undefined
+      ? String(updates['Смены (основные)'] || '')
+      : (row.shift || '');
+    const nextNotes = updates['Комментарий'] !== undefined
+      ? String(updates['Комментарий'] || '')
+      : (row.notes || '');
 
-    if (!data.length) {
-      return res.status(400).json({ error: 'No valid fields to update' });
-    }
+    const statusDatePatch = nextStatus && nextStatus !== row.status
+      ? getStatusDatePatch(nextStatus, row)
+      : {};
 
-    await sheets.spreadsheets.values.batchUpdate({
-      spreadsheetId,
-      requestBody: {
-        valueInputOption: 'USER_ENTERED',
-        data
-      }
-    });
+    const updated = await query(
+      `UPDATE candidates
+       SET name = $3,
+           tg = $4,
+           telegram = $5,
+           status = $6,
+           platform = $7,
+           platforms = $8,
+           exp = $9,
+           experience = $10,
+           shift = $11,
+           notes = $12,
+           updated_by_user_id = $13,
+           updated_at = NOW(),
+           status_changed_at = COALESCE($14, status_changed_at),
+           hired_at = COALESCE($15, hired_at),
+           rejected_at = COALESCE($16, rejected_at),
+           started_at = COALESCE($17, started_at),
+           fired_at = COALESCE($18, fired_at)
+       WHERE id = $1 AND agency_id = $2
+       RETURNING *`,
+      [
+        rowNumber,
+        req.user.agencyId,
+        nextName,
+        nextTelegram,
+        nextTelegram,
+        nextStatus,
+        nextPlatform,
+        nextPlatform,
+        nextExp,
+        nextExp,
+        nextShift,
+        nextNotes,
+        req.user.userId,
+        statusDatePatch.status_changed_at || null,
+        statusDatePatch.hired_at || null,
+        statusDatePatch.rejected_at || null,
+        statusDatePatch.started_at || null,
+        statusDatePatch.fired_at || null
+      ]
+    );
 
-    invalidateTeamStatsCache();
-
-    const nextStatus = String(updates['Актуальный статус кандидата (Hr)'] || '').trim();
-    const prevStatus = String(currentRowData?.status || '').trim();
-    const nameIdx = headers.findIndex(h => ['Имя', 'Имя / ник', 'Ник'].includes(String(h || '').trim()));
-    const telegramIdx = headers.findIndex(h => ['Телеграм', 'Telegram', 'TG Username', 'Username'].includes(String(h || '').trim()));
-    const platformIdx = headers.findIndex(h => ['OnlyFans / Fansly', 'Платформа'].includes(String(h || '').trim()));
-    const candidateId = rowNumber;
-    const candidateName = String(
-      updates['Имя'] ||
-      updates['Имя / ник'] ||
-      updates['Ник'] ||
-      (nameIdx >= 0 ? currentRow[nameIdx] : '') ||
-      currentRowData?.name ||
-      ''
-    ).trim();
-    const candidateTelegram = String(
-      updates['Телеграм'] ||
-      updates['Telegram'] ||
-      updates['TG Username'] ||
-      updates['Username'] ||
-      (telegramIdx >= 0 ? currentRow[telegramIdx] : '') ||
-      currentRowData?.telegram ||
-      ''
-    ).trim();
-    const candidatePlatform = String(
-      updates['OnlyFans / Fansly'] ||
-      updates['Платформа'] ||
-      (platformIdx >= 0 ? currentRow[platformIdx] : '') ||
-      currentRowData?.platform ||
-      ''
-    ).trim();
-
-    if (nextStatus && nextStatus !== prevStatus) {
+    if (nextStatus && nextStatus !== row.status) {
       await appendCrmEvent({
         entity_type: 'candidate',
-        entity_id: String(candidateId),
+        entity_id: String(rowNumber),
         event_type: 'status_changed',
         agency_id: req.user?.agencyId,
-        old_value: String(prevStatus || ''),
+        old_value: String(row.status || ''),
         new_value: String(nextStatus || ''),
         meta: {
-          name: candidateName || '',
-          telegram: candidateTelegram || '',
-          platform: candidatePlatform || ''
+          name: nextName || '',
+          telegram: nextTelegram || '',
+          platform: nextPlatform || ''
         },
         created_by: req.user?.email || ''
       });
 
-      await logCrmEvent({
-        entityType: 'team_member',
-        entityId: req.params.rowNumber,
-        eventType: 'status_changed',
-        oldValue: prevStatus,
-        newValue: nextStatus,
-        meta: {
-          platform: candidatePlatform,
-          name: candidateName
-        },
-        createdBy: req.user?.email || String(req.user?.userId || '')
-      });
-
-      await syncStatusAcrossSources({
-        source: 'team',
-        agencyId: req.user.agencyId,
-        status: nextStatus,
-        telegram: candidateTelegram,
-        name: candidateName,
-        updatedByUserId: req.user.userId
-      });
+      await query(
+        `INSERT INTO candidate_status_history(candidate_id, status, changed_by_user_id)
+         VALUES ($1,$2,$3)`,
+        [rowNumber, nextStatus, req.user.userId]
+      );
     }
 
-    res.json({ ok: true });
+    invalidateTeamStatsCache();
+    res.json({ ok: true, candidate: updated.rows[0] });
   } catch (err) {
     console.error('Team member update error:', err.message);
     res.status(500).json({ error: 'Failed to update team member' });
@@ -5242,43 +4956,62 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
 
 app.post('/api/team-member', auth, async (req, res) => {
   try {
-    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
-    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
     const values = req.body?.values || {};
 
-    if (!spreadsheetId) {
-      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
+    const name = String(values['Имя'] || '').trim();
+    const telegram = String(values['Telegram'] || values['ТГ'] || '').trim();
+    const status = normalizeCandidateStatus(values['Актуальный статус кандидата (Hr)'] || 'Изучает гайд');
+    const platform = String(values['OnlyFans / Fansly'] || '').trim();
+    const exp = String(values['Опыт, мес.'] || '').trim();
+    const shift = String(values['Смены (основные)'] || '').trim();
+    const notes = String(values['Комментарий'] || '').trim();
+
+    if (!name) {
+      return res.status(400).json({ error: 'Имя обязательно' });
     }
 
-    const sheets = await getSheetsClient();
-
-    const headersRes = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${sheetName}!A1:AU1`
-    });
-
-    const headers = headersRes.data.values?.[0] || [];
-    if (!headers.length) {
-      return res.status(500).json({ error: 'Headers not found in team sheet' });
-    }
-
-    const row = headers.map(h => values[String(h).trim()] ?? '');
-
-    await sheets.spreadsheets.values.append({
-      spreadsheetId,
-      range: `${sheetName}!A:AU`,
-      valueInputOption: 'USER_ENTERED',
-      insertDataOption: 'INSERT_ROWS',
-      requestBody: {
-        values: [row]
-      }
-    });
+    const created = await query(
+      `INSERT INTO candidates (
+         agency_id,
+         owner_user_id,
+         created_by_user_id,
+         updated_by_user_id,
+         name,
+         tg,
+         telegram,
+         status,
+         platform,
+         platforms,
+         exp,
+         experience,
+         shift,
+         notes,
+         source
+       ) VALUES (
+         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'manual'
+       ) RETURNING *`,
+      [
+        req.user.agencyId,
+        req.user.userId,
+        req.user.userId,
+        req.user.userId,
+        name,
+        telegram,
+        telegram,
+        status,
+        platform,
+        platform,
+        exp,
+        exp,
+        shift,
+        notes
+      ]
+    );
 
     invalidateTeamStatsCache();
-
-    res.json({ ok: true });
+    res.json({ ok: true, candidate: created.rows[0] });
   } catch (err) {
-    console.error('Team member create error:', err.message);
+    console.error('Team member create error:', err);
     res.status(500).json({ error: 'Failed to create team member' });
   }
 });
@@ -5923,54 +5656,21 @@ app.get('/api/team-stats/stream', auth, (req, res) => {
 /* ─── Bulk sync: candidates → team sheet ─────────────────────── */
 app.post('/api/admin/sync-candidates-to-team', auth, async (req, res) => {
   try {
-    const agencyId = req.user.agencyId;
-
-    // Load all candidates with team-visible statuses from the DB
     const result = await query(
-      `SELECT id, name, tg, telegram, status, platforms, shift, exp, english, notes
+      `SELECT COUNT(*)::int AS total
        FROM candidates
        WHERE agency_id = $1`,
-      [agencyId]
+      [req.user.agencyId]
     );
-
-    const candidates = result.rows || [];
-
-    let added = 0;
-    let skipped = 0;
-    const errors = [];
-
-    for (const c of candidates) {
-      const rawStatus = c.status || '';
-      const normalizedStatus = normalizeStatusAlias(rawStatus);
-
-      if (!isVisibleTeamDashboardStatus(normalizedStatus)) {
-        skipped++;
-        continue;
-      }
-
-      const tg = c.tg || c.telegram || '';
-
-      try {
-        const alreadyExists = await teamSheetHasCandidateByTelegram(tg);
-        if (alreadyExists) {
-          skipped++;
-          continue;
-        }
-
-        await moveCandidateToTeamSheet({
-          ...c,
-          teamStatus: normalizedStatus
-        });
-
-        added++;
-      } catch (err) {
-        errors.push({ name: c.name, error: err.message });
-      }
-    }
 
     invalidateTeamStatsCache();
 
-    res.json({ ok: true, added, skipped, errors });
+    res.json({
+      ok: true,
+      added: 0,
+      skipped: result.rows[0]?.total || 0,
+      message: 'Синхронизация с Google Sheets отключена. Данные берутся напрямую из CRM.'
+    });
   } catch (err) {
     console.error('sync-candidates-to-team error:', err.message);
     res.status(500).json({ error: err.message || 'Sync failed' });
