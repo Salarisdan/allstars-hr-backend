@@ -6046,6 +6046,516 @@ app.post('/api/admin/sync-candidates-to-team', auth, async (req, res) => {
   }
 });
 
+function uniqueNonEmpty(values = []) {
+  const seen = new Set();
+  const out = [];
+
+  for (const value of values) {
+    const v = String(value || '').trim();
+    if (!v) continue;
+    if (seen.has(v)) continue;
+    seen.add(v);
+    out.push(v);
+  }
+
+  return out;
+}
+
+async function readSheetRowsWithFallback({ spreadsheetId, sheetNames, rangeSuffix = 'A1:AU5000' }) {
+  if (!spreadsheetId) {
+    return { spreadsheetId: '', sheetName: '', headers: [], rows: [] };
+  }
+
+  const names = uniqueNonEmpty(sheetNames);
+  if (!names.length) {
+    return { spreadsheetId, sheetName: '', headers: [], rows: [] };
+  }
+
+  const sheets = await getSheetsClient();
+  let lastError = null;
+
+  for (const sheetName of names) {
+    try {
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!${rangeSuffix}`
+      });
+
+      const values = response.data.values || [];
+      const headers = values[0] || [];
+      const rawRows = values.slice(1);
+      const rows = rawRows
+        .filter(row => row.some(cell => String(cell || '').trim() !== ''))
+        .map((row, index) => {
+          const obj = {};
+          headers.forEach((header, colIndex) => {
+            const key = String(header || '').trim();
+            if (!key) return;
+            obj[key] = String(row[colIndex] || '').trim();
+          });
+
+          return {
+            row_number: index + 2,
+            raw: obj
+          };
+        });
+
+      return { spreadsheetId, sheetName, headers, rows };
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+
+  return { spreadsheetId, sheetName: '', headers: [], rows: [] };
+}
+
+function getRawValueByAliases(raw = {}, aliases = []) {
+  const entries = Object.entries(raw || {});
+  if (!entries.length) return '';
+
+  for (const alias of aliases) {
+    const aliasKey = normalizeHeaderMatchKey(alias);
+    if (!aliasKey) continue;
+
+    const exact = entries.find(([key, value]) => {
+      const headerKey = normalizeHeaderMatchKey(key);
+      return headerKey === aliasKey && String(value || '').trim();
+    });
+    if (exact) return String(exact[1] || '').trim();
+  }
+
+  for (const alias of aliases) {
+    const aliasKey = normalizeHeaderMatchKey(alias);
+    if (!aliasKey || aliasKey.length < 3) continue;
+
+    const partial = entries.find(([key, value]) => {
+      const headerKey = normalizeHeaderMatchKey(key);
+      if (!String(value || '').trim()) return false;
+      return headerKey.includes(aliasKey) || aliasKey.includes(headerKey);
+    });
+    if (partial) return String(partial[1] || '').trim();
+  }
+
+  return '';
+}
+
+function normalizeSheetCandidateRow(raw = {}) {
+  const name = getRawValueByAliases(raw, ['Имя', 'Имя / ник', 'Ник', 'Как вас зовут?']);
+  const telegram = getRawValueByAliases(raw, ['Телеграм', 'Telegram', 'ТГ', 'Telegram / username', 'TG Username', 'Username']);
+  const status = getRawValueByAliases(raw, ['Актуальный статус кандидата (Hr)', 'Статус']);
+  const platform = getRawValueByAliases(raw, ['OnlyFans / Fansly', 'Платформа']);
+
+  return {
+    name,
+    telegram,
+    status,
+    platform,
+    age: getRawValueByAliases(raw, ['Возраст']),
+    english: getRawValueByAliases(raw, ['Английский', 'Уровень английского']),
+    exp: getRawValueByAliases(raw, ['Опыт, мес.', 'Опыт', 'Опыт работы', 'Опыт в adult', 'Опыт в adult (лет)']),
+    shift: getRawValueByAliases(raw, ['Смены (основные)', 'Смены', 'Смена']),
+    schedule: getRawValueByAliases(raw, ['График/предпочтение', 'График']),
+    topPages: getRawValueByAliases(raw, ['Модели (основные)', 'Топ страниц', 'С какими анкетами работал-а (топ, %)']),
+    topProfile: getRawValueByAliases(raw, ['Актуальная модель', 'Топ профиль', 'Top profile']),
+    avgCheck: getRawValueByAliases(raw, ['Средний чек']),
+    mainActivity: getRawValueByAliases(raw, ['Основная деятельность/учеба']),
+    interviewReport: getRawValueByAliases(raw, ['Отчет интервью', 'Комментарий HR', 'Интервью отчет']),
+    notes: getRawValueByAliases(raw, ['Комментарий', 'Комментарии', 'Comment', 'Comments']),
+    source: getRawValueByAliases(raw, ['Источник']),
+    leadSource: getRawValueByAliases(raw, ['Источник лида', 'Источник кандидата', 'Откуда вы о нас узнали?'])
+  };
+}
+
+function shouldImportToMetaLabel(label = '') {
+  const key = normalizeHeaderMatchKey(label);
+  if (!key) return false;
+
+  const excluded = new Set([
+    'имя',
+    'имя ник',
+    'ник',
+    'как вас зовут',
+    'телеграм',
+    'telegram',
+    'тг',
+    'telegram username',
+    'tg username',
+    'username',
+    'актуальный статус кандидата hr',
+    'статус',
+    'onlyfans fansly',
+    'платформа',
+    'дата',
+    'дата обновления',
+    'updated at',
+    'completed at',
+    'completed_at',
+    'updated_at'
+  ]);
+
+  return !excluded.has(key);
+}
+
+function mergeSheetIntoCandidateDraft(draft, normalizedRow, rawMeta = {}) {
+  const coalesce = (current, next) => {
+    const v = String(next || '').trim();
+    return v ? v : current;
+  };
+
+  draft.name = coalesce(draft.name, normalizedRow.name);
+
+  const nextTelegram = coalesce(draft.telegram || draft.tg, normalizedRow.telegram);
+  draft.telegram = nextTelegram;
+  draft.tg = nextTelegram;
+
+  const nextStatusRaw = coalesce(draft.status, normalizedRow.status);
+  const nextStatus = normalizeCandidateStatus(nextStatusRaw) || draft.status;
+  draft.status = nextStatus;
+
+  const nextPlatform = coalesce(draft.platform || draft.platforms, normalizedRow.platform);
+  draft.platform = nextPlatform;
+  draft.platforms = nextPlatform;
+
+  draft.age = coalesce(draft.age, normalizedRow.age);
+
+  const nextEnglish = coalesce(draft.english || draft.english_level, normalizedRow.english);
+  draft.english = nextEnglish;
+  draft.english_level = nextEnglish;
+
+  const nextExp = coalesce(draft.exp || draft.experience, normalizedRow.exp);
+  draft.exp = nextExp;
+  draft.experience = nextExp;
+
+  draft.shift = coalesce(draft.shift, normalizedRow.shift);
+
+  const nextSchedule = coalesce(draft.schedule || draft.schedule_preference, normalizedRow.schedule);
+  draft.schedule = nextSchedule;
+  draft.schedule_preference = nextSchedule;
+
+  draft.top_pages = coalesce(draft.top_pages, normalizedRow.topPages);
+  draft.top_profile = coalesce(draft.top_profile || draft.top_pages, normalizedRow.topProfile || normalizedRow.topPages);
+  draft.avg_check = coalesce(draft.avg_check, normalizedRow.avgCheck);
+
+  const nextMainActivity = coalesce(draft.main_activity || draft.job, normalizedRow.mainActivity);
+  draft.main_activity = nextMainActivity;
+  draft.job = nextMainActivity;
+
+  draft.interview_report = coalesce(draft.interview_report, normalizedRow.interviewReport);
+  draft.notes = coalesce(draft.notes, normalizedRow.notes);
+  draft.source = coalesce(draft.source, normalizedRow.source);
+  draft.lead_source = coalesce(draft.lead_source, normalizedRow.leadSource);
+
+  const currentMeta = draft.team_card_meta && typeof draft.team_card_meta === 'object' && !Array.isArray(draft.team_card_meta)
+    ? draft.team_card_meta
+    : {};
+  const nextMeta = { ...currentMeta };
+
+  for (const [label, value] of Object.entries(rawMeta || {})) {
+    const key = String(label || '').trim();
+    const val = String(value || '').trim();
+    if (!key || !val) continue;
+    if (!shouldImportToMetaLabel(key)) continue;
+    nextMeta[key] = val;
+  }
+
+  draft.team_card_meta = nextMeta;
+}
+
+function resolveCandidateForSheetRow(row, candidateMaps, allCandidates) {
+  const tgKey = normalizeTelegramKey(row.telegram || '');
+  const nameKey = normalizePersonKey(row.name || '');
+
+  if (!tgKey && !nameKey) {
+    return { candidate: null, reason: 'missing_identity' };
+  }
+
+  if (tgKey) {
+    const tgMatches = candidateMaps.byTelegram.get(tgKey) || [];
+    if (tgMatches.length === 1) {
+      return { candidate: tgMatches[0], reason: 'telegram' };
+    }
+    if (tgMatches.length > 1) {
+      return { candidate: null, reason: 'ambiguous_telegram' };
+    }
+  }
+
+  if (nameKey) {
+    const exactNameMatches = candidateMaps.byName.get(nameKey) || [];
+    if (exactNameMatches.length === 1) {
+      return { candidate: exactNameMatches[0], reason: 'name' };
+    }
+    if (exactNameMatches.length > 1) {
+      return { candidate: null, reason: 'ambiguous_name' };
+    }
+  }
+
+  const loose = allCandidates.filter(candidate => namesLooselyMatch(candidate.name || '', row.name || ''));
+  if (loose.length === 1) {
+    return { candidate: loose[0], reason: 'loose_name' };
+  }
+
+  if (loose.length > 1) {
+    return { candidate: null, reason: 'ambiguous_loose_name' };
+  }
+
+  return { candidate: null, reason: 'not_found' };
+}
+
+app.post('/api/admin/restore-candidates-from-sheets', auth, requireRole('owner', 'teamlead'), async (req, res) => {
+  try {
+    const dryRun =
+      req.body?.dryRun === true ||
+      String(req.query?.dryRun || '').trim() === '1';
+
+    const agencyId = req.user.agencyId;
+
+    const dbCandidatesRes = await query(
+      `SELECT
+         id,
+         agency_id,
+         name,
+         tg,
+         telegram,
+         age,
+         english,
+         english_level,
+         exp,
+         experience,
+         platform,
+         platforms,
+         shift,
+         schedule,
+         schedule_preference,
+         top_pages,
+         top_profile,
+         avg_check,
+         job,
+         main_activity,
+         interview_report,
+         status,
+         source,
+         lead_source,
+         notes,
+         team_card_meta
+       FROM candidates
+       WHERE agency_id = $1`,
+      [agencyId]
+    );
+
+    const dbCandidates = dbCandidatesRes.rows || [];
+
+    const byTelegram = new Map();
+    const byName = new Map();
+
+    for (const candidate of dbCandidates) {
+      const tgKeys = [
+        normalizeTelegramKey(candidate.tg || ''),
+        normalizeTelegramKey(candidate.telegram || '')
+      ].filter(Boolean);
+
+      for (const key of tgKeys) {
+        const list = byTelegram.get(key) || [];
+        list.push(candidate);
+        byTelegram.set(key, list);
+      }
+
+      const personKey = normalizePersonKey(candidate.name || '');
+      if (personKey) {
+        const list = byName.get(personKey) || [];
+        list.push(candidate);
+        byName.set(personKey, list);
+      }
+    }
+
+    const newcomersSpreadsheetId = process.env.GOOGLE_SPREADSHEET_ID || DASHBOARD_STATS_SPREADSHEET_ID;
+    const activeSpreadsheetId = process.env.TEAM_SPREADSHEET_ID || DASHBOARD_STATS_SPREADSHEET_ID;
+
+    const newcomersSheet = await readSheetRowsWithFallback({
+      spreadsheetId: newcomersSpreadsheetId,
+      sheetNames: [
+        process.env.NEWCOMERS_SHEET_NAME,
+        process.env.GOOGLE_SPREADSHEET_NAME,
+        'Новички',
+        'AllStarsLeads'
+      ]
+    });
+
+    const activeSheet = await readSheetRowsWithFallback({
+      spreadsheetId: activeSpreadsheetId,
+      sheetNames: [
+        process.env.TEAM_SHEET_NAME,
+        'Действующие'
+      ]
+    });
+
+    const sourceRows = [
+      ...(newcomersSheet.rows || []).map(row => ({ source: 'newcomers', ...row })),
+      ...(activeSheet.rows || []).map(row => ({ source: 'active', ...row }))
+    ];
+
+    const candidateDrafts = new Map();
+    const unmatched = [];
+
+    let processed = 0;
+    let matched = 0;
+
+    for (const sourceRow of sourceRows) {
+      processed += 1;
+
+      const normalized = normalizeSheetCandidateRow(sourceRow.raw || {});
+      const match = resolveCandidateForSheetRow(normalized, { byTelegram, byName }, dbCandidates);
+
+      if (!match.candidate) {
+        unmatched.push({
+          source: sourceRow.source,
+          row_number: sourceRow.row_number,
+          name: normalized.name || '',
+          telegram: normalized.telegram || '',
+          reason: match.reason
+        });
+        continue;
+      }
+
+      matched += 1;
+      const candidateId = Number(match.candidate.id);
+      const draft = candidateDrafts.get(candidateId) || {
+        ...match.candidate,
+        team_card_meta: match.candidate.team_card_meta && typeof match.candidate.team_card_meta === 'object'
+          ? { ...match.candidate.team_card_meta }
+          : {}
+      };
+
+      mergeSheetIntoCandidateDraft(draft, normalized, sourceRow.raw || {});
+      candidateDrafts.set(candidateId, draft);
+    }
+
+    let updated = 0;
+    const updateErrors = [];
+
+    if (!dryRun) {
+      for (const [candidateId, draft] of candidateDrafts.entries()) {
+        const original = dbCandidates.find(c => Number(c.id) === Number(candidateId));
+        if (!original) continue;
+
+        const statusDatePatch = draft.status && draft.status !== original.status
+          ? getStatusDatePatch(draft.status, original)
+          : {};
+
+        try {
+          await query(
+            `UPDATE candidates
+             SET name = $3,
+                 tg = $4,
+                 telegram = $5,
+                 status = $6,
+                 platform = $7,
+                 platforms = $8,
+                 exp = $9,
+                 experience = $10,
+                 shift = $11,
+                 schedule = $12,
+                 schedule_preference = $13,
+                 top_pages = $14,
+                 top_profile = $15,
+                 avg_check = $16,
+                 job = $17,
+                 main_activity = $18,
+                 interview_report = $19,
+                 source = $20,
+                 lead_source = $21,
+                 age = $22,
+                 english = $23,
+                 english_level = $24,
+                 notes = $25,
+                 team_card_meta = $26::jsonb,
+                 updated_by_user_id = $27,
+                 updated_at = NOW(),
+                 status_changed_at = COALESCE($28, status_changed_at),
+                 hired_at = COALESCE($29, hired_at),
+                 rejected_at = COALESCE($30, rejected_at),
+                 started_at = COALESCE($31, started_at),
+                 fired_at = COALESCE($32, fired_at)
+             WHERE id = $1 AND agency_id = $2`,
+            [
+              candidateId,
+              agencyId,
+              draft.name || '',
+              draft.tg || draft.telegram || '',
+              draft.telegram || draft.tg || '',
+              normalizeCandidateStatus(draft.status) || draft.status || '',
+              draft.platform || draft.platforms || '',
+              draft.platforms || draft.platform || '',
+              draft.exp || draft.experience || '',
+              draft.experience || draft.exp || '',
+              draft.shift || '',
+              draft.schedule || draft.schedule_preference || '',
+              draft.schedule_preference || draft.schedule || '',
+              draft.top_pages || '',
+              draft.top_profile || draft.top_pages || '',
+              draft.avg_check || '',
+              draft.job || draft.main_activity || '',
+              draft.main_activity || draft.job || '',
+              draft.interview_report || '',
+              draft.source || '',
+              draft.lead_source || '',
+              draft.age || '',
+              draft.english || draft.english_level || '',
+              draft.english_level || draft.english || '',
+              draft.notes || '',
+              JSON.stringify(draft.team_card_meta || {}),
+              req.user.userId,
+              statusDatePatch.status_changed_at || null,
+              statusDatePatch.hired_at || null,
+              statusDatePatch.rejected_at || null,
+              statusDatePatch.started_at || null,
+              statusDatePatch.fired_at || null
+            ]
+          );
+
+          updated += 1;
+        } catch (err) {
+          updateErrors.push({ candidate_id: candidateId, error: err.message });
+        }
+      }
+
+      if (updated > 0) {
+        invalidateTeamStatsCache();
+      }
+    }
+
+    res.json({
+      ok: true,
+      dry_run: dryRun,
+      processed_rows: processed,
+      matched_rows: matched,
+      unmatched_rows: unmatched.length,
+      touched_candidates: candidateDrafts.size,
+      updated_candidates: dryRun ? 0 : updated,
+      update_errors: updateErrors,
+      unmatched_sample: unmatched.slice(0, 200),
+      sources: {
+        newcomers: {
+          spreadsheet_id: newcomersSheet.spreadsheetId,
+          sheet_name: newcomersSheet.sheetName,
+          rows: newcomersSheet.rows.length
+        },
+        active: {
+          spreadsheet_id: activeSheet.spreadsheetId,
+          sheet_name: activeSheet.sheetName,
+          rows: activeSheet.rows.length
+        }
+      }
+    });
+  } catch (err) {
+    console.error('restore-candidates-from-sheets error:', err);
+    res.status(500).json({ error: err.message || 'Restore from sheets failed' });
+  }
+});
+
 async function start() {
   try {
     await initDb();
