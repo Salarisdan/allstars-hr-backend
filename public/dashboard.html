@@ -952,11 +952,17 @@
           </div>
 
           <div class="dashboard-actions">
-            <button class="dashboard-tab active" id="weekCurrentBtn" type="button" onclick="setDashboardWeek('current')">
+            <button class="dashboard-tab active" id="weekCurrentBtn" type="button" onclick="setDashboardRange('week','current')">
               Эта неделя
             </button>
-            <button class="dashboard-tab" id="weekPreviousBtn" type="button" onclick="setDashboardWeek('previous')">
+            <button class="dashboard-tab" id="weekPreviousBtn" type="button" onclick="setDashboardRange('week','previous')">
               Прошлая неделя
+            </button>
+            <button class="dashboard-tab" id="monthCurrentBtn" type="button" onclick="setDashboardRange('month','current')">
+              Этот месяц
+            </button>
+            <button class="dashboard-tab" id="monthPreviousBtn" type="button" onclick="setDashboardRange('month','previous')">
+              Прошлый месяц
             </button>
             <button class="dashboard-refresh-btn" type="button" onclick="loadDashboardStats()">
               Обновить
@@ -992,16 +998,21 @@
       });
     }
 
-    let dashboardWeekMode = 'current';
+    let dashboardPeriodMode = 'week';
+    let dashboardRangeMode = 'current';
     let dashboardAutoRefreshTimer = null;
 
-    function setDashboardWeek(mode) {
-      dashboardWeekMode = mode;
-      document.getElementById('weekCurrentBtn')?.classList.toggle('active', mode === 'current');
-      document.getElementById('weekPreviousBtn')?.classList.toggle('active', mode === 'previous');
+    function setDashboardRange(period, mode) {
+      dashboardPeriodMode = period === 'month' ? 'month' : 'week';
+      dashboardRangeMode = mode === 'previous' ? 'previous' : 'current';
+
+      document.getElementById('weekCurrentBtn')?.classList.toggle('active', dashboardPeriodMode === 'week' && dashboardRangeMode === 'current');
+      document.getElementById('weekPreviousBtn')?.classList.toggle('active', dashboardPeriodMode === 'week' && dashboardRangeMode === 'previous');
+      document.getElementById('monthCurrentBtn')?.classList.toggle('active', dashboardPeriodMode === 'month' && dashboardRangeMode === 'current');
+      document.getElementById('monthPreviousBtn')?.classList.toggle('active', dashboardPeriodMode === 'month' && dashboardRangeMode === 'previous');
       loadDashboardStats();
     }
-    window.setDashboardWeek = setDashboardWeek;
+    window.setDashboardRange = setDashboardRange;
 
     function getDayShortLabel(dateStr) {
       const d = new Date(`${dateStr}T00:00:00`);
@@ -1288,7 +1299,7 @@
       }
 
       try {
-        const res = await cachedApi(`/api/dashboard/stats-live?week=${dashboardWeekMode}`);
+        const res = await cachedApi(`/api/dashboard/stats-live?period=${dashboardPeriodMode}&mode=${dashboardRangeMode}`);
         const data = await res.json().catch(() => ({}));
 
         if (!res.ok) {

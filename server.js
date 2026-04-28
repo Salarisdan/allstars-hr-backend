@@ -1119,6 +1119,71 @@ function endOfWeek(date = new Date()) {
   return end;
 }
 
+function startOfMonth(date = new Date()) {
+  const d = new Date(date);
+  d.setDate(1);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function endOfMonth(date = new Date()) {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + 1, 0);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+
+function resolveDashboardPeriodRange({ period = 'week', mode = 'current' } = {}) {
+  const normalizedPeriod = String(period || 'week').trim().toLowerCase() === 'month' ? 'month' : 'week';
+  const normalizedMode = String(mode || 'current').trim().toLowerCase() === 'previous' ? 'previous' : 'current';
+  const now = new Date();
+
+  let fromDate;
+  let toDate;
+  let previousFrom;
+  let previousTo;
+
+  if (normalizedPeriod === 'month') {
+    const base = new Date(now);
+    if (normalizedMode === 'previous') {
+      base.setMonth(base.getMonth() - 1);
+    }
+
+    fromDate = startOfMonth(base);
+    toDate = endOfMonth(base);
+
+    const prevBase = new Date(base);
+    prevBase.setMonth(prevBase.getMonth() - 1);
+    previousFrom = startOfMonth(prevBase);
+    previousTo = endOfMonth(prevBase);
+  } else {
+    const base =
+      normalizedMode === 'previous'
+        ? new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        : now;
+
+    fromDate = startOfWeek(base);
+    toDate = endOfWeek(base);
+
+    previousFrom = new Date(fromDate);
+    previousFrom.setDate(previousFrom.getDate() - 7);
+    previousFrom.setHours(0, 0, 0, 0);
+
+    previousTo = new Date(toDate);
+    previousTo.setDate(previousTo.getDate() - 7);
+    previousTo.setHours(23, 59, 59, 999);
+  }
+
+  return {
+    period: normalizedPeriod,
+    mode: normalizedMode,
+    fromDate,
+    toDate,
+    previousFrom,
+    previousTo
+  };
+}
+
 function formatDateOnly(date) {
   const d = new Date(date);
   const yyyy = d.getFullYear();
@@ -4379,9 +4444,13 @@ function collectDashboardOffboardedEvents(events, rangeStart, rangeEnd) {
   };
 }
 
-async function buildDashboardStatsPayload({ week = 'current', date_from, date_to }) {
+async function buildDashboardStatsPayload({ week = 'current', period = 'week', mode = undefined, date_from, date_to }) {
   let fromDate;
   let toDate;
+  let previousFrom;
+  let previousTo;
+  let normalizedPeriod = 'week';
+  let normalizedMode = 'current';
 
   if (date_from && date_to) {
     fromDate = parseDateOnly(date_from);
@@ -4393,24 +4462,27 @@ async function buildDashboardStatsPayload({ week = 'current', date_from, date_to
 
     fromDate.setHours(0, 0, 0, 0);
     toDate.setHours(23, 59, 59, 999);
+
+    previousFrom = new Date(fromDate);
+    previousFrom.setDate(previousFrom.getDate() - 7);
+    previousFrom.setHours(0, 0, 0, 0);
+
+    previousTo = new Date(toDate);
+    previousTo.setDate(previousTo.getDate() - 7);
+    previousTo.setHours(23, 59, 59, 999);
   } else {
-    const now = new Date();
-    const base =
-      week === 'previous'
-        ? new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-        : now;
+    const resolved = resolveDashboardPeriodRange({
+      period,
+      mode: mode || week
+    });
 
-    fromDate = startOfWeek(base);
-    toDate = endOfWeek(base);
+    normalizedPeriod = resolved.period;
+    normalizedMode = resolved.mode;
+    fromDate = resolved.fromDate;
+    toDate = resolved.toDate;
+    previousFrom = resolved.previousFrom;
+    previousTo = resolved.previousTo;
   }
-
-  const previousFrom = new Date(fromDate);
-  previousFrom.setDate(previousFrom.getDate() - 7);
-  previousFrom.setHours(0, 0, 0, 0);
-
-  const previousTo = new Date(toDate);
-  previousTo.setDate(previousTo.getDate() - 7);
-  previousTo.setHours(23, 59, 59, 999);
 
   const [currentRes, previousRes] = await Promise.all([
     pool.query(
@@ -4486,7 +4558,9 @@ async function buildDashboardStatsPayload({ week = 'current', date_from, date_to
     range: {
       date_from: formatDateOnly(fromDate),
       date_to: formatDateOnly(toDate),
-      week
+      week: normalizedMode,
+      period: normalizedPeriod,
+      mode: normalizedMode
     },
     previous_range: {
       date_from: formatDateOnly(previousFrom),
@@ -4517,21 +4591,14 @@ app.get('/api/dashboard/stats', auth, async (req, res) => {
 
 app.get('/api/dashboard/stats-live', auth, async (req, res) => {
   try {
-    const { week = 'current' } = req.query;
-
-    const baseDate =
-      week === 'previous'
-        ? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-        : new Date();
-
-    const fromDate = startOfWeek(baseDate);
-    const toDate = endOfWeek(baseDate);
-
-    const prevFrom = new Date(fromDate);
-    prevFrom.setDate(prevFrom.getDate() - 7);
-
-    const prevTo = new Date(toDate);
-    prevTo.setDate(prevTo.getDate() - 7);
+    const resolved = resolveDashboardPeriodRange({
+      period: req.query?.period,
+      mode: req.query?.mode || req.query?.week
+    });
+    const fromDate = resolved.fromDate;
+    const toDate = resolved.toDate;
+    const prevFrom = resolved.previousFrom;
+    const prevTo = resolved.previousTo;
 
     const existingEvents = await readCrmEvents();
     const liveEvents = await collectBackfillEvents({
@@ -4563,7 +4630,9 @@ app.get('/api/dashboard/stats-live', auth, async (req, res) => {
       range: {
         date_from: formatDateOnly(fromDate),
         date_to: formatDateOnly(toDate),
-        week
+        week: resolved.mode,
+        period: resolved.period,
+        mode: resolved.mode
       },
       previous_range: {
         date_from: formatDateOnly(prevFrom),
