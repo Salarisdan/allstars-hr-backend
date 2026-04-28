@@ -2933,7 +2933,7 @@
       q: '',
       pipeline: '',
       platform: '',
-      model: ''
+      models: []
     };
 
     function normalizeModelToken(value) {
@@ -3110,11 +3110,15 @@
         );
       }
 
-      if (crmFilters.model) {
+      if (Array.isArray(crmFilters.models) && crmFilters.models.length) {
+        const selectedTokens = crmFilters.models
+          .map(normalizeModelToken)
+          .filter(Boolean);
+
         out = out.filter(item => {
           if (!isWorkingStatus(item.status)) return false;
-          const models = getItemModels(item);
-          return models.some(model => normalizeModelToken(model) === normalizeModelToken(crmFilters.model));
+          const modelTokens = getItemModels(item).map(normalizeModelToken);
+          return selectedTokens.some(token => modelTokens.includes(token));
         });
       }
 
@@ -3277,10 +3281,12 @@
       }
 
       const totalWorking = workingItems.length;
-      const allActive = crmFilters.model ? '' : 'active';
+      const selectedModels = Array.isArray(crmFilters.models) ? crmFilters.models : [];
+      const allActive = selectedModels.length ? '' : 'active';
 
       const modelCards = sortedModels.map(([model, count]) => {
-        const isActive = normalizeModelToken(crmFilters.model) === normalizeModelToken(model) ? 'active' : '';
+        const token = normalizeModelToken(model);
+        const isActive = selectedModels.some(selected => normalizeModelToken(selected) === token) ? 'active' : '';
         return `
           <div class="status-metric-block model-chip ${isActive}" onclick="setCrmModel('${model.replace(/'/g, "\\'")}')" title="${model}">
             <div class="status-metric-label">${model}</div>
@@ -3292,7 +3298,7 @@
       metricsEl.innerHTML = `
         <div class="model-filters-head">
           <div class="model-filters-title">Фильтры по моделям</div>
-          <div class="model-filters-note">Показываются модели только у статуса Работает</div>
+          <div class="model-filters-note">Показываются модели только у статуса Работает • можно выбрать несколько</div>
         </div>
         <div class="model-filter-grid">
           <div class="status-metric-block model-chip ${allActive}" onclick="setCrmModel('')" title="Все работающие">
@@ -3319,7 +3325,25 @@
     window.setCrmPlatform = setCrmPlatform;
 
     function setCrmModel(model) {
-      crmFilters.model = crmFilters.model === model ? '' : model;
+      const nextModel = String(model || '').trim();
+
+      if (!nextModel) {
+        crmFilters.models = [];
+        rerenderCrmPage();
+        return;
+      }
+
+      const nextToken = normalizeModelToken(nextModel);
+      const current = Array.isArray(crmFilters.models) ? [...crmFilters.models] : [];
+      const index = current.findIndex(x => normalizeModelToken(x) === nextToken);
+
+      if (index >= 0) {
+        current.splice(index, 1);
+      } else {
+        current.push(nextModel);
+      }
+
+      crmFilters.models = current;
       rerenderCrmPage();
     }
 
