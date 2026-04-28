@@ -4971,6 +4971,15 @@ app.get('/api/team-member/:rowNumber', auth, async (req, res) => {
       { label: 'Актуальный статус кандидата (Hr)', value: normalizeStatusAlias(row.status || '') || row.status || '' },
       { label: 'Опыт, мес.', value: row.exp || row.experience || '' },
       { label: 'Смены (основные)', value: row.shift || '' },
+      { label: 'Модели (основные)', value: row.top_pages || '' },
+      { label: 'Актуальная модель', value: row.top_profile || '' },
+      { label: 'Возраст', value: row.age || '' },
+      { label: 'Английский', value: row.english_level || row.english || '' },
+      { label: 'График/предпочтение', value: row.schedule_preference || row.schedule || '' },
+      { label: 'Средний чек', value: row.avg_check || '' },
+      { label: 'Основная деятельность/учеба', value: row.main_activity || row.job || '' },
+      { label: 'Отчет интервью', value: row.interview_report || '' },
+      { label: 'Источник', value: row.source || '' },
       { label: 'Комментарий', value: row.notes || '' }
     ];
 
@@ -5008,28 +5017,67 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
-    const nextStatus = updates['Актуальный статус кандидата (Hr)'] !== undefined
-      ? normalizeCandidateStatus(updates['Актуальный статус кандидата (Hr)'])
-      : row.status;
-    const nextName = updates['Имя'] !== undefined ? String(updates['Имя'] || '') : row.name;
-    const nextTelegram = updates['Telegram'] !== undefined
-      ? String(updates['Telegram'] || '')
-      : (updates['ТГ'] !== undefined ? String(updates['ТГ'] || '') : (row.telegram || row.tg || ''));
-    const nextPlatform = updates['OnlyFans / Fansly'] !== undefined
-      ? String(updates['OnlyFans / Fansly'] || '')
-      : (row.platform || row.platforms || '');
-    const nextExp = updates['Опыт, мес.'] !== undefined
-      ? String(updates['Опыт, мес.'] || '')
-      : (row.exp || row.experience || '');
-    const nextShift = updates['Смены (основные)'] !== undefined
-      ? String(updates['Смены (основные)'] || '')
-      : (row.shift || '');
-    const nextNotes = updates['Комментарий'] !== undefined
-      ? String(updates['Комментарий'] || '')
-      : (row.notes || '');
+    const getUpdate = (...labels) => {
+      for (const label of labels) {
+        if (Object.prototype.hasOwnProperty.call(updates, label)) {
+          return String(updates[label] ?? '');
+        }
+      }
+      return undefined;
+    };
 
-    const statusDatePatch = nextStatus && nextStatus !== row.status
-      ? getStatusDatePatch(nextStatus, row)
+    const fields = {
+      name: getUpdate('Имя'),
+      tg: getUpdate('Telegram', 'ТГ', 'Telegram / username'),
+      telegram: getUpdate('Telegram', 'ТГ', 'Telegram / username'),
+      age: getUpdate('Возраст'),
+      english: getUpdate('Английский'),
+      english_level: getUpdate('Английский'),
+      exp: getUpdate('Опыт, мес.'),
+      experience: getUpdate('Опыт, мес.'),
+      platform: getUpdate('OnlyFans / Fansly', 'Платформа'),
+      platforms: getUpdate('OnlyFans / Fansly', 'Платформа'),
+      shift: getUpdate('Смены (основные)'),
+      schedule: getUpdate('График/предпочтение', 'График'),
+      schedule_preference: getUpdate('График/предпочтение', 'График'),
+      top_pages: getUpdate('Модели (основные)', 'Топ страниц'),
+      top_profile: getUpdate('Актуальная модель', 'Модели (основные)', 'Топ страниц'),
+      avgcheck: getUpdate('Средний чек'),
+      job: getUpdate('Основная деятельность/учеба'),
+      main_activity: getUpdate('Основная деятельность/учеба'),
+      interview_report: getUpdate('Отчет интервью'),
+      status: getUpdate('Актуальный статус кандидата (Hr)'),
+      source: getUpdate('Источник'),
+      notes: getUpdate('Комментарий')
+    };
+
+    const next = {
+      name: fields.name ?? row.name,
+      tg: fields.tg ?? row.tg,
+      telegram: fields.telegram ?? row.telegram ?? row.tg,
+      age: fields.age ?? row.age,
+      english: fields.english ?? row.english,
+      english_level: fields.english_level ?? row.english_level ?? row.english,
+      exp: fields.exp ?? row.exp,
+      experience: fields.experience ?? row.experience ?? row.exp,
+      platform: fields.platform ?? row.platform ?? row.platforms,
+      platforms: fields.platforms ?? row.platforms,
+      shift: fields.shift ?? row.shift,
+      schedule: fields.schedule ?? row.schedule,
+      schedule_preference: fields.schedule_preference ?? row.schedule_preference ?? row.schedule,
+      top_pages: fields.top_pages ?? row.top_pages,
+      top_profile: fields.top_profile ?? row.top_profile ?? row.top_pages,
+      avg_check: fields.avgcheck ?? row.avg_check,
+      job: fields.job ?? row.job,
+      main_activity: fields.main_activity ?? row.main_activity ?? row.job,
+      interview_report: fields.interview_report ?? row.interview_report,
+      status: fields.status !== undefined ? normalizeCandidateStatus(fields.status) : row.status,
+      source: fields.source ?? row.source,
+      notes: fields.notes ?? row.notes
+    };
+
+    const statusDatePatch = next.status && next.status !== row.status
+      ? getStatusDatePatch(next.status, row)
       : {};
 
     const updated = await query(
@@ -5043,29 +5091,53 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
            exp = $9,
            experience = $10,
            shift = $11,
-           notes = $12,
-           updated_by_user_id = $13,
+           schedule = $12,
+           schedule_preference = $13,
+           top_pages = $14,
+           top_profile = $15,
+           avg_check = $16,
+           job = $17,
+           main_activity = $18,
+           interview_report = $19,
+           source = $20,
+           age = $21,
+           english = $22,
+           english_level = $23,
+           notes = $24,
+           updated_by_user_id = $25,
            updated_at = NOW(),
-           status_changed_at = COALESCE($14, status_changed_at),
-           hired_at = COALESCE($15, hired_at),
-           rejected_at = COALESCE($16, rejected_at),
-           started_at = COALESCE($17, started_at),
-           fired_at = COALESCE($18, fired_at)
+           status_changed_at = COALESCE($26, status_changed_at),
+           hired_at = COALESCE($27, hired_at),
+           rejected_at = COALESCE($28, rejected_at),
+           started_at = COALESCE($29, started_at),
+           fired_at = COALESCE($30, fired_at)
        WHERE id = $1 AND agency_id = $2
        RETURNING *`,
       [
         rowNumber,
         req.user.agencyId,
-        nextName,
-        nextTelegram,
-        nextTelegram,
-        nextStatus,
-        nextPlatform,
-        nextPlatform,
-        nextExp,
-        nextExp,
-        nextShift,
-        nextNotes,
+        next.name,
+        next.tg,
+        next.telegram,
+        next.status,
+        next.platform,
+        next.platforms,
+        next.exp,
+        next.experience,
+        next.shift,
+        next.schedule,
+        next.schedule_preference,
+        next.top_pages,
+        next.top_profile,
+        next.avg_check,
+        next.job,
+        next.main_activity,
+        next.interview_report,
+        next.source,
+        next.age,
+        next.english,
+        next.english_level,
+        next.notes,
         req.user.userId,
         statusDatePatch.status_changed_at || null,
         statusDatePatch.hired_at || null,
@@ -5075,18 +5147,18 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       ]
     );
 
-    if (nextStatus && nextStatus !== row.status) {
+    if (next.status && next.status !== row.status) {
       await appendCrmEvent({
         entity_type: 'candidate',
         entity_id: String(rowNumber),
         event_type: 'status_changed',
         agency_id: req.user?.agencyId,
         old_value: String(row.status || ''),
-        new_value: String(nextStatus || ''),
+        new_value: String(next.status || ''),
         meta: {
-          name: nextName || '',
-          telegram: nextTelegram || '',
-          platform: nextPlatform || ''
+          name: next.name || '',
+          telegram: next.telegram || next.tg || '',
+          platform: next.platform || next.platforms || ''
         },
         created_by: req.user?.email || ''
       });
@@ -5094,15 +5166,15 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       await query(
         `INSERT INTO candidate_status_history(candidate_id, status, changed_by_user_id)
          VALUES ($1,$2,$3)`,
-        [rowNumber, nextStatus, req.user.userId]
+        [rowNumber, next.status, req.user.userId]
       );
 
       await syncStatusAcrossSources({
         source: 'candidates',
         agencyId: req.user.agencyId,
-        status: nextStatus,
-        telegram: nextTelegram,
-        name: nextName,
+        status: next.status,
+        telegram: next.telegram || next.tg,
+        name: next.name,
         updatedByUserId: req.user.userId
       });
     }
