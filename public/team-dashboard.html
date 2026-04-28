@@ -2862,6 +2862,21 @@
       model: ''
     };
 
+    const KNOWN_MODEL_NAMES = [
+      'Alyaska',
+      'Alyaska 3',
+      'Judy',
+      'Riley',
+      'Sofia',
+      'Eva',
+      'Ivanka',
+      'Ivy',
+      'Луна',
+      'Киана',
+      'Sia',
+      'Kate'
+    ];
+
     function normalizeModelToken(value) {
       return String(value || '').trim().toLowerCase();
     }
@@ -2871,6 +2886,38 @@
         .split(',')
         .map(x => x.trim())
         .filter(Boolean);
+    }
+
+    function extractKnownModels(value) {
+      const source = String(value || '');
+      if (!source.trim()) return [];
+
+      const lowered = source.toLowerCase();
+      const found = [];
+
+      for (const model of KNOWN_MODEL_NAMES) {
+        if (lowered.includes(model.toLowerCase())) {
+          found.push(model);
+        }
+      }
+
+      return Array.from(new Set(found));
+    }
+
+    function getItemModels(item) {
+      const raw = [
+        item.model,
+        item.raw?.['Модели (основные)'],
+        item.raw?.['Модели'],
+        item.raw?.['Актуальная модель']
+      ]
+        .filter(Boolean)
+        .join(' | ');
+
+      const known = extractKnownModels(raw);
+      if (known.length) return known;
+
+      return splitModelValues(item.model || '').filter(model => KNOWN_MODEL_NAMES.includes(model));
     }
 
     function getStatusTone(status) {
@@ -2975,7 +3022,7 @@
 
       if (crmFilters.model) {
         out = out.filter(item => {
-          const models = splitModelValues(item.model || item.raw?.['Модели (основные)'] || '');
+          const models = getItemModels(item);
           return models.some(model => normalizeModelToken(model) === normalizeModelToken(crmFilters.model));
         });
       }
@@ -3114,7 +3161,7 @@
 
       const modelMap = new Map();
       items.forEach(item => {
-        const models = splitModelValues(item.model || item.raw?.['Модели (основные)'] || '');
+        const models = getItemModels(item);
         models.forEach(model => {
           const key = model.trim();
           if (!key) return;
@@ -3255,7 +3302,7 @@
 
               <div class="crm-meta-hints">
                 ${item.platform ? `<div class="crm-hint">${escapeHtml(item.platform)}</div>` : ''}
-                ${item.model ? `<div class="crm-hint">Модель: ${escapeHtml(item.model)}</div>` : ''}
+                ${getItemModels(item).length ? `<div class="crm-hint">Модель: ${escapeHtml(getItemModels(item).join(', '))}</div>` : ''}
                 ${item.transactionEnding ? `<div class="crm-hint">Transaction ending: ${escapeHtml(item.transactionEnding)}</div>` : ''}
               </div>
 
