@@ -1105,13 +1105,12 @@
 
     /* ─── CRM TOOLS ───────────────────────────────────────────── */
     .sticky-tools{
-      position:sticky;
-      top:0;
-      z-index:20;
-      background:rgba(13,15,20,.92);
-      backdrop-filter:blur(8px);
-      padding:12px 0 14px;
-      margin-bottom:16px;
+      position:static;
+      z-index:auto;
+      background:transparent;
+      backdrop-filter:none;
+      padding:8px 0 10px;
+      margin-bottom:10px;
     }
 
     .tools-card{
@@ -1166,10 +1165,12 @@
 
     .model-filters{
       margin-top:14px;
-      padding:14px;
+      padding:10px;
       background:linear-gradient(135deg, rgba(79,110,247,.12), rgba(34,197,94,.08) 58%, rgba(15,18,32,.92));
       border:1px solid rgba(79,110,247,.18);
       border-radius:14px;
+      max-height:190px;
+      overflow:auto;
     }
 
     .model-filters-head{
@@ -1197,8 +1198,8 @@
 
     .model-filter-grid{
       display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
-      gap:10px;
+      grid-template-columns:repeat(auto-fit,minmax(112px,1fr));
+      gap:8px;
     }
 
     .status-metric-block{
@@ -1240,15 +1241,27 @@
     }
 
     .status-metric-block.model-chip{
-      min-height:84px;
+      min-height:66px;
       display:flex;
       flex-direction:column;
       justify-content:space-between;
       align-items:flex-start;
       text-align:left;
-      border-radius:14px;
+      border-radius:12px;
       background:linear-gradient(180deg, rgba(20,24,40,.95), rgba(17,20,33,.95));
       border-color:rgba(79,110,247,.24);
+      padding:8px 10px;
+    }
+
+    .status-metric-block.model-chip .status-metric-label{
+      font-size:10px;
+      margin-bottom:2px;
+      line-height:1.2;
+    }
+
+    .status-metric-block.model-chip .status-metric-value{
+      font-size:18px;
+      line-height:1;
     }
 
     .status-metric-block.model-chip:hover{
