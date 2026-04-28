@@ -5000,8 +5000,48 @@ app.get('/api/team-member/:rowNumber', auth, async (req, res) => {
       { label: 'Основная деятельность/учеба', value: row.main_activity || row.job || '' },
       { label: 'Отчет интервью', value: row.interview_report || '' },
       { label: 'Источник', value: row.source || '' },
+      { label: 'Источник лида', value: row.lead_source || '' },
+      { label: 'Этап', value: row.stage || '' },
+      { label: 'Owner user id', value: row.owner_user_id || '' },
+      { label: 'Created by user id', value: row.created_by_user_id || '' },
+      { label: 'Updated by user id', value: row.updated_by_user_id || '' },
+      { label: 'Дата изменения статуса', value: row.status_changed_at || '' },
+      { label: 'Дата найма', value: row.hired_at || '' },
+      { label: 'Дата отказа', value: row.rejected_at || '' },
+      { label: 'Дата старта', value: row.started_at || '' },
+      { label: 'Дата увольнения', value: row.fired_at || '' },
+      { label: 'Рейтинг (JSON)', value: row.ratings ? JSON.stringify(row.ratings) : '' },
+      { label: 'Итоговый балл', value: row.total || '' },
       { label: 'Комментарий', value: row.notes || '' }
     ];
+
+    const predefinedMetaLabels = new Set([
+      'Верификация (HR)',
+      'Соглашение (NDA)',
+      'Номер кошелька',
+      'Кошелек',
+      'Кошелек USDT (TRC20)',
+      'Доступы CRM',
+      'Доступы Notion',
+      'Доступ к табличке с расписанием OF',
+      'Доступ к Telegram чатам OF',
+      'Доступ к табличке с расписанием Fansly',
+      'Доступ к Telegram чатам Fansly',
+      'Transaction ending (есть/нет в табл.)@dvedenis',
+      'Замены (да/нет)',
+      'Логин CRM',
+      'Пароль CRM'
+    ]);
+
+    const extraMetaFields = Object.entries(meta)
+      .filter(([label]) => !predefinedMetaLabels.has(String(label || '').trim()))
+      .map(([label, value]) => ({
+        label: String(label || '').trim(),
+        value: typeof value === 'string' ? value : JSON.stringify(value)
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'ru'));
+
+    fields.push(...extraMetaFields);
 
     res.json({ row_number: candidateId, fields });
   } catch (err) {
