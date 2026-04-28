@@ -2931,9 +2931,36 @@
       return String(value || '')
         .replace(/[\n\r]+/g, ',')
         .replace(/[;|]/g, ',')
+        .replace(/[\\/]/g, ',')
         .split(',')
         .map(x => x.trim())
         .filter(Boolean);
+    }
+
+    function sanitizeModelCandidate(value) {
+      const token = String(value || '').trim();
+      if (!token) return '';
+
+      const normalized = token.replace(/\s+/g, ' ').trim();
+
+      // Reject long phrases and obvious non-model text blocks.
+      if (normalized.length < 2 || normalized.length > 28) return '';
+      if (/[%@]|https?:\/\//i.test(normalized)) return '';
+      if ((normalized.match(/\s+/g) || []).length >= 3) return '';
+      if (/\d{5,}/.test(normalized)) return '';
+
+      const lower = normalized.toLowerCase();
+      const bannedWords = [
+        'конверси', 'анкет', 'просмотр', 'подписчик', 'соотношен', 'скриншот',
+        'работал', 'работала', 'правильно', 'соответственно', 'месяц', 'моделью',
+        'топ', 'процент', 'доход', 'выручк', 'продаж'
+      ];
+      if (bannedWords.some(word => lower.includes(word))) return '';
+
+      // Keep names like "Alyaska 3", "Киана", "Eva" and reject punctuation-heavy text.
+      if (!/^[\p{L}][\p{L}\p{N}\s._-]{1,27}$/u.test(normalized)) return '';
+
+      return normalized;
     }
 
     function dedupeModels(values) {
@@ -2941,7 +2968,7 @@
       const seen = new Set();
 
       values.forEach(value => {
-        const model = String(value || '').trim();
+        const model = sanitizeModelCandidate(value);
         if (!model) return;
 
         const key = normalizeModelToken(model);
@@ -2959,8 +2986,7 @@
         item.model,
         item.raw?.['Модели (основные)'],
         item.raw?.['Модели'],
-        item.raw?.['Актуальная модель'],
-        item.raw?.['Топ страниц']
+        item.raw?.['Актуальная модель']
       ].filter(Boolean);
 
       const allModels = rawParts.flatMap(part => splitModelValues(part));
