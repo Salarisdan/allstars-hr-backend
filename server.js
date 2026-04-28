@@ -1357,15 +1357,25 @@ async function loadAllTeamMembersForBackfill() {
         obj[header] = row[colIndex] || '';
       });
 
+      const model = String(
+        obj['Модели (основные)'] ||
+        obj['Модели'] ||
+        obj['Актуальная модель'] ||
+        obj['Топ страниц'] ||
+        ''
+      ).trim();
+
       return {
         row_number: index + 2,
         name: String(obj['Имя'] || obj['Имя / ник'] || obj['Ник'] || '').trim(),
         telegram: String(obj['Телеграм'] || obj['Telegram'] || obj['ТГ'] || obj['Telegram / username'] || obj['TG Username'] || obj['Username'] || '').trim(),
         status: String(obj['Актуальный статус кандидата (Hr)'] || '').trim() || 'Без статуса',
         platform: String(obj['OnlyFans / Fansly'] || obj['Платформа'] || '').trim(),
+        model,
         date_start: String(obj['Дата старта'] || '').trim(),
         date_fired: String(obj['Дата увольнения'] || obj['Дата уволен'] || obj['Дата расчета'] || obj['Дата расчёта'] || '').trim(),
-        updated_at: String(obj['Updated At'] || obj['Дата обновления'] || '').trim()
+        updated_at: String(obj['Updated At'] || obj['Дата обновления'] || '').trim(),
+        raw: obj
       };
     });
 }

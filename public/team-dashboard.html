@@ -2862,62 +2862,48 @@
       model: ''
     };
 
-    const KNOWN_MODEL_NAMES = [
-      'Alyaska',
-      'Alyaska 3',
-      'Judy',
-      'Riley',
-      'Sofia',
-      'Eva',
-      'Ivanka',
-      'Ivy',
-      'Луна',
-      'Киана',
-      'Sia',
-      'Kate'
-    ];
-
     function normalizeModelToken(value) {
       return String(value || '').trim().toLowerCase();
     }
 
     function splitModelValues(value) {
       return String(value || '')
+        .replace(/[\n\r]+/g, ',')
+        .replace(/[;|]/g, ',')
         .split(',')
         .map(x => x.trim())
         .filter(Boolean);
     }
 
-    function extractKnownModels(value) {
-      const source = String(value || '');
-      if (!source.trim()) return [];
+    function dedupeModels(values) {
+      const out = [];
+      const seen = new Set();
 
-      const lowered = source.toLowerCase();
-      const found = [];
+      values.forEach(value => {
+        const model = String(value || '').trim();
+        if (!model) return;
 
-      for (const model of KNOWN_MODEL_NAMES) {
-        if (lowered.includes(model.toLowerCase())) {
-          found.push(model);
-        }
-      }
+        const key = normalizeModelToken(model);
+        if (!key || seen.has(key)) return;
 
-      return Array.from(new Set(found));
+        seen.add(key);
+        out.push(model);
+      });
+
+      return out;
     }
 
     function getItemModels(item) {
-      const raw = [
+      const rawParts = [
         item.model,
         item.raw?.['Модели (основные)'],
         item.raw?.['Модели'],
-        item.raw?.['Актуальная модель']
-      ]
-        .filter(Boolean)
-        .join(' | ');
+        item.raw?.['Актуальная модель'],
+        item.raw?.['Топ страниц']
+      ].filter(Boolean);
 
-      const known = extractKnownModels(raw);
-      if (known.length) return known;
-
-      return splitModelValues(item.model || '').filter(model => KNOWN_MODEL_NAMES.includes(model));
+      const allModels = rawParts.flatMap(part => splitModelValues(part));
+      return dedupeModels(allModels);
     }
 
     function getStatusTone(status) {
