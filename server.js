@@ -1742,10 +1742,7 @@ async function moveCandidateToTeamSheet(candidate) {
     }
   });
 
-  teamStatsCache = {
-    data: null,
-    ts: 0
-  };
+  invalidateTeamStatsCache();
 }
 
 async function teamSheetHasCandidateByTelegram(telegram) {
@@ -2045,7 +2042,7 @@ async function syncTeamSheetStatus({ status, telegram, name }) {
     }
   });
 
-  teamStatsCache = { data: null, ts: 0 };
+  invalidateTeamStatsCache();
 
   return { updated: updates.length };
 }
@@ -4617,6 +4614,22 @@ let teamStatsCache = {
 
 const TEAM_STATS_CACHE_TTL = 60 * 1000;
 
+// SSE clients for real-time team-stats updates
+const teamSseClients = new Set();
+
+function broadcastTeamUpdate() {
+  for (const res of teamSseClients) {
+    try {
+      res.write('event: update\ndata: {}\n\n');
+    } catch (_) { /* client disconnected */ }
+  }
+}
+
+function invalidateTeamStatsCache() {
+  teamStatsCache = { data: null, ts: 0 };
+  broadcastTeamUpdate();
+}
+
 app.get('/api/team-stats', auth, async (req, res) => {
   try {
     const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
@@ -5148,10 +5161,7 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       }
     });
 
-    teamStatsCache = {
-      data: null,
-      ts: 0
-    };
+    invalidateTeamStatsCache();
 
     const nextStatus = String(updates['Актуальный статус кандидата (Hr)'] || '').trim();
     const prevStatus = String(currentRowData?.status || '').trim();
@@ -5264,10 +5274,7 @@ app.post('/api/team-member', auth, async (req, res) => {
       }
     });
 
-    teamStatsCache = {
-      data: null,
-      ts: 0
-    };
+    invalidateTeamStatsCache();
 
     res.json({ ok: true });
   } catch (err) {
@@ -5888,6 +5895,85 @@ ${notes}
   } catch (err) {
     console.error('Gemini handoff error:', err.message);
     res.status(500).json({ error: 'Failed to generate handoff' });
+  }
+});
+
+/* ─── SSE: real-time team-stats updates ──────────────────────── */
+app.get('/api/team-stats/stream', auth, (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  // Send a heartbeat immediately so client knows it's connected
+  res.write('event: connected\ndata: {}\n\n');
+
+  teamSseClients.add(res);
+
+  const heartbeat = setInterval(() => {
+    try { res.write(': heartbeat\n\n'); } catch (_) {}
+  }, 25000);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    teamSseClients.delete(res);
+  });
+});
+
+/* ─── Bulk sync: candidates → team sheet ─────────────────────── */
+app.post('/api/admin/sync-candidates-to-team', auth, async (req, res) => {
+  try {
+    const agencyId = req.user.agencyId;
+
+    // Load all candidates with team-visible statuses from the DB
+    const result = await query(
+      `SELECT id, name, tg, telegram, status, platforms, shift, exp, english, notes
+       FROM candidates
+       WHERE agency_id = $1`,
+      [agencyId]
+    );
+
+    const candidates = result.rows || [];
+
+    let added = 0;
+    let skipped = 0;
+    const errors = [];
+
+    for (const c of candidates) {
+      const rawStatus = c.status || '';
+      const normalizedStatus = normalizeStatusAlias(rawStatus);
+
+      if (!isVisibleTeamDashboardStatus(normalizedStatus)) {
+        skipped++;
+        continue;
+      }
+
+      const tg = c.tg || c.telegram || '';
+
+      try {
+        const alreadyExists = await teamSheetHasCandidateByTelegram(tg);
+        if (alreadyExists) {
+          skipped++;
+          continue;
+        }
+
+        await moveCandidateToTeamSheet({
+          ...c,
+          teamStatus: normalizedStatus
+        });
+
+        added++;
+      } catch (err) {
+        errors.push({ name: c.name, error: err.message });
+      }
+    }
+
+    invalidateTeamStatsCache();
+
+    res.json({ ok: true, added, skipped, errors });
+  } catch (err) {
+    console.error('sync-candidates-to-team error:', err.message);
+    res.status(500).json({ error: err.message || 'Sync failed' });
   }
 });
 

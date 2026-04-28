@@ -2702,6 +2702,7 @@
         <div class="toolbar">
           <button class="btn btn-primary" id="addMemberBtn" type="button">Добавить сотрудника</button>
           <button class="btn btn-ghost" id="refreshBtn" type="button">Обновить</button>
+          <button class="btn btn-ghost" id="syncCandidatesBtn" type="button">Синхронизировать кандидатов</button>
         </div>
       </div>
 
@@ -3489,6 +3490,27 @@
 
     document.getElementById('refreshBtn')?.addEventListener('click', loadTeamStatsPage);
 
+    document.getElementById('syncCandidatesBtn')?.addEventListener('click', async () => {
+      const btn = document.getElementById('syncCandidatesBtn');
+      btn.disabled = true;
+      btn.textContent = 'Синхронизирую...';
+      try {
+        const r = await fetch('/api/admin/sync-candidates-to-team', { method: 'POST' });
+        const json = await r.json();
+        if (r.ok) {
+          btn.textContent = `Готово: +${json.added} добавлено`;
+          await loadTeamStatsPage();
+        } else {
+          btn.textContent = `Ошибка: ${json.error || r.status}`;
+        }
+      } catch (err) {
+        btn.textContent = 'Ошибка сети';
+        console.error(err);
+      } finally {
+        setTimeout(() => { btn.disabled = false; btn.textContent = 'Синхронизировать кандидатов'; }, 4000);
+      }
+    });
+
     async function initTeamDashboardPage() {
       await loadStatusOptions();
       await loadTeamStatsPage();
@@ -3499,6 +3521,20 @@
           loadTeamStatsPage();
         }
       });
+
+      // Real-time updates via Server-Sent Events
+      function connectTeamSSE() {
+        const evtSource = new EventSource('/api/team-stats/stream');
+        evtSource.addEventListener('update', () => {
+          loadTeamStatsPage();
+        });
+        evtSource.onerror = () => {
+          evtSource.close();
+          // Reconnect after 10s if connection drops
+          setTimeout(connectTeamSSE, 10000);
+        };
+      }
+      connectTeamSSE();
     }
 
     initTeamDashboardPage().catch(err => {
