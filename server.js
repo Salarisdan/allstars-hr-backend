@@ -4680,17 +4680,27 @@ function buildTeamItemFromCandidate(candidate) {
 }
 
 async function loadTeamItemsFromCandidatesDb(agencyId) {
-  const result = await query(
-    `SELECT id, name, tg, telegram, status, platform, platforms, top_pages, top_profile, main_activity, exp, experience, started_at, hired_at
-     FROM candidates
-     WHERE agency_id = $1
-     ORDER BY created_at DESC`,
-    [agencyId]
-  );
+  const teamRows = await loadAllTeamMembersForBackfill();
 
-  const rows = result.rows || [];
-  return rows
-    .map(buildTeamItemFromCandidate)
+  return (teamRows || [])
+    .map((row) => {
+      const status = normalizeStatusAlias(row.status || '') || String(row.status || '').trim();
+      const model = String(row?.raw?.['Модели (основные)'] || row?.raw?.['Актуальная модель'] || '').trim();
+
+      return {
+        row_number: Number(row.row_number),
+        raw: row.raw || {},
+        name: row.name || '',
+        telegram: row.telegram || '',
+        status,
+        platform: row.platform || '',
+        model,
+        experience_months: String(row?.raw?.['Опыт, мес.'] || row?.raw?.['Опыт'] || '').trim(),
+        work_days: String(row?.raw?.['Срок работы, дни'] || '').trim(),
+        start_date: row.date_start || '',
+        transactionEnding: String(row?.raw?.['Transaction ending'] || '').trim()
+      };
+    })
     .filter(item => isVisibleTeamDashboardStatus(item.status));
 }
 
@@ -4947,103 +4957,45 @@ app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
 
 app.get('/api/team-member/:rowNumber', auth, async (req, res) => {
   try {
-    const candidateId = Number(req.params.rowNumber);
-    if (!Number.isFinite(candidateId) || candidateId < 1) {
-      return res.status(400).json({ error: 'Некорректный id кандидата' });
+    const rowNumber = Number(req.params.rowNumber);
+    if (!Number.isFinite(rowNumber) || rowNumber < 2) {
+      return res.status(400).json({ error: 'Некорректный row number' });
     }
 
-    const found = await query(
-      `SELECT * FROM candidates WHERE id = $1 AND agency_id = $2 LIMIT 1`,
-      [candidateId, req.user.agencyId]
-    );
+    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
+    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
 
-    const row = found.rows[0];
-    if (!row) {
-      return res.status(404).json({ error: 'Кандидат не найден' });
+    if (!spreadsheetId) {
+      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
     }
 
-    if (!canSeeCandidate(row, req.user)) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-
-    const meta = row.team_card_meta && typeof row.team_card_meta === 'object' && !Array.isArray(row.team_card_meta)
-      ? row.team_card_meta
-      : {};
-
-    const fields = [
-      { label: 'Имя', value: row.name || '' },
-      { label: 'Telegram', value: row.telegram || row.tg || '' },
-      { label: 'OnlyFans / Fansly', value: row.platform || row.platforms || '' },
-      { label: 'Актуальный статус кандидата (Hr)', value: normalizeStatusAlias(row.status || '') || row.status || '' },
-      { label: 'Опыт, мес.', value: row.exp || row.experience || '' },
-      { label: 'Смены (основные)', value: row.shift || '' },
-      { label: 'Модели (основные)', value: row.top_pages || '' },
-      { label: 'Актуальная модель', value: row.top_profile || '' },
-      { label: 'Верификация (HR)', value: meta['Верификация (HR)'] || '' },
-      { label: 'Соглашение (NDA)', value: meta['Соглашение (NDA)'] || '' },
-      { label: 'Номер кошелька', value: meta['Номер кошелька'] || meta['Кошелек'] || '' },
-      { label: 'Кошелек USDT (TRC20)', value: meta['Кошелек USDT (TRC20)'] || '' },
-      { label: 'Доступы CRM', value: meta['Доступы CRM'] || '' },
-      { label: 'Доступы Notion', value: meta['Доступы Notion'] || '' },
-      { label: 'Доступ к табличке с расписанием OF', value: meta['Доступ к табличке с расписанием OF'] || '' },
-      { label: 'Доступ к Telegram чатам OF', value: meta['Доступ к Telegram чатам OF'] || '' },
-      { label: 'Доступ к табличке с расписанием Fansly', value: meta['Доступ к табличке с расписанием Fansly'] || '' },
-      { label: 'Доступ к Telegram чатам Fansly', value: meta['Доступ к Telegram чатам Fansly'] || '' },
-      { label: 'Transaction ending (есть/нет в табл.)@dvedenis', value: meta['Transaction ending (есть/нет в табл.)@dvedenis'] || '' },
-      { label: 'Замены (да/нет)', value: meta['Замены (да/нет)'] || '' },
-      { label: 'Логин CRM', value: meta['Логин CRM'] || '' },
-      { label: 'Пароль CRM', value: meta['Пароль CRM'] || '' },
-      { label: 'Возраст', value: row.age || '' },
-      { label: 'Английский', value: row.english_level || row.english || '' },
-      { label: 'График/предпочтение', value: row.schedule_preference || row.schedule || '' },
-      { label: 'Средний чек', value: row.avg_check || '' },
-      { label: 'Основная деятельность/учеба', value: row.main_activity || row.job || '' },
-      { label: 'Отчет интервью', value: row.interview_report || '' },
-      { label: 'Источник', value: row.source || '' },
-      { label: 'Источник лида', value: row.lead_source || '' },
-      { label: 'Этап', value: row.stage || '' },
-      { label: 'Owner user id', value: row.owner_user_id || '' },
-      { label: 'Created by user id', value: row.created_by_user_id || '' },
-      { label: 'Updated by user id', value: row.updated_by_user_id || '' },
-      { label: 'Дата изменения статуса', value: row.status_changed_at || '' },
-      { label: 'Дата найма', value: row.hired_at || '' },
-      { label: 'Дата отказа', value: row.rejected_at || '' },
-      { label: 'Дата старта', value: row.started_at || '' },
-      { label: 'Дата увольнения', value: row.fired_at || '' },
-      { label: 'Рейтинг (JSON)', value: row.ratings ? JSON.stringify(row.ratings) : '' },
-      { label: 'Итоговый балл', value: row.total || '' },
-      { label: 'Комментарий', value: row.notes || '' }
-    ];
-
-    const predefinedMetaLabels = new Set([
-      'Верификация (HR)',
-      'Соглашение (NDA)',
-      'Номер кошелька',
-      'Кошелек',
-      'Кошелек USDT (TRC20)',
-      'Доступы CRM',
-      'Доступы Notion',
-      'Доступ к табличке с расписанием OF',
-      'Доступ к Telegram чатам OF',
-      'Доступ к табличке с расписанием Fansly',
-      'Доступ к Telegram чатам Fansly',
-      'Transaction ending (есть/нет в табл.)@dvedenis',
-      'Замены (да/нет)',
-      'Логин CRM',
-      'Пароль CRM'
+    const sheets = await getSheetsClient();
+    const [headersRes, rowRes] = await Promise.all([
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A1:AU1`
+      }),
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A${rowNumber}:AU${rowNumber}`
+      })
     ]);
 
-    const extraMetaFields = Object.entries(meta)
-      .filter(([label]) => !predefinedMetaLabels.has(String(label || '').trim()))
-      .map(([label, value]) => ({
-        label: String(label || '').trim(),
-        value: typeof value === 'string' ? value : JSON.stringify(value)
+    const headers = headersRes.data.values?.[0] || [];
+    const row = rowRes.data.values?.[0] || [];
+
+    if (!headers.length || !row.length) {
+      return res.status(404).json({ error: 'Кандидат не найден в таблице' });
+    }
+
+    const fields = headers
+      .map((header, idx) => ({
+        label: String(header || '').trim(),
+        value: String(row[idx] || '').trim()
       }))
-      .sort((a, b) => a.label.localeCompare(b.label, 'ru'));
+      .filter(field => field.label);
 
-    fields.push(...extraMetaFields);
-
-    res.json({ row_number: candidateId, fields });
+    res.json({ row_number: rowNumber, fields });
   } catch (err) {
     console.error('GET /api/team-member/:rowNumber error:', err);
     res.status(500).json({ error: 'Не удалось загрузить карточку сотрудника' });
@@ -5063,213 +5015,88 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       return res.status(400).json({ error: 'updates object is required' });
     }
 
-    const existing = await query(
-      'SELECT * FROM candidates WHERE id = $1 AND agency_id = $2 LIMIT 1',
-      [rowNumber, req.user.agencyId]
-    );
+    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
+    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
 
-    const row = existing.rows[0];
-    if (!row) {
-      return res.status(404).json({ error: 'Кандидат не найден' });
+    if (!spreadsheetId) {
+      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
     }
 
-    if (!canSeeCandidate(row, req.user)) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-
-    const getUpdate = (...labels) => {
-      for (const label of labels) {
-        if (Object.prototype.hasOwnProperty.call(updates, label)) {
-          return String(updates[label] ?? '');
-        }
-      }
-      return undefined;
-    };
-
-    const fields = {
-      name: getUpdate('Имя'),
-      tg: getUpdate('Telegram', 'ТГ', 'Telegram / username'),
-      telegram: getUpdate('Telegram', 'ТГ', 'Telegram / username'),
-      age: getUpdate('Возраст'),
-      english: getUpdate('Английский'),
-      english_level: getUpdate('Английский'),
-      exp: getUpdate('Опыт, мес.'),
-      experience: getUpdate('Опыт, мес.'),
-      platform: getUpdate('OnlyFans / Fansly', 'Платформа'),
-      platforms: getUpdate('OnlyFans / Fansly', 'Платформа'),
-      shift: getUpdate('Смены (основные)'),
-      schedule: getUpdate('График/предпочтение', 'График'),
-      schedule_preference: getUpdate('График/предпочтение', 'График'),
-      top_pages: getUpdate('Модели (основные)', 'Топ страниц'),
-      top_profile: getUpdate('Актуальная модель', 'Модели (основные)', 'Топ страниц'),
-      avgcheck: getUpdate('Средний чек'),
-      job: getUpdate('Основная деятельность/учеба'),
-      main_activity: getUpdate('Основная деятельность/учеба'),
-      interview_report: getUpdate('Отчет интервью'),
-      status: getUpdate('Актуальный статус кандидата (Hr)'),
-      source: getUpdate('Источник'),
-      notes: getUpdate('Комментарий')
-    };
-
-    const mappedLabels = new Set([
-      'Имя', 'Telegram', 'ТГ', 'Telegram / username',
-      'Возраст', 'Английский', 'Опыт, мес.',
-      'OnlyFans / Fansly', 'Платформа',
-      'Смены (основные)',
-      'График/предпочтение', 'График',
-      'Модели (основные)', 'Топ страниц',
-      'Актуальная модель',
-      'Средний чек',
-      'Основная деятельность/учеба',
-      'Отчет интервью',
-      'Актуальный статус кандидата (Hr)',
-      'Источник',
-      'Комментарий'
+    const sheets = await getSheetsClient();
+    const [headersRes, rowRes] = await Promise.all([
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A1:AU1`
+      }),
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A${rowNumber}:AU${rowNumber}`
+      })
     ]);
 
-    const prevMeta = row.team_card_meta && typeof row.team_card_meta === 'object' && !Array.isArray(row.team_card_meta)
-      ? row.team_card_meta
-      : {};
-    const nextMeta = { ...prevMeta };
-    for (const [label, value] of Object.entries(updates)) {
-      if (!mappedLabels.has(String(label || '').trim())) {
-        nextMeta[String(label || '').trim()] = String(value ?? '');
-      }
+    const headers = headersRes.data.values?.[0] || [];
+    const row = rowRes.data.values?.[0] || [];
+
+    if (!headers.length || !row.length) {
+      return res.status(404).json({ error: 'Кандидат не найден в таблице' });
     }
 
-    const next = {
-      name: fields.name ?? row.name,
-      tg: fields.tg ?? row.tg,
-      telegram: fields.telegram ?? row.telegram ?? row.tg,
-      age: fields.age ?? row.age,
-      english: fields.english ?? row.english,
-      english_level: fields.english_level ?? row.english_level ?? row.english,
-      exp: fields.exp ?? row.exp,
-      experience: fields.experience ?? row.experience ?? row.exp,
-      platform: fields.platform ?? row.platform ?? row.platforms,
-      platforms: fields.platforms ?? row.platforms,
-      shift: fields.shift ?? row.shift,
-      schedule: fields.schedule ?? row.schedule,
-      schedule_preference: fields.schedule_preference ?? row.schedule_preference ?? row.schedule,
-      top_pages: fields.top_pages ?? row.top_pages,
-      top_profile: fields.top_profile ?? row.top_profile ?? row.top_pages,
-      avg_check: fields.avgcheck ?? row.avg_check,
-      job: fields.job ?? row.job,
-      main_activity: fields.main_activity ?? row.main_activity ?? row.job,
-      interview_report: fields.interview_report ?? row.interview_report,
-      team_card_meta: nextMeta,
-      status: fields.status !== undefined ? normalizeCandidateStatus(fields.status) : row.status,
-      source: fields.source ?? row.source,
-      notes: fields.notes ?? row.notes
+    const normalizedHeaders = headers.map(h => normalizeHeaderMatchKey(h));
+    const nextRow = [...row];
+
+    const findInRowByAliases = (rowValues, ...aliases) => {
+      for (const alias of aliases) {
+        const key = normalizeHeaderMatchKey(alias);
+        const idx = normalizedHeaders.findIndex(h => h === key || h.includes(key) || key.includes(h));
+        if (idx >= 0) return String(rowValues[idx] || '').trim();
+      }
+      return '';
     };
 
-    const statusDatePatch = next.status && next.status !== row.status
-      ? getStatusDatePatch(next.status, row)
-      : {};
+    const prevStatus = findInRowByAliases(row, 'Актуальный статус кандидата (Hr)', 'Статус');
 
-    const updated = await query(
-      `UPDATE candidates
-       SET name = $3,
-           tg = $4,
-           telegram = $5,
-           status = $6,
-           platform = $7,
-           platforms = $8,
-           exp = $9,
-           experience = $10,
-           shift = $11,
-           schedule = $12,
-           schedule_preference = $13,
-           top_pages = $14,
-           top_profile = $15,
-           avg_check = $16,
-           job = $17,
-           main_activity = $18,
-           interview_report = $19,
-           source = $20,
-           age = $21,
-           english = $22,
-           english_level = $23,
-           notes = $24,
-             team_card_meta = $25::jsonb,
-             updated_by_user_id = $26,
-           updated_at = NOW(),
-             status_changed_at = COALESCE($27, status_changed_at),
-             hired_at = COALESCE($28, hired_at),
-             rejected_at = COALESCE($29, rejected_at),
-             started_at = COALESCE($30, started_at),
-             fired_at = COALESCE($31, fired_at)
-       WHERE id = $1 AND agency_id = $2
-       RETURNING *`,
-      [
-        rowNumber,
-        req.user.agencyId,
-        next.name,
-        next.tg,
-        next.telegram,
-        next.status,
-        next.platform,
-        next.platforms,
-        next.exp,
-        next.experience,
-        next.shift,
-        next.schedule,
-        next.schedule_preference,
-        next.top_pages,
-        next.top_profile,
-        next.avg_check,
-        next.job,
-        next.main_activity,
-        next.interview_report,
-        next.source,
-        next.age,
-        next.english,
-        next.english_level,
-        next.notes,
-        JSON.stringify(next.team_card_meta || {}),
-        req.user.userId,
-        statusDatePatch.status_changed_at || null,
-        statusDatePatch.hired_at || null,
-        statusDatePatch.rejected_at || null,
-        statusDatePatch.started_at || null,
-        statusDatePatch.fired_at || null
-      ]
-    );
+    for (const [label, value] of Object.entries(updates)) {
+      const key = normalizeHeaderMatchKey(label);
+      if (!key) continue;
 
-    if (next.status && next.status !== row.status) {
-      await appendCrmEvent({
-        entity_type: 'candidate',
-        entity_id: String(rowNumber),
-        event_type: 'status_changed',
-        agency_id: req.user?.agencyId,
-        old_value: String(row.status || ''),
-        new_value: String(next.status || ''),
-        meta: {
-          name: next.name || '',
-          telegram: next.telegram || next.tg || '',
-          platform: next.platform || next.platforms || ''
-        },
-        created_by: req.user?.email || ''
-      });
+      let idx = normalizedHeaders.findIndex(h => h === key);
+      if (idx < 0) {
+        idx = normalizedHeaders.findIndex(h => h.includes(key) || key.includes(h));
+      }
+      if (idx < 0) continue;
 
-      await query(
-        `INSERT INTO candidate_status_history(candidate_id, status, changed_by_user_id)
-         VALUES ($1,$2,$3)`,
-        [rowNumber, next.status, req.user.userId]
-      );
+      nextRow[idx] = String(value ?? '').trim();
+    }
 
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `${sheetName}!A${rowNumber}:AU${rowNumber}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [nextRow]
+      }
+    });
+
+    const findByAliases = (...aliases) => findInRowByAliases(nextRow, ...aliases);
+
+    const nextStatusRaw = Object.prototype.hasOwnProperty.call(updates, 'Актуальный статус кандидата (Hr)')
+      ? String(updates['Актуальный статус кандидата (Hr)'] || '').trim()
+      : prevStatus;
+    const nextStatus = normalizeCandidateStatus(nextStatusRaw) || nextStatusRaw;
+
+    if (nextStatus && nextStatus !== prevStatus) {
       await syncStatusAcrossSources({
-        source: 'candidates',
+        source: 'team',
         agencyId: req.user.agencyId,
-        status: next.status,
-        telegram: next.telegram || next.tg,
-        name: next.name,
+        status: nextStatus,
+        telegram: findByAliases('Телеграм', 'Telegram', 'ТГ', 'Telegram / username', 'TG Username', 'Username'),
+        name: findByAliases('Имя', 'Имя / ник', 'Ник'),
         updatedByUserId: req.user.userId
       });
     }
 
     invalidateTeamStatsCache();
-    res.json({ ok: true, candidate: updated.rows[0] });
+    res.json({ ok: true, row_number: rowNumber });
   } catch (err) {
     console.error('Team member update error:', err.message);
     res.status(500).json({ error: 'Failed to update team member' });
