@@ -1121,6 +1121,71 @@
       box-shadow:var(--shadow);
     }
 
+    .tools-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+
+    .tools-head-title{
+      font-size:12px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:#b8c8ff;
+      font-weight:800;
+    }
+
+    .tools-collapse-btn{
+      border:none;
+      cursor:pointer;
+      border-radius:10px;
+      padding:.5rem .75rem;
+      font-family:'Manrope',sans-serif;
+      font-size:12px;
+      font-weight:800;
+      color:#cdd8ff;
+      background:linear-gradient(180deg, rgba(79,110,247,.24), rgba(79,110,247,.12));
+      border:1px solid rgba(125,149,255,.34);
+      transition:transform .16s ease, box-shadow .2s ease, background .2s ease;
+    }
+
+    .tools-collapse-btn:hover{
+      transform:translateY(-1px);
+      box-shadow:0 6px 14px rgba(79,110,247,.18);
+      background:linear-gradient(180deg, rgba(79,110,247,.32), rgba(79,110,247,.14));
+    }
+
+    .tools-panel-body{
+      max-height:1200px;
+      opacity:1;
+      overflow:hidden;
+      transition:max-height .28s ease, opacity .2s ease, margin .2s ease;
+    }
+
+    .tools-card.collapsed .tools-panel-body{
+      max-height:0;
+      opacity:0;
+      margin-top:0;
+      pointer-events:none;
+    }
+
+    .tools-collapsed-hint{
+      display:none;
+      font-size:12px;
+      color:var(--text2);
+      background:rgba(79,110,247,.08);
+      border:1px dashed rgba(125,149,255,.26);
+      border-radius:10px;
+      padding:.65rem .75rem;
+    }
+
+    .tools-card.collapsed .tools-collapsed-hint{
+      display:block;
+      margin-top:6px;
+    }
+
     .tools-row{
       display:flex;
       gap:10px;
@@ -2780,33 +2845,50 @@
       </div>
 
       <div class="sticky-tools">
-        <div class="tools-card">
-          <div class="crm-hint" style="margin-bottom:12px;">
-            Здесь видна воронка действующих сотрудников. Нажми на статус сверху, чтобы отфильтровать нужных людей.
-          </div>
-
-          <div class="tools-row">
-            <input id="crmSearch" class="crm-search" placeholder="Поиск по имени, Telegram, статусу..." />
-
-            <button class="crm-filter-btn of" id="filterOnlyFansBtn" type="button" onclick="setCrmPlatform('onlyfans')">
-              OnlyFans
-            </button>
-
-            <button class="crm-filter-btn fansly" id="filterFanslyBtn" type="button" onclick="setCrmPlatform('fansly')">
-              Fansly
+        <div class="tools-card" id="toolsCard">
+          <div class="tools-head">
+            <div class="tools-head-title">Фильтры и воронка</div>
+            <button
+              class="tools-collapse-btn"
+              id="toggleToolsBtn"
+              type="button"
+              onclick="toggleToolsPanel()"
+              aria-expanded="true"
+            >
+              Свернуть фильтры
             </button>
           </div>
 
-          <div class="status-metrics model-filters" id="modelFilters">
-            <!-- Model filters will be rendered here -->
+          <div class="tools-panel-body" id="toolsPanelBody">
+            <div class="crm-hint" style="margin-bottom:12px;">
+              Здесь видна воронка действующих сотрудников. Нажми на статус сверху, чтобы отфильтровать нужных людей.
+            </div>
+
+            <div class="tools-row">
+              <input id="crmSearch" class="crm-search" placeholder="Поиск по имени, Telegram, статусу..." />
+
+              <button class="crm-filter-btn of" id="filterOnlyFansBtn" type="button" onclick="setCrmPlatform('onlyfans')">
+                OnlyFans
+              </button>
+
+              <button class="crm-filter-btn fansly" id="filterFanslyBtn" type="button" onclick="setCrmPlatform('fansly')">
+                Fansly
+              </button>
+            </div>
+
+            <div class="status-metrics model-filters" id="modelFilters">
+              <!-- Model filters will be rendered here -->
+            </div>
+
+            <div class="pipeline-hint" id="pipelineHint">
+              💡 Перетащи карточку сотрудника на статус, чтобы быстро изменить этап
+              <span class="pipeline-hint-close" onclick="closePipelineHint()">✕</span>
+            </div>
+
+            <div class="pipeline" id="pipeline"></div>
           </div>
 
-          <div class="pipeline-hint" id="pipelineHint">
-            💡 Перетащи карточку сотрудника на статус, чтобы быстро изменить этап
-            <span class="pipeline-hint-close" onclick="closePipelineHint()">✕</span>
-          </div>
-
-          <div class="pipeline" id="pipeline"></div>
+          <div class="tools-collapsed-hint">Фильтры свернуты. Нажмите кнопку справа, чтобы развернуть панель.</div>
         </div>
       </div>
 
@@ -2873,6 +2955,7 @@
 
     const content = document.getElementById('content');
     const refreshBtn = document.getElementById('refreshBtn');
+    const toolsCollapseStorageKey = 'team_tools_collapsed';
     let currentTeamStatsData = null;
     let STATUS_OPTIONS = [];
     const autosaveTimers = new Map();
@@ -3473,6 +3556,27 @@
       renderTeamCards(filtered);
     }
 
+    function applyToolsPanelCollapsed(collapsed) {
+      const toolsCard = document.getElementById('toolsCard');
+      const toggleBtn = document.getElementById('toggleToolsBtn');
+      if (!toolsCard || !toggleBtn) return;
+
+      toolsCard.classList.toggle('collapsed', Boolean(collapsed));
+      toggleBtn.textContent = collapsed ? 'Развернуть фильтры' : 'Свернуть фильтры';
+      toggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    }
+
+    function toggleToolsPanel() {
+      const toolsCard = document.getElementById('toolsCard');
+      if (!toolsCard) return;
+
+      const collapsed = !toolsCard.classList.contains('collapsed');
+      localStorage.setItem(toolsCollapseStorageKey, collapsed ? '1' : '0');
+      applyToolsPanelCollapsed(collapsed);
+    }
+
+    window.toggleToolsPanel = toggleToolsPanel;
+
     function initPipelineHint(){
       const seen = localStorage.getItem('crm_drag_hint_seen');
 
@@ -3716,6 +3820,7 @@
     document.getElementById('refreshBtn')?.addEventListener('click', loadTeamStatsPage);
 
     async function initTeamDashboardPage() {
+      applyToolsPanelCollapsed(localStorage.getItem(toolsCollapseStorageKey) === '1');
       await loadStatusOptions();
       await loadTeamStatsPage();
       initPipelineHint();
