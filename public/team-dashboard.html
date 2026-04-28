@@ -1164,6 +1164,43 @@
       color:var(--accent2);
     }
 
+    .model-filters{
+      margin-top:14px;
+      padding:14px;
+      background:linear-gradient(135deg, rgba(79,110,247,.12), rgba(34,197,94,.08) 58%, rgba(15,18,32,.92));
+      border:1px solid rgba(79,110,247,.18);
+      border-radius:14px;
+    }
+
+    .model-filters-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+      margin-bottom:10px;
+      flex-wrap:wrap;
+    }
+
+    .model-filters-title{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:#b8c8ff;
+      font-weight:800;
+    }
+
+    .model-filters-note{
+      font-size:11px;
+      color:var(--text2);
+      font-weight:700;
+    }
+
+    .model-filter-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+      gap:10px;
+    }
+
     .status-metric-block{
       flex:0 1 auto;
       min-width:100px;
@@ -1200,6 +1237,30 @@
       font-size:18px;
       font-weight:700;
       color:var(--text);
+    }
+
+    .status-metric-block.model-chip{
+      min-height:84px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      align-items:flex-start;
+      text-align:left;
+      border-radius:14px;
+      background:linear-gradient(180deg, rgba(20,24,40,.95), rgba(17,20,33,.95));
+      border-color:rgba(79,110,247,.24);
+    }
+
+    .status-metric-block.model-chip:hover{
+      transform:translateY(-1px);
+      border-color:rgba(125,149,255,.45);
+      box-shadow:0 8px 22px rgba(0,0,0,.24);
+    }
+
+    .status-metric-block.model-chip.active{
+      background:linear-gradient(135deg, rgba(79,110,247,.36), rgba(34,197,94,.20) 62%, rgba(18,21,36,.95));
+      border-color:rgba(125,149,255,.72);
+      box-shadow:0 0 0 1px rgba(125,149,255,.22), 0 12px 26px rgba(79,110,247,.24);
     }
 
     .pipeline{
@@ -2723,7 +2784,7 @@
             </button>
           </div>
 
-          <div class="status-metrics" id="modelFilters" style="display:flex; gap:12px; flex-wrap:wrap; margin-top:14px; padding:14px; background:rgba(79,110,247,.08); border:1px solid rgba(79,110,247,.16); border-radius:12px;">
+          <div class="status-metrics model-filters" id="modelFilters">
             <!-- Model filters will be rendered here -->
           </div>
 
@@ -2921,6 +2982,10 @@
       return `badge-${getStatusTone(status)}`;
     }
 
+    function isWorkingStatus(status) {
+      return String(status || '').trim().toLowerCase() === 'работает';
+    }
+
     function getTeamCardVisualClass(item) {
       const status = String(item.status || '').trim().toLowerCase();
       const platform = String(item.platform || '').trim().toLowerCase();
@@ -3008,6 +3073,7 @@
 
       if (crmFilters.model) {
         out = out.filter(item => {
+          if (!isWorkingStatus(item.status)) return false;
           const models = getItemModels(item);
           return models.some(model => normalizeModelToken(model) === normalizeModelToken(crmFilters.model));
         });
@@ -3145,8 +3211,10 @@
       const metricsEl = document.getElementById('modelFilters');
       if (!metricsEl) return;
 
+      const workingItems = (Array.isArray(items) ? items : []).filter(item => isWorkingStatus(item.status));
+
       const modelMap = new Map();
-      items.forEach(item => {
+      workingItems.forEach(item => {
         const models = getItemModels(item);
         models.forEach(model => {
           const key = model.trim();
@@ -3159,19 +3227,42 @@
         .sort((a, b) => b[1] - a[1]);
 
       if (!sortedModels.length) {
-        metricsEl.innerHTML = `<div class="crm-hint">По текущим карточкам модели не заполнены</div>`;
+        metricsEl.innerHTML = `
+          <div class="model-filters-head">
+            <div class="model-filters-title">Фильтры по моделям</div>
+            <div class="model-filters-note">Учитываются только сотрудники со статусом Работает</div>
+          </div>
+          <div class="crm-hint">По сотрудникам со статусом Работает модели пока не заполнены</div>
+        `;
         return;
       }
 
-      metricsEl.innerHTML = sortedModels.map(([model, count]) => {
+      const totalWorking = workingItems.length;
+      const allActive = crmFilters.model ? '' : 'active';
+
+      const modelCards = sortedModels.map(([model, count]) => {
         const isActive = normalizeModelToken(crmFilters.model) === normalizeModelToken(model) ? 'active' : '';
         return `
-          <div class="status-metric-block ${isActive}" onclick="setCrmModel('${model.replace(/'/g, "\\'")}')" title="${model}">
+          <div class="status-metric-block model-chip ${isActive}" onclick="setCrmModel('${model.replace(/'/g, "\\'")}')" title="${model}">
             <div class="status-metric-label">${model}</div>
             <div class="status-metric-value">${count}</div>
           </div>
         `;
       }).join('');
+
+      metricsEl.innerHTML = `
+        <div class="model-filters-head">
+          <div class="model-filters-title">Фильтры по моделям</div>
+          <div class="model-filters-note">Показываются модели только у статуса Работает</div>
+        </div>
+        <div class="model-filter-grid">
+          <div class="status-metric-block model-chip ${allActive}" onclick="setCrmModel('')" title="Все работающие">
+            <div class="status-metric-label">Все работающие</div>
+            <div class="status-metric-value">${totalWorking}</div>
+          </div>
+          ${modelCards}
+        </div>
+      `;
     }
 
     function setCrmPipeline(key) {
