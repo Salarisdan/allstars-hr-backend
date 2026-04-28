@@ -2696,12 +2696,13 @@
       <div class="topbar">
         <div class="title">
           <h1>Действующие</h1>
-          <p>Операционная статистика по сотрудникам из CRM.</p>
+          <p>Операционная статистика по сотрудникам из отдельной таблицы.</p>
         </div>
 
         <div class="toolbar">
           <button class="btn btn-primary" id="addMemberBtn" type="button">Добавить сотрудника</button>
           <button class="btn btn-ghost" id="refreshBtn" type="button">Обновить</button>
+          <button class="btn btn-ghost" id="syncCandidatesBtn" type="button">Синхронизировать кандидатов</button>
         </div>
       </div>
 
@@ -3488,6 +3489,27 @@
     }
 
     document.getElementById('refreshBtn')?.addEventListener('click', loadTeamStatsPage);
+
+    document.getElementById('syncCandidatesBtn')?.addEventListener('click', async () => {
+      const btn = document.getElementById('syncCandidatesBtn');
+      btn.disabled = true;
+      btn.textContent = 'Синхронизирую...';
+      try {
+        const r = await api('/api/admin/sync-candidates-to-team', { method: 'POST' });
+        const json = await r.json();
+        if (r.ok) {
+          btn.textContent = `Готово: +${json.added} добавлено`;
+          await loadTeamStatsPage();
+        } else {
+          btn.textContent = `Ошибка: ${json.error || r.status}`;
+        }
+      } catch (err) {
+        btn.textContent = 'Ошибка сети';
+        console.error(err);
+      } finally {
+        setTimeout(() => { btn.disabled = false; btn.textContent = 'Синхронизировать кандидатов'; }, 4000);
+      }
+    });
 
     async function initTeamDashboardPage() {
       await loadStatusOptions();
@@ -4551,15 +4573,19 @@
       if (createBtn) createBtn.style.display = 'inline-flex';
       setAutosaveStatus(statusEl, '');
 
-      currentMemberFields = [
-        { label: 'Имя', value: '' },
-        { label: 'Telegram', value: '' },
-        { label: 'OnlyFans / Fansly', value: '' },
-        { label: 'Актуальный статус кандидата (Hr)', value: '' },
-        { label: 'Опыт, мес.', value: '' },
-        { label: 'Смены (основные)', value: '' },
-        { label: 'Комментарий', value: '' }
-      ];
+      const res = await api('/api/team-member/2');
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        content.innerHTML = `<div class="error-box">${data.error || 'Не удалось открыть форму'}</div>`;
+        overlay.classList.add('show');
+        return;
+      }
+
+      currentMemberFields = (Array.isArray(data.fields) ? data.fields : []).map(field => ({
+        ...field,
+        value: ''
+      }));
 
       await loadUsedTransactionEndings();
 
