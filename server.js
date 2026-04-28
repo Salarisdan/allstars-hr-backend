@@ -1722,7 +1722,7 @@ async function moveCandidateToTeamSheet(candidate) {
   const rowMap = {
     'Имя': candidate.name || '',
     'Телеграм': candidate.tg || '',
-    'Актуальный статус кандидата (Hr)': 'Ждет тест',
+    'Актуальный статус кандидата (Hr)': candidate.teamStatus || candidate.status || 'Ждет тест',
     'OnlyFans / Fansly': candidate.platforms || '',
     'Смены (основные)': candidate.shift || '',
     'Опыт, мес.': candidate.exp || '',
@@ -3303,12 +3303,16 @@ app.patch('/candidates/:id', auth, async (req, res) => {
       createdBy: req.user?.email || String(req.user?.userId || '')
     });
 
-    if (next.status === 'Тест смена') {
+    if (isVisibleTeamDashboardStatus(normalizeStatusAlias(next.status))) {
       try {
-        const alreadyExists = await teamSheetHasCandidateByTelegram(updated.rows[0].tg || updated.rows[0].telegram || '');
+        const candidateTg = updated.rows[0].tg || updated.rows[0].telegram || '';
+        const alreadyExists = await teamSheetHasCandidateByTelegram(candidateTg);
 
         if (!alreadyExists) {
-          await moveCandidateToTeamSheet(updated.rows[0]);
+          await moveCandidateToTeamSheet({
+            ...updated.rows[0],
+            teamStatus: normalizeStatusAlias(next.status)
+          });
         }
       } catch (teamErr) {
         console.error('Move candidate to team sheet error:', teamErr.message);
