@@ -4734,6 +4734,42 @@ async function loadTeamItemsFromCandidatesDb(agencyId) {
     })
     .filter(item => isVisibleTeamDashboardStatus(item.status));
 
+  const crmByTelegram = new Map();
+  const crmByName = new Map();
+
+  for (const item of crmItems) {
+    const tgKey = normalizeTelegramKey(item.telegram || item.raw?.['Telegram'] || '');
+    if (tgKey && !crmByTelegram.has(tgKey)) {
+      crmByTelegram.set(tgKey, item);
+    }
+
+    const nameKey = normalizePersonKey(item.name || '');
+    if (nameKey && !crmByName.has(nameKey)) {
+      crmByName.set(nameKey, item);
+    }
+  }
+
+  const mergedSheetItems = sheetItems.map(item => {
+    const tgKey = normalizeTelegramKey(item.telegram || item.raw?.['Телеграм'] || item.raw?.['Telegram'] || '');
+    const nameKey = normalizePersonKey(item.name || '');
+
+    const crmMatch =
+      (tgKey && crmByTelegram.get(tgKey)) ||
+      (nameKey && crmByName.get(nameKey)) ||
+      null;
+
+    if (!crmMatch) return item;
+
+    return {
+      ...item,
+      source: 'sheet+crm',
+      // CRM status is fresher for pipeline stages like "Верификация".
+      status: crmMatch.status || item.status,
+      platform: item.platform || crmMatch.platform || '',
+      model: item.model || crmMatch.model || ''
+    };
+  });
+
   const identityKeys = (item) => {
     const keys = [];
     const tgKey = normalizeTelegramKey(item.telegram || item.raw?.['Телеграм'] || item.raw?.['Telegram'] || '');
@@ -4746,7 +4782,7 @@ async function loadTeamItemsFromCandidatesDb(agencyId) {
   };
 
   const seen = new Set();
-  for (const item of sheetItems) {
+  for (const item of mergedSheetItems) {
     for (const key of identityKeys(item)) {
       seen.add(key);
     }
@@ -4763,7 +4799,7 @@ async function loadTeamItemsFromCandidatesDb(agencyId) {
     return true;
   });
 
-  return [...sheetItems, ...uniqueCrmItems];
+  return [...mergedSheetItems, ...uniqueCrmItems];
 }
 
 app.get('/api/team-stats', auth, async (req, res) => {
