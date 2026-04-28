@@ -3342,6 +3342,10 @@
       return allCrmItems.find(x => Number(x.row_number) === Number(rowNumber)) || null;
     }
 
+    function isSheetBackedItem(item) {
+      return String(item?.source || '').trim().toLowerCase() !== 'crm';
+    }
+
     function renderTeamCards(items) {
       const el = document.getElementById('teamCards');
       if (!el) return;
@@ -3357,10 +3361,10 @@
             <div
               class="member-card ${getTeamCardVisualClass(item)}"
               data-row-number="${item.row_number}"
-              draggable="true"
-              onclick="openMemberEditorByRow(${item.row_number})"
-              ondragstart="onTeamCardDragStart(event, ${item.row_number})"
-              ondragend="onTeamCardDragEnd(event)"
+              draggable="${isSheetBackedItem(item) ? 'true' : 'false'}"
+              ${isSheetBackedItem(item) ? `onclick="openMemberEditorByRow(${item.row_number})"` : ''}
+              ${isSheetBackedItem(item) ? `ondragstart="onTeamCardDragStart(event, ${item.row_number})"` : ''}
+              ${isSheetBackedItem(item) ? `ondragend="onTeamCardDragEnd(event)"` : ''}
             >
               <div class="crm-card-top">
                 <div>
@@ -3381,10 +3385,11 @@
                 ${item.platform ? `<div class="crm-hint">${escapeHtml(item.platform)}</div>` : ''}
                 ${getItemModels(item).length ? `<div class="crm-hint">Модель: ${escapeHtml(getItemModels(item).join(', '))}</div>` : ''}
                 ${item.transactionEnding ? `<div class="crm-hint">Transaction ending: ${escapeHtml(item.transactionEnding)}</div>` : ''}
+                ${!isSheetBackedItem(item) ? `<div class="crm-hint">Источник: CRM (readonly)</div>` : ''}
               </div>
 
               <div class="quick-actions">
-                ${buildTeamQuickActions(item.row_number)}
+                ${isSheetBackedItem(item) ? buildTeamQuickActions(item.row_number) : ''}
               </div>
             </div>
           `).join('')}
@@ -3779,7 +3784,7 @@
             }
 
             return `
-              <div class="member-card ${getTeamCardVisualClass(person)}" onclick="openMemberEditorByRow(${person.row_number})">
+              <div class="member-card ${getTeamCardVisualClass(person)}" ${isSheetBackedItem(person) ? `onclick="openMemberEditorByRow(${person.row_number})"` : ''}>
                 <div class="member-name">
                   ${person.name || 'Без имени'}
                   ${platformBadge}
@@ -3800,6 +3805,10 @@
                     <span class="member-label">Срок работы</span>
                     <span class="member-value">${person.work_days || '—'} дней</span>
                   </div>
+
+                  ${!isSheetBackedItem(person)
+                    ? `<div class="crm-hint" style="margin-top:8px;">Источник: CRM (readonly)</div>`
+                    : ''}
                 </div>
               </div>
             `;

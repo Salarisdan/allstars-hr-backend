@@ -4692,13 +4692,14 @@ function buildTeamItemFromCandidate(candidate) {
 async function loadTeamItemsFromCandidatesDb(agencyId) {
   const teamRows = await loadAllTeamMembersForBackfill();
 
-  return (teamRows || [])
+  const sheetItems = (teamRows || [])
     .map((row) => {
       const status = normalizeStatusAlias(row.status || '') || String(row.status || '').trim();
       const model = String(row?.raw?.['Модели (основные)'] || row?.raw?.['Актуальная модель'] || '').trim();
 
       return {
         row_number: Number(row.row_number),
+        source: 'sheet',
         raw: row.raw || {},
         name: row.name || '',
         telegram: row.telegram || '',
@@ -4712,6 +4713,57 @@ async function loadTeamItemsFromCandidatesDb(agencyId) {
       };
     })
     .filter(item => isVisibleTeamDashboardStatus(item.status));
+
+  const candidateResult = await query(
+    `SELECT id, name, tg, telegram, status, platform, platforms, top_pages, top_profile, main_activity, exp, experience, started_at, hired_at
+     FROM candidates
+     WHERE agency_id = $1
+     ORDER BY created_at DESC`,
+    [agencyId]
+  );
+
+  const crmItems = (candidateResult.rows || [])
+    .map(candidate => {
+      const base = buildTeamItemFromCandidate(candidate);
+      return {
+        ...base,
+        row_number: -Number(candidate.id),
+        candidate_id: Number(candidate.id),
+        source: 'crm'
+      };
+    })
+    .filter(item => isVisibleTeamDashboardStatus(item.status));
+
+  const identityKeys = (item) => {
+    const keys = [];
+    const tgKey = normalizeTelegramKey(item.telegram || item.raw?.['Телеграм'] || item.raw?.['Telegram'] || '');
+    if (tgKey) keys.push(`tg:${tgKey}`);
+
+    const nameKey = normalizePersonKey(item.name || '');
+    if (nameKey) keys.push(`name:${nameKey}`);
+
+    return keys;
+  };
+
+  const seen = new Set();
+  for (const item of sheetItems) {
+    for (const key of identityKeys(item)) {
+      seen.add(key);
+    }
+  }
+
+  const uniqueCrmItems = crmItems.filter(item => {
+    const keys = identityKeys(item);
+    if (!keys.length) return true;
+
+    const intersects = keys.some(key => seen.has(key));
+    if (intersects) return false;
+
+    keys.forEach(key => seen.add(key));
+    return true;
+  });
+
+  return [...sheetItems, ...uniqueCrmItems];
 }
 
 app.get('/api/team-stats', auth, async (req, res) => {
@@ -4780,6 +4832,7 @@ app.get('/api/team-status-members', auth, async (req, res) => {
       .filter(person => String(person.status).trim() === requestedStatus)
       .map(person => ({
         row_number: person.row_number,
+        source: person.source || 'sheet',
         status: person.status,
         name: person.name,
         telegram: person.telegram,
