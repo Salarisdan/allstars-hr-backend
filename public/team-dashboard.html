@@ -3385,41 +3385,6 @@
       return String(item?.source || '').trim().toLowerCase() !== 'crm';
     }
 
-    function normalizeFieldLabel(value) {
-      return String(value || '')
-        .toLowerCase()
-        .replace(/\s+/g, ' ')
-        .trim();
-    }
-
-    function applyMergedStatusToEditorFields(fields, item) {
-      if (!Array.isArray(fields)) return [];
-
-      const source = String(item?.source || '').trim().toLowerCase();
-      const effectiveStatus = String(item?.status || '').trim();
-
-      if (source !== 'sheet+crm' || !effectiveStatus) {
-        return fields.map(field => ({ ...field }));
-      }
-
-      const statusLabels = new Set([
-        'актуальный статус кандидата (hr)',
-        'статус'
-      ]);
-
-      return fields.map(field => {
-        const label = normalizeFieldLabel(field?.label || '');
-        if (!statusLabels.has(label)) {
-          return { ...field };
-        }
-
-        return {
-          ...field,
-          value: effectiveStatus
-        };
-      });
-    }
-
     function renderTeamCards(items) {
       const el = document.getElementById('teamCards');
       if (!el) return;
@@ -4701,12 +4666,11 @@
       const cached = memberEditorCache.get(cacheKey);
 
       if (cached) {
-        currentMemberFields = applyMergedStatusToEditorFields(cached.fields, item);
+        currentMemberFields = Array.isArray(cached.fields)
+          ? cached.fields.map(field => ({ ...field }))
+          : [];
 
-        renderMemberEditorForm({
-          ...cached,
-          fields: currentMemberFields
-        });
+        renderMemberEditorForm(cached);
       } else {
         content.innerHTML = `<div class="loading">Загружаем данные...</div>`;
       }
@@ -4724,17 +4688,14 @@
           return;
         }
 
-        currentMemberFields = applyMergedStatusToEditorFields(data.fields, item);
+        memberEditorCache.set(cacheKey, data);
 
-        const dataForEditor = {
-          ...data,
-          fields: currentMemberFields
-        };
-
-        memberEditorCache.set(cacheKey, dataForEditor);
+        currentMemberFields = Array.isArray(data.fields)
+          ? data.fields.map(field => ({ ...field }))
+          : [];
 
         console.log('API CARD DATA =', data);
-        renderMemberEditorForm(dataForEditor);
+        renderMemberEditorForm(data);
       } catch (err) {
         console.error('openMemberEditor error:', err);
         if (!cached) {
