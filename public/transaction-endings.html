@@ -459,8 +459,11 @@
       });
     }
 
-    async function loadBoard() {
-      boardEl.innerHTML = '<div class="loading">Загружаем ending...</div>';
+    async function loadBoard({ preserveScroll = false } = {}) {
+      const savedScroll = preserveScroll ? window.scrollY : null;
+      if (!preserveScroll) {
+        boardEl.innerHTML = '<div class="loading">Загружаем ending...</div>';
+      }
 
       const res = await api('/api/team-transaction-endings/board');
       const data = await res.json().catch(() => ({}));
@@ -482,6 +485,10 @@
       renderControls();
       renderDuplicates();
       renderBoard();
+
+      if (savedScroll !== null) {
+        requestAnimationFrame(() => window.scrollTo(0, savedScroll));
+      }
     }
 
     async function assignEnding() {
@@ -509,7 +516,7 @@
         return;
       }
 
-      await loadBoard();
+      await loadBoard({ preserveScroll: true });
     }
 
     function getSortedMembers() {
@@ -581,7 +588,7 @@
       memberSelect.value = String(rowNumber);
       endingSelect.value = String(ending);
       activeQuickEnding = null;
-      await loadBoard();
+      await loadBoard({ preserveScroll: true });
     }
 
     async function assignEndingByTelegram() {
@@ -653,7 +660,7 @@
         return;
       }
 
-      await loadBoard();
+      await loadBoard({ preserveScroll: true });
     }
 
     async function clearByEnding(ending) {
@@ -668,7 +675,7 @@
         return;
       }
 
-      await loadBoard();
+      await loadBoard({ preserveScroll: true });
     }
 
     window.clearByEnding = clearByEnding;
