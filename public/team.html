@@ -525,6 +525,7 @@
             <label>Роль</label>
             <select class="select" id="userRole">
               <option value="hr">HR</option>
+              <option value="senior_operator">Старший Оператор</option>
               <option value="teamlead">Teamlead</option>
               <option value="owner">Owner</option>
             </select>
@@ -593,6 +594,11 @@
       return d.toLocaleString('ru-RU');
     }
 
+    function roleLabel(role) {
+      const map = { hr: 'HR', senior_operator: 'Старший Оператор', teamlead: 'Teamlead', owner: 'Owner' };
+      return map[role] || role;
+    }
+
     function renderUsers(users) {
       if (!users.length) {
         usersContent.innerHTML = `<div class="empty">Пользователей пока нет</div>`;
@@ -614,9 +620,10 @@
                 </div>
               </div>
 
-              <div class="user-meta">
-                <div><span class="badge badge-role">${escapeHtml(user.role || 'hr')}</span></div>
+            <div class="user-meta">
+                <div><span class="badge badge-role">${escapeHtml(roleLabel(user.role || 'hr'))}</span></div>
                 <div><strong>ID:</strong> ${user.id}</div>
+                <div><strong>Email:</strong> ${escapeHtml(user.email || '')}</div>
                 <div><strong>Создан:</strong> ${formatDate(user.created_at)}</div>
               </div>
 
@@ -626,10 +633,16 @@
                     ? `<button class="btn-small btn-disable" type="button" onclick="toggleUserStatus(${user.id}, false)">Отключить</button>`
                     : `<button class="btn-small btn-enable" type="button" onclick="toggleUserStatus(${user.id}, true)">Включить</button>`
                 }
+                <button class="btn-small" type="button" onclick="togglePasswordForm(${user.id})">🔑 Пароль</button>
+                <button class="btn-small btn-delete" type="button" onclick="deleteUser(${user.id}, '${escapeHtml(user.email || '')}')"> Удалить</button>
+              </div>
 
-                <button class="btn-small btn-delete" type="button" onclick="deleteUser(${user.id}, '${escapeHtml(user.email || '')}')">
-                  Удалить
-                </button>
+              <div class="user-change-pw" id="changePw_${user.id}" style="display:none;margin-top:.6rem;">
+                <input class="input" type="password" id="newPw_${user.id}" placeholder="Новый пароль (мин. 8 символов)" style="margin-bottom:.4rem;">
+                <div style="display:flex;gap:.4rem;">
+                  <button class="btn-small btn-enable" type="button" onclick="changePassword(${user.id})">Cохранить</button>
+                  <button class="btn-small" type="button" onclick="togglePasswordForm(${user.id})">Отмена</button>
+                </div>
               </div>
             </div>
           `).join('')}
@@ -716,6 +729,26 @@
 
     window.toggleUserStatus = toggleUserStatus;
     window.deleteUser = deleteUser;
+
+    window.togglePasswordForm = function(id) {
+      const el = document.getElementById(`changePw_${id}`);
+      if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    };
+
+    window.changePassword = async function(id) {
+      const input = document.getElementById(`newPw_${id}`);
+      const pw = String(input?.value || '').trim();
+      if (!pw || pw.length < 8) { alert('Пароль должен быть не короче 8 символов'); return; }
+      const res = await api(`/users/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ password: pw })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { alert(data.error || 'Не удалось сменить пароль'); return; }
+      alert('Пароль обновлен');
+      window.togglePasswordForm(id);
+      if (input) input.value = '';
+    };
 
     refreshBtn.addEventListener('click', loadUsers);
     createUserBtn.addEventListener('click', createUser);

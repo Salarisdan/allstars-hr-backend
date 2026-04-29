@@ -2991,7 +2991,7 @@ app.post('/api/users', auth, async (req, res) => {
       return res.status(400).json({ error: 'Имя обязательно' });
     }
 
-    if (!['owner', 'teamlead', 'hr'].includes(role)) {
+    if (!['owner', 'teamlead', 'hr', 'senior_operator'].includes(role)) {
       return res.status(400).json({ error: 'Некорректная роль' });
     }
 
@@ -3125,7 +3125,7 @@ app.post('/users', auth, requireRole('owner'), async (req, res) => {
       return res.status(400).json({ error: 'fullName, email, password, role are required' });
     }
 
-    if (!['owner', 'teamlead', 'hr'].includes(role)) {
+    if (!['owner', 'teamlead', 'hr', 'senior_operator'].includes(role)) {
       return res.status(400).json({ error: 'Invalid role' });
     }
 
@@ -3179,7 +3179,7 @@ app.patch('/users/:id', auth, requireRole('owner'), async (req, res) => {
     const nextIsActive = typeof isActive === 'boolean' ? isActive : current.is_active;
     let nextPasswordHash = current.password_hash;
 
-    if (!['owner', 'teamlead', 'hr'].includes(nextRole)) {
+    if (!['owner', 'teamlead', 'hr', 'senior_operator'].includes(nextRole)) {
       return res.status(400).json({ error: 'Invalid role' });
     }
 
