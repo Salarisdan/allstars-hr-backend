@@ -7,25 +7,25 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@700;800&display=swap" rel="stylesheet">
   <style>
     :root{
-      --bg:#0d0f14;
-      --surface:#141720;
-      --surface2:#1b1f2c;
-      --surface3:#232840;
+      --bg:#07090d;
+      --surface:#0d1117;
+      --surface2:#111820;
+      --surface3:#172030;
       --border:rgba(255,255,255,.07);
-      --accent:#4f6ef7;
-      --accent2:#7d95ff;
-      --accent-bg:rgba(79,110,247,.12);
-      
+      --accent:#ff7c4e;
+      --accent2:#ffaa87;
+      --accent-bg:rgba(255,124,78,.1);
+      --accent-border:rgba(255,124,78,.22);
       --brand-pill-text:#ffbe9e;
       --brand-pill-border:rgba(249,115,22,.34);
       --brand-pill-bg:rgba(194,65,12,.18);
-      --text:#e8eaf0;
-      --text2:#9ba3bd;
-      --text3:#58607c;
+      --text:#edf0f5;
+      --text2:#8a94a8;
+      --text3:#4a5568;
       --green:#34d399;
       --red:#f87171;
       --yellow:#fbbf24;
-      --shadow:0 10px 40px rgba(0,0,0,.24);
+      --shadow:0 10px 40px rgba(0,0,0,.38);
     }
 
     *{box-sizing:border-box;margin:0;padding:0}
@@ -59,8 +59,8 @@
       border:1px solid var(--accent-border);
       border-radius:14px;
       background:
-        radial-gradient(130% 90% at 0% 0%, rgba(125,149,255,.22), rgba(125,149,255,0) 50%),
-        linear-gradient(145deg, rgba(79,110,247,.18), rgba(79,110,247,.04));
+        radial-gradient(130% 90% at 0% 0%, rgba(255,124,78,.18), rgba(255,124,78,0) 50%),
+        linear-gradient(145deg, rgba(255,124,78,.12), rgba(255,124,78,.04));
       box-shadow:0 10px 22px rgba(0,0,0,.28);
     }
 
@@ -76,13 +76,13 @@
       flex:0 0 auto;
       border-radius:8px;
       border:1px solid rgba(255,255,255,.22);
-      background:linear-gradient(145deg, rgba(125,149,255,.35), rgba(79,110,247,.2));
-      color:#dbe4ff;
+      background:linear-gradient(145deg, rgba(255,170,135,.35), rgba(255,124,78,.2));
+      color:#ffd0b0;
       display:flex;
       align-items:center;
       justify-content:center;
       font-size:13px;
-      box-shadow:inset 0 0 14px rgba(125,149,255,.25);
+      box-shadow:inset 0 0 14px rgba(255,124,78,.25);
     }
 
     .brand{
@@ -91,11 +91,11 @@
       font-weight:800;
       letter-spacing:.03em;
       line-height:1;
-      background:linear-gradient(180deg, #f5f7ff 8%, #9fb3ff 60%, #7d95ff 100%);
+      background:linear-gradient(180deg, #fff7f0 8%, #ffba96 60%, #ff7c4e 100%);
       -webkit-background-clip:text;
       background-clip:text;
       color:transparent;
-      text-shadow:0 0 26px rgba(125,149,255,.36);
+      text-shadow:0 0 26px rgba(255,124,78,.36);
     }
     .sidebar-logo .sub{
       margin-top:8px;
@@ -163,6 +163,10 @@
       font-weight:800;
       line-height:1.1;
       letter-spacing:-.03em;
+      background:linear-gradient(135deg, #fff7f0 20%, #ffaa87 80%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
     }
 
     .title p{
@@ -194,17 +198,101 @@
       color:var(--accent2);
     }
 
+    .btn-of{
+      background:rgba(99,141,255,.14);
+      border:1px solid rgba(99,141,255,.28);
+      color:#9db2ff;
+    }
+
+    .btn-of:hover{
+      background:rgba(99,141,255,.22);
+      color:#c0d0ff;
+    }
+
+    .btn-fansly{
+      background:rgba(192,132,252,.14);
+      border:1px solid rgba(192,132,252,.28);
+      color:#d8b4fe;
+    }
+
+    .btn-fansly:hover{
+      background:rgba(192,132,252,.22);
+      color:#ead5ff;
+    }
+
     .btn-ghost{
       background:var(--surface2);
       border:1px solid var(--border);
       color:var(--text2);
     }
 
+    .btn-ghost:hover{
+      color:var(--text);
+      background:var(--surface3);
+    }
+
+    /* ── Stats bar ── */
+    .stats-bar{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:12px;
+      margin-bottom:1.4rem;
+    }
+
+    .stat-card{
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:1rem 1.1rem;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .stat-card::before{
+      content:'';
+      position:absolute;
+      top:0; left:0; right:0;
+      height:2px;
+      border-radius:999px 999px 0 0;
+    }
+
+    .stat-card.urgent::before{ background:#f87171; }
+    .stat-card.search::before{ background:#fbbf24; }
+    .stat-card.bg::before{ background:#86efac; }
+    .stat-card.total::before{ background:var(--accent); }
+
+    .stat-label{
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--text3);
+      margin-bottom:8px;
+    }
+
+    .stat-value{
+      font-size:28px;
+      font-weight:800;
+      letter-spacing:-.03em;
+      line-height:1;
+    }
+
+    .stat-card.urgent .stat-value{ color:#fca5a5; }
+    .stat-card.search .stat-value{ color:#fde68a; }
+    .stat-card.bg .stat-value{ color:#bbf7d0; }
+    .stat-card.total .stat-value{ color:var(--accent2); }
+
+    .stat-sub{
+      font-size:11px;
+      color:var(--text3);
+      margin-top:4px;
+    }
+
     .legend{
       display:flex;
-      gap:10px;
+      gap:8px;
       flex-wrap:wrap;
-      margin-bottom:18px;
+      margin-bottom:20px;
     }
 
     .legend-item{
@@ -213,31 +301,47 @@
       gap:8px;
       background:var(--surface2);
       border:1px solid var(--border);
-      border-radius:12px;
-      padding:.65rem .8rem;
-      font-size:12px;
+      border-radius:999px;
+      padding:.45rem .8rem;
+      font-size:11px;
+      font-weight:700;
       color:var(--text2);
     }
 
     .legend-dot{
-      width:12px;
-      height:12px;
+      width:10px;
+      height:10px;
       border-radius:999px;
       flex-shrink:0;
     }
 
-    .dot-none{background:#d4d4d4}
-    .dot-search{background:#f5c18f}
-    .dot-urgent{background:#eb5f5a}
-    .dot-bg{background:#b7d9ab}
+    .dot-none{background:#4a5568}
+    .dot-search{background:#fbbf24}
+    .dot-urgent{background:#f87171}
+    .dot-bg{background:#86efac}
 
     .section-card{
-      background:var(--surface2);
       border:1px solid var(--border);
-      border-radius:20px;
+      border-radius:22px;
       box-shadow:var(--shadow);
-      padding:1rem;
-      margin-bottom:18px;
+      padding:1.25rem;
+      margin-bottom:22px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .section-card.section-of{
+      background:
+        radial-gradient(80% 60% at 100% 0%, rgba(99,141,255,.08), transparent 70%),
+        var(--surface2);
+      border-color:rgba(99,141,255,.14);
+    }
+
+    .section-card.section-fansly{
+      background:
+        radial-gradient(80% 60% at 100% 0%, rgba(192,132,252,.08), transparent 70%),
+        var(--surface2);
+      border-color:rgba(192,132,252,.14);
     }
 
     .section-head{
@@ -245,18 +349,52 @@
       align-items:center;
       justify-content:space-between;
       gap:12px;
-      margin-bottom:14px;
+      margin-bottom:18px;
       flex-wrap:wrap;
     }
 
-    .section-title{
+    .section-title-group{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .section-platform-icon{
+      width:40px;
+      height:40px;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
       font-size:20px;
+      flex-shrink:0;
+    }
+
+    .section-of .section-platform-icon{
+      background:rgba(99,141,255,.14);
+      border:1px solid rgba(99,141,255,.24);
+    }
+
+    .section-fansly .section-platform-icon{
+      background:rgba(192,132,252,.14);
+      border:1px solid rgba(192,132,252,.24);
+    }
+
+    .section-title{
+      font-size:22px;
       font-weight:800;
+      letter-spacing:-.02em;
+    }
+
+    .section-title-sub{
+      font-size:12px;
+      color:var(--text3);
+      margin-top:2px;
     }
 
     .section-meta{
       display:flex;
-      gap:10px;
+      gap:8px;
       align-items:center;
       flex-wrap:wrap;
     }
@@ -265,54 +403,78 @@
       font-size:11px;
       font-weight:800;
       border-radius:999px;
-      padding:6px 10px;
+      padding:6px 12px;
       border:1px solid var(--border);
       background:var(--surface3);
       color:var(--text2);
     }
 
+    .section-badge.badge-urgent{
+      background:rgba(248,113,113,.12);
+      border-color:rgba(248,113,113,.24);
+      color:#fca5a5;
+    }
+
     .models-grid{
       display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(290px,1fr));
-      gap:14px;
+      grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+      gap:16px;
     }
 
     .model-card{
-      background:linear-gradient(180deg,#232840,#1b1f2c);
-      border:1px solid var(--border);
+      background:linear-gradient(180deg, var(--surface3), #111520);
+      border:1px solid rgba(255,255,255,.07);
       border-radius:18px;
-      padding:1rem;
-      box-shadow:var(--shadow);
+      padding:1.1rem;
+      box-shadow:0 4px 20px rgba(0,0,0,.25);
+      transition:border-color .15s, box-shadow .15s;
+    }
+
+    .model-card:hover{
+      border-color:rgba(255,255,255,.12);
+      box-shadow:0 8px 30px rgba(0,0,0,.35);
     }
 
     .model-head{
       display:flex;
       align-items:flex-start;
-      justify-content:space-between;
       gap:10px;
-      margin-bottom:12px;
+      margin-bottom:14px;
+    }
+
+    .model-name-wrap{
+      flex:1;
     }
 
     .model-name-input{
       width:100%;
-      background:#0f1220;
-      border:1px solid var(--border);
+      background:rgba(0,0,0,.3);
+      border:1px solid rgba(255,255,255,.08);
       border-radius:10px;
       color:var(--text);
-      padding:.72rem .8rem;
+      padding:.7rem .85rem;
       font-family:'Manrope',sans-serif;
       font-size:14px;
       font-weight:700;
       outline:none;
+      transition:border-color .15s;
     }
 
+    .model-name-input:focus{
+      border-color:rgba(255,255,255,.18);
+    }
+
+    .model-name-input::placeholder{ color:var(--text3); }
+
     .platform-badge{
-      font-size:11px;
+      font-size:10px;
       font-weight:800;
       border-radius:999px;
-      padding:6px 10px;
+      padding:5px 10px;
       white-space:nowrap;
       border:1px solid transparent;
+      flex-shrink:0;
+      margin-top:4px;
     }
 
     .platform-of{
@@ -327,10 +489,19 @@
       border-color:rgba(168,85,247,.28);
     }
 
+    .shift-section-label{
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--text3);
+      margin-bottom:10px;
+    }
+
     .shift-list{
       display:flex;
       flex-direction:column;
-      gap:10px;
+      gap:8px;
       margin-bottom:14px;
     }
 
@@ -342,82 +513,98 @@
     }
 
     .shift-label{
-      font-size:12px;
+      font-size:11px;
       font-weight:800;
-      color:var(--text2);
-      min-width:58px;
+      color:var(--text3);
+      min-width:52px;
+      font-variant-numeric:tabular-nums;
     }
 
     .shift-btn{
       flex:1;
       border:none;
       cursor:pointer;
-      border-radius:12px;
-      padding:.78rem .9rem;
+      border-radius:10px;
+      padding:.65rem .9rem;
       font-family:'Manrope',sans-serif;
       font-weight:800;
-      font-size:12px;
+      font-size:11px;
       text-align:left;
-      transition:.15s ease;
+      transition:all .15s ease;
       border:1px solid transparent;
     }
 
     .shift-none{
-      background:rgba(230,230,230,.12);
-      color:#ebebeb;
-      border-color:rgba(230,230,230,.18);
+      background:rgba(255,255,255,.04);
+      color:var(--text3);
+      border-color:rgba(255,255,255,.06);
     }
+
+    .shift-none:hover{ background:rgba(255,255,255,.07); color:var(--text2); }
 
     .shift-search{
-      background:rgba(245,193,143,.16);
-      color:#ffd09c;
-      border-color:rgba(245,193,143,.28);
+      background:rgba(251,191,36,.13);
+      color:#fde68a;
+      border-color:rgba(251,191,36,.22);
     }
+
+    .shift-search:hover{ background:rgba(251,191,36,.2); }
 
     .shift-urgent{
-      background:rgba(235,95,90,.16);
-      color:#ff9d98;
-      border-color:rgba(235,95,90,.28);
+      background:rgba(248,113,113,.15);
+      color:#fca5a5;
+      border-color:rgba(248,113,113,.25);
     }
 
+    .shift-urgent:hover{ background:rgba(248,113,113,.22); }
+
     .shift-bg{
-      background:rgba(183,217,171,.16);
-      color:#c7f0ba;
-      border-color:rgba(183,217,171,.28);
+      background:rgba(134,239,172,.12);
+      color:#bbf7d0;
+      border-color:rgba(134,239,172,.2);
     }
+
+    .shift-bg:hover{ background:rgba(134,239,172,.18); }
 
     .comment-box{
       margin-top:8px;
     }
 
     .comment-label{
-      font-size:11px;
+      font-size:10px;
       font-weight:800;
       letter-spacing:.08em;
       text-transform:uppercase;
       color:var(--text3);
-      margin-bottom:8px;
+      margin-bottom:7px;
     }
 
     .comment-textarea{
       width:100%;
-      min-height:92px;
+      min-height:80px;
       resize:vertical;
-      background:#0f1220;
-      border:1px solid var(--border);
-      border-radius:12px;
+      background:rgba(0,0,0,.28);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:10px;
       color:var(--text);
-      padding:.85rem .9rem;
+      padding:.75rem .85rem;
       font-family:'Manrope',sans-serif;
-      font-size:13px;
+      font-size:12px;
       outline:none;
+      transition:border-color .15s;
     }
+
+    .comment-textarea:focus{
+      border-color:rgba(255,255,255,.14);
+    }
+
+    .comment-textarea::placeholder{ color:var(--text3); }
 
     .card-actions{
       display:flex;
-      justify-content:space-between;
+      justify-content:flex-end;
       align-items:center;
-      gap:10px;
+      gap:8px;
       margin-top:10px;
       flex-wrap:wrap;
     }
@@ -427,10 +614,10 @@
       border:none;
       cursor:pointer;
       border-radius:10px;
-      padding:.68rem .95rem;
+      padding:.6rem .9rem;
       font-family:'Manrope',sans-serif;
       font-weight:800;
-      font-size:12px;
+      font-size:11px;
       transition:.15s;
     }
 
@@ -445,12 +632,13 @@
     }
 
     .delete-btn{
-      background:rgba(248,113,113,.12);
-      border:1px solid rgba(248,113,113,.24);
+      background:rgba(248,113,113,.1);
+      border:1px solid rgba(248,113,113,.2);
       color:#fca5a5;
     }
 
     .delete-btn:hover{
+      background:rgba(248,113,113,.18);
       color:#fecaca;
     }
 
@@ -480,28 +668,53 @@
       background:var(--surface2);
       border:1px solid var(--border);
       border-radius:18px;
-      padding:1.1rem 1rem;
+      padding:2rem;
+      text-align:center;
       color:var(--text2);
+      font-size:14px;
     }
+
+    .loading::before{
+      content:'';
+      display:block;
+      width:32px;
+      height:32px;
+      border:2px solid rgba(255,255,255,.08);
+      border-top-color:var(--accent);
+      border-radius:50%;
+      animation:spin .7s linear infinite;
+      margin:0 auto 12px;
+    }
+
+    @keyframes spin{ to{ transform:rotate(360deg); } }
 
     .error-box{
       color:#f87171;
+      background:rgba(248,113,113,.06);
+      border-color:rgba(248,113,113,.18);
     }
 
     .status-menu{
       position:absolute;
       z-index:50;
-      min-width:240px;
-      background:#171b28;
-      border:1px solid var(--border);
-      border-radius:14px;
-      box-shadow:0 16px 40px rgba(0,0,0,.45);
+      min-width:250px;
+      background:#0f1520;
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:16px;
+      box-shadow:0 20px 50px rgba(0,0,0,.55);
       padding:8px;
       display:none;
     }
 
-    .status-menu.show{
-      display:block;
+    .status-menu.show{ display:block; }
+
+    .status-menu-title{
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--text3);
+      padding:6px 10px 8px;
     }
 
     .status-option{
@@ -537,50 +750,50 @@
     }
 
     .pill-none{
-      background:rgba(230,230,230,.12);
-      color:#ebebeb;
-      border-color:rgba(230,230,230,.18);
+      background:rgba(255,255,255,.06);
+      color:var(--text3);
+      border-color:rgba(255,255,255,.08);
     }
 
     .pill-search{
-      background:rgba(245,193,143,.16);
-      color:#ffd09c;
-      border-color:rgba(245,193,143,.28);
+      background:rgba(251,191,36,.13);
+      color:#fde68a;
+      border-color:rgba(251,191,36,.22);
     }
 
     .pill-urgent{
-      background:rgba(235,95,90,.16);
-      color:#ff9d98;
-      border-color:rgba(235,95,90,.28);
+      background:rgba(248,113,113,.15);
+      color:#fca5a5;
+      border-color:rgba(248,113,113,.25);
     }
 
     .pill-bg{
-      background:rgba(183,217,171,.16);
-      color:#c7f0ba;
-      border-color:rgba(183,217,171,.28);
+      background:rgba(134,239,172,.12);
+      color:#bbf7d0;
+      border-color:rgba(134,239,172,.2);
     }
 
     .model-stats{
       display:grid;
       grid-template-columns:repeat(2,minmax(0,1fr));
-      gap:10px;
+      gap:8px;
       margin-bottom:14px;
     }
 
     .model-stat{
-      background:#0f1220;
-      border:1px solid var(--border);
-      border-radius:12px;
-      padding:.75rem .8rem;
+      background:rgba(0,0,0,.28);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:10px;
+      padding:.65rem .75rem;
     }
 
     .model-stat-label{
       font-size:10px;
       font-weight:800;
-      letter-spacing:.08em;
+      letter-spacing:.07em;
       text-transform:uppercase;
       color:var(--text3);
-      margin-bottom:6px;
+      margin-bottom:4px;
     }
 
     .model-stat-input{
@@ -594,6 +807,8 @@
       font-weight:700;
     }
 
+    .model-stat-input::placeholder{ color:var(--text3); }
+
     .mobile-nav-toggle{display:none}
     .mobile-nav-backdrop{display:none}
     .mobile-nav-toggle span{display:block;width:18px;height:2px;border-radius:999px;background:currentColor}
@@ -601,6 +816,7 @@
 
     @media (max-width:1024px){
       .main{padding:1.15rem 1.15rem 2.25rem}
+      .stats-bar{grid-template-columns:repeat(2,1fr)}
     }
 
     @media (max-width:920px){
@@ -662,6 +878,7 @@
 
     @media (max-width:768px){
       .main{padding:4.6rem .9rem 1rem}
+      .stats-bar{grid-template-columns:repeat(2,1fr)}
       .toolbar,.section-head,.section-meta,.model-head,.card-actions{flex-direction:column;align-items:stretch}
       .models-grid,.model-stats{grid-template-columns:1fr}
       .shift-row{flex-direction:column;align-items:stretch}
@@ -717,17 +934,20 @@
         </div>
 
         <div class="toolbar">
-          <button class="btn btn-primary" type="button" onclick="addNeedCard('onlyfans')">+ Добавить OnlyFans</button>
-          <button class="btn btn-primary" type="button" onclick="addNeedCard('fansly')">+ Добавить Fansly</button>
-          <button class="btn btn-ghost" id="refreshBtn" type="button">Обновить</button>
+          <button class="btn btn-of" type="button" onclick="addNeedCard('onlyfans')">+ OnlyFans</button>
+          <button class="btn btn-fansly" type="button" onclick="addNeedCard('fansly')">+ Fansly</button>
+          <button class="btn btn-ghost" id="refreshBtn" type="button">↺ Обновить</button>
         </div>
       </div>
+
+      <!-- Stats bar rendered by JS -->
+      <div id="statsBar" class="stats-bar" style="display:none;"></div>
 
       <div class="legend">
         <div class="legend-item"><span class="legend-dot dot-urgent"></span> Срочно ищем</div>
         <div class="legend-item"><span class="legend-dot dot-search"></span> Ищем</div>
-        <div class="legend-item"><span class="legend-dot dot-none"></span> Не требуется</div>
         <div class="legend-item"><span class="legend-dot dot-bg"></span> Фоновый запрос</div>
+        <div class="legend-item"><span class="legend-dot dot-none"></span> Не требуется</div>
       </div>
 
       <div id="content">
@@ -747,6 +967,7 @@
 
     const content = document.getElementById('content');
     const refreshBtn = document.getElementById('refreshBtn');
+    const statsBar = document.getElementById('statsBar');
 
     const STATUS_ORDER = ['none', 'search', 'urgent', 'bg'];
     const STATUS_LABELS = {
@@ -848,55 +1069,123 @@
     }
 
     function renderSection(section) {
+      const isOf = section.key === 'onlyfans';
+      const urgentCount = countUrgentInSection(section);
+
       return `
-        <section class="section-card">
+        <section class="section-card ${isOf ? 'section-of' : 'section-fansly'}">
           <div class="section-head">
-            <div class="section-title">${section.label}</div>
+            <div class="section-title-group">
+              <div class="section-platform-icon">${isOf ? '\uD83D\uDD35' : '\uD83D\uDC9C'}</div>
+              <div>
+                <div class="section-title">${section.label}</div>
+                <div class="section-title-sub">${section.models.length} \u043c\u043e\u0434\u0435\u043b\u0435\u0439</div>
+              </div>
+            </div>
             <div class="section-meta">
-              <div class="section-badge">${section.models.length} моделей</div>
+              ${urgentCount > 0 ? `<div class="section-badge badge-urgent">\uD83D\uDD25 ${urgentCount} \u0441\u0440\u043e\u0447\u043d\u043e</div>` : ''}
+              <div class="section-badge">${section.models.length} \u043c\u043e\u0434\u0435\u043b\u0435\u0439</div>
             </div>
           </div>
 
-          <div class="models-grid">
-            ${section.models.map(model => `
-              <div class="model-card">
-                <div class="model-head">
-                  <div style="flex:1;">
-                    <input
-                      class="model-name-input"
-                      id="model-name-${model.id}"
-                      value="${escapeHtml(model.model_name)}"
-                      placeholder="Название модели"
-                      oninput="autosaveNeedModelName(${model.id})"
-                    />
-                    <div class="autosave-status" id="name-status-${model.id}"></div>
-                  </div>
+          ${section.models.length === 0 ? `
+            <div class="empty-state" style="padding:1.5rem; background:transparent; border-style:dashed;">
+              \u041d\u0435\u0442 \u043a\u0430\u0440\u0442\u043e\u0447\u0435\u043a \u2014 \u043d\u0430\u0436\u043c\u0438\u0442\u0435 \u00ab+ ${section.label}\u00bb \u0447\u0442\u043e\u0431\u044b \u0434\u043e\u0431\u0430\u0432\u0438\u0442\u044c
+            </div>
+          ` : `
+            <div class="models-grid">
+              ${section.models.map(model => renderModelCard(model, section)).join('')}
+            </div>
+          `}
+        </section>
+      `;
+    }
 
-                  <div class="platform-badge ${section.key === 'onlyfans' ? 'platform-of' : 'platform-fansly'}">
-                    ${section.label}
-                  </div>
-                </div>
+    function renderModelCard(model, section) {
+      const isOf = section.key === 'onlyfans';
+      return `
+        <div class="model-card">
+          <div class="model-head">
+            <div class="model-name-wrap">
+              <input
+                class="model-name-input"
+                id="model-name-${model.id}"
+                value="${escapeHtml(model.model_name)}"
+                placeholder="\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u043c\u043e\u0434\u0435\u043b\u0438"
+                oninput="autosaveNeedModelName(${model.id})"
+              />
+              <div class="autosave-status" id="name-status-${model.id}"></div>
+            </div>
+            <div class="platform-badge ${isOf ? 'platform-of' : 'platform-fansly'}">
+              ${section.label}
+            </div>
+          </div>
 
-                <div class="model-stats">
-                  <div class="model-stat">
-                    <div class="model-stat-label">Топ,%</div>
-                    <input class="model-stat-input" id="top-${model.id}" value="${escapeHtml(model.top_percent || '')}" placeholder="Например: 1.5" oninput="autosaveNeedMeta(${model.id}, 'top_percent')">
-                  </div>
+          <div class="model-stats">
+            <div class="model-stat">
+              <div class="model-stat-label">\u0422\u043e\u043f, %</div>
+              <input class="model-stat-input" id="top-${model.id}" value="${escapeHtml(model.top_percent || '')}" placeholder="1.5" oninput="autosaveNeedMeta(${model.id}, 'top_percent')">
+            </div>
+            <div class="model-stat">
+              <div class="model-stat-label">\u0417\u041f \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0430, %</div>
+              <input class="model-stat-input" id="salary-${model.id}" value="${escapeHtml(model.operator_salary_percent || '')}" placeholder="20" oninput="autosaveNeedMeta(${model.id}, 'operator_salary_percent')">
+            </div>
+            <div class="model-stat">
+              <div class="model-stat-label">\u041e\u043f\u044b\u0442 \u041a\u0414, \u043c\u0435\u0441</div>
+              <input class="model-stat-input" id="exp-${model.id}" value="${escapeHtml(model.experience_kd_months || '')}" placeholder="3+" oninput="autosaveNeedMeta(${model.id}, 'experience_kd_months')">
+            </div>
+            <div class="model-stat">
+              <div class="model-stat-label">\u0421\u0440. \u0447\u0435\u043a \u0441\u043c\u0435\u043d\u044b</div>
+              <input class="model-stat-input" id="avg-${model.id}" value="${escapeHtml(model.avg_shift_check || '')}" placeholder="150" oninput="autosaveNeedMeta(${model.id}, 'avg_shift_check')">
+            </div>
+            <div class="model-stat" style="grid-column:1 / -1;">
+              <div class="model-stat-label">\u0412\u044b\u0440\u0443\u0447\u043a\u0430 \u043c\u0435\u0441\u044f\u0446, \u043a$</div>
+              <input class="model-stat-input" id="revenue-${model.id}" value="${escapeHtml(model.revenue_month_k || '')}" placeholder="20" oninput="autosaveNeedMeta(${model.id}, 'revenue_month_k')">
+            </div>
+          </div>
 
-                  <div class="model-stat">
-                    <div class="model-stat-label">ЗП оператора, %</div>
-                    <input class="model-stat-input" id="salary-${model.id}" value="${escapeHtml(model.operator_salary_percent || '')}" placeholder="Например: 20" oninput="autosaveNeedMeta(${model.id}, 'operator_salary_percent')">
-                  </div>
+          <div class="autosave-status" id="meta-status-${model.id}"></div>
 
-                  <div class="model-stat">
-                    <div class="model-stat-label">Опыт КД, мес</div>
-                    <input class="model-stat-input" id="exp-${model.id}" value="${escapeHtml(model.experience_kd_months || '')}" placeholder="Например: 3+" oninput="autosaveNeedMeta(${model.id}, 'experience_kd_months')">
-                  </div>
+          <div class="shift-section-label">\u0421\u043c\u0435\u043d\u044b</div>
+          <div class="shift-list">
+            ${[
+              ['00\u201306', 'shift_00_06', model.shift_00_06],
+              ['06\u201312', 'shift_06_12', model.shift_06_12],
+              ['12\u201318', 'shift_12_18', model.shift_12_18],
+              ['18\u201300', 'shift_18_00', model.shift_18_00]
+            ].map(([label, field, status]) => `
+              <div class="shift-row">
+                <div class="shift-label">${label}</div>
+                <button
+                  class="shift-btn ${getStatusClass(status)}"
+                  type="button"
+                  onclick="openStatusMenu(${model.id}, '${field}', '${status}', event)"
+                >
+                  ${STATUS_LABELS[status] || '\u041d\u0435 \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044f'}
+                </button>
+              </div>
+            `).join('')}
+          </div>
 
-                  <div class="model-stat">
-                    <div class="model-stat-label">Ср. чек смены</div>
-                    <input class="model-stat-input" id="avg-${model.id}" value="${escapeHtml(model.avg_shift_check || '')}" placeholder="Например: 150" oninput="autosaveNeedMeta(${model.id}, 'avg_shift_check')">
-                  </div>
+          <div class="comment-box">
+            <div class="comment-label">\u041a\u043e\u043c\u043c\u0435\u043d\u0442\u0430\u0440\u0438\u0439 \u0442\u0438\u043c\u043b\u0438\u0434\u0430</div>
+            <textarea
+              class="comment-textarea"
+              id="comment-${model.id}"
+              placeholder="\u041a\u043e\u043c\u043c\u0435\u043d\u0442\u0430\u0440\u0438\u0439 \u043f\u043e \u043c\u043e\u0434\u0435\u043b\u0438, \u0441\u043c\u0435\u043d\u0430\u043c, \u0441\u0440\u043e\u0447\u043d\u043e\u0441\u0442\u0438, \u043f\u043e\u0436\u0435\u043b\u0430\u043d\u0438\u044f\u043c\u2026"
+              oninput="autosaveNeedComment(${model.id})"
+            >${escapeHtml(model.comment || '')}</textarea>
+            <div class="autosave-status" id="comment-status-${model.id}"></div>
+          </div>
+
+          <div class="card-actions">
+            <button class="delete-btn" type="button" onclick="deleteNeedCard(${model.id})">
+              \u0423\u0434\u0430\u043b\u0438\u0442\u044c \u043a\u0430\u0440\u0442\u043e\u0447\u043a\u0443
+            </button>
+          </div>
+        </div>
+      `;
+    }
 
                   <div class="model-stat" style="grid-column:1 / -1;">
                     <div class="model-stat-label">Выручка месяц, к$</div>
@@ -949,8 +1238,63 @@
       `;
     }
 
+    function computeStats(data) {
+      let total = 0, urgent = 0, search = 0, bg = 0;
+      const SHIFTS = ['shift_00_06', 'shift_06_12', 'shift_12_18', 'shift_18_00'];
+      for (const section of data.sections || []) {
+        total += section.models.length;
+        for (const model of section.models) {
+          for (const s of SHIFTS) {
+            if (model[s] === 'urgent') urgent++;
+            else if (model[s] === 'search') search++;
+            else if (model[s] === 'bg') bg++;
+          }
+        }
+      }
+      return { total, urgent, search, bg };
+    }
+
+    function renderStats(data) {
+      const { total, urgent, search, bg } = computeStats(data);
+      statsBar.style.display = '';
+      statsBar.innerHTML = `
+        <div class="stat-card total">
+          <div class="stat-label">Моделей</div>
+          <div class="stat-value">${total}</div>
+          <div class="stat-sub">всего карточек</div>
+        </div>
+        <div class="stat-card urgent">
+          <div class="stat-label">Срочно</div>
+          <div class="stat-value">${urgent}</div>
+          <div class="stat-sub">смен в приоритете</div>
+        </div>
+        <div class="stat-card search">
+          <div class="stat-label">Ищем</div>
+          <div class="stat-value">${search}</div>
+          <div class="stat-sub">смен в поиске</div>
+        </div>
+        <div class="stat-card bg">
+          <div class="stat-label">Фоново</div>
+          <div class="stat-value">${bg}</div>
+          <div class="stat-sub">фоновых запросов</div>
+        </div>
+      `;
+    }
+
+    function countUrgentInSection(section) {
+      const SHIFTS = ['shift_00_06', 'shift_06_12', 'shift_12_18', 'shift_18_00'];
+      let count = 0;
+      for (const model of section.models) {
+        for (const s of SHIFTS) {
+          if (model[s] === 'urgent') count++;
+        }
+      }
+      return count;
+    }
+
     function renderHrNeeds(data) {
       currentNeedsData = data;
+      renderStats(data);
       content.innerHTML = (data.sections || []).map(renderSection).join('');
     }
 
@@ -1137,11 +1481,14 @@
 
       activeStatusMenu = { id, field, currentStatus, triggerEl: event?.currentTarget || null };
 
-      menu.innerHTML = STATUS_MENU_OPTIONS.map(item => `
-        <button class="status-option" type="button" onclick="applyShiftStatus('${id}','${field}','${item.key}')">
-          <span class="status-pill ${item.pill}">${item.label}</span>
-        </button>
-      `).join('');
+      menu.innerHTML = `
+        <div class="status-menu-title">Выберите статус</div>
+        ${STATUS_MENU_OPTIONS.map(item => `
+          <button class="status-option" type="button" onclick="applyShiftStatus('${id}','${field}','${item.key}')">
+            <span class="status-pill ${item.pill}">${item.label}</span>
+          </button>
+        `).join('')}
+      `;
 
       const target = event?.currentTarget;
       if (target) {
