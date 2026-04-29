@@ -1500,6 +1500,176 @@
         padding:0;
       }
     }
+
+    /* Unified AllStars theme */
+    :root{
+      --bg:#08101c;
+      --surface:#101a2d;
+      --surface2:#14213a;
+      --surface3:#1a2b48;
+      --border:rgba(163,194,255,.13);
+      --border2:rgba(163,194,255,.2);
+      --accent:#66d9ff;
+      --accent2:#b6f0ff;
+      --accent-bg:rgba(102,217,255,.14);
+      --accent-border:rgba(102,217,255,.36);
+      --brand-pill-text:#bffff0;
+      --brand-pill-border:rgba(102,217,255,.34);
+      --brand-pill-bg:rgba(9,124,96,.24);
+      --text:#edf4ff;
+      --text2:#a5b8d8;
+      --text3:#667da4;
+      --green:#34d399;
+      --green-bg:rgba(52,211,153,.10);
+      --green-border:rgba(52,211,153,.22);
+      --yellow:#fbbf24;
+      --yellow-bg:rgba(251,191,36,.10);
+      --yellow-border:rgba(251,191,36,.22);
+      --red:#f87171;
+      --red-bg:rgba(248,113,113,.10);
+      --red-border:rgba(248,113,113,.22);
+      --purple:#a78bfa;
+      --purple-bg:rgba(167,139,250,.10);
+      --purple-border:rgba(167,139,250,.22);
+      --shadow:0 14px 44px rgba(0,0,0,.34);
+    }
+
+    .title h1,
+    .page-title h1,
+    .dashboard-title{
+      background:linear-gradient(180deg,#eef8ff 10%,#b6f0ff 88%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      text-shadow:0 0 22px rgba(102,217,255,.12);
+    }
+
+    .btn,
+    .btn-primary,
+    .btn-ghost,
+    .dashboard-tab,
+    .dashboard-refresh-btn,
+    .crm-filter-btn,
+    .payout-chip,
+    .action-btn,
+    .modal-btn,
+    .modal-close,
+    .quick-btn,
+    .q-btn,
+    .interview-main-btn{
+      transition:transform .14s ease, border-color .2s ease, background .2s ease, color .2s ease;
+    }
+
+    .btn:hover,
+    .btn-primary:hover,
+    .btn-ghost:hover,
+    .dashboard-tab:hover,
+    .dashboard-refresh-btn:hover,
+    .crm-filter-btn:hover,
+    .payout-chip:hover,
+    .action-btn:hover,
+    .modal-btn:hover,
+    .modal-close:hover,
+    .quick-btn:hover,
+    .q-btn:hover,
+    .interview-main-btn:hover{
+      transform:translateY(-1px);
+    }
+
+    .btn-primary,
+    .crm-filter-btn.active,
+    .payout-chip.active,
+    .pipeline-item.active,
+    .dashboard-tab.active,
+    .dashboard-refresh-btn,
+    .interview-main-btn.primary{
+      background:linear-gradient(135deg, rgba(102,217,255,.30), rgba(99,102,241,.20));
+      border-color:rgba(102,217,255,.45);
+      color:#ecfff8;
+      box-shadow:0 0 18px rgba(102,217,255,.14);
+    }
+
+    .stat,
+    .stat-card,
+    .summary-card,
+    .tools-card,
+    .panel,
+    .section-card,
+    .dashboard-panel,
+    .chart-card,
+    .details-card,
+    .modal-sheet,
+    .card,
+    .ref-card,
+    .member-card,
+    .crm-member-card,
+    .interview-card,
+    .ending-card,
+    .slot,
+    .model-card,
+    .tx-item,
+    .tx-box,
+    .source-spotlight,
+    .work-report,
+    .interview-editor-head,
+    .interview-view-field{
+      border-color:rgba(163,194,255,.16);
+      background:linear-gradient(180deg, rgba(25,41,68,.92), rgba(18,30,50,.96));
+    }
+
+    .search,
+    .select,
+    .input,
+    .editor-input,
+    .editor-select,
+    .editor-textarea,
+    .comment-textarea,
+    .model-name-input,
+    .model-stat-input,
+    .modal-search,
+    .crm-search,
+    .endings-search{
+      background:#0f192b;
+      border-color:rgba(163,194,255,.18);
+      color:var(--text);
+    }
+
+    .search:focus,
+    .select:focus,
+    .input:focus,
+    .editor-input:focus,
+    .editor-select:focus,
+    .editor-textarea:focus,
+    .comment-textarea:focus,
+    .model-name-input:focus,
+    .modal-search:focus,
+    .crm-search:focus,
+    .endings-search:focus{
+      border-color:rgba(102,217,255,.5);
+      box-shadow:0 0 0 3px rgba(102,217,255,.14);
+    }
+
+    .loading{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      color:var(--text2);
+    }
+
+    .loading::before{
+      content:'';
+      width:16px;
+      height:16px;
+      border-radius:999px;
+      border:2px solid rgba(182,240,255,.26);
+      border-top-color:var(--accent);
+      animation:unifiedDashSpin .8s linear infinite;
+      flex-shrink:0;
+    }
+
+    @keyframes unifiedDashSpin{
+      to{transform:rotate(360deg)}
+    }
   </style>
   <link rel="stylesheet" href="/navfx.css">
   <link rel="stylesheet" href="/visual-v2.css">

@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AllStars HR SaaS — Вход</title>
+  <title>AllStars HR SaaS вЂ” Р’С…РѕРґ</title>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
 :root{
@@ -93,6 +93,176 @@ a{text-decoration:none;color:inherit}
 @media(max-width:980px){.grid-4,.grid-3,.grid-2,.modal-grid{grid-template-columns:1fr}.sidebar{display:none}.main{margin-left:0;padding:1.25rem 1rem 4rem}}
 @media(max-width:640px){body{line-height:1.5}.auth-wrap{padding:1rem}.auth-card{padding:1rem;border-radius:16px}.page-header h1{font-size:24px}.panel{padding:.85rem}.panel>div:first-child{flex-direction:column}.panel>div:first-child .btn,.list .btn{width:100%}}
 @media(max-width:390px){.auth-wrap{padding:.75rem}.auth-card{padding:.9rem;border-radius:14px}.page-header h1{font-size:22px}.panel{padding:.75rem}}
+
+    /* Unified AllStars theme */
+    :root{
+      --bg:#08101c;
+      --surface:#101a2d;
+      --surface2:#14213a;
+      --surface3:#1a2b48;
+      --border:rgba(163,194,255,.13);
+      --border2:rgba(163,194,255,.2);
+      --accent:#66d9ff;
+      --accent2:#b6f0ff;
+      --accent-bg:rgba(102,217,255,.14);
+      --accent-border:rgba(102,217,255,.36);
+      --brand-pill-text:#bffff0;
+      --brand-pill-border:rgba(102,217,255,.34);
+      --brand-pill-bg:rgba(9,124,96,.24);
+      --text:#edf4ff;
+      --text2:#a5b8d8;
+      --text3:#667da4;
+      --green:#34d399;
+      --green-bg:rgba(52,211,153,.10);
+      --green-border:rgba(52,211,153,.22);
+      --yellow:#fbbf24;
+      --yellow-bg:rgba(251,191,36,.10);
+      --yellow-border:rgba(251,191,36,.22);
+      --red:#f87171;
+      --red-bg:rgba(248,113,113,.10);
+      --red-border:rgba(248,113,113,.22);
+      --purple:#a78bfa;
+      --purple-bg:rgba(167,139,250,.10);
+      --purple-border:rgba(167,139,250,.22);
+      --shadow:0 14px 44px rgba(0,0,0,.34);
+    }
+
+    .title h1,
+    .page-title h1,
+    .dashboard-title{
+      background:linear-gradient(180deg,#eef8ff 10%,#b6f0ff 88%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      text-shadow:0 0 22px rgba(102,217,255,.12);
+    }
+
+    .btn,
+    .btn-primary,
+    .btn-ghost,
+    .dashboard-tab,
+    .dashboard-refresh-btn,
+    .crm-filter-btn,
+    .payout-chip,
+    .action-btn,
+    .modal-btn,
+    .modal-close,
+    .quick-btn,
+    .q-btn,
+    .interview-main-btn{
+      transition:transform .14s ease, border-color .2s ease, background .2s ease, color .2s ease;
+    }
+
+    .btn:hover,
+    .btn-primary:hover,
+    .btn-ghost:hover,
+    .dashboard-tab:hover,
+    .dashboard-refresh-btn:hover,
+    .crm-filter-btn:hover,
+    .payout-chip:hover,
+    .action-btn:hover,
+    .modal-btn:hover,
+    .modal-close:hover,
+    .quick-btn:hover,
+    .q-btn:hover,
+    .interview-main-btn:hover{
+      transform:translateY(-1px);
+    }
+
+    .btn-primary,
+    .crm-filter-btn.active,
+    .payout-chip.active,
+    .pipeline-item.active,
+    .dashboard-tab.active,
+    .dashboard-refresh-btn,
+    .interview-main-btn.primary{
+      background:linear-gradient(135deg, rgba(102,217,255,.30), rgba(99,102,241,.20));
+      border-color:rgba(102,217,255,.45);
+      color:#ecfff8;
+      box-shadow:0 0 18px rgba(102,217,255,.14);
+    }
+
+    .stat,
+    .stat-card,
+    .summary-card,
+    .tools-card,
+    .panel,
+    .section-card,
+    .dashboard-panel,
+    .chart-card,
+    .details-card,
+    .modal-sheet,
+    .card,
+    .ref-card,
+    .member-card,
+    .crm-member-card,
+    .interview-card,
+    .ending-card,
+    .slot,
+    .model-card,
+    .tx-item,
+    .tx-box,
+    .source-spotlight,
+    .work-report,
+    .interview-editor-head,
+    .interview-view-field{
+      border-color:rgba(163,194,255,.16);
+      background:linear-gradient(180deg, rgba(25,41,68,.92), rgba(18,30,50,.96));
+    }
+
+    .search,
+    .select,
+    .input,
+    .editor-input,
+    .editor-select,
+    .editor-textarea,
+    .comment-textarea,
+    .model-name-input,
+    .model-stat-input,
+    .modal-search,
+    .crm-search,
+    .endings-search{
+      background:#0f192b;
+      border-color:rgba(163,194,255,.18);
+      color:var(--text);
+    }
+
+    .search:focus,
+    .select:focus,
+    .input:focus,
+    .editor-input:focus,
+    .editor-select:focus,
+    .editor-textarea:focus,
+    .comment-textarea:focus,
+    .model-name-input:focus,
+    .modal-search:focus,
+    .crm-search:focus,
+    .endings-search:focus{
+      border-color:rgba(102,217,255,.5);
+      box-shadow:0 0 0 3px rgba(102,217,255,.14);
+    }
+
+    .loading{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      color:var(--text2);
+    }
+
+    .loading::before{
+      content:'';
+      width:16px;
+      height:16px;
+      border-radius:999px;
+      border:2px solid rgba(182,240,255,.26);
+      border-top-color:var(--accent);
+      animation:unifiedDashSpin .8s linear infinite;
+      flex-shrink:0;
+    }
+
+    @keyframes unifiedDashSpin{
+      to{transform:rotate(360deg)}
+    }
   </style>
   <link rel="stylesheet" href="/navfx.css">
 </head>
@@ -101,28 +271,28 @@ a{text-decoration:none;color:inherit}
     <div class="auth-card">
       <div class="page-header" style="display:block;margin-bottom:1rem">
         <div class="tag">Multi-tenant HR CRM</div>
-        <h1>Вход в AllStars</h1>
-        <p>Логин, команда, аналитика и SaaS-структура под агентство.</p>
+        <h1>Р’С…РѕРґ РІ AllStars</h1>
+        <p>Р›РѕРіРёРЅ, РєРѕРјР°РЅРґР°, Р°РЅР°Р»РёС‚РёРєР° Рё SaaS-СЃС‚СЂСѓРєС‚СѓСЂР° РїРѕРґ Р°РіРµРЅС‚СЃС‚РІРѕ.</p>
       </div>
 
       <div class="panel">
         <div style="display:flex;gap:8px;margin-bottom:1rem">
-          <button class="btn" id="tab-login" type="button">Вход</button>
-          <button class="btn ghost" id="tab-register" type="button">Регистрация</button>
+          <button class="btn" id="tab-login" type="button">Р’С…РѕРґ</button>
+          <button class="btn ghost" id="tab-register" type="button">Р РµРіРёСЃС‚СЂР°С†РёСЏ</button>
         </div>
 
         <form id="login-form" class="list">
           <input class="input" name="email" placeholder="Email">
-<input class="input" name="password" placeholder="Пароль" type="password">
-          <button class="btn" type="submit">Войти</button>
+<input class="input" name="password" placeholder="РџР°СЂРѕР»СЊ" type="password">
+          <button class="btn" type="submit">Р’РѕР№С‚Рё</button>
         </form>
 
         <form id="register-form" class="list hidden">
-          <input class="input" name="agencyName" placeholder="Название агентства">
-          <input class="input" name="fullName" placeholder="Твоё имя">
+          <input class="input" name="agencyName" placeholder="РќР°Р·РІР°РЅРёРµ Р°РіРµРЅС‚СЃС‚РІР°">
+          <input class="input" name="fullName" placeholder="РўРІРѕС‘ РёРјСЏ">
           <input class="input" name="email" placeholder="Email">
-          <input class="input" name="password" type="password" placeholder="Пароль от 8 символов">
-          <button class="btn" type="submit">Создать workspace</button>
+          <input class="input" name="password" type="password" placeholder="РџР°СЂРѕР»СЊ РѕС‚ 8 СЃРёРјРІРѕР»РѕРІ">
+          <button class="btn" type="submit">РЎРѕР·РґР°С‚СЊ workspace</button>
         </form>
 
         <div id="auth-msg" class="small muted" style="margin-top:1rem"></div>
@@ -165,21 +335,21 @@ function verdictClass(total){
   return 'default';
 }
 function verdictLabel(total){
-  if (total >= 40) return 'Берём';
-  if (total >= 28) return 'Думаем';
-  if (total > 0) return 'Отказ';
-  return 'Без оценки';
+  if (total >= 40) return 'Р‘РµСЂС‘Рј';
+  if (total >= 28) return 'Р”СѓРјР°РµРј';
+  if (total > 0) return 'РћС‚РєР°Р·';
+  return 'Р‘РµР· РѕС†РµРЅРєРё';
 }
 function statusClass(status=''){
   const x = status.toLowerCase();
-  if (x.includes('принят')) return 'green';
-  if (x.includes('тест')) return 'purple';
-  if (x.includes('гайд')) return 'yellow';
-  if (x.includes('отказ')) return 'red';
+  if (x.includes('РїСЂРёРЅСЏС‚')) return 'green';
+  if (x.includes('С‚РµСЃС‚')) return 'purple';
+  if (x.includes('РіР°Р№Рґ')) return 'yellow';
+  if (x.includes('РѕС‚РєР°Р·')) return 'red';
   return 'default';
 }
 function fmtDate(s){
-  if (!s) return '—';
+  if (!s) return 'вЂ”';
   return new Date(s).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
 async function loadMe(){
@@ -201,8 +371,8 @@ async function loadMe(){
     const registerForm = document.getElementById('register-form');
     const msg = document.getElementById('auth-msg');
 
-    const loginHint = 'Введите email и пароль, которые вам выдали. Регистрация нужна только для создания нового агентства.';
-    const registerHint = 'После регистрации создаётся agency + owner account.';
+    const loginHint = 'Р’РІРµРґРёС‚Рµ email Рё РїР°СЂРѕР»СЊ, РєРѕС‚РѕСЂС‹Рµ РІР°Рј РІС‹РґР°Р»Рё. Р РµРіРёСЃС‚СЂР°С†РёСЏ РЅСѓР¶РЅР° С‚РѕР»СЊРєРѕ РґР»СЏ СЃРѕР·РґР°РЅРёСЏ РЅРѕРІРѕРіРѕ Р°РіРµРЅС‚СЃС‚РІР°.';
+    const registerHint = 'РџРѕСЃР»Рµ СЂРµРіРёСЃС‚СЂР°С†РёРё СЃРѕР·РґР°С‘С‚СЃСЏ agency + owner account.';
 
     function switchTab(mode) {
       const isLogin = mode === 'login';
@@ -218,7 +388,7 @@ async function loadMe(){
 
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      msg.textContent = 'Входим...';
+      msg.textContent = 'Р’С…РѕРґРёРј...';
       const fd = new FormData(loginForm);
       try {
         const data = await api('/auth/login', {
@@ -234,7 +404,7 @@ async function loadMe(){
 
     registerForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      msg.textContent = 'Создаём workspace...';
+      msg.textContent = 'РЎРѕР·РґР°С‘Рј workspace...';
       const fd = new FormData(registerForm);
       try {
         const data = await api('/auth/register', {

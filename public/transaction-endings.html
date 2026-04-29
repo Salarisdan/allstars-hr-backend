@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
@@ -149,12 +149,182 @@
       .sidebar{display:block;transform:translateX(-100%);transition:transform .2s ease;z-index:60}
       body.nav-open .sidebar{transform:translateX(0)}
     }
+
+    /* Unified AllStars theme */
+    :root{
+      --bg:#08101c;
+      --surface:#101a2d;
+      --surface2:#14213a;
+      --surface3:#1a2b48;
+      --border:rgba(163,194,255,.13);
+      --border2:rgba(163,194,255,.2);
+      --accent:#66d9ff;
+      --accent2:#b6f0ff;
+      --accent-bg:rgba(102,217,255,.14);
+      --accent-border:rgba(102,217,255,.36);
+      --brand-pill-text:#bffff0;
+      --brand-pill-border:rgba(102,217,255,.34);
+      --brand-pill-bg:rgba(9,124,96,.24);
+      --text:#edf4ff;
+      --text2:#a5b8d8;
+      --text3:#667da4;
+      --green:#34d399;
+      --green-bg:rgba(52,211,153,.10);
+      --green-border:rgba(52,211,153,.22);
+      --yellow:#fbbf24;
+      --yellow-bg:rgba(251,191,36,.10);
+      --yellow-border:rgba(251,191,36,.22);
+      --red:#f87171;
+      --red-bg:rgba(248,113,113,.10);
+      --red-border:rgba(248,113,113,.22);
+      --purple:#a78bfa;
+      --purple-bg:rgba(167,139,250,.10);
+      --purple-border:rgba(167,139,250,.22);
+      --shadow:0 14px 44px rgba(0,0,0,.34);
+    }
+
+    .title h1,
+    .page-title h1,
+    .dashboard-title{
+      background:linear-gradient(180deg,#eef8ff 10%,#b6f0ff 88%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      text-shadow:0 0 22px rgba(102,217,255,.12);
+    }
+
+    .btn,
+    .btn-primary,
+    .btn-ghost,
+    .dashboard-tab,
+    .dashboard-refresh-btn,
+    .crm-filter-btn,
+    .payout-chip,
+    .action-btn,
+    .modal-btn,
+    .modal-close,
+    .quick-btn,
+    .q-btn,
+    .interview-main-btn{
+      transition:transform .14s ease, border-color .2s ease, background .2s ease, color .2s ease;
+    }
+
+    .btn:hover,
+    .btn-primary:hover,
+    .btn-ghost:hover,
+    .dashboard-tab:hover,
+    .dashboard-refresh-btn:hover,
+    .crm-filter-btn:hover,
+    .payout-chip:hover,
+    .action-btn:hover,
+    .modal-btn:hover,
+    .modal-close:hover,
+    .quick-btn:hover,
+    .q-btn:hover,
+    .interview-main-btn:hover{
+      transform:translateY(-1px);
+    }
+
+    .btn-primary,
+    .crm-filter-btn.active,
+    .payout-chip.active,
+    .pipeline-item.active,
+    .dashboard-tab.active,
+    .dashboard-refresh-btn,
+    .interview-main-btn.primary{
+      background:linear-gradient(135deg, rgba(102,217,255,.30), rgba(99,102,241,.20));
+      border-color:rgba(102,217,255,.45);
+      color:#ecfff8;
+      box-shadow:0 0 18px rgba(102,217,255,.14);
+    }
+
+    .stat,
+    .stat-card,
+    .summary-card,
+    .tools-card,
+    .panel,
+    .section-card,
+    .dashboard-panel,
+    .chart-card,
+    .details-card,
+    .modal-sheet,
+    .card,
+    .ref-card,
+    .member-card,
+    .crm-member-card,
+    .interview-card,
+    .ending-card,
+    .slot,
+    .model-card,
+    .tx-item,
+    .tx-box,
+    .source-spotlight,
+    .work-report,
+    .interview-editor-head,
+    .interview-view-field{
+      border-color:rgba(163,194,255,.16);
+      background:linear-gradient(180deg, rgba(25,41,68,.92), rgba(18,30,50,.96));
+    }
+
+    .search,
+    .select,
+    .input,
+    .editor-input,
+    .editor-select,
+    .editor-textarea,
+    .comment-textarea,
+    .model-name-input,
+    .model-stat-input,
+    .modal-search,
+    .crm-search,
+    .endings-search{
+      background:#0f192b;
+      border-color:rgba(163,194,255,.18);
+      color:var(--text);
+    }
+
+    .search:focus,
+    .select:focus,
+    .input:focus,
+    .editor-input:focus,
+    .editor-select:focus,
+    .editor-textarea:focus,
+    .comment-textarea:focus,
+    .model-name-input:focus,
+    .modal-search:focus,
+    .crm-search:focus,
+    .endings-search:focus{
+      border-color:rgba(102,217,255,.5);
+      box-shadow:0 0 0 3px rgba(102,217,255,.14);
+    }
+
+    .loading{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      color:var(--text2);
+    }
+
+    .loading::before{
+      content:'';
+      width:16px;
+      height:16px;
+      border-radius:999px;
+      border:2px solid rgba(182,240,255,.26);
+      border-top-color:var(--accent);
+      animation:unifiedDashSpin .8s linear infinite;
+      flex-shrink:0;
+    }
+
+    @keyframes unifiedDashSpin{
+      to{transform:rotate(360deg)}
+    }
   </style>
   <link rel="stylesheet" href="/navfx.css">
   <link rel="stylesheet" href="/visual-v2.css">
 </head>
 <body>
-  <button class="mobile-nav-toggle" id="mobileNavToggle" type="button" aria-label="Открыть меню">
+  <button class="mobile-nav-toggle" id="mobileNavToggle" type="button" aria-label="РћС‚РєСЂС‹С‚СЊ РјРµРЅСЋ">
     <span></span><span></span><span></span>
   </button>
   <div class="mobile-nav-backdrop" id="mobileNavBackdrop"></div>
@@ -163,62 +333,62 @@
     <aside class="sidebar">
       <div class="sidebar-logo">
         <div class="brand-row">
-          <div class="brand-mark">✦</div>
+          <div class="brand-mark">вњ¦</div>
           <div class="brand">AllStars</div>
         </div>
         <div class="sub">Transaction ending</div>
       </div>
 
-      <div class="sidebar-section">Навигация</div>
-      <a class="nav-item" href="/index.html">🧑‍💼 Новый кандидат</a>
-      <a class="nav-item" href="/candidates.html">👥 Кандидаты</a>
-      <a class="nav-item" href="/referrals.html">🤝 Рефералы</a>
-      <a class="nav-item" href="/interviews.html">📞 Собеседования</a>
-      <a class="nav-item" href="/dashboard.html">📊 Dashboard</a>
-      <a class="nav-item" href="/team-dashboard.html">🫂 Действующие</a>
-      <a class="nav-item active" href="/transaction-endings.html">🪙 Transaction ending</a>
-      <a class="nav-item" href="/hr-needs.html">🎯 Потребности HR</a>
-      <a class="nav-item" href="/team.html">👥 Команда</a>
-      <div class="sidebar-section">Аккаунт</div>
-      <button class="nav-item" type="button" onclick="logoutAllStars()" style="background:none;border:none;width:100%;text-align:left;cursor:pointer;">🚪 Выйти</button>
+      <div class="sidebar-section">РќР°РІРёРіР°С†РёСЏ</div>
+      <a class="nav-item" href="/index.html">рџ§‘вЂЌрџ’ј РќРѕРІС‹Р№ РєР°РЅРґРёРґР°С‚</a>
+      <a class="nav-item" href="/candidates.html">рџ‘Ґ РљР°РЅРґРёРґР°С‚С‹</a>
+      <a class="nav-item" href="/referrals.html">рџ¤ќ Р РµС„РµСЂР°Р»С‹</a>
+      <a class="nav-item" href="/interviews.html">рџ“ћ РЎРѕР±РµСЃРµРґРѕРІР°РЅРёСЏ</a>
+      <a class="nav-item" href="/dashboard.html">рџ“Љ Dashboard</a>
+      <a class="nav-item" href="/team-dashboard.html">рџ«‚ Р”РµР№СЃС‚РІСѓСЋС‰РёРµ</a>
+      <a class="nav-item active" href="/transaction-endings.html">рџЄ™ Transaction ending</a>
+      <a class="nav-item" href="/hr-needs.html">рџЋЇ РџРѕС‚СЂРµР±РЅРѕСЃС‚Рё HR</a>
+      <a class="nav-item" href="/team.html">рџ‘Ґ РљРѕРјР°РЅРґР°</a>
+      <div class="sidebar-section">РђРєРєР°СѓРЅС‚</div>
+      <button class="nav-item" type="button" onclick="logoutAllStars()" style="background:none;border:none;width:100%;text-align:left;cursor:pointer;">рџљЄ Р’С‹Р№С‚Рё</button>
     </aside>
 
     <main class="main">
       <div class="topbar">
         <div class="title">
           <h1>Transaction ending</h1>
-          <p>Управление монетками 1-99. Назначай ending быстрее: выбирай сотрудника, назначай в 1 клик с карточки и синхронизируй Telegram в Действующие.</p>
+          <p>РЈРїСЂР°РІР»РµРЅРёРµ РјРѕРЅРµС‚РєР°РјРё 1-99. РќР°Р·РЅР°С‡Р°Р№ ending Р±С‹СЃС‚СЂРµРµ: РІС‹Р±РёСЂР°Р№ СЃРѕС‚СЂСѓРґРЅРёРєР°, РЅР°Р·РЅР°С‡Р°Р№ РІ 1 РєР»РёРє СЃ РєР°СЂС‚РѕС‡РєРё Рё СЃРёРЅС…СЂРѕРЅРёР·РёСЂСѓР№ Telegram РІ Р”РµР№СЃС‚РІСѓСЋС‰РёРµ.</p>
         </div>
 
         <div class="toolbar">
-          <button class="btn btn-ghost" id="refreshBtn" type="button">Обновить</button>
+          <button class="btn btn-ghost" id="refreshBtn" type="button">РћР±РЅРѕРІРёС‚СЊ</button>
         </div>
       </div>
 
       <section class="stats" id="stats"></section>
 
       <section class="panel">
-        <div class="panel-title">Назначение ending</div>
+        <div class="panel-title">РќР°Р·РЅР°С‡РµРЅРёРµ ending</div>
         <div class="assign-grid">
-          <input class="input" id="memberSearchInput" placeholder="Быстрый поиск сотрудника (имя или @telegram)" />
+          <input class="input" id="memberSearchInput" placeholder="Р‘С‹СЃС‚СЂС‹Р№ РїРѕРёСЃРє СЃРѕС‚СЂСѓРґРЅРёРєР° (РёРјСЏ РёР»Рё @telegram)" />
           <select class="select" id="memberSelect"></select>
           <select class="select" id="endingSelect"></select>
-          <input class="input" id="telegramInput" placeholder="Telegram username, например @username" />
-          <button class="btn btn-primary" id="assignBtn" type="button">Назначить</button>
-          <button class="btn btn-primary" id="assignByTelegramBtn" type="button">Синхр. Telegram</button>
-          <button class="btn btn-danger" id="clearMemberBtn" type="button">Снять у сотрудника</button>
+          <input class="input" id="telegramInput" placeholder="Telegram username, РЅР°РїСЂРёРјРµСЂ @username" />
+          <button class="btn btn-primary" id="assignBtn" type="button">РќР°Р·РЅР°С‡РёС‚СЊ</button>
+          <button class="btn btn-primary" id="assignByTelegramBtn" type="button">РЎРёРЅС…СЂ. Telegram</button>
+          <button class="btn btn-danger" id="clearMemberBtn" type="button">РЎРЅСЏС‚СЊ Сѓ СЃРѕС‚СЂСѓРґРЅРёРєР°</button>
         </div>
-        <div class="hint">Подсказка: клик по свободной монетке выбирает ending и открывает быстрый поиск сотрудника прямо в карточке.</div>
+        <div class="hint">РџРѕРґСЃРєР°Р·РєР°: РєР»РёРє РїРѕ СЃРІРѕР±РѕРґРЅРѕР№ РјРѕРЅРµС‚РєРµ РІС‹Р±РёСЂР°РµС‚ ending Рё РѕС‚РєСЂС‹РІР°РµС‚ Р±С‹СЃС‚СЂС‹Р№ РїРѕРёСЃРє СЃРѕС‚СЂСѓРґРЅРёРєР° РїСЂСЏРјРѕ РІ РєР°СЂС‚РѕС‡РєРµ.</div>
       </section>
 
       <div id="duplicatesBox"></div>
 
       <section class="panel">
-        <div class="panel-title">Карта ending</div>
+        <div class="panel-title">РљР°СЂС‚Р° ending</div>
         <div class="board-filters" id="boardFilters">
-          <button class="chip-btn active" type="button" data-filter="all">Все</button>
-          <button class="chip-btn" type="button" data-filter="free">Свободные</button>
-          <button class="chip-btn" type="button" data-filter="used">Занятые</button>
+          <button class="chip-btn active" type="button" data-filter="all">Р’СЃРµ</button>
+          <button class="chip-btn" type="button" data-filter="free">РЎРІРѕР±РѕРґРЅС‹Рµ</button>
+          <button class="chip-btn" type="button" data-filter="used">Р—Р°РЅСЏС‚С‹Рµ</button>
         </div>
         <div id="board"></div>
       </section>
@@ -301,19 +471,19 @@
     function renderStats() {
       statsEl.innerHTML = `
         <div class="stat">
-          <div class="stat-k">Всего ending</div>
+          <div class="stat-k">Р’СЃРµРіРѕ ending</div>
           <div class="stat-v">99</div>
         </div>
         <div class="stat">
-          <div class="stat-k">Занято</div>
+          <div class="stat-k">Р—Р°РЅСЏС‚Рѕ</div>
           <div class="stat-v">${Number(boardData.used_count || 0)}</div>
         </div>
         <div class="stat">
-          <div class="stat-k">Свободно</div>
+          <div class="stat-k">РЎРІРѕР±РѕРґРЅРѕ</div>
           <div class="stat-v">${Number(boardData.free_count || 0)}</div>
         </div>
         <div class="stat">
-          <div class="stat-k">Сотрудников в Действующие</div>
+          <div class="stat-k">РЎРѕС‚СЂСѓРґРЅРёРєРѕРІ РІ Р”РµР№СЃС‚РІСѓСЋС‰РёРµ</div>
           <div class="stat-v">${Array.isArray(boardData.assignable_members) ? boardData.assignable_members.length : 0}</div>
         </div>
       `;
@@ -325,8 +495,8 @@
       const query = normalizeName(memberSearchQuery);
 
       members.sort((a, b) => {
-        const aWorking = normalizeName(a.status) === normalizeName('Работает') ? 0 : 1;
-        const bWorking = normalizeName(b.status) === normalizeName('Работает') ? 0 : 1;
+        const aWorking = normalizeName(a.status) === normalizeName('Р Р°Р±РѕС‚Р°РµС‚') ? 0 : 1;
+        const bWorking = normalizeName(b.status) === normalizeName('Р Р°Р±РѕС‚Р°РµС‚') ? 0 : 1;
         if (aWorking !== bWorking) return aWorking - bWorking;
         return normalizeName(a.name).localeCompare(normalizeName(b.name), 'ru');
       });
@@ -345,12 +515,12 @@
       });
 
       memberSelect.innerHTML = [
-        '<option value="">Выбери сотрудника</option>',
+        '<option value="">Р’С‹Р±РµСЂРё СЃРѕС‚СЂСѓРґРЅРёРєР°</option>',
         ...filteredMembers.map(member => {
           const currentEnding = getMemberCurrentEnding(member.row_number);
-          const endingLabel = currentEnding ? ` · ending ${currentEnding}` : '';
-          const tgLabel = member.telegram ? ` · ${member.telegram}` : '';
-          return `<option value="${member.row_number}">${escapeHtml(member.name || 'Без имени')} (${escapeHtml(member.status || '—')})${escapeHtml(tgLabel)}${escapeHtml(endingLabel)}</option>`;
+          const endingLabel = currentEnding ? ` В· ending ${currentEnding}` : '';
+          const tgLabel = member.telegram ? ` В· ${member.telegram}` : '';
+          return `<option value="${member.row_number}">${escapeHtml(member.name || 'Р‘РµР· РёРјРµРЅРё')} (${escapeHtml(member.status || 'вЂ”')})${escapeHtml(tgLabel)}${escapeHtml(endingLabel)}</option>`;
         })
       ].join('');
 
@@ -360,9 +530,9 @@
 
       const slots = Array.isArray(boardData.slots) ? boardData.slots : [];
       endingSelect.innerHTML = [
-        '<option value="">Выбери ending</option>',
+        '<option value="">Р’С‹Р±РµСЂРё ending</option>',
         ...slots.map(slot => {
-          const holder = slot.assigned?.name ? ` · занято: ${slot.assigned.name}` : ' · свободно';
+          const holder = slot.assigned?.name ? ` В· Р·Р°РЅСЏС‚Рѕ: ${slot.assigned.name}` : ' В· СЃРІРѕР±РѕРґРЅРѕ';
           return `<option value="${slot.ending}">${slot.ending} (${endingCode(slot.ending)})${escapeHtml(holder)}</option>`;
         })
       ].join('');
@@ -377,7 +547,7 @@
 
       duplicatesBox.innerHTML = `
         <div class="warn-box">
-          Найдены дубликаты ending в таблице Действующие: ${duplicates.map(item => `${item.ending} (${item.name || 'Без имени'})`).join(', ')}
+          РќР°Р№РґРµРЅС‹ РґСѓР±Р»РёРєР°С‚С‹ ending РІ С‚Р°Р±Р»РёС†Рµ Р”РµР№СЃС‚РІСѓСЋС‰РёРµ: ${duplicates.map(item => `${item.ending} (${item.name || 'Р‘РµР· РёРјРµРЅРё'})`).join(', ')}
         </div>
       `;
     }
@@ -391,7 +561,7 @@
       });
 
       if (!slots.length) {
-        boardEl.innerHTML = '<div class="empty">По выбранному фильтру монеток нет</div>';
+        boardEl.innerHTML = '<div class="empty">РџРѕ РІС‹Р±СЂР°РЅРЅРѕРјСѓ С„РёР»СЊС‚СЂСѓ РјРѕРЅРµС‚РѕРє РЅРµС‚</div>';
         return;
       }
 
@@ -404,20 +574,20 @@
             <div class="slot free" data-ending="${slot.ending}">
               <div class="slot-head">
                 <div class="slot-num">${slot.ending}</div>
-                <span class="badge badge-free">Свободно</span>
+                <span class="badge badge-free">РЎРІРѕР±РѕРґРЅРѕ</span>
               </div>
               <div class="slot-meta">
-                <div>Код: ${endingCode(slot.ending)}</div>
-                <div>Нажми на карточку и назначь ending через форму выше.</div>
+                <div>РљРѕРґ: ${endingCode(slot.ending)}</div>
+                <div>РќР°Р¶РјРё РЅР° РєР°СЂС‚РѕС‡РєСѓ Рё РЅР°Р·РЅР°С‡СЊ ending С‡РµСЂРµР· С„РѕСЂРјСѓ РІС‹С€Рµ.</div>
               </div>
               ${isActiveQuick ? `
                 <div class="slot-quick-assign">
                   <div class="slot-quick-row">
-                    <input class="input" id="quickMemberInput_${slot.ending}" placeholder="Введи имя сотрудника" />
-                    <button class="btn btn-primary" type="button" onclick="assignByNameFromCard(${slot.ending})">Назначить</button>
+                    <input class="input" id="quickMemberInput_${slot.ending}" placeholder="Р’РІРµРґРё РёРјСЏ СЃРѕС‚СЂСѓРґРЅРёРєР°" />
+                    <button class="btn btn-primary" type="button" onclick="assignByNameFromCard(${slot.ending})">РќР°Р·РЅР°С‡РёС‚СЊ</button>
                   </div>
                   <div class="quick-search-results" id="quickMemberResults_${slot.ending}"></div>
-                  <div class="slot-quick-note">Начни вводить имя, выбери сотрудника из подсказок, и монетка назначится сразу.</div>
+                  <div class="slot-quick-note">РќР°С‡РЅРё РІРІРѕРґРёС‚СЊ РёРјСЏ, РІС‹Р±РµСЂРё СЃРѕС‚СЂСѓРґРЅРёРєР° РёР· РїРѕРґСЃРєР°Р·РѕРє, Рё РјРѕРЅРµС‚РєР° РЅР°Р·РЅР°С‡РёС‚СЃСЏ СЃСЂР°Р·Сѓ.</div>
                 </div>
               ` : ''}
             </div>
@@ -428,17 +598,17 @@
           <div class="slot used" data-ending="${slot.ending}">
             <div class="slot-head">
               <div class="slot-num">${slot.ending}</div>
-              <span class="badge badge-used">Занято</span>
+              <span class="badge badge-used">Р—Р°РЅСЏС‚Рѕ</span>
             </div>
-            <div class="slot-name">${escapeHtml(assigned.name || 'Без имени')}</div>
+            <div class="slot-name">${escapeHtml(assigned.name || 'Р‘РµР· РёРјРµРЅРё')}</div>
             <div class="slot-meta">
-              <div>Код: ${endingCode(slot.ending)}</div>
-              <div>Статус: ${escapeHtml(assigned.status || '—')}</div>
-              <div>${escapeHtml(assigned.telegram || '—')}</div>
-              <div>Строка: ${assigned.row_number}</div>
+              <div>РљРѕРґ: ${endingCode(slot.ending)}</div>
+              <div>РЎС‚Р°С‚СѓСЃ: ${escapeHtml(assigned.status || 'вЂ”')}</div>
+              <div>${escapeHtml(assigned.telegram || 'вЂ”')}</div>
+              <div>РЎС‚СЂРѕРєР°: ${assigned.row_number}</div>
             </div>
             <div class="slot-actions">
-              <button class="btn btn-danger" type="button" onclick="clearByEnding(${slot.ending})">Освободить</button>
+              <button class="btn btn-danger" type="button" onclick="clearByEnding(${slot.ending})">РћСЃРІРѕР±РѕРґРёС‚СЊ</button>
             </div>
           </div>
         `;
@@ -483,14 +653,14 @@
     async function loadBoard({ preserveScroll = false } = {}) {
       const savedScroll = preserveScroll ? window.scrollY : null;
       if (!preserveScroll) {
-        boardEl.innerHTML = '<div class="loading">Загружаем ending...</div>';
+        boardEl.innerHTML = '<div class="loading">Р—Р°РіСЂСѓР¶Р°РµРј ending...</div>';
       }
 
       const res = await api('/api/team-transaction-endings/board');
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        boardEl.innerHTML = `<div class="empty">${escapeHtml(data.error || 'Не удалось загрузить ending')}</div>`;
+        boardEl.innerHTML = `<div class="empty">${escapeHtml(data.error || 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ ending')}</div>`;
         return;
       }
 
@@ -518,7 +688,7 @@
       const telegram = telegramInput.value;
 
       if (!rowNumber || !ending) {
-        alert('Выбери сотрудника и ending');
+        alert('Р’С‹Р±РµСЂРё СЃРѕС‚СЂСѓРґРЅРёРєР° Рё ending');
         return;
       }
 
@@ -533,7 +703,7 @@
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data.error || 'Не удалось назначить ending');
+        alert(data.error || 'РќРµ СѓРґР°Р»РѕСЃСЊ РЅР°Р·РЅР°С‡РёС‚СЊ ending');
         return;
       }
 
@@ -543,8 +713,8 @@
     function getSortedMembers() {
       const members = Array.isArray(boardData.assignable_members) ? [...boardData.assignable_members] : [];
       members.sort((a, b) => {
-        const aWorking = normalizeName(a.status) === normalizeName('Работает') ? 0 : 1;
-        const bWorking = normalizeName(b.status) === normalizeName('Работает') ? 0 : 1;
+        const aWorking = normalizeName(a.status) === normalizeName('Р Р°Р±РѕС‚Р°РµС‚') ? 0 : 1;
+        const bWorking = normalizeName(b.status) === normalizeName('Р Р°Р±РѕС‚Р°РµС‚') ? 0 : 1;
         if (aWorking !== bWorking) return aWorking - bWorking;
         return normalizeName(a.name).localeCompare(normalizeName(b.name), 'ru');
       });
@@ -586,8 +756,8 @@
       }
 
       box.innerHTML = matches.map(member => {
-        const tgLabel = member.telegram ? ` · ${member.telegram}` : '';
-        return `<button class="quick-search-item" type="button" onclick="assignEndingToMember(${Number(member.row_number)}, ${Number(ending)})">${escapeHtml(member.name || 'Без имени')} (${escapeHtml(member.status || '—')})${escapeHtml(tgLabel)}</button>`;
+        const tgLabel = member.telegram ? ` В· ${member.telegram}` : '';
+        return `<button class="quick-search-item" type="button" onclick="assignEndingToMember(${Number(member.row_number)}, ${Number(ending)})">${escapeHtml(member.name || 'Р‘РµР· РёРјРµРЅРё')} (${escapeHtml(member.status || 'вЂ”')})${escapeHtml(tgLabel)}</button>`;
       }).join('');
     }
 
@@ -602,7 +772,7 @@
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data.error || 'Не удалось назначить ending');
+        alert(data.error || 'РќРµ СѓРґР°Р»РѕСЃСЊ РЅР°Р·РЅР°С‡РёС‚СЊ ending');
         return;
       }
 
@@ -618,12 +788,12 @@
       const ending = Number(endingSelect.value);
 
       if (!rowNumber) {
-        alert('Сначала выбери сотрудника');
+        alert('РЎРЅР°С‡Р°Р»Р° РІС‹Р±РµСЂРё СЃРѕС‚СЂСѓРґРЅРёРєР°');
         return;
       }
 
       if (!normalizeTelegram(tgRaw)) {
-        alert('Введи Telegram username');
+        alert('Р’РІРµРґРё Telegram username');
         return;
       }
 
@@ -638,7 +808,7 @@
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data.error || 'Не удалось назначить ending');
+        alert(data.error || 'РќРµ СѓРґР°Р»РѕСЃСЊ РЅР°Р·РЅР°С‡РёС‚СЊ ending');
         return;
       }
 
@@ -649,13 +819,13 @@
       const input = document.getElementById(`quickMemberInput_${ending}`);
       const query = String(input?.value || '').trim();
       if (!query) {
-        alert('Введи имя сотрудника');
+        alert('Р’РІРµРґРё РёРјСЏ СЃРѕС‚СЂСѓРґРЅРёРєР°');
         return;
       }
 
       const matches = getMemberMatches(query);
       if (!matches.length) {
-        alert('Не нашли сотрудника по этому имени');
+        alert('РќРµ РЅР°С€Р»Рё СЃРѕС‚СЂСѓРґРЅРёРєР° РїРѕ СЌС‚РѕРјСѓ РёРјРµРЅРё');
         return;
       }
 
@@ -666,7 +836,7 @@
       const rowNumber = Number(memberSelect.value);
 
       if (!rowNumber) {
-        alert('Сначала выбери сотрудника');
+        alert('РЎРЅР°С‡Р°Р»Р° РІС‹Р±РµСЂРё СЃРѕС‚СЂСѓРґРЅРёРєР°');
         return;
       }
 
@@ -677,7 +847,7 @@
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data.error || 'Не удалось снять ending');
+        alert(data.error || 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРЅСЏС‚СЊ ending');
         return;
       }
 
@@ -692,7 +862,7 @@
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data.error || 'Не удалось освободить ending');
+        alert(data.error || 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕСЃРІРѕР±РѕРґРёС‚СЊ ending');
         return;
       }
 
@@ -723,7 +893,7 @@
 
     loadBoard().catch(err => {
       console.error(err);
-      boardEl.innerHTML = '<div class="empty">Ошибка загрузки ending</div>';
+      boardEl.innerHTML = '<div class="empty">РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё ending</div>';
     });
   </script>
   <script>
