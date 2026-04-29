@@ -433,6 +433,18 @@ async function readSexterEndingMap() {
       }
     }
 
+    // Fallback: some rows may have only Number column filled (1..99) without Example 5,NN.
+    if (ending === null) {
+      for (const cell of row) {
+        const n = extractTransactionEndingNumber(cell);
+        if (n !== null) {
+          ending = n;
+          endingRaw = String(cell || '').trim();
+          break;
+        }
+      }
+    }
+
     if (ending === null) continue;
 
     for (const cell of row) {
