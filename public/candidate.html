@@ -2430,6 +2430,8 @@
       setTimeout(() => {
         generateCandidateReport();
       }, 250);
+
+      window.AllStarsRealtime?.subscribe(() => load());
     });
 
     load().catch(err => {

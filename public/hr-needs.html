@@ -1214,12 +1214,7 @@
     window.autosaveNeedMeta = autosaveNeedMeta;
 
     refreshBtn.addEventListener('click', loadHrNeedsPage);
-
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'candidateStatusUpdated') {
-        loadHrNeedsPage();
-      }
-    });
+    window.AllStarsRealtime?.subscribe(() => loadHrNeedsPage());
 
     loadHrNeedsPage().catch(err => {
       console.error(err);

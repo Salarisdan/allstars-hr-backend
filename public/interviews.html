@@ -2905,12 +2905,7 @@
       await loadStatusOptions();
       await loadCandidates();
       initializeReminders();
-
-      window.addEventListener('storage', (e) => {
-        if (e.key === 'candidateStatusUpdated') {
-          loadCandidates();
-        }
-      });
+      window.AllStarsRealtime?.subscribe(() => loadCandidates());
     }
 
     initInterviewsPage().catch(err => {

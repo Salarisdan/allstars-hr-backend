@@ -1178,11 +1178,7 @@
       rerender();
     });
 
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'candidateStatusUpdated') {
-        loadReferrals();
-      }
-    });
+    window.AllStarsRealtime?.subscribe(() => loadReferrals());
 
     loadReferrals().catch(err => {
       gridEl.innerHTML = `<div class="empty">${escapeHtml(err.message || 'Ошибка загрузки')}</div>`;

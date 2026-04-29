@@ -3832,28 +3832,7 @@
       await loadStatusOptions();
       await loadTeamStatsPage();
       initPipelineHint();
-
-      window.addEventListener('storage', (e) => {
-        if (e.key === 'candidateStatusUpdated') {
-          loadTeamStatsPage();
-        }
-      });
-
-      // Real-time updates via Server-Sent Events
-      function connectTeamSSE() {
-        const streamPath = `/api/team-stats/stream?token=${encodeURIComponent(token)}`;
-        const streamUrl = window.AllStarsConfig?.resolveApiPath?.(streamPath) || streamPath;
-        const evtSource = new EventSource(streamUrl);
-        evtSource.addEventListener('update', () => {
-          loadTeamStatsPage();
-        });
-        evtSource.onerror = () => {
-          evtSource.close();
-          // Reconnect after 10s if connection drops
-          setTimeout(connectTeamSSE, 10000);
-        };
-      }
-      connectTeamSSE();
+      window.AllStarsRealtime?.subscribe(() => loadTeamStatsPage());
     }
 
     initTeamDashboardPage().catch(err => {

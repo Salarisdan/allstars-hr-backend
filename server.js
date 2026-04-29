@@ -2776,6 +2776,7 @@ app.post('/api/users', auth, async (req, res) => {
       [req.user.agencyId, name, email, passwordHash, role]
     );
 
+    broadcastRealtimeUpdate({ scope: 'users' });
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Create user error:', err.message);
@@ -2804,6 +2805,7 @@ app.patch('/api/users/:id/status', auth, async (req, res) => {
       return res.status(404).json({ error: 'Пользователь не найден' });
     }
 
+    broadcastRealtimeUpdate({ scope: 'users' });
     res.json(result.rows[0]);
   } catch (err) {
     console.error('User status update error:', err.message);
@@ -2830,6 +2832,7 @@ app.delete('/api/users/:id', auth, async (req, res) => {
       return res.status(404).json({ error: 'Пользователь не найден' });
     }
 
+    broadcastRealtimeUpdate({ scope: 'users' });
     res.json({ ok: true });
   } catch (err) {
     console.error('Delete user error:', err.message);
@@ -4703,20 +4706,49 @@ let teamStatsCache = {
 
 const TEAM_STATS_CACHE_TTL = 60 * 1000;
 
-// SSE clients for real-time team-stats updates
-const teamSseClients = new Set();
+// SSE clients for real-time page refresh notifications.
+const realtimeSseClients = new Set();
 
-function broadcastTeamUpdate() {
-  for (const res of teamSseClients) {
+function writeSseEvent(res, eventName, payload = {}) {
+  res.write(`event: ${eventName}\ndata: ${JSON.stringify(payload)}\n\n`);
+}
+
+function broadcastRealtimeUpdate(payload = {}) {
+  const message = {
+    ts: Date.now(),
+    ...payload
+  };
+
+  for (const client of realtimeSseClients) {
     try {
-      res.write('event: update\ndata: {}\n\n');
+      writeSseEvent(client, 'update', message);
     } catch (_) { /* client disconnected */ }
   }
 }
 
+function attachRealtimeSseClient(req, res) {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  writeSseEvent(res, 'connected', { ts: Date.now() });
+
+  realtimeSseClients.add(res);
+
+  const heartbeat = setInterval(() => {
+    try { res.write(': heartbeat\n\n'); } catch (_) {}
+  }, 25000);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    realtimeSseClients.delete(res);
+  });
+}
+
 function invalidateTeamStatsCache() {
   teamStatsCache = { data: null, ts: 0 };
-  broadcastTeamUpdate();
+  broadcastRealtimeUpdate({ scope: 'team-stats' });
 }
 
 function buildTeamItemFromCandidate(candidate) {
@@ -5497,6 +5529,7 @@ app.post('/api/hr-needs', auth, async (req, res) => {
       revenueMonthK
     ]);
 
+    broadcastRealtimeUpdate({ scope: 'hr-needs' });
     res.json(result.rows[0]);
   } catch (err) {
     console.error('HR needs create error:', err.message);
@@ -5593,6 +5626,7 @@ app.patch('/api/hr-needs/:id', auth, async (req, res) => {
       return res.status(404).json({ error: 'HR need card not found' });
     }
 
+    broadcastRealtimeUpdate({ scope: 'hr-needs' });
     res.json(result.rows[0]);
   } catch (err) {
     console.error('HR needs update error:', err.message);
@@ -5617,6 +5651,7 @@ app.delete('/api/hr-needs/:id', auth, async (req, res) => {
       return res.status(404).json({ error: 'HR need card not found' });
     }
 
+    broadcastRealtimeUpdate({ scope: 'hr-needs' });
     res.json({ ok: true });
   } catch (err) {
     console.error('HR needs delete error:', err.message);
@@ -6028,26 +6063,13 @@ ${notes}
   }
 });
 
-/* ─── SSE: real-time team-stats updates ──────────────────────── */
+/* ─── SSE: real-time updates ─────────────────────────────────── */
+app.get('/api/realtime/stream', auth, (req, res) => {
+  attachRealtimeSseClient(req, res);
+});
+
 app.get('/api/team-stats/stream', auth, (req, res) => {
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.flushHeaders();
-
-  // Send a heartbeat immediately so client knows it's connected
-  res.write('event: connected\ndata: {}\n\n');
-
-  teamSseClients.add(res);
-
-  const heartbeat = setInterval(() => {
-    try { res.write(': heartbeat\n\n'); } catch (_) {}
-  }, 25000);
-
-  req.on('close', () => {
-    clearInterval(heartbeat);
-    teamSseClients.delete(res);
-  });
+  attachRealtimeSseClient(req, res);
 });
 
 /* ─── Bulk sync: candidates → team sheet ─────────────────────── */

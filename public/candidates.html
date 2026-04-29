@@ -2718,12 +2718,7 @@
     async function initCandidatesPage() {
       await loadStatusOptions();
       await loadCandidates();
-
-      window.addEventListener('storage', (e) => {
-        if (e.key === 'candidateStatusUpdated') {
-          loadCandidates();
-        }
-      });
+      window.AllStarsRealtime?.subscribe(() => loadCandidates());
     }
 
     initCandidatesPage().catch(err => {
