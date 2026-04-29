@@ -8,22 +8,23 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root{
-      --bg:#0d0f14;
-      --surface:#141720;
-      --surface2:#1b1f2c;
-      --surface3:#232840;
-      --border:rgba(255,255,255,.07);
-      --border2:rgba(255,255,255,.12);
-      --accent:#4f6ef7;
-      --accent2:#7d95ff;
-      --accent-bg:rgba(79,110,247,.12);
+      --bg:#070f18;
+      --surface:#0f1a2a;
+      --surface2:#132034;
+      --surface3:#1a2b45;
+      --border:rgba(170,214,255,.12);
+      --border2:rgba(170,214,255,.2);
+      --accent:#63ffd5;
+      --accent2:#bffff0;
+      --accent-bg:rgba(99,255,213,.14);
+      --accent-border:rgba(99,255,213,.34);
       
-      --brand-pill-text:#b7c4ff;
-      --brand-pill-border:rgba(125,149,255,.34);
-      --brand-pill-bg:rgba(79,110,247,.16);
-      --text:#e8eaf0;
-      --text2:#9ba3bd;
-      --text3:#58607c;
+      --brand-pill-text:#bffff0;
+      --brand-pill-border:rgba(99,255,213,.34);
+      --brand-pill-bg:rgba(9,124,96,.24);
+      --text:#ecf6ff;
+      --text2:#a6bddc;
+      --text3:#6780a7;
       --green:#34d399;
       --green-bg:rgba(52,211,153,.10);
       --green-border:rgba(52,211,153,.22);
@@ -36,14 +37,17 @@
       --purple:#a78bfa;
       --purple-bg:rgba(167,139,250,.10);
       --purple-border:rgba(167,139,250,.22);
-      --shadow:0 10px 40px rgba(0,0,0,.24);
+      --shadow:0 14px 44px rgba(0,0,0,.34);
     }
 
     *{box-sizing:border-box;margin:0;padding:0}
 
     body{
       font-family:'Manrope',sans-serif;
-      background:var(--bg);
+      background:
+        radial-gradient(84% 60% at 100% 0%, rgba(99,255,213,.12), rgba(99,255,213,0) 62%),
+        radial-gradient(68% 54% at 0% 100%, rgba(96,165,250,.12), rgba(96,165,250,0) 70%),
+        var(--bg);
       color:var(--text);
       min-height:100vh;
     }
@@ -711,6 +715,114 @@
       background:rgba(34,197,94,.16);
       border:1px solid rgba(34,197,94,.26);
       color:#bbf7d0;
+    }
+
+    /* Final dashboard overrides: purely visual polish, zero logic changes. */
+    .dashboard-title,
+    .title h1{
+      background:linear-gradient(180deg,#f2fffb 10%, #bffff0 88%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      text-shadow:0 0 22px rgba(99,255,213,.12);
+    }
+
+    .dashboard-tab,
+    .dashboard-refresh-btn,
+    .btn,
+    .btn-primary,
+    .btn-ghost{
+      transition:transform .14s ease, border-color .2s ease, background .2s ease, color .2s ease;
+    }
+
+    .dashboard-tab:hover,
+    .dashboard-refresh-btn:hover,
+    .btn:hover,
+    .btn-primary:hover,
+    .btn-ghost:hover{
+      transform:translateY(-1px);
+    }
+
+    .dashboard-tab.active{
+      background:linear-gradient(135deg, rgba(99,255,213,.28), rgba(96,165,250,.2));
+      border-color:rgba(99,255,213,.45);
+      color:#ecfff8;
+      box-shadow:0 0 20px rgba(99,255,213,.14);
+    }
+
+    .dashboard-refresh-btn{
+      background:linear-gradient(135deg, rgba(99,255,213,.24), rgba(96,165,250,.16));
+      border-color:rgba(99,255,213,.34);
+      color:#dcfff3;
+    }
+
+    .kpi-card,
+    .dashboard-panel,
+    .stat-card,
+    .section-card,
+    .summary-card,
+    .chart-card,
+    .details-card{
+      border-color:rgba(170,214,255,.16);
+    }
+
+    .dashboard-panel,
+    .stat-card,
+    .section-card,
+    .summary-card,
+    .chart-card,
+    .details-card{
+      background:linear-gradient(180deg, rgba(27,43,68,.92), rgba(19,32,52,.96));
+      position:relative;
+      overflow:hidden;
+    }
+
+    .dashboard-panel::before,
+    .stat-card::before,
+    .section-card::before,
+    .summary-card::before,
+    .chart-card::before,
+    .details-card::before{
+      content:'';
+      position:absolute;
+      top:0;
+      left:0;
+      right:0;
+      height:2px;
+      background:linear-gradient(90deg, rgba(99,255,213,.85), rgba(96,165,250,.8));
+      opacity:.8;
+      pointer-events:none;
+    }
+
+    .metric-box,
+    .person-box,
+    .daily-row,
+    .summary-item,
+    .mini-stat,
+    .detail-item{
+      border-color:rgba(170,214,255,.14);
+      background:rgba(255,255,255,.03);
+    }
+
+    .loading{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .loading::before{
+      content:'';
+      width:16px;
+      height:16px;
+      border-radius:999px;
+      border:2px solid rgba(191,255,240,.26);
+      border-top-color:var(--accent);
+      animation:dashSpin .8s linear infinite;
+      flex-shrink:0;
+    }
+
+    @keyframes dashSpin{
+      to{transform:rotate(360deg)}
     }
 
     @media (max-width:1100px){
