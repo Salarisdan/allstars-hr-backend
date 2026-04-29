@@ -176,6 +176,7 @@
       <section class="panel">
         <div class="panel-title">Назначение ending</div>
         <div class="assign-grid">
+          <input class="input" id="memberSearchInput" placeholder="Быстрый поиск сотрудника (имя или @telegram)" />
           <select class="select" id="memberSelect"></select>
           <select class="select" id="endingSelect"></select>
           <input class="input" id="telegramInput" placeholder="Telegram username, например @username" />
@@ -213,6 +214,7 @@
 
     const statsEl = document.getElementById('stats');
     const boardEl = document.getElementById('board');
+    const memberSearchInput = document.getElementById('memberSearchInput');
     const memberSelect = document.getElementById('memberSelect');
     const endingSelect = document.getElementById('endingSelect');
     const telegramInput = document.getElementById('telegramInput');
@@ -226,6 +228,7 @@
     let boardData = { slots: [], assignable_members: [], duplicates: [], used_count: 0, free_count: 99 };
     let boardFilterMode = 'all';
     let activeQuickEnding = null;
+    let memberSearchQuery = '';
 
     function api(path, options = {}) {
       return fetch(window.AllStarsConfig?.resolveApiPath?.(path) || path, {
@@ -293,7 +296,9 @@
     }
 
     function renderControls() {
+      const selectedMemberValue = String(memberSelect.value || '').trim();
       const members = Array.isArray(boardData.assignable_members) ? [...boardData.assignable_members] : [];
+      const query = normalizeName(memberSearchQuery);
 
       members.sort((a, b) => {
         const aWorking = normalizeName(a.status) === normalizeName('Работает') ? 0 : 1;
@@ -302,14 +307,32 @@
         return normalizeName(a.name).localeCompare(normalizeName(b.name), 'ru');
       });
 
+      const filteredMembers = members.filter(member => {
+        if (!query) return true;
+
+        const haystack = [
+          normalizeName(member.name),
+          normalizeName(member.status),
+          normalizeTelegram(member.telegram),
+          normalizeName(member.telegram)
+        ].join(' ');
+
+        return haystack.includes(query);
+      });
+
       memberSelect.innerHTML = [
         '<option value="">Выбери сотрудника</option>',
-        ...members.map(member => {
+        ...filteredMembers.map(member => {
           const currentEnding = getMemberCurrentEnding(member.row_number);
           const endingLabel = currentEnding ? ` · ending ${currentEnding}` : '';
-          return `<option value="${member.row_number}">${escapeHtml(member.name || 'Без имени')} (${escapeHtml(member.status || '—')})${escapeHtml(endingLabel)}</option>`;
+          const tgLabel = member.telegram ? ` · ${member.telegram}` : '';
+          return `<option value="${member.row_number}">${escapeHtml(member.name || 'Без имени')} (${escapeHtml(member.status || '—')})${escapeHtml(tgLabel)}${escapeHtml(endingLabel)}</option>`;
         })
       ].join('');
+
+      if (selectedMemberValue && filteredMembers.some(member => String(member.row_number) === selectedMemberValue)) {
+        memberSelect.value = selectedMemberValue;
+      }
 
       const slots = Array.isArray(boardData.slots) ? boardData.slots : [];
       endingSelect.innerHTML = [
@@ -595,6 +618,10 @@
     assignByTelegramBtn.addEventListener('click', assignEndingByTelegram);
     clearMemberBtn.addEventListener('click', clearCurrentMemberEnding);
     refreshBtn.addEventListener('click', loadBoard);
+    memberSearchInput?.addEventListener('input', () => {
+      memberSearchQuery = String(memberSearchInput.value || '');
+      renderControls();
+    });
     boardFilters?.addEventListener('click', event => {
       const target = event.target.closest('[data-filter]');
       if (!target) return;
