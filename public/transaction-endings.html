@@ -7,25 +7,33 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@700;800&display=swap" rel="stylesheet">
   <style>
     :root{
-      --bg:#0d0f14;
-      --surface:#141720;
-      --surface2:#1b1f2c;
-      --surface3:#232840;
-      --border:rgba(255,255,255,.07);
-      --accent:#4f6ef7;
-      --accent2:#7d95ff;
-      --accent-bg:rgba(79,110,247,.12);
-      --text:#e8eaf0;
-      --text2:#9ba3bd;
-      --text3:#58607c;
+      --bg:#060a12;
+      --surface:#0d1524;
+      --surface2:#101b2d;
+      --surface3:#16263f;
+      --border:rgba(170,195,255,.14);
+      --accent:#37d0ff;
+      --accent2:#9ce8ff;
+      --accent-bg:rgba(55,208,255,.14);
+      --text:#e8f2ff;
+      --text2:#9cb0cf;
+      --text3:#62779e;
       --ok:#86efac;
       --warn:#fde68a;
       --danger:#fca5a5;
-      --shadow:0 10px 40px rgba(0,0,0,.24);
+      --shadow:0 14px 44px rgba(0,0,0,.34);
     }
 
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    body{
+      font-family:'Manrope',sans-serif;
+      background:
+        radial-gradient(80% 60% at 100% 0%, rgba(55,208,255,.12), rgba(55,208,255,0) 60%),
+        radial-gradient(70% 50% at 0% 100%, rgba(99,102,241,.12), rgba(99,102,241,0) 70%),
+        var(--bg);
+      color:var(--text);
+      min-height:100vh;
+    }
     .layout{display:flex;min-height:100vh}
 
     .sidebar{
@@ -46,18 +54,18 @@
     .sidebar-logo{
       margin:0 .7rem .8rem;
       padding:.85rem .85rem .9rem;
-      border:1px solid rgba(125,149,255,.18);
+      border:1px solid rgba(156,232,255,.24);
       border-radius:14px;
       background:
-        radial-gradient(130% 90% at 0% 0%, rgba(125,149,255,.22), rgba(125,149,255,0) 50%),
-        linear-gradient(145deg, rgba(79,110,247,.18), rgba(79,110,247,.04));
+        radial-gradient(130% 90% at 0% 0%, rgba(156,232,255,.2), rgba(156,232,255,0) 50%),
+        linear-gradient(145deg, rgba(55,208,255,.14), rgba(55,208,255,.04));
       box-shadow:0 10px 22px rgba(0,0,0,.28);
     }
 
     .brand-row{display:flex;align-items:center;gap:9px}
     .brand-mark{width:24px;height:24px;border-radius:8px;border:1px solid rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center}
-    .brand{font-family:'Unbounded','Manrope',sans-serif;font-size:20px;font-weight:800;letter-spacing:.03em;line-height:1;background:linear-gradient(180deg,#f5f7ff 8%,#9fb3ff 60%,#7d95ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
-    .sidebar-logo .sub{margin-top:8px;width:max-content;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#9ff2c7;border:1px solid rgba(52,211,153,.34);background:rgba(5,150,105,.18);border-radius:999px;padding:4px 8px}
+    .brand{font-family:'Unbounded','Manrope',sans-serif;font-size:20px;font-weight:800;letter-spacing:.03em;line-height:1;background:linear-gradient(180deg,#f3fbff 8%,#a8ecff 60%,#37d0ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .sidebar-logo .sub{margin-top:8px;width:max-content;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#c9f4ff;border:1px solid rgba(55,208,255,.34);background:rgba(6,95,122,.24);border-radius:999px;padding:4px 8px}
 
     .sidebar-section{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);padding:.45rem 1rem .25rem}
     .nav-item{display:flex;align-items:center;gap:8px;padding:7px 1rem;text-decoration:none;color:var(--text2);font-size:12px;border-left:2px solid transparent;transition:.15s}
@@ -66,33 +74,40 @@
 
     .main{margin-left:230px;width:100%;padding:1.4rem 1.4rem 2rem}
     .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:1rem}
-    .title h1{font-size:30px;font-weight:800;letter-spacing:-.03em}
+    .title h1{font-size:32px;font-weight:800;letter-spacing:-.03em;background:linear-gradient(180deg,#eef8ff 10%,#9ce8ff 85%);-webkit-background-clip:text;background-clip:text;color:transparent}
     .title p{margin-top:6px;color:var(--text2);font-size:13px;max-width:72ch}
 
     .toolbar{display:flex;gap:10px;flex-wrap:wrap}
     .btn{border:none;cursor:pointer;font-family:'Manrope',sans-serif;font-weight:800;font-size:12px;border-radius:12px;padding:.72rem .95rem;transition:.15s}
-    .btn-primary{background:var(--accent-bg);border:1px solid rgba(125,149,255,.3);color:var(--accent2)}
+    .btn:hover{transform:translateY(-1px)}
+    .btn-primary{background:var(--accent-bg);border:1px solid rgba(55,208,255,.35);color:var(--accent2)}
+    .btn-primary:hover{background:rgba(55,208,255,.2)}
     .btn-ghost{background:var(--surface3);border:1px solid var(--border);color:var(--text2)}
+    .btn-ghost:hover{color:var(--text);border-color:rgba(156,232,255,.28)}
     .btn-danger{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.28);color:var(--danger)}
+    .btn-danger:hover{background:rgba(248,113,113,.2)}
 
     .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
-    .stat{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:.9rem;box-shadow:var(--shadow)}
+    .stat{background:linear-gradient(180deg, rgba(22,38,63,.88), rgba(16,27,45,.95));border:1px solid var(--border);border-radius:14px;padding:.9rem;box-shadow:var(--shadow);position:relative;overflow:hidden}
+    .stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg, rgba(55,208,255,.9), rgba(99,102,241,.9));opacity:.75}
     .stat-k{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);font-weight:800;margin-bottom:6px}
     .stat-v{font-size:26px;font-weight:800;line-height:1}
 
-    .panel{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:12px;box-shadow:var(--shadow);margin-bottom:12px}
-    .panel-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#b8c8ff;font-weight:800;margin-bottom:10px}
+    .panel{background:linear-gradient(180deg, rgba(16,27,45,.96), rgba(13,21,36,.98));border:1px solid var(--border);border-radius:16px;padding:12px;box-shadow:var(--shadow);margin-bottom:12px}
+    .panel-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#b9e8ff;font-weight:800;margin-bottom:10px}
 
     .assign-grid{display:grid;grid-template-columns:2fr 1fr 1.6fr auto auto;gap:8px}
-    .input,.select{width:100%;background:#0f1220;border:1px solid var(--border);border-radius:12px;color:var(--text);padding:.72rem .85rem;font-family:'Manrope',sans-serif;font-size:13px;outline:none}
+    .input,.select{width:100%;background:#0d1422;border:1px solid var(--border);border-radius:12px;color:var(--text);padding:.72rem .85rem;font-family:'Manrope',sans-serif;font-size:13px;outline:none;transition:border-color .15s, box-shadow .15s}
+    .input:focus,.select:focus{border-color:rgba(156,232,255,.45);box-shadow:0 0 0 3px rgba(55,208,255,.14)}
     .hint{margin-top:8px;color:var(--text3);font-size:12px}
 
     .board-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
     .chip-btn{border:none;cursor:pointer;border-radius:999px;padding:.5rem .8rem;font-family:'Manrope',sans-serif;font-weight:800;font-size:11px;background:var(--surface3);color:var(--text2);border:1px solid var(--border)}
-    .chip-btn.active{background:var(--accent-bg);border-color:rgba(125,149,255,.34);color:var(--accent2)}
+    .chip-btn.active{background:var(--accent-bg);border-color:rgba(55,208,255,.38);color:var(--accent2)}
 
     .board{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
-    .slot{background:linear-gradient(180deg,#232840,#1b1f2c);border:1px solid var(--border);border-radius:14px;padding:.9rem;box-shadow:var(--shadow)}
+    .slot{background:linear-gradient(180deg,#1a2941,#132034);border:1px solid var(--border);border-radius:14px;padding:.9rem;box-shadow:var(--shadow);transition:transform .15s, border-color .15s}
+    .slot:hover{transform:translateY(-2px);border-color:rgba(156,232,255,.26)}
     .slot.free{border-color:rgba(34,197,94,.24)}
     .slot.used{border-color:rgba(251,191,36,.28)}
     .slot-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
@@ -107,11 +122,15 @@
     .slot-quick-row{display:flex;gap:8px;align-items:center}
     .slot-quick-note{font-size:11px;color:var(--text3)}
     .quick-search-results{display:grid;gap:6px}
-    .quick-search-item{width:100%;text-align:left;border:1px solid var(--border);background:#0f1220;color:var(--text2);border-radius:10px;padding:.5rem .65rem;cursor:pointer;font-family:'Manrope',sans-serif;font-size:12px}
-    .quick-search-item:hover{border-color:rgba(125,149,255,.34);color:var(--text)}
+    .quick-search-item{width:100%;text-align:left;border:1px solid var(--border);background:#0d1422;color:var(--text2);border-radius:10px;padding:.5rem .65rem;cursor:pointer;font-family:'Manrope',sans-serif;font-size:12px}
+    .quick-search-item:hover{border-color:rgba(156,232,255,.34);color:var(--text)}
 
     .warn-box{margin-bottom:10px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.24);border-radius:12px;padding:.75rem .85rem;color:#fecaca;font-size:12px}
     .loading,.empty{color:var(--text2);padding:.8rem 0}
+    .loading{display:flex;align-items:center;gap:10px}
+    .loading::before{content:'';width:16px;height:16px;border-radius:999px;border:2px solid rgba(156,232,255,.26);border-top-color:var(--accent);animation:spin .8s linear infinite}
+
+    @keyframes spin{to{transform:rotate(360deg)}}
 
     .mobile-nav-toggle,.mobile-nav-backdrop{display:none}
 
@@ -168,7 +187,7 @@
       <div class="topbar">
         <div class="title">
           <h1>Transaction ending</h1>
-          <p>Управление монетками 1-99. Ending ведутся локально, а Telegram синхронизируется с карточкой на странице Действующие.</p>
+          <p>Управление монетками 1-99. Назначай ending быстрее: выбирай сотрудника, назначай в 1 клик с карточки и синхронизируй Telegram в Действующие.</p>
         </div>
 
         <div class="toolbar">
@@ -189,7 +208,7 @@
           <button class="btn btn-primary" id="assignByTelegramBtn" type="button">Синхр. Telegram</button>
           <button class="btn btn-danger" id="clearMemberBtn" type="button">Снять у сотрудника</button>
         </div>
-        <div class="hint">Подсказка: клик по свободной монетке выбирает ending. Для Telegram-синхронизации выбери сотрудника в списке и введи username.</div>
+        <div class="hint">Подсказка: клик по свободной монетке выбирает ending и открывает быстрый поиск сотрудника прямо в карточке.</div>
       </section>
 
       <div id="duplicatesBox"></div>
