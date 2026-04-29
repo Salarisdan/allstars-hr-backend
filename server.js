@@ -537,6 +537,24 @@ async function ensureTransactionEndingsInitialized() {
     FROM generate_series(1, 99) AS gs
     ON CONFLICT (ending) DO NOTHING
   `);
+
+  // Normalize legacy/broken rows so they do not appear as occupied.
+  await pool.query(`
+    UPDATE transaction_endings
+    SET assigned_to = NULL,
+        assigned_row_number = NULL,
+        assigned_user_id = NULL,
+        updated_at = NOW()
+    WHERE COALESCE(assigned_row_number, 0) < 2
+      AND lower(trim(COALESCE(assigned_to, ''))) IN ('', '0', '-', '—', 'null', 'без имени')
+  `);
+}
+
+function hasMeaningfulEndingAssigneeName(value) {
+  const s = String(value || '').trim().toLowerCase();
+  if (!s) return false;
+  if (['0', '-', '—', 'null', 'без имени'].includes(s)) return false;
+  return true;
 }
 
 function inspectSexterRow(row = []) {
@@ -5234,20 +5252,29 @@ app.get('/api/team-transaction-endings/board', auth, async (req, res) => {
     for (const row of endingsRes.rows || []) {
       const ending = Number(row.ending);
       const assignedTo = String(row.assigned_to || '').trim();
-      const assignedRowNumber = Number(row.assigned_row_number);
+      const assignedRowNumberRaw = row.assigned_row_number;
+      const parsedAssignedRowNumber = Number(assignedRowNumberRaw);
+      const hasAssignedRowNumber = Number.isInteger(parsedAssignedRowNumber) && parsedAssignedRowNumber >= 2;
+      const hasAssignedName = hasMeaningfulEndingAssigneeName(assignedTo);
       let assigned = null;
 
-      if (assignedTo || Number.isInteger(assignedRowNumber)) {
-        const matchedMember = Number.isInteger(assignedRowNumber) && assignedRowNumber >= 2
-          ? sheetMembers.find(m => Number(m.row_number) === assignedRowNumber)
+      if (hasAssignedName || hasAssignedRowNumber) {
+        const matchedMember = hasAssignedRowNumber
+          ? sheetMembers.find(m => Number(m.row_number) === parsedAssignedRowNumber)
           : memberByName.get(normalizePersonKey(assignedTo));
 
-        const displayName = assignedTo || String(matchedMember?.name || '').trim();
+        // If this is a stale row-based link and member no longer exists, consider slot free.
+        if (hasAssignedRowNumber && !matchedMember && !hasAssignedName) {
+          slots.push({ ending, assigned: null });
+          continue;
+        }
+
+        const displayName = hasAssignedName ? assignedTo : String(matchedMember?.name || '').trim();
         assigned = {
           ending,
           name: displayName,
           transaction_ending: String(ending),
-          row_number: matchedMember ? Number(matchedMember.row_number) : (Number.isInteger(assignedRowNumber) ? assignedRowNumber : null),
+          row_number: matchedMember ? Number(matchedMember.row_number) : (hasAssignedRowNumber ? parsedAssignedRowNumber : null),
           telegram: matchedMember ? String(matchedMember.telegram || '').trim() : '',
           status: matchedMember ? String(matchedMember.status || '').trim() : '',
           platform: matchedMember ? String(matchedMember.platform || '').trim() : '',
