@@ -482,6 +482,54 @@ async function readSexterEndingMap() {
   };
 }
 
+function buildTransactionEndingBoardFromTeamMembers(sheetMembers) {
+  const byEnding = new Map();
+  const duplicates = [];
+
+  for (const item of sheetMembers) {
+    const ending = extractTransactionEndingNumber(item.transactionEnding);
+    if (ending === null) continue;
+
+    const payload = {
+      ending,
+      row_number: Number(item.row_number),
+      name: String(item.name || '').trim(),
+      telegram: String(item.telegram || '').trim(),
+      status: String(item.status || '').trim(),
+      transaction_ending: String(item.transactionEnding || '').trim(),
+      platform: String(item.platform || '').trim(),
+      source: 'team'
+    };
+
+    if (byEnding.has(ending)) {
+      duplicates.push(payload);
+      continue;
+    }
+
+    byEnding.set(ending, payload);
+  }
+
+  const slots = [];
+  let usedCount = 0;
+
+  for (let ending = 1; ending <= 99; ending++) {
+    const assigned = byEnding.get(ending) || null;
+    if (assigned) usedCount += 1;
+
+    slots.push({
+      ending,
+      assigned
+    });
+  }
+
+  return {
+    slots,
+    used_count: usedCount,
+    free_count: 99 - usedCount,
+    duplicates
+  };
+}
+
 function inspectSexterRow(row = []) {
   let rowName = '';
   let rowNameCol = 1;
@@ -5148,53 +5196,58 @@ app.get('/api/team-transaction-endings/board', auth, async (req, res) => {
   try {
     const members = await loadTeamItemsFromCandidatesDb(req.user.agencyId);
     const sheetMembers = members.filter(item => Number(item.row_number) >= 2);
+    let boardPayload = buildTransactionEndingBoardFromTeamMembers(sheetMembers);
 
-    const sexterMap = await readSexterEndingMap();
-    const byEnding = new Map();
-    const duplicates = [];
+    if (process.env.SHELL_OF_SPREADSHEET_ID) {
+      const sexterMap = await readSexterEndingMap();
+      const byEnding = new Map();
+      const duplicates = [];
 
-    for (const item of Array.isArray(sexterMap.used) ? sexterMap.used : []) {
-      const matchedMember = sheetMembers.find(member => namesLooselyMatch(item.name, member.name));
+      for (const item of Array.isArray(sexterMap.used) ? sexterMap.used : []) {
+        const matchedMember = sheetMembers.find(member => namesLooselyMatch(item.name, member.name));
 
-      const payload = {
-        ending: Number(item.ending),
-        name: String(item.name || '').trim(),
-        transaction_ending: String(item.ending_raw || item.ending || '').trim(),
-        row_number: matchedMember ? Number(matchedMember.row_number) : null,
-        telegram: matchedMember ? String(matchedMember.telegram || '').trim() : '',
-        status: matchedMember ? String(matchedMember.status || '').trim() : '',
-        platform: matchedMember ? String(matchedMember.platform || '').trim() : '',
-        source: 'sexter'
-      };
+        const payload = {
+          ending: Number(item.ending),
+          name: String(item.name || '').trim(),
+          transaction_ending: String(item.ending_raw || item.ending || '').trim(),
+          row_number: matchedMember ? Number(matchedMember.row_number) : null,
+          telegram: matchedMember ? String(matchedMember.telegram || '').trim() : '',
+          status: matchedMember ? String(matchedMember.status || '').trim() : '',
+          platform: matchedMember ? String(matchedMember.platform || '').trim() : '',
+          source: 'sexter'
+        };
 
-      if (byEnding.has(payload.ending)) {
-        duplicates.push(payload);
-        continue;
+        if (byEnding.has(payload.ending)) {
+          duplicates.push(payload);
+          continue;
+        }
+
+        byEnding.set(payload.ending, payload);
       }
 
-      byEnding.set(payload.ending, payload);
+      const slots = [];
+      let usedCount = 0;
+
+      for (let ending = 1; ending <= 99; ending++) {
+        const assigned = byEnding.get(ending) || null;
+        if (assigned) usedCount += 1;
+
+        slots.push({
+          ending,
+          assigned
+        });
+      }
+
+      boardPayload = {
+        slots,
+        used_count: usedCount,
+        free_count: 99 - usedCount,
+        duplicates
+      };
     }
-
-    const slots = [];
-    let usedCount = 0;
-
-    for (let ending = 1; ending <= 99; ending++) {
-      const assigned = byEnding.get(ending) || null;
-      if (assigned) usedCount += 1;
-
-      slots.push({
-        ending,
-        assigned
-      });
-    }
-
-    const freeCount = 99 - usedCount;
 
     res.json({
-      slots,
-      used_count: usedCount,
-      free_count: freeCount,
-      duplicates,
+      ...boardPayload,
       assignable_members: sheetMembers.map(item => ({
         row_number: Number(item.row_number),
         name: String(item.name || '').trim(),
@@ -5299,7 +5352,7 @@ app.patch('/api/team-transaction-endings/assign', auth, async (req, res) => {
       }
     });
 
-    if (targetName) {
+    if (targetName && process.env.SHELL_OF_SPREADSHEET_ID) {
       await assignSexterEndingByName(targetName, ending);
     }
 
@@ -5546,7 +5599,7 @@ app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
         }
       });
 
-      if (personName) {
+      if (personName && process.env.SHELL_OF_SPREADSHEET_ID) {
         await clearSexterEndingByName(personName);
       }
 
@@ -5583,7 +5636,9 @@ app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
       }
     });
 
-    await clearSexterEndingByEnding(ending);
+    if (process.env.SHELL_OF_SPREADSHEET_ID) {
+      await clearSexterEndingByEnding(ending);
+    }
 
     invalidateTeamStatsCache();
     res.json({ ok: true, row_number: matchedRow, ending });
