@@ -7,22 +7,23 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@700;800&display=swap" rel="stylesheet">
   <style>
     :root{
-      --bg:#0d0f14;
-      --surface:#141720;
-      --surface2:#1b1f2c;
-      --surface3:#232840;
-      --border:rgba(255,255,255,.07);
-      --border2:rgba(255,255,255,.12);
-      --accent:#4f6ef7;
-      --accent2:#7d95ff;
-      --accent-bg:rgba(79,110,247,.12);
+      --bg:#0f0916;
+      --surface:#1a1023;
+      --surface2:#241630;
+      --surface3:#311f42;
+      --border:rgba(216,185,255,.14);
+      --border2:rgba(216,185,255,.22);
+      --accent:#c084fc;
+      --accent2:#ead8ff;
+      --accent-bg:rgba(192,132,252,.16);
+      --accent-border:rgba(192,132,252,.36);
       
-      --brand-pill-text:#c8b6ff;
-      --brand-pill-border:rgba(167,139,250,.34);
-      --brand-pill-bg:rgba(109,40,217,.18);
-      --text:#e8eaf0;
-      --text2:#9ba3bd;
-      --text3:#58607c;
+      --brand-pill-text:#e8d6ff;
+      --brand-pill-border:rgba(192,132,252,.34);
+      --brand-pill-bg:rgba(109,40,217,.24);
+      --text:#f4efff;
+      --text2:#c8b6de;
+      --text3:#937cae;
       --green:#34d399;
       --green-bg:rgba(52,211,153,.10);
       --green-border:rgba(52,211,153,.22);
@@ -35,7 +36,7 @@
       --purple:#a78bfa;
       --purple-bg:rgba(167,139,250,.10);
       --purple-border:rgba(167,139,250,.22);
-      --shadow:0 10px 40px rgba(0,0,0,.24);
+      --shadow:0 14px 44px rgba(0,0,0,.34);
       --fs:14px;
       --fs-sm:12px;
       --fs-xs:11px;
@@ -45,7 +46,10 @@
 
     body{
       font-family:'Manrope',sans-serif;
-      background:var(--bg);
+      background:
+        radial-gradient(80% 58% at 100% 0%, rgba(192,132,252,.16), rgba(192,132,252,0) 62%),
+        radial-gradient(68% 52% at 0% 100%, rgba(236,72,153,.14), rgba(236,72,153,0) 72%),
+        var(--bg);
       color:var(--text);
       min-height:100vh;
       font-size:var(--fs);
@@ -551,6 +555,95 @@
       .select{width:100%}
       .payout-filters{display:grid;grid-template-columns:1fr 1fr;gap:8px}
       .payout-chip{text-align:center}
+    }
+
+    /* Final referrals overrides: style-only polish, logic unchanged. */
+    .page-title h1{
+      background:linear-gradient(180deg,#fff5ff 10%, #ead8ff 88%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      text-shadow:0 0 22px rgba(192,132,252,.14);
+    }
+
+    .btn,
+    .btn-primary,
+    .btn-ghost,
+    .payout-chip{
+      transition:transform .14s ease, border-color .2s ease, background .2s ease, color .2s ease;
+    }
+
+    .btn:hover,
+    .btn-primary:hover,
+    .btn-ghost:hover,
+    .payout-chip:hover{
+      transform:translateY(-1px);
+    }
+
+    .btn-primary,
+    .payout-chip.active{
+      background:linear-gradient(135deg, rgba(192,132,252,.30), rgba(236,72,153,.20));
+      border-color:rgba(192,132,252,.46);
+      color:#f5e9ff;
+      box-shadow:0 0 18px rgba(192,132,252,.14);
+    }
+
+    .stat,
+    .ref-card,
+    .source-spotlight,
+    .work-report,
+    .meta-item,
+    .work-report-item{
+      border-color:rgba(216,185,255,.16);
+    }
+
+    .stat,
+    .ref-card,
+    .source-spotlight,
+    .work-report{
+      background:linear-gradient(180deg, rgba(49,31,66,.9), rgba(36,22,48,.96));
+      position:relative;
+      overflow:hidden;
+    }
+
+    .stat::before,
+    .ref-card::before,
+    .source-spotlight::before,
+    .work-report::before{
+      content:'';
+      position:absolute;
+      top:0;
+      left:0;
+      right:0;
+      height:2px;
+      background:linear-gradient(90deg, rgba(192,132,252,.86), rgba(236,72,153,.78));
+      opacity:.82;
+      pointer-events:none;
+    }
+
+    .search,
+    .select{
+      border-color:rgba(216,185,255,.18);
+      background:#1a1124;
+      transition:border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .search:focus,
+    .select:focus{
+      border-color:rgba(192,132,252,.5);
+      box-shadow:0 0 0 3px rgba(192,132,252,.16);
+    }
+
+    .ref-card:hover{
+      border-color:rgba(234,216,255,.34);
+      box-shadow:0 0 0 1px rgba(255,255,255,.04), 0 16px 40px rgba(0,0,0,.42);
+      transform:translateY(-2px);
+    }
+
+    .empty{
+      background:linear-gradient(180deg, rgba(49,31,66,.8), rgba(36,22,48,.92));
+      border-color:rgba(216,185,255,.24);
+      color:var(--text2);
     }
   </style>
   <link rel="stylesheet" href="/navfx.css">
