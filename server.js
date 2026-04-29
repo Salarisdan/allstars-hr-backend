@@ -482,6 +482,142 @@ async function readSexterEndingMap() {
   };
 }
 
+function inspectSexterRow(row = []) {
+  let rowName = '';
+  let rowNameCol = 1;
+  let rowEnding = null;
+  let rowEndingCol = -1;
+
+  for (let c = 0; c < row.length; c++) {
+    const text = String(row[c] || '').trim();
+    if (!text) continue;
+
+    const maybeEnding = extractTransactionEndingNumber(text);
+    if (maybeEnding !== null) {
+      if (rowEnding === null) {
+        rowEnding = maybeEnding;
+        rowEndingCol = c + 1;
+      }
+      continue;
+    }
+
+    if (!/^\d+$/.test(text) && text.toLowerCase() !== 'number' && text.toLowerCase() !== 'example' && !rowName) {
+      rowName = text;
+      rowNameCol = c + 1;
+    }
+  }
+
+  return {
+    rowName,
+    rowNameCol,
+    rowEnding,
+    rowEndingCol
+  };
+}
+
+async function assignSexterEndingByName(personName, ending) {
+  const spreadsheetId = process.env.SHELL_OF_SPREADSHEET_ID;
+  const sheetName = process.env.SHELL_OF_SEXTER_SHEET_NAME || '# sexter';
+
+  if (!spreadsheetId || !personName || !Number.isInteger(Number(ending))) return false;
+
+  const normalizedEnding = Number(ending);
+  const sheets = await getSheetsClient();
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${sheetName}!A1:Z200`
+  });
+
+  const values = response.data.values || [];
+  if (!values.length) return false;
+
+  let targetRow = -1;
+  let targetNameCol = 1;
+  let previousRow = -1;
+  let previousNameCol = 1;
+
+  for (let r = 0; r < values.length; r++) {
+    const info = inspectSexterRow(values[r] || []);
+
+    if (info.rowEnding === normalizedEnding) {
+      targetRow = r + 1;
+      targetNameCol = info.rowNameCol || 1;
+    }
+
+    if (info.rowName && namesLooselyMatch(personName, info.rowName)) {
+      previousRow = r + 1;
+      previousNameCol = info.rowNameCol || 1;
+    }
+  }
+
+  if (targetRow === -1) return false;
+
+  const data = [];
+  if (previousRow !== -1 && previousRow !== targetRow) {
+    data.push({
+      range: `${sheetName}!${columnToLetter(previousNameCol)}${previousRow}`,
+      values: [['']]
+    });
+  }
+
+  data.push({
+    range: `${sheetName}!${columnToLetter(targetNameCol)}${targetRow}`,
+    values: [[String(personName).trim()]]
+  });
+
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      valueInputOption: 'USER_ENTERED',
+      data
+    }
+  });
+
+  return true;
+}
+
+async function clearSexterEndingByEnding(ending) {
+  const spreadsheetId = process.env.SHELL_OF_SPREADSHEET_ID;
+  const sheetName = process.env.SHELL_OF_SEXTER_SHEET_NAME || '# sexter';
+
+  if (!spreadsheetId || !Number.isInteger(Number(ending))) return false;
+
+  const normalizedEnding = Number(ending);
+  const sheets = await getSheetsClient();
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${sheetName}!A1:Z200`
+  });
+
+  const values = response.data.values || [];
+  if (!values.length) return false;
+
+  let matchedRow = -1;
+  let matchedNameCol = 1;
+
+  for (let r = 0; r < values.length; r++) {
+    const info = inspectSexterRow(values[r] || []);
+    if (info.rowEnding === normalizedEnding) {
+      matchedRow = r + 1;
+      matchedNameCol = info.rowNameCol || 1;
+      break;
+    }
+  }
+
+  if (matchedRow === -1) return false;
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: `${sheetName}!${columnToLetter(matchedNameCol)}${matchedRow}`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: {
+      values: [['']]
+    }
+  });
+
+  return true;
+}
+
 async function clearSexterEndingByName(personName) {
   const spreadsheetId = process.env.SHELL_OF_SPREADSHEET_ID;
   const sheetName = process.env.SHELL_OF_SEXTER_SHEET_NAME || '# sexter';
@@ -5013,29 +5149,30 @@ app.get('/api/team-transaction-endings/board', auth, async (req, res) => {
     const members = await loadTeamItemsFromCandidatesDb(req.user.agencyId);
     const sheetMembers = members.filter(item => Number(item.row_number) >= 2);
 
+    const sexterMap = await readSexterEndingMap();
     const byEnding = new Map();
     const duplicates = [];
 
-    for (const item of sheetMembers) {
-      const ending = extractTransactionEndingNumber(item.transactionEnding);
-      if (ending === null) continue;
+    for (const item of Array.isArray(sexterMap.used) ? sexterMap.used : []) {
+      const matchedMember = sheetMembers.find(member => namesLooselyMatch(item.name, member.name));
 
       const payload = {
-        ending,
-        row_number: Number(item.row_number),
+        ending: Number(item.ending),
         name: String(item.name || '').trim(),
-        telegram: String(item.telegram || '').trim(),
-        status: String(item.status || '').trim(),
-        transaction_ending: String(item.transactionEnding || '').trim(),
-        source: String(item.source || '').trim()
+        transaction_ending: String(item.ending_raw || item.ending || '').trim(),
+        row_number: matchedMember ? Number(matchedMember.row_number) : null,
+        telegram: matchedMember ? String(matchedMember.telegram || '').trim() : '',
+        status: matchedMember ? String(matchedMember.status || '').trim() : '',
+        platform: matchedMember ? String(matchedMember.platform || '').trim() : '',
+        source: 'sexter'
       };
 
-      if (byEnding.has(ending)) {
+      if (byEnding.has(payload.ending)) {
         duplicates.push(payload);
         continue;
       }
 
-      byEnding.set(ending, payload);
+      byEnding.set(payload.ending, payload);
     }
 
     const slots = [];
@@ -5120,6 +5257,8 @@ app.patch('/api/team-transaction-endings/assign', auth, async (req, res) => {
     const endingValue = String(ending);
 
     let targetExists = false;
+    let targetName = '';
+    const nameIdx = headers.findIndex(h => String(h || '').trim() === 'Имя');
 
     for (let i = 0; i < rows.length; i++) {
       const absoluteRow = i + 2;
@@ -5127,6 +5266,9 @@ app.patch('/api/team-transaction-endings/assign', auth, async (req, res) => {
 
       if (absoluteRow === rowNumber) {
         targetExists = true;
+        if (nameIdx >= 0) {
+          targetName = String(row[nameIdx] || '').trim();
+        }
       }
 
       const currentEnding = extractTransactionEndingNumber(row[txIdx]);
@@ -5156,6 +5298,10 @@ app.patch('/api/team-transaction-endings/assign', auth, async (req, res) => {
         data: updates
       }
     });
+
+    if (targetName) {
+      await assignSexterEndingByName(targetName, ending);
+    }
 
     invalidateTeamStatsCache();
     res.json({ ok: true, row_number: rowNumber, ending });
@@ -5383,6 +5529,14 @@ app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
     const colLetter = columnToLetter(txIdx + 1);
 
     if (rowProvided) {
+      const rowRes = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A${rowNumber}:AU${rowNumber}`
+      });
+      const row = rowRes.data.values?.[0] || [];
+      const nameIdx = headers.findIndex(h => String(h || '').trim() === 'Имя');
+      const personName = nameIdx >= 0 ? String(row[nameIdx] || '').trim() : '';
+
       await sheets.spreadsheets.values.update({
         spreadsheetId,
         range: `${sheetName}!${colLetter}${rowNumber}`,
@@ -5391,6 +5545,10 @@ app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
           values: [['']]
         }
       });
+
+      if (personName) {
+        await clearSexterEndingByName(personName);
+      }
 
       invalidateTeamStatsCache();
       return res.json({ ok: true, row_number: rowNumber });
@@ -5424,6 +5582,8 @@ app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
         values: [['']]
       }
     });
+
+    await clearSexterEndingByEnding(ending);
 
     invalidateTeamStatsCache();
     res.json({ ok: true, row_number: matchedRow, ending });
