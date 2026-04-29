@@ -7,29 +7,33 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@700;800&display=swap" rel="stylesheet">
   <style>
     :root{
-      --bg:#0d0f14;
-      --surface:#141720;
-      --surface2:#1b1f2c;
-      --surface3:#232840;
-      --border:rgba(255,255,255,.07);
-      --accent:#4f6ef7;
-      --accent2:#7d95ff;
-      --accent-bg:rgba(79,110,247,.12);
+      --bg:#08101c;
+      --surface:#101a2d;
+      --surface2:#14213a;
+      --surface3:#1a2b48;
+      --border:rgba(163,194,255,.13);
+      --accent:#66d9ff;
+      --accent2:#b6f0ff;
+      --accent-bg:rgba(102,217,255,.14);
+      --accent-border:rgba(102,217,255,.36);
       
       --brand-pill-text:#9ff2c7;
       --brand-pill-border:rgba(52,211,153,.34);
       --brand-pill-bg:rgba(5,150,105,.18);
-      --text:#e8eaf0;
-      --text2:#9ba3bd;
-      --text3:#58607c;
-      --shadow:0 10px 40px rgba(0,0,0,.24);
+      --text:#edf4ff;
+      --text2:#a5b8d8;
+      --text3:#667da4;
+      --shadow:0 14px 44px rgba(0,0,0,.34);
     }
 
     *{box-sizing:border-box;margin:0;padding:0}
 
     body{
       font-family:'Manrope',sans-serif;
-      background:var(--bg);
+      background:
+        radial-gradient(80% 60% at 100% 0%, rgba(102,217,255,.12), rgba(102,217,255,0) 60%),
+        radial-gradient(70% 50% at 0% 100%, rgba(99,102,241,.12), rgba(99,102,241,0) 70%),
+        var(--bg);
       color:var(--text);
       min-height:100vh;
     }
@@ -2693,6 +2697,96 @@
       background:var(--surface3);
       border:1px solid var(--border);
       color:var(--text2);
+    }
+
+    /* Final visual overrides: keep logic untouched, improve readability and hierarchy. */
+    .title h1{
+      background:linear-gradient(180deg,#eef8ff 10%,#b6f0ff 88%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      text-shadow:0 0 22px rgba(102,217,255,.12);
+    }
+
+    .btn-primary,
+    .btn-ghost,
+    .crm-filter-btn,
+    .modal-btn{
+      transition:transform .14s ease, border-color .2s ease, background .2s ease, color .2s ease;
+    }
+
+    .btn-primary:hover,
+    .btn-ghost:hover,
+    .crm-filter-btn:hover,
+    .modal-btn:hover{
+      transform:translateY(-1px);
+    }
+
+    .stat-card,
+    .summary-card,
+    .tools-card,
+    .tx-box,
+    .endings-stat{
+      background:linear-gradient(180deg, rgba(25,41,68,.92), rgba(18,30,50,.95));
+      border-color:rgba(163,194,255,.16);
+      position:relative;
+      overflow:hidden;
+    }
+
+    .stat-card::before,
+    .summary-card::before,
+    .tools-card::before{
+      content:'';
+      position:absolute;
+      top:0;
+      left:0;
+      right:0;
+      height:2px;
+      background:linear-gradient(90deg, rgba(102,217,255,.9), rgba(99,102,241,.8));
+      opacity:.8;
+    }
+
+    .pipeline-item,
+    .member-card,
+    .crm-member-card,
+    .tx-item,
+    .ending-card{
+      border-color:rgba(163,194,255,.18);
+    }
+
+    .member-card:hover,
+    .crm-member-card:hover,
+    .pipeline-item:hover,
+    .ending-card:hover,
+    .tx-item:hover{
+      border-color:rgba(182,240,255,.35);
+    }
+
+    .modal-sheet{
+      background:linear-gradient(180deg,#162743,#101c30);
+      border-color:rgba(163,194,255,.2);
+      box-shadow:0 26px 90px rgba(0,0,0,.56);
+    }
+
+    .loading{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .loading::before{
+      content:'';
+      width:16px;
+      height:16px;
+      border-radius:999px;
+      border:2px solid rgba(182,240,255,.26);
+      border-top-color:var(--accent);
+      animation:dashSpin .8s linear infinite;
+      flex-shrink:0;
+    }
+
+    @keyframes dashSpin{
+      to{transform:rotate(360deg)}
     }
 
     .mobile-nav-toggle{display:none}
