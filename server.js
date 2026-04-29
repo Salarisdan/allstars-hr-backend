@@ -5139,12 +5139,114 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
     const rowNumber = Number(req.params.rowNumber);
     const updates = req.body?.updates || {};
 
-    if (!rowNumber || rowNumber < 1) {
+    if (!Number.isInteger(rowNumber) || rowNumber === 0) {
       return res.status(400).json({ error: 'Invalid row number' });
     }
 
     if (!updates || typeof updates !== 'object') {
       return res.status(400).json({ error: 'updates object is required' });
+    }
+
+    // CRM-backed rows are exposed in team dashboard as negative row numbers: -candidate_id.
+    if (rowNumber < 0) {
+      const candidateId = Math.abs(rowNumber);
+      const rawNextStatus =
+        updates['Актуальный статус кандидата (Hr)'] ??
+        updates.status ??
+        updates['Статус'];
+
+      const nextStatus = normalizeCandidateStatus(String(rawNextStatus || '').trim());
+      if (!nextStatus) {
+        return res.status(400).json({ error: 'CRM card supports status update only' });
+      }
+
+      const existing = await query(
+        'SELECT * FROM candidates WHERE id = $1 AND agency_id = $2 LIMIT 1',
+        [candidateId, req.user.agencyId]
+      );
+
+      const row = existing.rows[0];
+      if (!row) {
+        return res.status(404).json({ error: 'Кандидат не найден в CRM' });
+      }
+
+      const prevStatus = String(row.status || '').trim();
+      if (nextStatus === prevStatus) {
+        invalidateTeamStatsCache();
+        return res.json({ ok: true, row_number: rowNumber, source: 'crm', candidate_id: candidateId });
+      }
+
+      const statusDatePatch = getStatusDatePatch(nextStatus, row);
+
+      const updated = await query(
+        `UPDATE candidates
+         SET updated_by_user_id = $3,
+             updated_at = NOW(),
+             status = $4,
+             status_changed_at = COALESCE($5, status_changed_at),
+             hired_at = COALESCE($6, hired_at),
+             rejected_at = COALESCE($7, rejected_at),
+             started_at = COALESCE($8, started_at),
+             fired_at = COALESCE($9, fired_at)
+         WHERE id = $1 AND agency_id = $2
+         RETURNING *`,
+        [
+          candidateId,
+          req.user.agencyId,
+          req.user.userId,
+          nextStatus,
+          statusDatePatch.status_changed_at || null,
+          statusDatePatch.hired_at || null,
+          statusDatePatch.rejected_at || null,
+          statusDatePatch.started_at || null,
+          statusDatePatch.fired_at || null
+        ]
+      );
+
+      await query(
+        `INSERT INTO candidate_status_history(candidate_id, status, changed_by_user_id)
+         VALUES ($1,$2,$3)`,
+        [candidateId, nextStatus, req.user.userId]
+      );
+
+      await appendCrmEvent({
+        entity_type: 'candidate',
+        entity_id: String(candidateId),
+        event_type: 'status_changed',
+        agency_id: req.user?.agencyId,
+        old_value: prevStatus,
+        new_value: nextStatus,
+        meta: {
+          name: updated.rows[0]?.name || row.name || '',
+          telegram: updated.rows[0]?.telegram || updated.rows[0]?.tg || row.telegram || row.tg || '',
+          platform: updated.rows[0]?.platform || updated.rows[0]?.platforms || row.platform || row.platforms || ''
+        },
+        created_by: req.user?.email || req.user?.full_name || ''
+      });
+
+      await logCrmEvent({
+        entityType: 'candidate',
+        entityId: candidateId,
+        eventType: 'status_changed',
+        oldValue: prevStatus,
+        newValue: nextStatus,
+        meta: {
+          platform: updated.rows[0]?.platform || updated.rows[0]?.platforms || ''
+        },
+        createdBy: req.user?.email || String(req.user?.userId || '')
+      });
+
+      await syncStatusAcrossSources({
+        source: 'candidates',
+        agencyId: req.user.agencyId,
+        status: nextStatus,
+        telegram: updated.rows[0]?.telegram || updated.rows[0]?.tg || row.telegram || row.tg || '',
+        name: updated.rows[0]?.name || row.name || '',
+        updatedByUserId: req.user.userId
+      });
+
+      invalidateTeamStatsCache();
+      return res.json({ ok: true, row_number: rowNumber, source: 'crm', candidate_id: candidateId });
     }
 
     const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;

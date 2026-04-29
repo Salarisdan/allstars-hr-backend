@@ -3492,6 +3492,14 @@
       return String(item?.source || '').trim().toLowerCase() !== 'crm';
     }
 
+    function canOpenMemberCard(item) {
+      return Number.isFinite(Number(item?.row_number)) && Number(item.row_number) !== 0;
+    }
+
+    function canDragTeamCard(item) {
+      return Number.isFinite(Number(item?.row_number)) && Number(item.row_number) !== 0;
+    }
+
     function renderTeamCards(items) {
       const el = document.getElementById('teamCards');
       if (!el) return;
@@ -3507,10 +3515,10 @@
             <div
               class="member-card ${getTeamCardVisualClass(item)}"
               data-row-number="${item.row_number}"
-              draggable="${isSheetBackedItem(item) ? 'true' : 'false'}"
-              ${isSheetBackedItem(item) ? `onclick="openMemberEditorByRow(${item.row_number})"` : ''}
-              ${isSheetBackedItem(item) ? `ondragstart="onTeamCardDragStart(event, ${item.row_number})"` : ''}
-              ${isSheetBackedItem(item) ? `ondragend="onTeamCardDragEnd(event)"` : ''}
+              draggable="${canDragTeamCard(item) ? 'true' : 'false'}"
+              ${canOpenMemberCard(item) ? `onclick="openMemberEditorByRow(${item.row_number})"` : ''}
+              ${canDragTeamCard(item) ? `ondragstart="onTeamCardDragStart(event, ${item.row_number})"` : ''}
+              ${canDragTeamCard(item) ? `ondragend="onTeamCardDragEnd(event)"` : ''}
             >
               <div class="crm-card-top">
                 <div>
@@ -3952,7 +3960,7 @@
             }
 
             return `
-              <div class="member-card ${getTeamCardVisualClass(person)}" ${isSheetBackedItem(person) ? `onclick="openMemberEditorByRow(${person.row_number})"` : ''}>
+              <div class="member-card ${getTeamCardVisualClass(person)}" ${canOpenMemberCard(person) ? `onclick="openMemberEditorByRow(${person.row_number})"` : ''}>
                 <div class="member-name">
                   ${person.name || 'Без имени'}
                   ${platformBadge}
@@ -4812,7 +4820,39 @@
 
         if (!res.ok) {
           if (!cached) {
-            content.innerHTML = `<div class="error-box">${data.error || 'Не удалось загрузить карточку сотрудника'}</div>`;
+            const isCrmReadonly = !isSheetBackedItem(item);
+            if (isCrmReadonly) {
+              content.innerHTML = `
+                <div class="editor-grid">
+                  <div class="editor-field">
+                    <div class="editor-label">Имя</div>
+                    <div class="crm-hint" style="margin:0; font-size:13px; color:var(--text);">${escapeHtml(item.name || 'Без имени')}</div>
+                  </div>
+
+                  <div class="editor-field">
+                    <div class="editor-label">Telegram</div>
+                    <div class="crm-hint" style="margin:0; font-size:13px; color:var(--text);">${escapeHtml(item.telegram || item.tg || item.username || '—')}</div>
+                  </div>
+
+                  <div class="editor-field">
+                    <div class="editor-label">Статус</div>
+                    <div class="crm-hint" style="margin:0; font-size:13px; color:var(--text);">${escapeHtml(item.status || '—')}</div>
+                  </div>
+
+                  <div class="editor-field">
+                    <div class="editor-label">Платформа</div>
+                    <div class="crm-hint" style="margin:0; font-size:13px; color:var(--text);">${escapeHtml(item.platform || '—')}</div>
+                  </div>
+
+                  <div class="editor-field full">
+                    <div class="editor-label">Режим карточки</div>
+                    <div class="crm-hint" style="margin:0;">Источник: CRM (readonly). Полное редактирование доступно только для строк из Google Sheet.</div>
+                  </div>
+                </div>
+              `;
+            } else {
+              content.innerHTML = `<div class="error-box">${data.error || 'Не удалось загрузить карточку сотрудника'}</div>`;
+            }
           }
           return;
         }
