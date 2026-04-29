@@ -234,6 +234,7 @@ window.cachedApi = async function(path, options = {}) {
   window.AllStarsRealtime = {
     subscribe(listener) {
       if (typeof listener !== 'function') {
+
         return function () {};
       }
 
@@ -251,3 +252,9 @@ window.cachedApi = async function(path, options = {}) {
     disconnect: disconnectRealtime
   };
 })();
+
+window.logoutAllStars = function () {
+  try { localStorage.removeItem('allstars_token'); } catch {}
+  try { localStorage.removeItem('allstars_me'); } catch {}
+  window.location.href = '/login.html';
+};
