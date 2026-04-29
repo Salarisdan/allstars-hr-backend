@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AllStars - Transaction ending</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0d0f14;
+      --surface:#141720;
+      --surface2:#1b1f2c;
+      --surface3:#232840;
+      --border:rgba(255,255,255,.07);
+      --accent:#4f6ef7;
+      --accent2:#7d95ff;
+      --accent-bg:rgba(79,110,247,.12);
+      --text:#e8eaf0;
+      --text2:#9ba3bd;
+      --text3:#58607c;
+      --ok:#86efac;
+      --warn:#fde68a;
+      --danger:#fca5a5;
+      --shadow:0 10px 40px rgba(0,0,0,.24);
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    .layout{display:flex;min-height:100vh}
+
+    .sidebar{
+      width:230px;
+      flex-shrink:0;
+      position:fixed;
+      left:0;
+      top:0;
+      bottom:0;
+      background:var(--surface);
+      border-right:1px solid var(--border);
+      padding:1.2rem 0 1.5rem;
+      overflow-y:auto;
+      z-index:10;
+      contain:layout, paint;
+    }
+
+    .sidebar-logo{
+      margin:0 .7rem .8rem;
+      padding:.85rem .85rem .9rem;
+      border:1px solid rgba(125,149,255,.18);
+      border-radius:14px;
+      background:
+        radial-gradient(130% 90% at 0% 0%, rgba(125,149,255,.22), rgba(125,149,255,0) 50%),
+        linear-gradient(145deg, rgba(79,110,247,.18), rgba(79,110,247,.04));
+      box-shadow:0 10px 22px rgba(0,0,0,.28);
+    }
+
+    .brand-row{display:flex;align-items:center;gap:9px}
+    .brand-mark{width:24px;height:24px;border-radius:8px;border:1px solid rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center}
+    .brand{font-family:'Unbounded','Manrope',sans-serif;font-size:20px;font-weight:800;letter-spacing:.03em;line-height:1;background:linear-gradient(180deg,#f5f7ff 8%,#9fb3ff 60%,#7d95ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .sidebar-logo .sub{margin-top:8px;width:max-content;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#9ff2c7;border:1px solid rgba(52,211,153,.34);background:rgba(5,150,105,.18);border-radius:999px;padding:4px 8px}
+
+    .sidebar-section{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);padding:.45rem 1rem .25rem}
+    .nav-item{display:flex;align-items:center;gap:8px;padding:7px 1rem;text-decoration:none;color:var(--text2);font-size:12px;border-left:2px solid transparent;transition:.15s}
+    .nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
+    .nav-item.active{color:var(--accent2);border-left-color:var(--accent);background:var(--accent-bg)}
+
+    .main{margin-left:230px;width:100%;padding:1.4rem 1.4rem 2rem}
+    .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:1rem}
+    .title h1{font-size:30px;font-weight:800;letter-spacing:-.03em}
+    .title p{margin-top:6px;color:var(--text2);font-size:13px;max-width:72ch}
+
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{border:none;cursor:pointer;font-family:'Manrope',sans-serif;font-weight:800;font-size:12px;border-radius:12px;padding:.72rem .95rem;transition:.15s}
+    .btn-primary{background:var(--accent-bg);border:1px solid rgba(125,149,255,.3);color:var(--accent2)}
+    .btn-ghost{background:var(--surface3);border:1px solid var(--border);color:var(--text2)}
+    .btn-danger{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.28);color:var(--danger)}
+
+    .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
+    .stat{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:.9rem;box-shadow:var(--shadow)}
+    .stat-k{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);font-weight:800;margin-bottom:6px}
+    .stat-v{font-size:26px;font-weight:800;line-height:1}
+
+    .panel{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:12px;box-shadow:var(--shadow);margin-bottom:12px}
+    .panel-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#b8c8ff;font-weight:800;margin-bottom:10px}
+
+    .assign-grid{display:grid;grid-template-columns:2fr 1fr auto auto;gap:8px}
+    .input,.select{width:100%;background:#0f1220;border:1px solid var(--border);border-radius:12px;color:var(--text);padding:.72rem .85rem;font-family:'Manrope',sans-serif;font-size:13px;outline:none}
+    .hint{margin-top:8px;color:var(--text3);font-size:12px}
+
+    .board{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+    .slot{background:linear-gradient(180deg,#232840,#1b1f2c);border:1px solid var(--border);border-radius:14px;padding:.9rem;box-shadow:var(--shadow)}
+    .slot.free{border-color:rgba(34,197,94,.24)}
+    .slot.used{border-color:rgba(251,191,36,.28)}
+    .slot-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+    .slot-num{font-size:24px;font-weight:800;line-height:1}
+    .badge{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:800;border:1px solid transparent}
+    .badge-free{color:var(--ok);background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.24)}
+    .badge-used{color:var(--warn);background:rgba(251,191,36,.14);border-color:rgba(251,191,36,.24)}
+    .slot-name{font-weight:800;font-size:14px;line-height:1.3}
+    .slot-meta{margin-top:6px;color:var(--text2);font-size:12px;display:grid;gap:3px}
+    .slot-actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+
+    .warn-box{margin-bottom:10px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.24);border-radius:12px;padding:.75rem .85rem;color:#fecaca;font-size:12px}
+    .loading,.empty{color:var(--text2);padding:.8rem 0}
+
+    .mobile-nav-toggle,.mobile-nav-backdrop{display:none}
+
+    @media (max-width:980px){
+      .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .assign-grid{grid-template-columns:1fr}
+    }
+
+    @media (max-width:920px){
+      .sidebar{display:none}
+      .main{margin-left:0;padding:1rem}
+      .mobile-nav-toggle{display:flex;position:fixed;top:12px;right:12px;z-index:80;width:42px;height:42px;border:1px solid var(--border);border-radius:12px;background:rgba(20,23,32,.92);align-items:center;justify-content:center;flex-direction:column;gap:5px}
+      .mobile-nav-toggle span{width:18px;height:2px;background:#cfd7ef;border-radius:999px}
+      .mobile-nav-backdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:55;opacity:0;pointer-events:none;transition:.18s}
+      body.nav-open .mobile-nav-backdrop{opacity:1;pointer-events:auto}
+      .sidebar{display:block;transform:translateX(-100%);transition:transform .2s ease;z-index:60}
+      body.nav-open .sidebar{transform:translateX(0)}
+    }
+  </style>
+  <link rel="stylesheet" href="/navfx.css">
+  <link rel="stylesheet" href="/visual-v2.css">
+</head>
+<body>
+  <button class="mobile-nav-toggle" id="mobileNavToggle" type="button" aria-label="Открыть меню">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="mobile-nav-backdrop" id="mobileNavBackdrop"></div>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="brand-row">
+          <div class="brand-mark">✦</div>
+          <div class="brand">AllStars</div>
+        </div>
+        <div class="sub">Transaction ending</div>
+      </div>
+
+      <div class="sidebar-section">Навигация</div>
+      <a class="nav-item" href="/index.html">🧑‍💼 Новый кандидат</a>
+      <a class="nav-item" href="/candidates.html">👥 Кандидаты</a>
+      <a class="nav-item" href="/referrals.html">🤝 Рефералы</a>
+      <a class="nav-item" href="/interviews.html">📞 Собеседования</a>
+      <a class="nav-item" href="/dashboard.html">📊 Dashboard</a>
+      <a class="nav-item" href="/team-dashboard.html">🫂 Действующие</a>
+      <a class="nav-item active" href="/transaction-endings.html">🪙 Transaction ending</a>
+      <a class="nav-item" href="/hr-needs.html">🎯 Потребности HR</a>
+      <a class="nav-item" href="/team.html">👥 Команда</a>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="title">
+          <h1>Transaction ending</h1>
+          <p>Управление монетками 1-99. Изменения синхронизируются с полем Transaction ending на странице Действующие.</p>
+        </div>
+
+        <div class="toolbar">
+          <button class="btn btn-ghost" id="refreshBtn" type="button">Обновить</button>
+          <button class="btn btn-primary" id="importBtn" type="button">Импорт из # sexter</button>
+        </div>
+      </div>
+
+      <section class="stats" id="stats"></section>
+
+      <section class="panel">
+        <div class="panel-title">Назначение ending</div>
+        <div class="assign-grid">
+          <select class="select" id="memberSelect"></select>
+          <select class="select" id="endingSelect"></select>
+          <button class="btn btn-primary" id="assignBtn" type="button">Назначить</button>
+          <button class="btn btn-danger" id="clearMemberBtn" type="button">Снять у сотрудника</button>
+        </div>
+        <div class="hint">Подсказка: клик по карточке ending ниже автоматически выбирает ending в форме.</div>
+      </section>
+
+      <div id="duplicatesBox"></div>
+
+      <section class="panel">
+        <div class="panel-title">Карта ending</div>
+        <div id="board"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/app-config.js"></script>
+  <script src="/navfx.js"></script>
+  <script src="/visual-v2.js"></script>
+  <script>
+    const tokenKey = 'allstars_token';
+    const token = localStorage.getItem(tokenKey);
+
+    if (!token) {
+      window.location.href = '/login.html';
+    }
+
+    const statsEl = document.getElementById('stats');
+    const boardEl = document.getElementById('board');
+    const memberSelect = document.getElementById('memberSelect');
+    const endingSelect = document.getElementById('endingSelect');
+    const assignBtn = document.getElementById('assignBtn');
+    const clearMemberBtn = document.getElementById('clearMemberBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const importBtn = document.getElementById('importBtn');
+    const duplicatesBox = document.getElementById('duplicatesBox');
+
+    let boardData = { slots: [], assignable_members: [], duplicates: [], used_count: 0, free_count: 99 };
+
+    function api(path, options = {}) {
+      return fetch(window.AllStarsConfig?.resolveApiPath?.(path) || path, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...(options.headers || {})
+        }
+      });
+    }
+
+    function escapeHtml(str = '') {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function normalizeName(value) {
+      return String(value || '').trim().toLowerCase();
+    }
+
+    function getMemberCurrentEnding(rowNumber) {
+      const slot = (boardData.slots || []).find(s => Number(s?.assigned?.row_number) === Number(rowNumber));
+      return slot?.ending || null;
+    }
+
+    function renderStats() {
+      statsEl.innerHTML = `
+        <div class="stat">
+          <div class="stat-k">Всего ending</div>
+          <div class="stat-v">99</div>
+        </div>
+        <div class="stat">
+          <div class="stat-k">Занято</div>
+          <div class="stat-v">${Number(boardData.used_count || 0)}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-k">Свободно</div>
+          <div class="stat-v">${Number(boardData.free_count || 0)}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-k">Сотрудников в Действующие</div>
+          <div class="stat-v">${Array.isArray(boardData.assignable_members) ? boardData.assignable_members.length : 0}</div>
+        </div>
+      `;
+    }
+
+    function renderControls() {
+      const members = Array.isArray(boardData.assignable_members) ? [...boardData.assignable_members] : [];
+
+      members.sort((a, b) => {
+        const aWorking = normalizeName(a.status) === normalizeName('Работает') ? 0 : 1;
+        const bWorking = normalizeName(b.status) === normalizeName('Работает') ? 0 : 1;
+        if (aWorking !== bWorking) return aWorking - bWorking;
+        return normalizeName(a.name).localeCompare(normalizeName(b.name), 'ru');
+      });
+
+      memberSelect.innerHTML = [
+        '<option value="">Выбери сотрудника</option>',
+        ...members.map(member => {
+          const currentEnding = getMemberCurrentEnding(member.row_number);
+          const endingLabel = currentEnding ? ` · ending ${currentEnding}` : '';
+          return `<option value="${member.row_number}">${escapeHtml(member.name || 'Без имени')} (${escapeHtml(member.status || '—')})${escapeHtml(endingLabel)}</option>`;
+        })
+      ].join('');
+
+      const slots = Array.isArray(boardData.slots) ? boardData.slots : [];
+      endingSelect.innerHTML = [
+        '<option value="">Выбери ending</option>',
+        ...slots.map(slot => {
+          const holder = slot.assigned?.name ? ` · занято: ${slot.assigned.name}` : ' · свободно';
+          return `<option value="${slot.ending}">${slot.ending}${escapeHtml(holder)}</option>`;
+        })
+      ].join('');
+    }
+
+    function renderDuplicates() {
+      const duplicates = Array.isArray(boardData.duplicates) ? boardData.duplicates : [];
+      if (!duplicates.length) {
+        duplicatesBox.innerHTML = '';
+        return;
+      }
+
+      duplicatesBox.innerHTML = `
+        <div class="warn-box">
+          Найдены дубликаты ending в таблице Действующие: ${duplicates.map(item => `${item.ending} (${item.name || 'Без имени'})`).join(', ')}
+        </div>
+      `;
+    }
+
+    function renderBoard() {
+      const slots = Array.isArray(boardData.slots) ? boardData.slots : [];
+
+      if (!slots.length) {
+        boardEl.innerHTML = '<div class="loading">Загружаем ending...</div>';
+        return;
+      }
+
+      boardEl.innerHTML = `<div class="board">${slots.map(slot => {
+        const assigned = slot.assigned;
+
+        if (!assigned) {
+          return `
+            <div class="slot free" data-ending="${slot.ending}">
+              <div class="slot-head">
+                <div class="slot-num">${slot.ending}</div>
+                <span class="badge badge-free">Свободно</span>
+              </div>
+              <div class="slot-meta">Нажми на карточку и назначь ending через форму выше.</div>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="slot used" data-ending="${slot.ending}">
+            <div class="slot-head">
+              <div class="slot-num">${slot.ending}</div>
+              <span class="badge badge-used">Занято</span>
+            </div>
+            <div class="slot-name">${escapeHtml(assigned.name || 'Без имени')}</div>
+            <div class="slot-meta">
+              <div>Статус: ${escapeHtml(assigned.status || '—')}</div>
+              <div>${escapeHtml(assigned.telegram || '—')}</div>
+              <div>Строка: ${assigned.row_number}</div>
+            </div>
+            <div class="slot-actions">
+              <button class="btn btn-danger" type="button" onclick="clearByEnding(${slot.ending})">Освободить</button>
+            </div>
+          </div>
+        `;
+      }).join('')}</div>`;
+
+      boardEl.querySelectorAll('.slot').forEach(card => {
+        card.addEventListener('click', (event) => {
+          if (event.target.closest('button')) return;
+          const ending = card.getAttribute('data-ending');
+          endingSelect.value = ending || '';
+        });
+      });
+    }
+
+    async function loadBoard() {
+      boardEl.innerHTML = '<div class="loading">Загружаем ending...</div>';
+
+      const res = await api('/api/team-transaction-endings/board');
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        boardEl.innerHTML = `<div class="empty">${escapeHtml(data.error || 'Не удалось загрузить ending')}</div>`;
+        return;
+      }
+
+      boardData = {
+        slots: Array.isArray(data.slots) ? data.slots : [],
+        assignable_members: Array.isArray(data.assignable_members) ? data.assignable_members : [],
+        duplicates: Array.isArray(data.duplicates) ? data.duplicates : [],
+        used_count: Number(data.used_count || 0),
+        free_count: Number(data.free_count || 0)
+      };
+
+      renderStats();
+      renderControls();
+      renderDuplicates();
+      renderBoard();
+    }
+
+    async function assignEnding() {
+      const rowNumber = Number(memberSelect.value);
+      const ending = Number(endingSelect.value);
+
+      if (!rowNumber || !ending) {
+        alert('Выбери сотрудника и ending');
+        return;
+      }
+
+      const res = await api('/api/team-transaction-endings/assign', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          row_number: rowNumber,
+          ending
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || 'Не удалось назначить ending');
+        return;
+      }
+
+      await loadBoard();
+    }
+
+    async function clearCurrentMemberEnding() {
+      const rowNumber = Number(memberSelect.value);
+
+      if (!rowNumber) {
+        alert('Сначала выбери сотрудника');
+        return;
+      }
+
+      const res = await api('/api/team-transaction-endings/clear', {
+        method: 'PATCH',
+        body: JSON.stringify({ row_number: rowNumber })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || 'Не удалось снять ending');
+        return;
+      }
+
+      await loadBoard();
+    }
+
+    async function clearByEnding(ending) {
+      const res = await api('/api/team-transaction-endings/clear', {
+        method: 'PATCH',
+        body: JSON.stringify({ ending: Number(ending) })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || 'Не удалось освободить ending');
+        return;
+      }
+
+      await loadBoard();
+    }
+
+    async function importFromSexter() {
+      if (!confirm('Импортировать ending из старой таблицы # sexter?')) return;
+
+      const res = await api('/api/team-transaction-endings/import-sexter', {
+        method: 'POST'
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || 'Не удалось импортировать ending');
+        return;
+      }
+
+      const notFound = Array.isArray(data.not_found) ? data.not_found : [];
+      const summary = `Импортировано: ${Number(data.imported || 0)}${notFound.length ? `\nНе найдены: ${notFound.length}` : ''}`;
+      alert(summary);
+
+      await loadBoard();
+    }
+
+    window.clearByEnding = clearByEnding;
+
+    assignBtn.addEventListener('click', assignEnding);
+    clearMemberBtn.addEventListener('click', clearCurrentMemberEnding);
+    refreshBtn.addEventListener('click', loadBoard);
+    importBtn.addEventListener('click', importFromSexter);
+
+    window.AllStarsRealtime?.subscribe(() => loadBoard());
+
+    loadBoard().catch(err => {
+      console.error(err);
+      boardEl.innerHTML = '<div class="empty">Ошибка загрузки ending</div>';
+    });
+  </script>
+  <script>
+    (function () {
+      const toggle = document.getElementById('mobileNavToggle');
+      const backdrop = document.getElementById('mobileNavBackdrop');
+      const closeMobileNav = () => document.body.classList.remove('nav-open');
+      const toggleMobileNav = () => document.body.classList.toggle('nav-open');
+
+      toggle?.addEventListener('click', toggleMobileNav);
+      backdrop?.addEventListener('click', closeMobileNav);
+      document.querySelectorAll('.sidebar .nav-item').forEach(link => link.addEventListener('click', closeMobileNav));
+      window.addEventListener('resize', () => {
+        if (window.innerWidth > 920) closeMobileNav();
+      });
+    })();
+  </script>
+</body>
+</html>

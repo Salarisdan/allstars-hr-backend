@@ -357,6 +357,21 @@ function extractSexterEnding(value) {
   return n >= 1 && n <= 99 ? n : null;
 }
 
+function extractTransactionEndingNumber(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+
+  const fromSexter = extractSexterEnding(raw);
+  if (fromSexter !== null) return fromSexter;
+
+  if (/^\d{1,2}$/.test(raw)) {
+    const n = Number(raw);
+    return n >= 1 && n <= 99 ? n : null;
+  }
+
+  return null;
+}
+
 function namesLooselyMatch(a, b) {
   const x = normalizePersonKey(a);
   const y = normalizePersonKey(b);
@@ -4981,6 +4996,254 @@ app.get('/api/team-transaction-endings', auth, async (req, res) => {
   }
 });
 
+app.get('/api/team-transaction-endings/board', auth, async (req, res) => {
+  try {
+    const members = await loadTeamItemsFromCandidatesDb(req.user.agencyId);
+    const sheetMembers = members.filter(item => Number(item.row_number) >= 2);
+
+    const byEnding = new Map();
+    const duplicates = [];
+
+    for (const item of sheetMembers) {
+      const ending = extractTransactionEndingNumber(item.transactionEnding);
+      if (ending === null) continue;
+
+      const payload = {
+        ending,
+        row_number: Number(item.row_number),
+        name: String(item.name || '').trim(),
+        telegram: String(item.telegram || '').trim(),
+        status: String(item.status || '').trim(),
+        transaction_ending: String(item.transactionEnding || '').trim(),
+        source: String(item.source || '').trim()
+      };
+
+      if (byEnding.has(ending)) {
+        duplicates.push(payload);
+        continue;
+      }
+
+      byEnding.set(ending, payload);
+    }
+
+    const slots = [];
+    let usedCount = 0;
+
+    for (let ending = 1; ending <= 99; ending++) {
+      const assigned = byEnding.get(ending) || null;
+      if (assigned) usedCount += 1;
+
+      slots.push({
+        ending,
+        assigned
+      });
+    }
+
+    const freeCount = 99 - usedCount;
+
+    res.json({
+      slots,
+      used_count: usedCount,
+      free_count: freeCount,
+      duplicates,
+      assignable_members: sheetMembers.map(item => ({
+        row_number: Number(item.row_number),
+        name: String(item.name || '').trim(),
+        telegram: String(item.telegram || '').trim(),
+        status: String(item.status || '').trim(),
+        transaction_ending: String(item.transactionEnding || '').trim(),
+        platform: String(item.platform || '').trim()
+      }))
+    });
+  } catch (err) {
+    console.error('Team transaction ending board error:', err.message);
+    res.status(500).json({ error: 'Failed to read transaction ending board' });
+  }
+});
+
+app.patch('/api/team-transaction-endings/assign', auth, async (req, res) => {
+  try {
+    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
+    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
+    const rowNumber = Number(req.body?.row_number);
+    const ending = Number(req.body?.ending);
+
+    if (!spreadsheetId) {
+      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
+    }
+
+    if (!Number.isInteger(rowNumber) || rowNumber < 2) {
+      return res.status(400).json({ error: 'Некорректный row_number' });
+    }
+
+    if (!Number.isInteger(ending) || ending < 1 || ending > 99) {
+      return res.status(400).json({ error: 'ending должен быть от 1 до 99' });
+    }
+
+    const sheets = await getSheetsClient();
+    const [headersRes, rowsRes] = await Promise.all([
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A1:AU1`
+      }),
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A2:AU5000`
+      })
+    ]);
+
+    const headers = headersRes.data.values?.[0] || [];
+    const rows = rowsRes.data.values || [];
+
+    const txIdx = headers.findIndex(
+      h => String(h || '').trim() === 'Transaction ending'
+    );
+
+    if (txIdx === -1) {
+      return res.status(400).json({ error: 'Колонка Transaction ending не найдена' });
+    }
+
+    const updates = [];
+    const txCol = columnToLetter(txIdx + 1);
+    const endingValue = String(ending);
+
+    let targetExists = false;
+
+    for (let i = 0; i < rows.length; i++) {
+      const absoluteRow = i + 2;
+      const row = rows[i] || [];
+
+      if (absoluteRow === rowNumber) {
+        targetExists = true;
+      }
+
+      const currentEnding = extractTransactionEndingNumber(row[txIdx]);
+      if (currentEnding === null) continue;
+
+      if (currentEnding === ending && absoluteRow !== rowNumber) {
+        updates.push({
+          range: `${sheetName}!${txCol}${absoluteRow}`,
+          values: [['']]
+        });
+      }
+    }
+
+    if (!targetExists) {
+      return res.status(404).json({ error: 'Сотрудник не найден в таблице Действующие' });
+    }
+
+    updates.push({
+      range: `${sheetName}!${txCol}${rowNumber}`,
+      values: [[endingValue]]
+    });
+
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        valueInputOption: 'USER_ENTERED',
+        data: updates
+      }
+    });
+
+    invalidateTeamStatsCache();
+    res.json({ ok: true, row_number: rowNumber, ending });
+  } catch (err) {
+    console.error('Transaction ending assign error:', err.message);
+    res.status(500).json({ error: 'Не удалось назначить ending' });
+  }
+});
+
+app.post('/api/team-transaction-endings/import-sexter', auth, async (req, res) => {
+  try {
+    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
+    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
+
+    if (!spreadsheetId) {
+      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
+    }
+
+    const sexterMap = await readSexterEndingMap();
+    const used = Array.isArray(sexterMap?.used) ? sexterMap.used : [];
+
+    if (!used.length) {
+      return res.json({ ok: true, imported: 0, not_found: [] });
+    }
+
+    const sheets = await getSheetsClient();
+    const [headersRes, rowsRes] = await Promise.all([
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A1:AU1`
+      }),
+      sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A2:AU5000`
+      })
+    ]);
+
+    const headers = headersRes.data.values?.[0] || [];
+    const rows = rowsRes.data.values || [];
+
+    const txIdx = headers.findIndex(h => String(h || '').trim() === 'Transaction ending');
+    const nameIdx = findHeaderIndex(headers, ['Имя'], ['имя']);
+
+    if (txIdx === -1) {
+      return res.status(400).json({ error: 'Колонка Transaction ending не найдена' });
+    }
+
+    if (nameIdx === -1) {
+      return res.status(400).json({ error: 'Колонка Имя не найдена' });
+    }
+
+    const txCol = columnToLetter(txIdx + 1);
+    const indexedRows = rows.map((row, idx) => ({
+      row_number: idx + 2,
+      name: String(row?.[nameIdx] || '').trim()
+    }));
+
+    const updates = [];
+    const notFound = [];
+
+    for (const item of used) {
+      const target = indexedRows.find(row => namesLooselyMatch(item.name, row.name));
+
+      if (!target) {
+        notFound.push({
+          name: item.name,
+          ending: item.ending
+        });
+        continue;
+      }
+
+      updates.push({
+        range: `${sheetName}!${txCol}${target.row_number}`,
+        values: [[String(item.ending)]]
+      });
+    }
+
+    if (updates.length) {
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          valueInputOption: 'USER_ENTERED',
+          data: updates
+        }
+      });
+    }
+
+    invalidateTeamStatsCache();
+
+    res.json({
+      ok: true,
+      imported: updates.length,
+      not_found: notFound
+    });
+  } catch (err) {
+    console.error('Transaction ending import sexter error:', err.message);
+    res.status(500).json({ error: 'Не удалось импортировать ending из таблицы' });
+  }
+});
+
 app.get('/api/sexter-endings', auth, async (req, res) => {
   try {
     const data = await readSexterEndingMap();
@@ -5076,13 +5339,17 @@ app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
     const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
     const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
     const rowNumber = Number(req.body?.row_number);
+    const ending = Number(req.body?.ending);
 
     if (!spreadsheetId) {
       return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
     }
 
-    if (!rowNumber || rowNumber < 2) {
-      return res.status(400).json({ error: 'Некорректный row_number' });
+    const rowProvided = Number.isInteger(rowNumber) && rowNumber >= 2;
+    const endingProvided = Number.isInteger(ending) && ending >= 1 && ending <= 99;
+
+    if (!rowProvided && !endingProvided) {
+      return res.status(400).json({ error: 'Передай row_number >= 2 или ending от 1 до 99' });
     }
 
     const sheets = await getSheetsClient();
@@ -5103,16 +5370,51 @@ app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
 
     const colLetter = columnToLetter(txIdx + 1);
 
+    if (rowProvided) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${sheetName}!${colLetter}${rowNumber}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [['']]
+        }
+      });
+
+      invalidateTeamStatsCache();
+      return res.json({ ok: true, row_number: rowNumber });
+    }
+
+    const rowsRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A2:AU5000`
+    });
+
+    const rows = rowsRes.data.values || [];
+    let matchedRow = -1;
+
+    for (let i = 0; i < rows.length; i++) {
+      const current = extractTransactionEndingNumber(rows[i]?.[txIdx]);
+      if (current === ending) {
+        matchedRow = i + 2;
+        break;
+      }
+    }
+
+    if (matchedRow === -1) {
+      return res.status(404).json({ error: 'ending не найден в таблице Действующие' });
+    }
+
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `${sheetName}!${colLetter}${rowNumber}`,
+      range: `${sheetName}!${colLetter}${matchedRow}`,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [['']]
       }
     });
 
-    res.json({ ok: true });
+    invalidateTeamStatsCache();
+    res.json({ ok: true, row_number: matchedRow, ending });
   } catch (err) {
     console.error('Transaction ending clear error:', err.message);
     res.status(500).json({ error: 'Не удалось очистить ending' });
