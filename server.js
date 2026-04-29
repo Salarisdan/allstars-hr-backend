@@ -2634,10 +2634,16 @@ async function initDb() {
       id SERIAL PRIMARY KEY,
       ending INT UNIQUE NOT NULL,
       assigned_to TEXT DEFAULT NULL,
+      assigned_row_number INT DEFAULT NULL,
       assigned_user_id INT DEFAULT NULL,
       updated_at TIMESTAMP DEFAULT NOW()
     );
   `);
+
+  await pool.query(`
+    ALTER TABLE transaction_endings
+    ADD COLUMN IF NOT EXISTS assigned_row_number INT DEFAULT NULL
+  `).catch(() => {});
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS crm_events (
@@ -5209,7 +5215,7 @@ app.get('/api/team-transaction-endings/board', auth, async (req, res) => {
     await ensureTransactionEndingsInitialized();
 
     const endingsRes = await pool.query(`
-      SELECT ending, assigned_to
+      SELECT ending, assigned_to, assigned_row_number
       FROM transaction_endings
       ORDER BY ending ASC
     `);
@@ -5228,15 +5234,20 @@ app.get('/api/team-transaction-endings/board', auth, async (req, res) => {
     for (const row of endingsRes.rows || []) {
       const ending = Number(row.ending);
       const assignedTo = String(row.assigned_to || '').trim();
+      const assignedRowNumber = Number(row.assigned_row_number);
       let assigned = null;
 
-      if (assignedTo) {
-        const matchedMember = memberByName.get(normalizePersonKey(assignedTo));
+      if (assignedTo || Number.isInteger(assignedRowNumber)) {
+        const matchedMember = Number.isInteger(assignedRowNumber) && assignedRowNumber >= 2
+          ? sheetMembers.find(m => Number(m.row_number) === assignedRowNumber)
+          : memberByName.get(normalizePersonKey(assignedTo));
+
+        const displayName = assignedTo || String(matchedMember?.name || '').trim();
         assigned = {
           ending,
-          name: assignedTo,
+          name: displayName,
           transaction_ending: String(ending),
-          row_number: matchedMember ? Number(matchedMember.row_number) : null,
+          row_number: matchedMember ? Number(matchedMember.row_number) : (Number.isInteger(assignedRowNumber) ? assignedRowNumber : null),
           telegram: matchedMember ? String(matchedMember.telegram || '').trim() : '',
           status: matchedMember ? String(matchedMember.status || '').trim() : '',
           platform: matchedMember ? String(matchedMember.platform || '').trim() : '',
@@ -5338,19 +5349,22 @@ app.patch('/api/team-transaction-endings/assign', auth, async (req, res) => {
       await pool.query(
         `UPDATE transaction_endings
          SET assigned_to = NULL,
+             assigned_row_number = NULL,
              assigned_user_id = NULL,
              updated_at = NOW()
-         WHERE assigned_to = $1`,
-        [targetName]
+         WHERE assigned_row_number = $1
+            OR lower(trim(coalesce(assigned_to, ''))) = lower(trim($2))`,
+        [rowNumber, targetName]
       );
 
       await pool.query(
         `UPDATE transaction_endings
          SET assigned_to = $1,
-             assigned_user_id = $2,
+             assigned_row_number = $2,
+             assigned_user_id = $3,
              updated_at = NOW()
-         WHERE ending = $3`,
-        [targetName, Number(req.user?.userId) || null, ending]
+         WHERE ending = $4`,
+        [targetName, rowNumber, Number(req.user?.userId) || null, ending]
       );
     }
 
@@ -5592,10 +5606,12 @@ app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
       await pool.query(
         `UPDATE transaction_endings
          SET assigned_to = NULL,
+             assigned_row_number = NULL,
              assigned_user_id = NULL,
              updated_at = NOW()
-         WHERE assigned_to = $1`,
-        [String(targetMember.name || '').trim()]
+         WHERE assigned_row_number = $1
+            OR lower(trim(coalesce(assigned_to, ''))) = lower(trim($2))`,
+        [rowNumber, String(targetMember.name || '').trim()]
       );
 
       invalidateTeamStatsCache();
@@ -5606,6 +5622,7 @@ app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
     await pool.query(
       `UPDATE transaction_endings
        SET assigned_to = NULL,
+           assigned_row_number = NULL,
            assigned_user_id = NULL,
            updated_at = NOW()
        WHERE ending = $1`,
