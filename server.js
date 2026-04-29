@@ -5238,14 +5238,6 @@ app.get('/api/team-transaction-endings/board', auth, async (req, res) => {
       ORDER BY ending ASC
     `);
 
-    const memberByName = new Map();
-    for (const member of sheetMembers) {
-      const key = normalizePersonKey(member.name || '');
-      if (key && !memberByName.has(key)) {
-        memberByName.set(key, member);
-      }
-    }
-
     const slots = [];
     let usedCount = 0;
 
@@ -5255,13 +5247,10 @@ app.get('/api/team-transaction-endings/board', auth, async (req, res) => {
       const assignedRowNumberRaw = row.assigned_row_number;
       const parsedAssignedRowNumber = Number(assignedRowNumberRaw);
       const hasAssignedRowNumber = Number.isInteger(parsedAssignedRowNumber) && parsedAssignedRowNumber >= 2;
-      const hasAssignedName = hasMeaningfulEndingAssigneeName(assignedTo);
       let assigned = null;
 
-      if (hasAssignedName || hasAssignedRowNumber) {
-        const matchedMember = hasAssignedRowNumber
-          ? sheetMembers.find(m => Number(m.row_number) === parsedAssignedRowNumber)
-          : memberByName.get(normalizePersonKey(assignedTo));
+      if (hasAssignedRowNumber) {
+        const matchedMember = sheetMembers.find(m => Number(m.row_number) === parsedAssignedRowNumber);
 
         // Slot is occupied only when assignment resolves to a real member on the active page.
         if (!matchedMember) {
@@ -5269,7 +5258,7 @@ app.get('/api/team-transaction-endings/board', auth, async (req, res) => {
           continue;
         }
 
-        const displayName = String(matchedMember.name || '').trim() || (hasAssignedName ? assignedTo : '');
+        const displayName = String(matchedMember.name || '').trim() || assignedTo;
         assigned = {
           ending,
           name: displayName,
