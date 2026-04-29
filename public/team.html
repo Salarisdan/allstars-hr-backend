@@ -554,6 +554,8 @@
     const token = localStorage.getItem('allstars_token');
     if (!token) location.href = '/login.html';
 
+    let currentUserRole = null;
+
     const usersContent = document.getElementById('usersContent');
     const refreshBtn = document.getElementById('refreshBtn');
     const createUserBtn = document.getElementById('createUserBtn');
@@ -633,17 +635,17 @@
                     ? `<button class="btn-small btn-disable" type="button" onclick="toggleUserStatus(${user.id}, false)">Отключить</button>`
                     : `<button class="btn-small btn-enable" type="button" onclick="toggleUserStatus(${user.id}, true)">Включить</button>`
                 }
-                <button class="btn-small" type="button" onclick="togglePasswordForm(${user.id})">🔑 Пароль</button>
-                <button class="btn-small btn-delete" type="button" onclick="deleteUser(${user.id}, '${escapeHtml(user.email || '')}')"> Удалить</button>
+                ${currentUserRole === 'owner' ? `<button class="btn-small" type="button" onclick="togglePasswordForm(${user.id})">🔑 Пароль</button>` : ''}
+                <button class="btn-small btn-delete" type="button" onclick="deleteUser(${user.id}, '${escapeHtml(user.email || '')}')">Удалить</button>
               </div>
 
-              <div class="user-change-pw" id="changePw_${user.id}" style="display:none;margin-top:.6rem;">
+              ${currentUserRole === 'owner' ? `<div class="user-change-pw" id="changePw_${user.id}" style="display:none;margin-top:.6rem;">
                 <input class="input" type="password" id="newPw_${user.id}" placeholder="Новый пароль (мин. 8 символов)" style="margin-bottom:.4rem;">
                 <div style="display:flex;gap:.4rem;">
-                  <button class="btn-small btn-enable" type="button" onclick="changePassword(${user.id})">Cохранить</button>
+                  <button class="btn-small btn-enable" type="button" onclick="changePassword(${user.id})">Сохранить</button>
                   <button class="btn-small" type="button" onclick="togglePasswordForm(${user.id})">Отмена</button>
                 </div>
-              </div>
+              </div>` : ''}
             </div>
           `).join('')}
         </div>
@@ -652,6 +654,12 @@
 
     async function loadUsers() {
       usersContent.innerHTML = `<div class="loading">Загрузка пользователей...</div>`;
+
+      if (!currentUserRole) {
+        const meRes = await api('/auth/me');
+        const me = await meRes?.json().catch(() => null);
+        currentUserRole = me?.role || null;
+      }
 
       const res = await cachedApi('/api/users');
       const data = await res.json().catch(() => ([]));
