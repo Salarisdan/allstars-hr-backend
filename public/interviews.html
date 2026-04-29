@@ -7,22 +7,23 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@700;800&display=swap" rel="stylesheet">
   <style>
     :root{
-      --bg:#0d0f14;
-      --surface:#141720;
-      --surface2:#1b1f2c;
-      --surface3:#232840;
-      --border:rgba(255,255,255,.07);
-      --border2:rgba(255,255,255,.12);
-      --accent:#4f6ef7;
-      --accent2:#7d95ff;
-      --accent-bg:rgba(79,110,247,.12);
+      --bg:#100914;
+      --surface:#1a1020;
+      --surface2:#24162d;
+      --surface3:#301f3c;
+      --border:rgba(255,188,224,.14);
+      --border2:rgba(255,188,224,.22);
+      --accent:#ff86c7;
+      --accent2:#ffd2ea;
+      --accent-bg:rgba(255,134,199,.16);
+      --accent-border:rgba(255,134,199,.36);
       
-      --brand-pill-text:#ffb3c5;
-      --brand-pill-border:rgba(244,114,182,.34);
-      --brand-pill-bg:rgba(190,24,93,.18);
-      --text:#e8eaf0;
-      --text2:#9ba3bd;
-      --text3:#58607c;
+      --brand-pill-text:#ffc7de;
+      --brand-pill-border:rgba(255,134,199,.34);
+      --brand-pill-bg:rgba(149,32,96,.26);
+      --text:#f7edf4;
+      --text2:#c8afc0;
+      --text3:#8f7284;
       --green:#34d399;
       --green-bg:rgba(52,211,153,.10);
       --green-border:rgba(52,211,153,.22);
@@ -35,14 +36,17 @@
       --purple:#a78bfa;
       --purple-bg:rgba(167,139,250,.10);
       --purple-border:rgba(167,139,250,.22);
-      --shadow:0 10px 40px rgba(0,0,0,.24);
+      --shadow:0 14px 44px rgba(0,0,0,.34);
     }
 
     *{box-sizing:border-box;margin:0;padding:0}
 
     body{
       font-family:'Manrope',sans-serif;
-      background:var(--bg);
+      background:
+        radial-gradient(78% 56% at 100% 0%, rgba(255,134,199,.16), rgba(255,134,199,0) 62%),
+        radial-gradient(65% 50% at 0% 100%, rgba(168,85,247,.14), rgba(168,85,247,0) 70%),
+        var(--bg);
       color:var(--text);
       min-height:100vh;
     }
@@ -1273,6 +1277,119 @@
       .interview-main-btn{
         width:100%;
       }
+    }
+
+    /* Final interview page overrides: visual polish only, no behavior changes. */
+    .title h1{
+      background:linear-gradient(180deg,#fff4fa 10%, #ffd2ea 88%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      text-shadow:0 0 22px rgba(255,134,199,.14);
+    }
+
+    .btn,
+    .btn-primary,
+    .btn-ghost,
+    .crm-filter-btn,
+    .action-btn,
+    .modal-close,
+    .interview-main-btn,
+    .quick-btn,
+    .q-btn{
+      transition:transform .14s ease, border-color .2s ease, background .2s ease, color .2s ease;
+    }
+
+    .btn:hover,
+    .btn-primary:hover,
+    .btn-ghost:hover,
+    .crm-filter-btn:hover,
+    .action-btn:hover,
+    .modal-close:hover,
+    .interview-main-btn:hover,
+    .quick-btn:hover,
+    .q-btn:hover{
+      transform:translateY(-1px);
+    }
+
+    .stat,
+    .tools-card,
+    .modal-sheet,
+    .interview-editor-head,
+    .interview-view-field,
+    .schedule-box,
+    .meta,
+    .notes{
+      border-color:rgba(255,188,224,.16);
+    }
+
+    .stat,
+    .tools-card,
+    .modal-sheet,
+    .interview-editor-head,
+    .interview-view-field{
+      background:linear-gradient(180deg, rgba(48,31,60,.9), rgba(34,22,45,.96));
+      position:relative;
+      overflow:hidden;
+    }
+
+    .stat::before,
+    .tools-card::before,
+    .modal-sheet::before,
+    .interview-editor-head::before,
+    .interview-view-field::before{
+      content:'';
+      position:absolute;
+      top:0;
+      left:0;
+      right:0;
+      height:2px;
+      background:linear-gradient(90deg, rgba(255,134,199,.86), rgba(168,85,247,.78));
+      opacity:.82;
+      pointer-events:none;
+    }
+
+    .pipeline-item.active,
+    .crm-filter-btn.active,
+    .btn-primary,
+    .interview-main-btn.primary{
+      background:linear-gradient(135deg, rgba(255,134,199,.3), rgba(168,85,247,.2));
+      border-color:rgba(255,134,199,.45);
+      color:#ffe7f5;
+      box-shadow:0 0 18px rgba(255,134,199,.14);
+    }
+
+    .interview-card,
+    .card,
+    .pipeline-item{
+      border-color:rgba(255,188,224,.16);
+    }
+
+    .interview-card:hover,
+    .pipeline-item:hover,
+    .card:hover{
+      border-color:rgba(255,210,234,.34);
+    }
+
+    .loading{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .loading::before{
+      content:'';
+      width:16px;
+      height:16px;
+      border-radius:999px;
+      border:2px solid rgba(255,210,234,.26);
+      border-top-color:var(--accent);
+      animation:interviewDashSpin .8s linear infinite;
+      flex-shrink:0;
+    }
+
+    @keyframes interviewDashSpin{
+      to{transform:rotate(360deg)}
     }
 
     .mobile-nav-toggle{display:none}
