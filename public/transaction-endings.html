@@ -83,9 +83,13 @@
     .panel{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:12px;box-shadow:var(--shadow);margin-bottom:12px}
     .panel-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#b8c8ff;font-weight:800;margin-bottom:10px}
 
-    .assign-grid{display:grid;grid-template-columns:2fr 1fr auto auto;gap:8px}
+    .assign-grid{display:grid;grid-template-columns:2fr 1fr 1.6fr auto auto;gap:8px}
     .input,.select{width:100%;background:#0f1220;border:1px solid var(--border);border-radius:12px;color:var(--text);padding:.72rem .85rem;font-family:'Manrope',sans-serif;font-size:13px;outline:none}
     .hint{margin-top:8px;color:var(--text3);font-size:12px}
+
+    .board-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+    .chip-btn{border:none;cursor:pointer;border-radius:999px;padding:.5rem .8rem;font-family:'Manrope',sans-serif;font-weight:800;font-size:11px;background:var(--surface3);color:var(--text2);border:1px solid var(--border)}
+    .chip-btn.active{background:var(--accent-bg);border-color:rgba(125,149,255,.34);color:var(--accent2)}
 
     .board{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
     .slot{background:linear-gradient(180deg,#232840,#1b1f2c);border:1px solid var(--border);border-radius:14px;padding:.9rem;box-shadow:var(--shadow)}
@@ -172,16 +176,23 @@
         <div class="assign-grid">
           <select class="select" id="memberSelect"></select>
           <select class="select" id="endingSelect"></select>
+          <input class="input" id="telegramInput" placeholder="Telegram username, например @username" />
           <button class="btn btn-primary" id="assignBtn" type="button">Назначить</button>
+          <button class="btn btn-primary" id="assignByTelegramBtn" type="button">Назначить по Telegram</button>
           <button class="btn btn-danger" id="clearMemberBtn" type="button">Снять у сотрудника</button>
         </div>
-        <div class="hint">Подсказка: клик по карточке ending ниже автоматически выбирает ending в форме.</div>
+        <div class="hint">Подсказка: клик по свободной монетке выбирает ending. Дальше можно ввести Telegram и назначить монетку без выбора сотрудника в списке.</div>
       </section>
 
       <div id="duplicatesBox"></div>
 
       <section class="panel">
         <div class="panel-title">Карта ending</div>
+        <div class="board-filters" id="boardFilters">
+          <button class="chip-btn active" type="button" data-filter="all">Все</button>
+          <button class="chip-btn" type="button" data-filter="free">Свободные</button>
+          <button class="chip-btn" type="button" data-filter="used">Занятые</button>
+        </div>
         <div id="board"></div>
       </section>
     </main>
@@ -202,13 +213,17 @@
     const boardEl = document.getElementById('board');
     const memberSelect = document.getElementById('memberSelect');
     const endingSelect = document.getElementById('endingSelect');
+    const telegramInput = document.getElementById('telegramInput');
     const assignBtn = document.getElementById('assignBtn');
+    const assignByTelegramBtn = document.getElementById('assignByTelegramBtn');
     const clearMemberBtn = document.getElementById('clearMemberBtn');
     const refreshBtn = document.getElementById('refreshBtn');
     const importBtn = document.getElementById('importBtn');
     const duplicatesBox = document.getElementById('duplicatesBox');
+    const boardFilters = document.getElementById('boardFilters');
 
     let boardData = { slots: [], assignable_members: [], duplicates: [], used_count: 0, free_count: 99 };
+    let boardFilterMode = 'all';
 
     function api(path, options = {}) {
       return fetch(window.AllStarsConfig?.resolveApiPath?.(path) || path, {
@@ -232,6 +247,15 @@
 
     function normalizeName(value) {
       return String(value || '').trim().toLowerCase();
+    }
+
+    function normalizeTelegram(value) {
+      return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/^https?:\/\/t\.me\//, '')
+        .replace(/^@+/, '')
+        .replace(/^\/+/, '');
     }
 
     function getMemberCurrentEnding(rowNumber) {
@@ -304,10 +328,15 @@
     }
 
     function renderBoard() {
-      const slots = Array.isArray(boardData.slots) ? boardData.slots : [];
+      const allSlots = Array.isArray(boardData.slots) ? boardData.slots : [];
+      const slots = allSlots.filter(slot => {
+        if (boardFilterMode === 'free') return !slot.assigned;
+        if (boardFilterMode === 'used') return Boolean(slot.assigned);
+        return true;
+      });
 
       if (!slots.length) {
-        boardEl.innerHTML = '<div class="loading">Загружаем ending...</div>';
+        boardEl.innerHTML = '<div class="empty">По выбранному фильтру монеток нет</div>';
         return;
       }
 
@@ -350,7 +379,17 @@
           if (event.target.closest('button')) return;
           const ending = card.getAttribute('data-ending');
           endingSelect.value = ending || '';
+
+          if (card.classList.contains('free')) {
+            telegramInput.focus();
+          }
         });
+      });
+    }
+
+    function renderBoardFilters() {
+      boardFilters.querySelectorAll('[data-filter]').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-filter') === boardFilterMode);
       });
     }
 
@@ -402,6 +441,46 @@
         return;
       }
 
+      await loadBoard();
+    }
+
+    async function assignEndingByTelegram() {
+      const ending = Number(endingSelect.value);
+      const tgNeedle = normalizeTelegram(telegramInput.value);
+
+      if (!ending) {
+        alert('Сначала выбери ending');
+        return;
+      }
+
+      if (!tgNeedle) {
+        alert('Введи Telegram username');
+        return;
+      }
+
+      const members = Array.isArray(boardData.assignable_members) ? boardData.assignable_members : [];
+      const matchedMember = members.find(member => normalizeTelegram(member.telegram) === tgNeedle);
+
+      if (!matchedMember) {
+        alert('Не нашел такого Telegram в Действующих');
+        return;
+      }
+
+      const res = await api('/api/team-transaction-endings/assign', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          row_number: Number(matchedMember.row_number),
+          ending
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || 'Не удалось назначить ending');
+        return;
+      }
+
+      memberSelect.value = String(matchedMember.row_number);
       await loadBoard();
     }
 
@@ -465,9 +544,17 @@
     window.clearByEnding = clearByEnding;
 
     assignBtn.addEventListener('click', assignEnding);
+    assignByTelegramBtn.addEventListener('click', assignEndingByTelegram);
     clearMemberBtn.addEventListener('click', clearCurrentMemberEnding);
     refreshBtn.addEventListener('click', loadBoard);
     importBtn.addEventListener('click', importFromSexter);
+    boardFilters?.addEventListener('click', event => {
+      const target = event.target.closest('[data-filter]');
+      if (!target) return;
+      boardFilterMode = target.getAttribute('data-filter') || 'all';
+      renderBoardFilters();
+      renderBoard();
+    });
 
     window.AllStarsRealtime?.subscribe(() => loadBoard());
 
