@@ -5263,13 +5263,13 @@ app.get('/api/team-transaction-endings/board', auth, async (req, res) => {
           ? sheetMembers.find(m => Number(m.row_number) === parsedAssignedRowNumber)
           : memberByName.get(normalizePersonKey(assignedTo));
 
-        // If this is a stale row-based link and member no longer exists, consider slot free.
-        if (hasAssignedRowNumber && !matchedMember && !hasAssignedName) {
+        // Slot is occupied only when assignment resolves to a real member on the active page.
+        if (!matchedMember) {
           slots.push({ ending, assigned: null });
           continue;
         }
 
-        const displayName = hasAssignedName ? assignedTo : String(matchedMember?.name || '').trim();
+        const displayName = String(matchedMember.name || '').trim() || (hasAssignedName ? assignedTo : '');
         assigned = {
           ending,
           name: displayName,
