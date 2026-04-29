@@ -530,6 +530,15 @@ function buildTransactionEndingBoardFromTeamMembers(sheetMembers) {
   };
 }
 
+async function ensureTransactionEndingsInitialized() {
+  await pool.query(`
+    INSERT INTO transaction_endings (ending)
+    SELECT gs
+    FROM generate_series(1, 99) AS gs
+    ON CONFLICT (ending) DO NOTHING
+  `);
+}
+
 function inspectSexterRow(row = []) {
   let rowName = '';
   let rowNameCol = 1;
@@ -5196,58 +5205,57 @@ app.get('/api/team-transaction-endings/board', auth, async (req, res) => {
   try {
     const members = await loadTeamItemsFromCandidatesDb(req.user.agencyId);
     const sheetMembers = members.filter(item => Number(item.row_number) >= 2);
-    let boardPayload = buildTransactionEndingBoardFromTeamMembers(sheetMembers);
 
-    if (process.env.SHELL_OF_SPREADSHEET_ID) {
-      const sexterMap = await readSexterEndingMap();
-      const byEnding = new Map();
-      const duplicates = [];
+    await ensureTransactionEndingsInitialized();
 
-      for (const item of Array.isArray(sexterMap.used) ? sexterMap.used : []) {
-        const matchedMember = sheetMembers.find(member => namesLooselyMatch(item.name, member.name));
+    const endingsRes = await pool.query(`
+      SELECT ending, assigned_to
+      FROM transaction_endings
+      ORDER BY ending ASC
+    `);
 
-        const payload = {
-          ending: Number(item.ending),
-          name: String(item.name || '').trim(),
-          transaction_ending: String(item.ending_raw || item.ending || '').trim(),
+    const memberByName = new Map();
+    for (const member of sheetMembers) {
+      const key = normalizePersonKey(member.name || '');
+      if (key && !memberByName.has(key)) {
+        memberByName.set(key, member);
+      }
+    }
+
+    const slots = [];
+    let usedCount = 0;
+
+    for (const row of endingsRes.rows || []) {
+      const ending = Number(row.ending);
+      const assignedTo = String(row.assigned_to || '').trim();
+      let assigned = null;
+
+      if (assignedTo) {
+        const matchedMember = memberByName.get(normalizePersonKey(assignedTo));
+        assigned = {
+          ending,
+          name: assignedTo,
+          transaction_ending: String(ending),
           row_number: matchedMember ? Number(matchedMember.row_number) : null,
           telegram: matchedMember ? String(matchedMember.telegram || '').trim() : '',
           status: matchedMember ? String(matchedMember.status || '').trim() : '',
           platform: matchedMember ? String(matchedMember.platform || '').trim() : '',
-          source: 'sexter'
+          source: 'db'
         };
-
-        if (byEnding.has(payload.ending)) {
-          duplicates.push(payload);
-          continue;
-        }
-
-        byEnding.set(payload.ending, payload);
+        usedCount += 1;
       }
 
-      const slots = [];
-      let usedCount = 0;
-
-      for (let ending = 1; ending <= 99; ending++) {
-        const assigned = byEnding.get(ending) || null;
-        if (assigned) usedCount += 1;
-
-        slots.push({
-          ending,
-          assigned
-        });
-      }
-
-      boardPayload = {
-        slots,
-        used_count: usedCount,
-        free_count: 99 - usedCount,
-        duplicates
-      };
+      slots.push({
+        ending,
+        assigned
+      });
     }
 
     res.json({
-      ...boardPayload,
+      slots,
+      used_count: usedCount,
+      free_count: 99 - usedCount,
+      duplicates: [],
       assignable_members: sheetMembers.map(item => ({
         row_number: Number(item.row_number),
         name: String(item.name || '').trim(),
@@ -5269,6 +5277,9 @@ app.patch('/api/team-transaction-endings/assign', auth, async (req, res) => {
     const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
     const rowNumber = Number(req.body?.row_number);
     const ending = Number(req.body?.ending);
+    const telegramRaw = String(req.body?.telegram || '').trim();
+    const hasEnding = Number.isInteger(ending) && ending >= 1 && ending <= 99;
+    const hasTelegram = Boolean(telegramRaw);
 
     if (!spreadsheetId) {
       return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
@@ -5278,8 +5289,8 @@ app.patch('/api/team-transaction-endings/assign', auth, async (req, res) => {
       return res.status(400).json({ error: 'Некорректный row_number' });
     }
 
-    if (!Number.isInteger(ending) || ending < 1 || ending > 99) {
-      return res.status(400).json({ error: 'ending должен быть от 1 до 99' });
+    if (!hasEnding && !hasTelegram) {
+      return res.status(400).json({ error: 'Передай ending (1..99) или telegram' });
     }
 
     const sheets = await getSheetsClient();
@@ -5296,21 +5307,10 @@ app.patch('/api/team-transaction-endings/assign', auth, async (req, res) => {
 
     const headers = headersRes.data.values?.[0] || [];
     const rows = rowsRes.data.values || [];
-
-    const txIdx = headers.findIndex(
-      h => String(h || '').trim() === 'Transaction ending'
-    );
-
-    if (txIdx === -1) {
-      return res.status(400).json({ error: 'Колонка Transaction ending не найдена' });
-    }
-
-    const updates = [];
-    const txCol = columnToLetter(txIdx + 1);
-    const endingValue = String(ending);
-
+    const tgIdx = findHeaderIndex(headers, ['Телеграм', 'Telegram', 'TG Username', 'Username'], ['телеграм', 'telegram', 'username']);
     let targetExists = false;
     let targetName = '';
+    let targetTelegram = '';
     const nameIdx = headers.findIndex(h => String(h || '').trim() === 'Имя');
 
     for (let i = 0; i < rows.length; i++) {
@@ -5322,16 +5322,10 @@ app.patch('/api/team-transaction-endings/assign', auth, async (req, res) => {
         if (nameIdx >= 0) {
           targetName = String(row[nameIdx] || '').trim();
         }
-      }
-
-      const currentEnding = extractTransactionEndingNumber(row[txIdx]);
-      if (currentEnding === null) continue;
-
-      if (currentEnding === ending && absoluteRow !== rowNumber) {
-        updates.push({
-          range: `${sheetName}!${txCol}${absoluteRow}`,
-          values: [['']]
-        });
+        if (tgIdx >= 0) {
+          targetTelegram = String(row[tgIdx] || '').trim();
+        }
+        break;
       }
     }
 
@@ -5339,25 +5333,53 @@ app.patch('/api/team-transaction-endings/assign', auth, async (req, res) => {
       return res.status(404).json({ error: 'Сотрудник не найден в таблице Действующие' });
     }
 
-    updates.push({
-      range: `${sheetName}!${txCol}${rowNumber}`,
-      values: [[endingValue]]
-    });
+    if (hasEnding) {
+      await ensureTransactionEndingsInitialized();
+      await pool.query(
+        `UPDATE transaction_endings
+         SET assigned_to = NULL,
+             assigned_user_id = NULL,
+             updated_at = NOW()
+         WHERE assigned_to = $1`,
+        [targetName]
+      );
 
-    await sheets.spreadsheets.values.batchUpdate({
-      spreadsheetId,
-      requestBody: {
-        valueInputOption: 'USER_ENTERED',
-        data: updates
+      await pool.query(
+        `UPDATE transaction_endings
+         SET assigned_to = $1,
+             assigned_user_id = $2,
+             updated_at = NOW()
+         WHERE ending = $3`,
+        [targetName, Number(req.user?.userId) || null, ending]
+      );
+    }
+
+    if (hasTelegram) {
+      if (tgIdx === -1) {
+        return res.status(400).json({ error: 'Колонка Telegram не найдена в Действующие' });
       }
-    });
 
-    if (targetName && process.env.SHELL_OF_SPREADSHEET_ID) {
-      await assignSexterEndingByName(targetName, ending);
+      const normalizedTelegram = normalizeTelegramForTeam(telegramRaw);
+      if (normalizedTelegram !== targetTelegram) {
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: `${sheetName}!${columnToLetter(tgIdx + 1)}${rowNumber}`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [[normalizedTelegram]]
+          }
+        });
+      }
     }
 
     invalidateTeamStatsCache();
-    res.json({ ok: true, row_number: rowNumber, ending });
+    broadcastRealtimeUpdate({ scope: 'transaction-endings' });
+    res.json({
+      ok: true,
+      row_number: rowNumber,
+      ending: hasEnding ? ending : null,
+      telegram: hasTelegram ? normalizeTelegramForTeam(telegramRaw) : targetTelegram
+    });
   } catch (err) {
     console.error('Transaction ending assign error:', err.message);
     res.status(500).json({ error: 'Не удалось назначить ending' });
@@ -5547,14 +5569,8 @@ app.post('/api/endings/free', auth, async (req, res) => {
 
 app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
   try {
-    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
-    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
     const rowNumber = Number(req.body?.row_number);
     const ending = Number(req.body?.ending);
-
-    if (!spreadsheetId) {
-      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
-    }
 
     const rowProvided = Number.isInteger(rowNumber) && rowNumber >= 2;
     const endingProvided = Number.isInteger(ending) && ending >= 1 && ending <= 99;
@@ -5563,85 +5579,42 @@ app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
       return res.status(400).json({ error: 'Передай row_number >= 2 или ending от 1 до 99' });
     }
 
-    const sheets = await getSheetsClient();
-
-    const headersRes = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${sheetName}!A1:AU1`
-    });
-
-    const headers = headersRes.data.values?.[0] || [];
-    const txIdx = headers.findIndex(
-      h => String(h || '').trim() === 'Transaction ending'
-    );
-
-    if (txIdx === -1) {
-      return res.status(400).json({ error: 'Колонка Transaction ending не найдена' });
-    }
-
-    const colLetter = columnToLetter(txIdx + 1);
+    await ensureTransactionEndingsInitialized();
 
     if (rowProvided) {
-      const rowRes = await sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range: `${sheetName}!A${rowNumber}:AU${rowNumber}`
-      });
-      const row = rowRes.data.values?.[0] || [];
-      const nameIdx = headers.findIndex(h => String(h || '').trim() === 'Имя');
-      const personName = nameIdx >= 0 ? String(row[nameIdx] || '').trim() : '';
+      const members = await loadTeamItemsFromCandidatesDb(req.user.agencyId);
+      const targetMember = (members || []).find(item => Number(item.row_number) === rowNumber);
 
-      await sheets.spreadsheets.values.update({
-        spreadsheetId,
-        range: `${sheetName}!${colLetter}${rowNumber}`,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [['']]
-        }
-      });
-
-      if (personName && process.env.SHELL_OF_SPREADSHEET_ID) {
-        await clearSexterEndingByName(personName);
+      if (!targetMember || !String(targetMember.name || '').trim()) {
+        return res.status(404).json({ error: 'Сотрудник не найден в Действующие' });
       }
 
+      await pool.query(
+        `UPDATE transaction_endings
+         SET assigned_to = NULL,
+             assigned_user_id = NULL,
+             updated_at = NOW()
+         WHERE assigned_to = $1`,
+        [String(targetMember.name || '').trim()]
+      );
+
       invalidateTeamStatsCache();
+      broadcastRealtimeUpdate({ scope: 'transaction-endings' });
       return res.json({ ok: true, row_number: rowNumber });
     }
 
-    const rowsRes = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${sheetName}!A2:AU5000`
-    });
-
-    const rows = rowsRes.data.values || [];
-    let matchedRow = -1;
-
-    for (let i = 0; i < rows.length; i++) {
-      const current = extractTransactionEndingNumber(rows[i]?.[txIdx]);
-      if (current === ending) {
-        matchedRow = i + 2;
-        break;
-      }
-    }
-
-    if (matchedRow === -1) {
-      return res.status(404).json({ error: 'ending не найден в таблице Действующие' });
-    }
-
-    await sheets.spreadsheets.values.update({
-      spreadsheetId,
-      range: `${sheetName}!${colLetter}${matchedRow}`,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [['']]
-      }
-    });
-
-    if (process.env.SHELL_OF_SPREADSHEET_ID) {
-      await clearSexterEndingByEnding(ending);
-    }
+    await pool.query(
+      `UPDATE transaction_endings
+       SET assigned_to = NULL,
+           assigned_user_id = NULL,
+           updated_at = NOW()
+       WHERE ending = $1`,
+      [ending]
+    );
 
     invalidateTeamStatsCache();
-    res.json({ ok: true, row_number: matchedRow, ending });
+    broadcastRealtimeUpdate({ scope: 'transaction-endings' });
+    res.json({ ok: true, ending });
   } catch (err) {
     console.error('Transaction ending clear error:', err.message);
     res.status(500).json({ error: 'Не удалось очистить ending' });

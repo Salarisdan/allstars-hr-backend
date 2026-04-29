@@ -163,12 +163,11 @@
       <div class="topbar">
         <div class="title">
           <h1>Transaction ending</h1>
-          <p>Управление монетками 1-99. Изменения синхронизируются с полем Transaction ending на странице Действующие.</p>
+          <p>Управление монетками 1-99. Ending ведутся локально, а Telegram синхронизируется с карточкой на странице Действующие.</p>
         </div>
 
         <div class="toolbar">
           <button class="btn btn-ghost" id="refreshBtn" type="button">Обновить</button>
-          <button class="btn btn-primary" id="importBtn" type="button">Импорт из # sexter</button>
         </div>
       </div>
 
@@ -181,10 +180,10 @@
           <select class="select" id="endingSelect"></select>
           <input class="input" id="telegramInput" placeholder="Telegram username, например @username" />
           <button class="btn btn-primary" id="assignBtn" type="button">Назначить</button>
-          <button class="btn btn-primary" id="assignByTelegramBtn" type="button">Назначить по Telegram</button>
+          <button class="btn btn-primary" id="assignByTelegramBtn" type="button">Синхр. Telegram</button>
           <button class="btn btn-danger" id="clearMemberBtn" type="button">Снять у сотрудника</button>
         </div>
-        <div class="hint">Подсказка: клик по свободной монетке выбирает ending. Дальше можно ввести Telegram и назначить монетку без выбора сотрудника в списке.</div>
+        <div class="hint">Подсказка: клик по свободной монетке выбирает ending. Для Telegram-синхронизации выбери сотрудника в списке и введи username.</div>
       </section>
 
       <div id="duplicatesBox"></div>
@@ -221,7 +220,6 @@
     const assignByTelegramBtn = document.getElementById('assignByTelegramBtn');
     const clearMemberBtn = document.getElementById('clearMemberBtn');
     const refreshBtn = document.getElementById('refreshBtn');
-    const importBtn = document.getElementById('importBtn');
     const duplicatesBox = document.getElementById('duplicatesBox');
     const boardFilters = document.getElementById('boardFilters');
 
@@ -371,7 +369,7 @@
                     <input class="input" id="quickTgInput_${slot.ending}" placeholder="@username" />
                     <button class="btn btn-primary" type="button" onclick="assignByTelegramFromCard(${slot.ending})">Назначить</button>
                   </div>
-                  <div class="slot-quick-note">Введи Telegram username из Действующие и нажми Enter</div>
+                  <div class="slot-quick-note">Выбери сотрудника выше, введи Telegram username и нажми Enter</div>
                 </div>
               ` : ''}
             </div>
@@ -459,6 +457,7 @@
     async function assignEnding() {
       const rowNumber = Number(memberSelect.value);
       const ending = Number(endingSelect.value);
+      const telegram = telegramInput.value;
 
       if (!rowNumber || !ending) {
         alert('Выбери сотрудника и ending');
@@ -469,7 +468,8 @@
         method: 'PATCH',
         body: JSON.stringify({
           row_number: rowNumber,
-          ending
+          ending,
+          telegram
         })
       });
 
@@ -483,32 +483,26 @@
     }
 
     async function assignEndingByTelegram() {
+      const rowNumber = Number(memberSelect.value);
+      const tgRaw = String(telegramInput.value || '').trim();
       const ending = Number(endingSelect.value);
-      const tgNeedle = normalizeTelegram(telegramInput.value);
 
-      if (!ending) {
-        alert('Сначала выбери ending');
+      if (!rowNumber) {
+        alert('Сначала выбери сотрудника');
         return;
       }
 
-      if (!tgNeedle) {
+      if (!normalizeTelegram(tgRaw)) {
         alert('Введи Telegram username');
-        return;
-      }
-
-      const members = Array.isArray(boardData.assignable_members) ? boardData.assignable_members : [];
-      const matchedMember = members.find(member => normalizeTelegram(member.telegram) === tgNeedle);
-
-      if (!matchedMember) {
-        alert('Не нашел такого Telegram в Действующих');
         return;
       }
 
       const res = await api('/api/team-transaction-endings/assign', {
         method: 'PATCH',
         body: JSON.stringify({
-          row_number: Number(matchedMember.row_number),
-          ending
+          row_number: rowNumber,
+          ending: Number.isInteger(ending) && ending >= 1 && ending <= 99 ? ending : undefined,
+          telegram: tgRaw
         })
       });
 
@@ -518,32 +512,30 @@
         return;
       }
 
-      memberSelect.value = String(matchedMember.row_number);
       await loadBoard();
     }
 
     async function assignByTelegramFromCard(ending) {
       const input = document.getElementById(`quickTgInput_${ending}`);
-      const tgNeedle = normalizeTelegram(input?.value || '');
+      const rowNumber = Number(memberSelect.value);
+      const tgRaw = String(input?.value || '').trim();
 
-      if (!tgNeedle) {
-        alert('Введи Telegram username');
+      if (!rowNumber) {
+        alert('Сначала выбери сотрудника');
         return;
       }
 
-      const members = Array.isArray(boardData.assignable_members) ? boardData.assignable_members : [];
-      const matchedMember = members.find(member => normalizeTelegram(member.telegram) === tgNeedle);
-
-      if (!matchedMember) {
-        alert('Не нашел такого Telegram в Действующих');
+      if (!normalizeTelegram(tgRaw)) {
+        alert('Введи Telegram username');
         return;
       }
 
       const res = await api('/api/team-transaction-endings/assign', {
         method: 'PATCH',
         body: JSON.stringify({
-          row_number: Number(matchedMember.row_number),
-          ending: Number(ending)
+          row_number: rowNumber,
+          ending: Number(ending),
+          telegram: tgRaw
         })
       });
 
@@ -553,7 +545,7 @@
         return;
       }
 
-      memberSelect.value = String(matchedMember.row_number);
+      memberSelect.value = String(rowNumber);
       endingSelect.value = String(ending);
       activeQuickEnding = null;
       await loadBoard();
@@ -596,26 +588,6 @@
       await loadBoard();
     }
 
-    async function importFromSexter() {
-      if (!confirm('Импортировать ending из старой таблицы # sexter?')) return;
-
-      const res = await api('/api/team-transaction-endings/import-sexter', {
-        method: 'POST'
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        alert(data.error || 'Не удалось импортировать ending');
-        return;
-      }
-
-      const notFound = Array.isArray(data.not_found) ? data.not_found : [];
-      const summary = `Импортировано: ${Number(data.imported || 0)}${notFound.length ? `\nНе найдены: ${notFound.length}` : ''}`;
-      alert(summary);
-
-      await loadBoard();
-    }
-
     window.clearByEnding = clearByEnding;
     window.assignByTelegramFromCard = assignByTelegramFromCard;
 
@@ -623,7 +595,6 @@
     assignByTelegramBtn.addEventListener('click', assignEndingByTelegram);
     clearMemberBtn.addEventListener('click', clearCurrentMemberEnding);
     refreshBtn.addEventListener('click', loadBoard);
-    importBtn.addEventListener('click', importFromSexter);
     boardFilters?.addEventListener('click', event => {
       const target = event.target.closest('[data-filter]');
       if (!target) return;
