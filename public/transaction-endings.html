@@ -623,7 +623,7 @@
         return;
       }
 
-      await loadBoard();
+      await loadBoard({ preserveScroll: true });
     }
 
     async function assignByNameFromCard(ending) {
@@ -700,7 +700,7 @@
       renderBoard();
     });
 
-    window.AllStarsRealtime?.subscribe(() => loadBoard());
+    window.AllStarsRealtime?.subscribe(() => loadBoard({ preserveScroll: true }));
 
     loadBoard().catch(err => {
       console.error(err);

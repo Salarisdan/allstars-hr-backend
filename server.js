@@ -5335,6 +5335,7 @@ app.patch('/api/team-transaction-endings/assign', auth, async (req, res) => {
     const headers = headersRes.data.values?.[0] || [];
     const rows = rowsRes.data.values || [];
     const tgIdx = findHeaderIndex(headers, ['Телеграм', 'Telegram', 'TG Username', 'Username'], ['телеграм', 'telegram', 'username']);
+    const txIdx = findHeaderIndex(headers, ['Transaction ending', 'Transaction Ending'], ['transaction ending', 'transaction']);
     let targetExists = false;
     let targetName = '';
     let targetTelegram = '';
@@ -5382,6 +5383,19 @@ app.patch('/api/team-transaction-endings/assign', auth, async (req, res) => {
          WHERE ending = $4`,
         [targetName, rowNumber, Number(req.user?.userId) || null, ending]
       );
+
+      if (txIdx === -1) {
+        return res.status(400).json({ error: 'Колонка Transaction ending не найдена в Действующие' });
+      }
+
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${sheetName}!${columnToLetter(txIdx + 1)}${rowNumber}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [[String(ending)]]
+        }
+      });
     }
 
     if (hasTelegram) {
@@ -5599,6 +5613,8 @@ app.post('/api/endings/free', auth, async (req, res) => {
 
 app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
   try {
+    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
+    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
     const rowNumber = Number(req.body?.row_number);
     const ending = Number(req.body?.ending);
 
@@ -5608,6 +5624,24 @@ app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
     if (!rowProvided && !endingProvided) {
       return res.status(400).json({ error: 'Передай row_number >= 2 или ending от 1 до 99' });
     }
+
+    if (!spreadsheetId) {
+      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
+    }
+
+    const sheets = await getSheetsClient();
+    const headersRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A1:AU1`
+    });
+    const headers = headersRes.data.values?.[0] || [];
+    const txIdx = findHeaderIndex(headers, ['Transaction ending', 'Transaction Ending'], ['transaction ending', 'transaction']);
+
+    if (txIdx === -1) {
+      return res.status(400).json({ error: 'Колонка Transaction ending не найдена в Действующие' });
+    }
+
+    const txCol = columnToLetter(txIdx + 1);
 
     await ensureTransactionEndingsInitialized();
 
@@ -5630,10 +5664,29 @@ app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
         [rowNumber, String(targetMember.name || '').trim()]
       );
 
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${sheetName}!${txCol}${rowNumber}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [['']]
+        }
+      });
+
       invalidateTeamStatsCache();
       broadcastRealtimeUpdate({ scope: 'transaction-endings' });
       return res.json({ ok: true, row_number: rowNumber });
     }
+
+    const assignedRowRes = await pool.query(
+      `SELECT assigned_row_number
+       FROM transaction_endings
+       WHERE ending = $1
+       LIMIT 1`,
+      [ending]
+    );
+
+    const assignedRowNumber = Number(assignedRowRes.rows?.[0]?.assigned_row_number || 0);
 
     await pool.query(
       `UPDATE transaction_endings
@@ -5644,6 +5697,17 @@ app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
        WHERE ending = $1`,
       [ending]
     );
+
+    if (assignedRowNumber >= 2) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${sheetName}!${txCol}${assignedRowNumber}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [['']]
+        }
+      });
+    }
 
     invalidateTeamStatsCache();
     broadcastRealtimeUpdate({ scope: 'transaction-endings' });
