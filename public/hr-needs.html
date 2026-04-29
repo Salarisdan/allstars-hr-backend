@@ -1187,57 +1187,6 @@
       `;
     }
 
-                  <div class="model-stat" style="grid-column:1 / -1;">
-                    <div class="model-stat-label">Выручка месяц, к$</div>
-                    <input class="model-stat-input" id="revenue-${model.id}" value="${escapeHtml(model.revenue_month_k || '')}" placeholder="Например: 20" oninput="autosaveNeedMeta(${model.id}, 'revenue_month_k')">
-                  </div>
-                </div>
-
-                <div class="autosave-status" id="meta-status-${model.id}"></div>
-
-                <div class="shift-list">
-                  ${[
-                    ['00-06', 'shift_00_06', model.shift_00_06],
-                    ['06-12', 'shift_06_12', model.shift_06_12],
-                    ['12-18', 'shift_12_18', model.shift_12_18],
-                    ['18-00', 'shift_18_00', model.shift_18_00]
-                  ].map(([label, field, status]) => `
-                    <div class="shift-row">
-                      <div class="shift-label">${label}</div>
-                      <button
-                        class="shift-btn ${getStatusClass(status)}"
-                        type="button"
-                        onclick="openStatusMenu(${model.id}, '${field}', '${status}', event)"
-                      >
-                        ${STATUS_LABELS[status] || 'Не требуется'}
-                      </button>
-                    </div>
-                  `).join('')}
-                </div>
-
-                <div class="comment-box">
-                  <div class="comment-label">Комментарий тимлида</div>
-                  <textarea
-                    class="comment-textarea"
-                    id="comment-${model.id}"
-                    placeholder="Комментарий по модели, сменам, срочности, пожеланиям..."
-                    oninput="autosaveNeedComment(${model.id})"
-                  >${escapeHtml(model.comment || '')}</textarea>
-                  <div class="autosave-status" id="comment-status-${model.id}"></div>
-                </div>
-
-                <div class="card-actions">
-                  <button class="delete-btn" type="button" onclick="deleteNeedCard(${model.id})">
-                    Удалить
-                  </button>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </section>
-      `;
-    }
-
     function computeStats(data) {
       let total = 0, urgent = 0, search = 0, bg = 0;
       const SHIFTS = ['shift_00_06', 'shift_06_12', 'shift_12_18', 'shift_18_00'];
