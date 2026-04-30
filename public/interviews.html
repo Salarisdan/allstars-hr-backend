@@ -3010,6 +3010,13 @@
     }
 
     function collectInterviewCardPayload() {
+      const interview_date_raw = document.getElementById('iv-date')?.value || '';
+      let interview_date = '';
+      if (interview_date_raw) {
+        const [yyyy, mm, dd] = interview_date_raw.split('-');
+        interview_date = `${dd}.${mm}.${yyyy}`;
+      }
+
       return {
         name: document.getElementById('iv-name')?.value || '',
         status: document.getElementById('iv-status')?.value || '',
@@ -3022,7 +3029,7 @@
         shift: collectButtonAndCustomValue('iv-shift-group', 'iv-shift-custom'),
         english_level: document.getElementById('iv-english')?.value || '',
         interviewer_name: document.getElementById('iv-interviewer')?.value || '',
-        interview_date: document.getElementById('iv-date')?.value || '',
+        interview_date,
         interview_time: document.getElementById('iv-time')?.value || '',
         notes: document.getElementById('iv-notes')?.value || ''
       };

@@ -4146,10 +4146,6 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
 
     for (const mapping of fieldMappings) {
       if (req.body?.[mapping.field] !== undefined) {
-        if (mapping.field === 'status') {
-          continue;
-        }
-
         const colIdx = mapping.field === 'source' && sourceColumnIdx >= 0
           ? sourceColumnIdx + 1
           : findColumnIndex(...mapping.names);
