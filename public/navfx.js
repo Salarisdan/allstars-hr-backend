@@ -47,7 +47,21 @@
 
     items.forEach((item, idx) => {
       item.style.setProperty('--delay', `${0.03 + idx * 0.04}s`);
-      if (item.querySelector('.nav-icon')) return;
+
+      const existingIcon = item.querySelector('.nav-icon');
+
+      if (existingIcon) {
+        // Replace emoji/old content with SVG
+        existingIcon.innerHTML = getNavSvg(item);
+        existingIcon.setAttribute('aria-hidden', 'true');
+        // Ensure dot exists
+        if (!item.querySelector('.nav-dot')) {
+          const dot = document.createElement('span');
+          dot.className = 'nav-dot';
+          item.appendChild(dot);
+        }
+        return;
+      }
 
       const raw = item.textContent || '';
       const text = raw.trim().replace(/\s+/g, ' ');
