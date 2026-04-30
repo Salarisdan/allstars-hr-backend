@@ -5109,74 +5109,67 @@ async function loadTeamItemsFromCandidatesDb(agencyId) {
       };
     });
 
+  // Order by updated_at DESC — same as loadAgencyCandidatesForStatusOverlay used by card endpoint,
+  // so name-based fallback matching is consistent between list and card views.
   const candidateResult = await query(
-    `SELECT id, name, tg, telegram, status, platform, platforms, top_pages, top_profile, main_activity, exp, experience, started_at, hired_at
+    `SELECT id, name, tg, telegram, status, platform, platforms, top_pages, top_profile, main_activity, exp, experience, started_at, hired_at, updated_at
      FROM candidates
      WHERE agency_id = $1
-     ORDER BY created_at DESC`,
+     ORDER BY updated_at DESC NULLS LAST, created_at DESC NULLS LAST, id DESC`,
     [agencyId]
   );
 
-  const crmItemsRaw = (candidateResult.rows || [])
-    .map(candidate => {
-      const base = buildTeamItemFromCandidate(candidate);
-      return {
-        ...base,
-        row_number: -Number(candidate.id),
-        candidate_id: Number(candidate.id),
-        source: 'crm'
-      };
-    });
+  const crmCandidates = candidateResult.rows || [];
 
-  const identityKeys = (item) => {
+  const itemIdentityKeys = (telegram, name) => {
     const keys = [];
-    const tgKey = normalizeTelegramKey(item.telegram || item.raw?.['Телеграм'] || item.raw?.['Telegram'] || '');
+    const tgKey = normalizeTelegramKey(telegram || '');
     if (tgKey) keys.push(`tg:${tgKey}`);
-
-    const nameKey = normalizePersonKey(item.name || '');
+    const nameKey = normalizePersonKey(name || '');
     if (nameKey) keys.push(`name:${nameKey}`);
-
     return keys;
   };
 
-  const crmByIdentityKey = new Map();
-  for (const item of crmItemsRaw) {
-    for (const key of identityKeys(item)) {
-      if (!crmByIdentityKey.has(key)) crmByIdentityKey.set(key, item);
-    }
-  }
-
   // Sheet rows remain as base records, but status is always taken from CRM when a match exists.
+  // Use findCandidateByIdentity — same function used by the card endpoint — to guarantee consistency.
   const sheetItems = sheetItemsRaw
     .map((item) => {
-      const matched = identityKeys(item)
-        .map(key => crmByIdentityKey.get(key))
-        .find(Boolean);
-
+      const matched = findCandidateByIdentity(crmCandidates, {
+        telegram: item.telegram,
+        name: item.name
+      });
       if (!matched) return item;
-      return {
-        ...item,
-        status: matched.status
-      };
+      const crmStatus = normalizeStatusAlias(matched.status || '') || String(matched.status || '').trim();
+      if (!crmStatus) return item;
+      return { ...item, status: crmStatus };
     })
     .filter(item => isVisibleTeamDashboardStatus(item.status));
 
+  const crmItemsRaw = crmCandidates.map(candidate => {
+    const base = buildTeamItemFromCandidate(candidate);
+    return {
+      ...base,
+      row_number: -Number(candidate.id),
+      candidate_id: Number(candidate.id),
+      source: 'crm'
+    };
+  });
+
   const crmItems = crmItemsRaw.filter(item => isVisibleTeamDashboardStatus(item.status));
 
+  // Dedup: sheet items already cover matched people; only add pure-CRM items not present in sheet.
   const seen = new Set();
   for (const item of sheetItems) {
-    for (const key of identityKeys(item)) {
+    for (const key of itemIdentityKeys(item.telegram, item.name)) {
       seen.add(key);
     }
   }
 
   const uniqueCrmItems = crmItems.filter(item => {
-    const keys = identityKeys(item);
+    const keys = itemIdentityKeys(item.telegram, item.name);
     if (!keys.length) return true;
-
     const intersects = keys.some(key => seen.has(key));
     if (intersects) return false;
-
     keys.forEach(key => seen.add(key));
     return true;
   });
