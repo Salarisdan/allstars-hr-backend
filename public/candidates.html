@@ -2308,6 +2308,7 @@
         return;
       }
 
+      window.clearCache?.();
       await loadCandidates();
     }
 
@@ -2347,6 +2348,7 @@
         return;
       }
 
+      window.clearCache?.();
       await loadCandidates();
     }
 
@@ -2661,6 +2663,7 @@
       setModalSaveStatus('Сохранено', 'ok');
 
       if (reloadOnSuccess) {
+        window.clearCache?.();
         await loadCandidates();
       }
 

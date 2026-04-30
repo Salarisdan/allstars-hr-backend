@@ -3670,6 +3670,7 @@ app.patch('/candidates/:id', auth, async (req, res) => {
   );
 
   invalidateTeamStatsCache();
+  broadcastRealtimeUpdate({ scope: 'candidates' });
 
   res.json(updated.rows[0]);
 });

@@ -2544,6 +2544,7 @@
         timestamp: Date.now()
       }));
 
+      window.clearCache?.();
       await load();
     }
 
@@ -2567,6 +2568,7 @@
         return;
       }
 
+      window.clearCache?.();
       await load();
     }
 
@@ -2590,6 +2592,7 @@
         return;
       }
 
+      window.clearCache?.();
       await load();
     }
 
