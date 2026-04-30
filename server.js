@@ -2428,6 +2428,56 @@ async function syncCandidatesStatusInDb({ agencyId, status, telegram, name, upda
   return { updated };
 }
 
+async function loadAgencyCandidatesForStatusOverlay(agencyId) {
+  if (!agencyId) return [];
+
+  const result = await query(
+    `SELECT id, name, tg, telegram, status, updated_at, created_at
+     FROM candidates
+     WHERE agency_id = $1
+     ORDER BY updated_at DESC NULLS LAST, created_at DESC NULLS LAST, id DESC`,
+    [agencyId]
+  );
+
+  return result.rows || [];
+}
+
+function findCandidateByIdentity(candidates, { telegram, name }) {
+  const telegramKey = normalizeTelegramKey(telegram || '');
+  const personName = String(name || '').trim();
+
+  return (candidates || []).find((row) => {
+    const rowTelegramKey = normalizeTelegramKey(row.telegram || row.tg || '');
+    if (telegramKey && rowTelegramKey) {
+      return rowTelegramKey === telegramKey;
+    }
+
+    return !telegramKey && personName && namesLooselyMatch(personName, row.name || '');
+  }) || null;
+}
+
+async function overlayStatusesFromCrm(agencyId, items, mapItemIdentity) {
+  const list = Array.isArray(items) ? items : [];
+  if (!list.length) return list;
+
+  const candidates = await loadAgencyCandidatesForStatusOverlay(agencyId);
+  if (!candidates.length) return list;
+
+  return list.map((item) => {
+    const identity = mapItemIdentity(item) || {};
+    const matched = findCandidateByIdentity(candidates, identity);
+    if (!matched) return item;
+
+    const crmStatus = normalizeStatusAlias(matched.status || '') || String(matched.status || '').trim();
+    if (!crmStatus) return item;
+
+    return {
+      ...item,
+      status: crmStatus
+    };
+  });
+}
+
 async function syncStatusAcrossSources({
   source,
   agencyId,
@@ -3623,21 +3673,7 @@ app.patch('/candidates/:id', auth, async (req, res) => {
       createdBy: req.user?.email || String(req.user?.userId || '')
     });
 
-    if (isVisibleTeamDashboardStatus(normalizeStatusAlias(next.status))) {
-      try {
-        const candidateTg = updated.rows[0].tg || updated.rows[0].telegram || '';
-        const alreadyExists = await teamSheetHasCandidateByTelegram(candidateTg);
-
-        if (!alreadyExists) {
-          await moveCandidateToTeamSheet({
-            ...updated.rows[0],
-            teamStatus: normalizeStatusAlias(next.status)
-          });
-        }
-      } catch (teamErr) {
-        console.error('Move candidate to team sheet error:', teamErr.message);
-      }
-    }
+    // Team sheet is kept as legacy base only; status workflows are CRM-only.
 
     await syncStatusAcrossSources({
       source: 'candidates',
@@ -3900,7 +3936,17 @@ app.get('/api/interviews', auth, async (req, res) => {
       normalizedWithSource.map(item => item.row_number)
     );
 
-    res.json(normalizedWithSource.map(item => mergeInterviewCrmMeta(item, metaMap.get(Number(item.row_number)))));
+    const interviewsWithMeta = normalizedWithSource.map(item => mergeInterviewCrmMeta(item, metaMap.get(Number(item.row_number))));
+    const interviewsWithCrmStatus = await overlayStatusesFromCrm(
+      req.user.agencyId,
+      interviewsWithMeta,
+      (item) => ({
+        telegram: item.telegram || item.username || item.telegram_username || '',
+        name: item.name || ''
+      })
+    );
+
+    res.json(interviewsWithCrmStatus);
   } catch (err) {
     console.error('Google Sheets read error:', err.message);
     res.status(500).json({ error: 'Failed to read Google Sheet' });
@@ -3947,7 +3993,16 @@ app.get('/api/interviews/:rowNumber', auth, async (req, res) => {
 
     await ensureInterviewCrmMeta(req.user.agencyId, rowNumber, candidateWithSource.created_at);
     const meta = await getInterviewCrmMeta(req.user.agencyId, rowNumber);
-    res.json(mergeInterviewCrmMeta(candidateWithSource, meta));
+    const merged = mergeInterviewCrmMeta(candidateWithSource, meta);
+    const [withCrmStatus] = await overlayStatusesFromCrm(
+      req.user.agencyId,
+      [merged],
+      (item) => ({
+        telegram: item.telegram || item.username || item.telegram_username || '',
+        name: item.name || ''
+      })
+    );
+    res.json(withCrmStatus || merged);
   } catch (err) {
     console.error('Interview row read error:', err.message);
     res.status(500).json({ error: 'Failed to read interview row' });
@@ -4087,17 +4142,16 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
 
     for (const mapping of fieldMappings) {
       if (req.body?.[mapping.field] !== undefined) {
+        if (mapping.field === 'status') {
+          continue;
+        }
+
         const colIdx = mapping.field === 'source' && sourceColumnIdx >= 0
           ? sourceColumnIdx + 1
           : findColumnIndex(...mapping.names);
         if (colIdx > 0) {
           const colLetter = columnToLetter(colIdx);
           let value = String(req.body[mapping.field] || '').trim();
-
-          // Validate status
-          if (mapping.field === 'status') {
-            value = normalizeInterviewStatus(value);
-          }
 
           addUpdate(`${sheetName}!${colLetter}${rowNumber}`, value);
         }
@@ -4113,26 +4167,27 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
 
     const updates = [...updatesByRange.values()];
 
-    if (!updates.length) {
+    if (!updates.length && req.body?.status === undefined) {
       return res.status(400).json({ error: 'No fields to update' });
     }
 
-    // Apply updates
-    await sheets.spreadsheets.values.batchUpdate({
-      spreadsheetId,
-      requestBody: {
-        valueInputOption: 'USER_ENTERED',
-        data: updates
-      }
-    });
+    if (updates.length) {
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          valueInputOption: 'USER_ENTERED',
+          data: updates
+        }
+      });
+    }
 
-    // Get updated row and return it
-    const updatedRowRes = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${sheetName}!A${rowNumber}:ZZ${rowNumber}`
-    });
-
-    const updatedRow = updatedRowRes.data.values?.[0] || [];
+    // When only status is changed, we intentionally keep sheet data untouched.
+    const updatedRow = updates.length
+      ? (await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A${rowNumber}:ZZ${rowNumber}`
+      })).data.values?.[0] || []
+      : currentRow;
     const candidate = normalizeRow(headers, updatedRow, rowNumber);
     const now = new Date();
     const nextMeta = await updateInterviewCrmMeta(
@@ -4179,7 +4234,7 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
       });
     }
 
-    if (nextRequestedStatus && nextRequestedStatus !== prevInterviewStatus) {
+    if (nextRequestedStatus && req.body?.status !== undefined) {
       await syncStatusAcrossSources({
         source: 'interviews',
         agencyId: req.user.agencyId,
@@ -5033,7 +5088,7 @@ function buildTeamItemFromCandidate(candidate) {
 async function loadTeamItemsFromCandidatesDb(agencyId) {
   const teamRows = await loadAllTeamMembersForBackfill();
 
-  const sheetItems = (teamRows || [])
+  const sheetItemsRaw = (teamRows || [])
     .map((row) => {
       const status = normalizeStatusAlias(row.status || '') || String(row.status || '').trim();
       const model = String(row?.raw?.['Модели (основные)'] || row?.raw?.['Актуальная модель'] || '').trim();
@@ -5052,8 +5107,7 @@ async function loadTeamItemsFromCandidatesDb(agencyId) {
         start_date: row.date_start || '',
         transactionEnding: String(row?.raw?.['Transaction ending'] || '').trim()
       };
-    })
-    .filter(item => isVisibleTeamDashboardStatus(item.status));
+    });
 
   const candidateResult = await query(
     `SELECT id, name, tg, telegram, status, platform, platforms, top_pages, top_profile, main_activity, exp, experience, started_at, hired_at
@@ -5063,7 +5117,7 @@ async function loadTeamItemsFromCandidatesDb(agencyId) {
     [agencyId]
   );
 
-  const crmItems = (candidateResult.rows || [])
+  const crmItemsRaw = (candidateResult.rows || [])
     .map(candidate => {
       const base = buildTeamItemFromCandidate(candidate);
       return {
@@ -5072,8 +5126,7 @@ async function loadTeamItemsFromCandidatesDb(agencyId) {
         candidate_id: Number(candidate.id),
         source: 'crm'
       };
-    })
-    .filter(item => isVisibleTeamDashboardStatus(item.status));
+    });
 
   const identityKeys = (item) => {
     const keys = [];
@@ -5085,6 +5138,30 @@ async function loadTeamItemsFromCandidatesDb(agencyId) {
 
     return keys;
   };
+
+  const crmByIdentityKey = new Map();
+  for (const item of crmItemsRaw) {
+    for (const key of identityKeys(item)) {
+      if (!crmByIdentityKey.has(key)) crmByIdentityKey.set(key, item);
+    }
+  }
+
+  // Sheet rows remain as base records, but status is always taken from CRM when a match exists.
+  const sheetItems = sheetItemsRaw
+    .map((item) => {
+      const matched = identityKeys(item)
+        .map(key => crmByIdentityKey.get(key))
+        .find(Boolean);
+
+      if (!matched) return item;
+      return {
+        ...item,
+        status: matched.status
+      };
+    })
+    .filter(item => isVisibleTeamDashboardStatus(item.status));
+
+  const crmItems = crmItemsRaw.filter(item => isVisibleTeamDashboardStatus(item.status));
 
   const seen = new Set();
   for (const item of sheetItems) {
@@ -5754,6 +5831,33 @@ app.get('/api/team-member/:rowNumber', auth, async (req, res) => {
       }))
       .filter(field => field.label);
 
+    const statusIdx = findHeaderIndex(headers, ['Актуальный статус кандидата (Hr)', 'Статус'], ['статус кандидата', 'актуальный статус', 'status']);
+    const tgIdx = findHeaderIndex(headers, ['Телеграм', 'Telegram', 'ТГ', 'Telegram / username', 'TG Username', 'Username'], ['телеграм', 'telegram', 'username']);
+    const nameIdx = findHeaderIndex(headers, ['Имя', 'Имя / ник', 'Ник'], ['имя', 'ник']);
+
+    if (statusIdx >= 0) {
+      const rowTelegram = tgIdx >= 0 ? String(row[tgIdx] || '').trim() : '';
+      const rowName = nameIdx >= 0 ? String(row[nameIdx] || '').trim() : '';
+      const candidates = await loadAgencyCandidatesForStatusOverlay(req.user.agencyId);
+      const matched = findCandidateByIdentity(candidates, {
+        telegram: rowTelegram,
+        name: rowName
+      });
+
+      if (matched?.status) {
+        const crmStatus = normalizeStatusAlias(matched.status || '') || String(matched.status || '').trim();
+        if (crmStatus) {
+          const statusLabel = String(headers[statusIdx] || '').trim();
+          for (const field of fields) {
+            if (String(field.label || '').trim() === statusLabel) {
+              field.value = crmStatus;
+              break;
+            }
+          }
+        }
+      }
+    }
+
     res.json({ row_number: rowNumber, fields });
   } catch (err) {
     console.error('GET /api/team-member/:rowNumber error:', err);
@@ -5920,6 +6024,11 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       const key = normalizeHeaderMatchKey(label);
       if (!key) continue;
 
+      // Status is CRM-owned and should not be written back to the team sheet.
+      if (key.includes('статус')) {
+        continue;
+      }
+
       let idx = normalizedHeaders.findIndex(h => h === key);
       if (idx < 0) {
         idx = normalizedHeaders.findIndex(h => h.includes(key) || key.includes(h));
@@ -5945,7 +6054,7 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       : prevStatus;
     const nextStatus = normalizeCandidateStatus(nextStatusRaw) || nextStatusRaw;
 
-    if (nextStatus && nextStatus !== prevStatus) {
+    if (nextStatus) {
       await syncStatusAcrossSources({
         source: 'team',
         agencyId: req.user.agencyId,
