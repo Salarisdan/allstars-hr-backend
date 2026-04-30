@@ -3308,20 +3308,26 @@
 
       // Reject long phrases and obvious non-model text blocks.
       if (normalized.length < 2 || normalized.length > 28) return '';
-      if (/[%@]|https?:\/\//i.test(normalized)) return '';
-      if ((normalized.match(/\s+/g) || []).length >= 3) return '';
+      // Reject URLs, emails, dot-notation (e.g. docs.google.com)
+      if (/[%@.]|https?:\/\//i.test(normalized)) return '';
       if (/\d{5,}/.test(normalized)) return '';
+
+      // Allow only single word OR "Name Number" pattern (e.g. "Alyaska 3")
+      const words = normalized.split(/\s+/);
+      if (words.length > 2) return '';
+      if (words.length === 2 && !/^\d+$/.test(words[1])) return '';
 
       const lower = normalized.toLowerCase();
       const bannedWords = [
         'конверси', 'анкет', 'просмотр', 'подписчик', 'соотношен', 'скриншот',
         'работал', 'работала', 'правильно', 'соответственно', 'месяц', 'моделью',
-        'топ', 'процент', 'доход', 'выручк', 'продаж'
+        'топ', 'процент', 'доход', 'выручк', 'продаж',
+        'студент', 'инженер', 'трансами', 'университет', 'spreadsheet', 'google'
       ];
       if (bannedWords.some(word => lower.includes(word))) return '';
 
-      // Keep names like "Alyaska 3", "Киана", "Eva" and reject punctuation-heavy text.
-      if (!/^[\p{L}][\p{L}\p{N}\s._-]{1,27}$/u.test(normalized)) return '';
+      // Keep names like "Alyaska 3", "Киана", "Eva" — no dots allowed inside
+      if (!/^[\p{L}][\p{L}\p{N}\s_-]{1,27}$/u.test(normalized)) return '';
 
       return normalized;
     }
