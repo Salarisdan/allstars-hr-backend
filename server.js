@@ -2438,13 +2438,8 @@ async function syncStatusAcrossSources({
 }) {
   const tasks = [];
 
-  if (source !== 'interviews') {
-    tasks.push(syncInterviewSheetStatus({ status, telegram, name }));
-  }
-
-  if (source !== 'team') {
-    tasks.push(syncTeamSheetStatus({ status, telegram, name }));
-  }
+  // Status sync to Google Sheets is intentionally disabled for new updates.
+  // Existing sheet rows remain untouched.
 
   if (source !== 'candidates') {
     tasks.push(syncCandidatesStatusInDb({
