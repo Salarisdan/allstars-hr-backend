@@ -2448,11 +2448,15 @@ function findCandidateByIdentity(candidates, { telegram, name }) {
 
   return (candidates || []).find((row) => {
     const rowTelegramKey = normalizeTelegramKey(row.telegram || row.tg || '');
+
+    // Both sides have telegram: require telegram match (most reliable)
     if (telegramKey && rowTelegramKey) {
       return rowTelegramKey === telegramKey;
     }
 
-    return !telegramKey && personName && namesLooselyMatch(personName, row.name || '');
+    // One or both sides lack telegram: fall back to name matching.
+    // This covers: sheet-has-TG + CRM-no-TG, CRM-has-TG + sheet-no-TG, neither-has-TG.
+    return !!(personName && namesLooselyMatch(personName, row.name || ''));
   }) || null;
 }
 
@@ -5086,95 +5090,126 @@ function buildTeamItemFromCandidate(candidate) {
 }
 
 async function loadTeamItemsFromCandidatesDb(agencyId) {
-  const teamRows = await loadAllTeamMembersForBackfill();
+  // CRM is the single source of truth for statuses.
+  // Sheet data supplements with extra fields (model, experience, work_days, etc.).
+  // This guarantees any candidate with a visible status in CRM always appears here.
 
-  const sheetItemsRaw = (teamRows || [])
-    .map((row) => {
-      const status = normalizeStatusAlias(row.status || '') || String(row.status || '').trim();
-      const model = String(row?.raw?.['Модели (основные)'] || row?.raw?.['Актуальная модель'] || '').trim();
-
-      return {
-        row_number: Number(row.row_number),
-        source: 'sheet',
-        raw: row.raw || {},
-        name: row.name || '',
-        telegram: row.telegram || '',
-        status,
-        platform: row.platform || '',
-        model,
-        experience_months: String(row?.raw?.['Опыт, мес.'] || row?.raw?.['Опыт'] || '').trim(),
-        work_days: String(row?.raw?.['Срок работы, дни'] || '').trim(),
-        start_date: row.date_start || '',
-        transactionEnding: String(row?.raw?.['Transaction ending'] || '').trim()
-      };
-    });
-
-  // Order by updated_at DESC — same as loadAgencyCandidatesForStatusOverlay used by card endpoint,
-  // so name-based fallback matching is consistent between list and card views.
-  const candidateResult = await query(
-    `SELECT id, name, tg, telegram, status, platform, platforms, top_pages, top_profile, main_activity, exp, experience, started_at, hired_at, updated_at
-     FROM candidates
-     WHERE agency_id = $1
-     ORDER BY updated_at DESC NULLS LAST, created_at DESC NULLS LAST, id DESC`,
-    [agencyId]
-  );
+  const [teamRows, candidateResult] = await Promise.all([
+    loadAllTeamMembersForBackfill(),
+    query(
+      `SELECT id, name, tg, telegram, status, platform, platforms, top_pages, top_profile, main_activity, exp, experience, started_at, hired_at, updated_at
+       FROM candidates
+       WHERE agency_id = $1
+       ORDER BY updated_at DESC NULLS LAST, created_at DESC NULLS LAST, id DESC`,
+      [agencyId]
+    )
+  ]);
 
   const crmCandidates = candidateResult.rows || [];
 
-  const itemIdentityKeys = (telegram, name) => {
-    const keys = [];
-    const tgKey = normalizeTelegramKey(telegram || '');
-    if (tgKey) keys.push(`tg:${tgKey}`);
-    const nameKey = normalizePersonKey(name || '');
-    if (nameKey) keys.push(`name:${nameKey}`);
-    return keys;
-  };
-
-  // Sheet rows remain as base records, but status is always taken from CRM when a match exists.
-  // Use findCandidateByIdentity — same function used by the card endpoint — to guarantee consistency.
-  const sheetItems = sheetItemsRaw
-    .map((item) => {
-      const matched = findCandidateByIdentity(crmCandidates, {
-        telegram: item.telegram,
-        name: item.name
-      });
-      if (!matched) return item;
-      const crmStatus = normalizeStatusAlias(matched.status || '') || String(matched.status || '').trim();
-      if (!crmStatus) return item;
-      return { ...item, status: crmStatus };
-    })
-    .filter(item => isVisibleTeamDashboardStatus(item.status));
-
-  const crmItemsRaw = crmCandidates.map(candidate => {
-    const base = buildTeamItemFromCandidate(candidate);
+  // Build sheet lookup by identity for fast supplemental data access
+  const sheetItemsRaw = (teamRows || []).map((row) => {
+    const status = normalizeStatusAlias(row.status || '') || String(row.status || '').trim();
+    const model = String(row?.raw?.['Модели (основные)'] || row?.raw?.['Актуальная модель'] || '').trim();
     return {
-      ...base,
-      row_number: -Number(candidate.id),
-      candidate_id: Number(candidate.id),
-      source: 'crm'
+      row_number: Number(row.row_number),
+      source: 'sheet',
+      raw: row.raw || {},
+      name: row.name || '',
+      telegram: row.telegram || '',
+      status,
+      platform: row.platform || '',
+      model,
+      experience_months: String(row?.raw?.['Опыт, мес.'] || row?.raw?.['Опыт'] || '').trim(),
+      work_days: String(row?.raw?.['Срок работы, дни'] || '').trim(),
+      start_date: row.date_start || '',
+      transactionEnding: String(row?.raw?.['Transaction ending'] || '').trim()
     };
   });
 
-  const crmItems = crmItemsRaw.filter(item => isVisibleTeamDashboardStatus(item.status));
+  const normTgKey = (v) => normalizeTelegramKey(v || '');
+  const normNameKey = (v) => normalizePersonKey(v || '');
 
-  // Dedup: sheet items already cover matched people; only add pure-CRM items not present in sheet.
-  const seen = new Set();
-  for (const item of sheetItems) {
-    for (const key of itemIdentityKeys(item.telegram, item.name)) {
-      seen.add(key);
+  // Identity dedup key: prefer telegram, fall back to name
+  const primaryKey = (telegram, name) => {
+    const tg = normTgKey(telegram);
+    if (tg) return `tg:${tg}`;
+    const nm = normNameKey(name);
+    return nm ? `name:${nm}` : null;
+  };
+
+  // Build sheet map keyed by telegram (primary) or name (fallback)
+  const sheetByTg = new Map();
+  const sheetByName = new Map();
+  for (const s of sheetItemsRaw) {
+    const tg = normTgKey(s.telegram);
+    if (tg) {
+      if (!sheetByTg.has(tg)) sheetByTg.set(tg, s);
+    } else {
+      const nm = normNameKey(s.name);
+      if (nm && !sheetByName.has(nm)) sheetByName.set(nm, s);
     }
   }
 
-  const uniqueCrmItems = crmItems.filter(item => {
-    const keys = itemIdentityKeys(item.telegram, item.name);
-    if (!keys.length) return true;
-    const intersects = keys.some(key => seen.has(key));
-    if (intersects) return false;
-    keys.forEach(key => seen.add(key));
-    return true;
-  });
+  function findSheetRow(telegram, name) {
+    const tg = normTgKey(telegram);
+    if (tg && sheetByTg.has(tg)) return sheetByTg.get(tg);
+    // Look up by name in tg-indexed map (sheet has TG but CRM doesn't)
+    const nm = normNameKey(name);
+    if (nm) {
+      for (const [, s] of sheetByTg) {
+        if (normNameKey(s.name) === nm) return s;
+      }
+      if (sheetByName.has(nm)) return sheetByName.get(nm);
+    }
+    return null;
+  }
 
-  return [...sheetItems, ...uniqueCrmItems];
+  // Step 1: CRM-first — every CRM candidate with a visible status is authoritative
+  const seen = new Set();
+  const result = [];
+
+  for (const candidate of crmCandidates) {
+    const status = normalizeStatusAlias(candidate.status || '') || String(candidate.status || '').trim();
+    if (!isVisibleTeamDashboardStatus(status)) continue;
+
+    const tg = candidate.telegram || candidate.tg || '';
+    const name = candidate.name || '';
+    const pk = primaryKey(tg, name);
+
+    // Dedup identical CRM records (same person entered twice in candidates table)
+    if (pk && seen.has(pk)) continue;
+    if (pk) seen.add(pk);
+
+    // Supplement with sheet data if available
+    const sheetRow = findSheetRow(tg, name);
+    const base = buildTeamItemFromCandidate(candidate);
+
+    result.push({
+      ...base,
+      row_number: sheetRow ? sheetRow.row_number : -Number(candidate.id),
+      candidate_id: Number(candidate.id),
+      source: sheetRow ? 'sheet' : 'crm',
+      status, // CRM status always wins
+      model: base.model || sheetRow?.model || '',
+      experience_months: base.experience_months || sheetRow?.experience_months || '',
+      work_days: base.work_days || sheetRow?.work_days || '',
+      start_date: base.start_date || sheetRow?.start_date || '',
+      transactionEnding: base.transactionEnding || sheetRow?.transactionEnding || '',
+      raw: sheetRow ? { ...sheetRow.raw, ...base.raw } : base.raw
+    });
+  }
+
+  // Step 2: Add sheet-only rows (legacy entries not yet in CRM) that have visible statuses
+  for (const s of sheetItemsRaw) {
+    if (!isVisibleTeamDashboardStatus(s.status)) continue;
+    const pk = primaryKey(s.telegram, s.name);
+    if (pk && seen.has(pk)) continue; // already covered by CRM
+    if (pk) seen.add(pk);
+    result.push(s);
+  }
+
+  return result;
 }
 
 app.get('/api/team-stats', auth, async (req, res) => {
