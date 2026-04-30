@@ -5133,24 +5133,34 @@
       memberEditorCache.set(key, cached);
     }
 
+    function normalizeTeamFieldLabel(label) {
+      return String(label || '')
+        .trim()
+        .toLowerCase()
+        .replace(/ё/g, 'е')
+        .replace(/\s+/g, ' ');
+    }
+
     function syncTeamListItemFromUpdates(rowNumber, updates) {
       const item = allCrmItems.find(x => Number(x.row_number) === Number(rowNumber));
       if (!item) return;
 
       const mapLabelToKey = {
-        'Имя': 'name',
-        'Telegram': 'telegram',
-        'ТГ': 'telegram',
-        'Telegram / username': 'telegram',
-        'Актуальный статус кандидата (Hr)': 'status',
-        'OnlyFans / Fansly': 'platform',
-        'Transaction ending': 'transactionEnding',
-        'Опыт, мес.': 'experience_months',
-        'Срок работы, дни': 'work_days'
+        'имя': 'name',
+        'telegram': 'telegram',
+        'телеграм': 'telegram',
+        'тг': 'telegram',
+        'telegram / username': 'telegram',
+        'актуальный статус кандидата (hr)': 'status',
+        'статус': 'status',
+        'onlyfans / fansly': 'platform',
+        'transaction ending': 'transactionEnding',
+        'опыт, мес.': 'experience_months',
+        'срок работы, дни': 'work_days'
       };
 
       Object.entries(updates || {}).forEach(([label, value]) => {
-        const key = mapLabelToKey[label];
+        const key = mapLabelToKey[normalizeTeamFieldLabel(label)];
         if (key) {
           item[key] = value;
         }

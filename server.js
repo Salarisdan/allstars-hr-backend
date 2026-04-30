@@ -5086,13 +5086,10 @@ async function loadTeamItemsFromCandidatesDb(agencyId) {
     return keys;
   };
 
-  // Build a lookup map: identity key → sheet item, so CRM status can override stale sheet status
-  const sheetByKey = new Map();
   const seen = new Set();
   for (const item of sheetItems) {
     for (const key of identityKeys(item)) {
       seen.add(key);
-      if (!sheetByKey.has(key)) sheetByKey.set(key, item);
     }
   }
 
@@ -5101,16 +5098,7 @@ async function loadTeamItemsFromCandidatesDb(agencyId) {
     if (!keys.length) return true;
 
     const intersects = keys.some(key => seen.has(key));
-    if (intersects) {
-      // CRM is authoritative for status — override the sheet item's status
-      for (const key of keys) {
-        const sheetItem = sheetByKey.get(key);
-        if (sheetItem && sheetItem.status !== item.status) {
-          sheetItem.status = item.status;
-        }
-      }
-      return false;
-    }
+    if (intersects) return false;
 
     keys.forEach(key => seen.add(key));
     return true;
