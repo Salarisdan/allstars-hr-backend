@@ -1670,6 +1670,44 @@
     @keyframes unifiedDashSpin{
       to{transform:rotate(360deg)}
     }
+
+    /* Interview time highlight */
+    .interview-time-highlight{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:.75rem 1rem;
+      border-radius:14px;
+      background:linear-gradient(135deg, rgba(102,217,255,.25), rgba(99,102,241,.15));
+      border:1.5px solid rgba(102,217,255,.5);
+      color:var(--accent2);
+      font-size:14px;
+      font-weight:800;
+      letter-spacing:.02em;
+      box-shadow:0 0 20px rgba(102,217,255,.2), inset 0 0 0 1px rgba(255,255,255,.08);
+      position:relative;
+      overflow:hidden;
+    }
+
+    .interview-time-highlight::before{
+      content:'⏰';
+      font-size:16px;
+      flex-shrink:0;
+    }
+
+    .interview-time-highlight::after{
+      content:'';
+      position:absolute;
+      inset:0;
+      background:linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.05) 50%, rgba(255,255,255,0) 100%);
+      pointer-events:none;
+      animation:shimmer 3s infinite;
+    }
+
+    @keyframes shimmer{
+      0%{transform:translateX(-100%)}
+      100%{transform:translateX(100%)}
+    }
   </style>
   <link rel="stylesheet" href="/navfx.css">
   <link rel="stylesheet" href="/visual-v2.css">
@@ -2603,13 +2641,14 @@
                 ${getNextAction(item) || '⚡ Действие не требуется'}
               </div>
 
+              ${item.interview_time ? `<div class="interview-time-highlight">${escapeHtml(item.interview_time)}</div>` : ''}
+
               <div class="crm-meta-hints">
                 ${resolveInterviewSource(item) ? `<div class="crm-hint">Откуда вы о нас узнали: ${escapeHtml(resolveInterviewSource(item))}</div>` : ''}
                 ${item.experience ? `<div class="crm-hint">Опыт: ${escapeHtml(item.experience)}</div>` : ''}
                 ${item.crm_created_at ? `<div class="crm-hint">Карточка: ${escapeHtml(formatCrmDate(item.crm_created_at))}</div>` : ''}
                 ${item.crm_status_changed_at ? `<div class="crm-hint">Статус: ${escapeHtml(formatCrmDate(item.crm_status_changed_at))}</div>` : ''}
                 ${item.interview_date ? `<div class="crm-hint">Дата: ${escapeHtml(item.interview_date)}</div>` : ''}
-                ${item.interview_time ? `<div class="crm-hint">Время: ${escapeHtml(item.interview_time)}</div>` : ''}
                 ${item.platform ? `<div class="crm-hint">${escapeHtml(item.platform)}</div>` : ''}
               </div>
 
