@@ -2407,6 +2407,17 @@
 
     function sortInterviewsForDisplay(items) {
       return [...items].sort((a, b) => {
+        const aDate = normalizeInterviewDateToYmd(a.interview_date);
+        const bDate = normalizeInterviewDateToYmd(b.interview_date);
+
+        if (aDate && bDate && aDate !== bDate) return aDate < bDate ? -1 : 1;
+        if (aDate && !bDate) return -1;
+        if (!aDate && bDate) return 1;
+
+        const aScheduleTime = parseInterviewTimeToMinutes(a.interview_time);
+        const bScheduleTime = parseInterviewTimeToMinutes(b.interview_time);
+        if (aScheduleTime !== bScheduleTime) return aScheduleTime - bScheduleTime;
+
         const aCreatedStr = String(a.crm_created_at || a.created_at || a.updated_at || '').trim();
         const bCreatedStr = String(b.crm_created_at || b.created_at || b.updated_at || '').trim();
 
@@ -2418,17 +2429,6 @@
 
         if (aCreatedStr && !bCreatedStr) return -1;
         if (!aCreatedStr && bCreatedStr) return 1;
-
-        const aDate = normalizeInterviewDateToYmd(a.interview_date);
-        const bDate = normalizeInterviewDateToYmd(b.interview_date);
-
-        if (aDate && bDate && aDate !== bDate) return aDate < bDate ? -1 : 1;
-        if (aDate && !bDate) return -1;
-        if (!aDate && bDate) return 1;
-
-        const aTime = parseInterviewTimeToMinutes(a.interview_time);
-        const bTime = parseInterviewTimeToMinutes(b.interview_time);
-        if (aTime !== bTime) return aTime - bTime;
 
         return Number(a.id || 0) - Number(b.id || 0);
       });
@@ -2528,12 +2528,7 @@
     }
 
     function initializeReminders() {
-      if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission();
-      }
-      
-      checkInterviewReminders();
-      setInterval(checkInterviewReminders, 10000);
+      // Уведомления о созвонах отключены
     }
 
     async function saveInterviewRow(rowNumber) {
