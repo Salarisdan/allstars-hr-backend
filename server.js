@@ -2445,19 +2445,24 @@ async function loadAgencyCandidatesForStatusOverlay(agencyId) {
 function findCandidateByIdentity(candidates, { telegram, name }) {
   const telegramKey = normalizeTelegramKey(telegram || '');
   const personName = String(name || '').trim();
+  const list = Array.isArray(candidates) ? candidates : [];
 
-  return (candidates || []).find((row) => {
-    const rowTelegramKey = normalizeTelegramKey(row.telegram || row.tg || '');
+  if (telegramKey) {
+    const byTelegram = list.find((row) => {
+      const rowTelegramKey = normalizeTelegramKey(row.telegram || row.tg || '');
+      return rowTelegramKey && rowTelegramKey === telegramKey;
+    });
 
-    // Both sides have telegram: require telegram match (most reliable)
-    if (telegramKey && rowTelegramKey) {
-      return rowTelegramKey === telegramKey;
-    }
+    if (byTelegram) return byTelegram;
+  }
 
-    // One or both sides lack telegram: fall back to name matching.
-    // This covers: sheet-has-TG + CRM-no-TG, CRM-has-TG + sheet-no-TG, neither-has-TG.
-    return !!(personName && namesLooselyMatch(personName, row.name || ''));
-  }) || null;
+  if (!personName) return null;
+
+  const byName = list.filter((row) => namesLooselyMatch(personName, row.name || ''));
+  if (byName.length === 1) return byName[0];
+
+  // When multiple name matches exist, avoid overlaying a potentially wrong candidate.
+  return null;
 }
 
 async function overlayStatusesFromCrm(agencyId, items, mapItemIdentity) {
@@ -6068,9 +6073,14 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
 
     const findByAliases = (...aliases) => findInRowByAliases(nextRow, ...aliases);
 
-    const nextStatusRaw = Object.prototype.hasOwnProperty.call(updates, 'Актуальный статус кандидата (Hr)')
-      ? String(updates['Актуальный статус кандидата (Hr)'] || '').trim()
-      : prevStatus;
+    let nextStatusRaw = prevStatus;
+    for (const [label, value] of Object.entries(updates)) {
+      const key = normalizeHeaderMatchKey(label);
+      if (key && key.includes('статус')) {
+        nextStatusRaw = String(value || '').trim();
+        break;
+      }
+    }
     const nextStatus = normalizeCandidateStatus(nextStatusRaw) || nextStatusRaw;
 
     if (nextStatus) {
