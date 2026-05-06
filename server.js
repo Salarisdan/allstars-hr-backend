@@ -6048,11 +6048,6 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       const key = normalizeHeaderMatchKey(label);
       if (!key) continue;
 
-      // Status is CRM-owned and should not be written back to the team sheet.
-      if (key.includes('статус')) {
-        continue;
-      }
-
       let idx = normalizedHeaders.findIndex(h => h === key);
       if (idx < 0) {
         idx = normalizedHeaders.findIndex(h => h.includes(key) || key.includes(h));
