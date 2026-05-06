@@ -2500,15 +2500,14 @@ async function syncStatusAcrossSources({
   // Status sync to Google Sheets is intentionally disabled for new updates.
   // Existing sheet rows remain untouched.
 
-  if (source !== 'candidates') {
-    tasks.push(syncCandidatesStatusInDb({
-      agencyId,
-      status,
-      telegram,
-      name,
-      updatedByUserId
-    }));
-  }
+  // Keep duplicates in candidates DB consistent regardless of source.
+  tasks.push(syncCandidatesStatusInDb({
+    agencyId,
+    status,
+    telegram,
+    name,
+    updatedByUserId
+  }));
 
   const settled = await Promise.allSettled(tasks);
   for (const result of settled) {
@@ -6088,12 +6087,31 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
     const findByAliases = (...aliases) => findInRowByAliases(nextRow, ...aliases);
 
     let nextStatusRaw = prevStatus;
+    let fallbackStatusRaw = '';
     for (const [label, value] of Object.entries(updates)) {
       const key = normalizeHeaderMatchKey(label);
-      if (key && key.includes('статус')) {
-        nextStatusRaw = String(value || '').trim();
+      if (!key || !key.includes('статус')) continue;
+
+      const normalizedValue = String(value || '').trim();
+
+      // Prefer canonical team status column over any legacy "Статус" fields.
+      if (
+        key.includes('актуальный') ||
+        key.includes('кандидата') ||
+        key.includes('candidate')
+      ) {
+        nextStatusRaw = normalizedValue;
+        fallbackStatusRaw = '';
         break;
       }
+
+      if (!fallbackStatusRaw) {
+        fallbackStatusRaw = normalizedValue;
+      }
+    }
+
+    if (fallbackStatusRaw && nextStatusRaw === prevStatus) {
+      nextStatusRaw = fallbackStatusRaw;
     }
     const nextStatus = normalizeCandidateStatus(nextStatusRaw) || nextStatusRaw;
 
