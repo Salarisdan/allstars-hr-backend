@@ -5139,28 +5139,42 @@ async function loadTeamItemsFromCandidatesDb(agencyId) {
     return nm ? `name:${nm}` : null;
   };
 
-  // Build sheet map keyed by telegram (primary) or name (fallback)
+  // Build sheet maps keyed by telegram (primary) and name (fallback with uniqueness checks)
   const sheetByTg = new Map();
   const sheetByName = new Map();
+  const sheetByNameAll = new Map();
   for (const s of sheetItemsRaw) {
+    const nm = normNameKey(s.name);
+    if (nm) {
+      const bucket = sheetByNameAll.get(nm) || [];
+      bucket.push(s);
+      sheetByNameAll.set(nm, bucket);
+    }
+
     const tg = normTgKey(s.telegram);
     if (tg) {
       if (!sheetByTg.has(tg)) sheetByTg.set(tg, s);
     } else {
-      const nm = normNameKey(s.name);
       if (nm && !sheetByName.has(nm)) sheetByName.set(nm, s);
     }
   }
 
   function findSheetRow(telegram, name) {
     const tg = normTgKey(telegram);
-    if (tg && sheetByTg.has(tg)) return sheetByTg.get(tg);
-    // Look up by name in tg-indexed map (sheet has TG but CRM doesn't)
     const nm = normNameKey(name);
+
+    // If CRM has telegram, only allow exact telegram match.
+    // Fallback by name is allowed only to sheet rows without telegram.
+    if (tg) {
+      if (sheetByTg.has(tg)) return sheetByTg.get(tg);
+      if (nm && sheetByName.has(nm)) return sheetByName.get(nm);
+      return null;
+    }
+
+    // No telegram in CRM: name fallback is allowed only when unambiguous.
     if (nm) {
-      for (const [, s] of sheetByTg) {
-        if (normNameKey(s.name) === nm) return s;
-      }
+      const matches = sheetByNameAll.get(nm) || [];
+      if (matches.length === 1) return matches[0];
       if (sheetByName.has(nm)) return sheetByName.get(nm);
     }
     return null;
