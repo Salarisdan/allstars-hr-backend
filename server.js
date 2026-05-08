@@ -5874,7 +5874,7 @@ app.get('/api/team-member/:rowNumber', auth, async (req, res) => {
       setMapped(status, ['Актуальный статус кандидата (Hr)', 'Статус']);
       setMapped(row.platform || row.platforms || '', ['OnlyFans / Fansly', 'Платформа']);
       setMapped(row.exp || row.experience || '', ['Опыт, мес.', 'Опыт']);
-      setMapped(row.top_profile || row.top_pages || row.main_activity || '', ['Модели (основные)', 'Актуальная модель']);
+      setMapped(row.top_profile || row.top_pages || '', ['Модели (основные)', 'Актуальная модель']);
       setMapped(row.shift || row.schedule || row.schedule_preference || '', ['Смены (основные)', 'Смены']);
       setMapped(row.notes, ['Комментарий', 'Комментарий HR', 'Пометки']);
       setMapped(row.main_activity || row.job || '', ['От кого']);
@@ -5895,7 +5895,7 @@ app.get('/api/team-member/:rowNumber', auth, async (req, res) => {
         { label: 'Актуальный статус кандидата (Hr)', value: status },
         { label: 'OnlyFans / Fansly', value: String(row.platform || row.platforms || '').trim() },
         { label: 'Опыт, мес.', value: String(row.exp || row.experience || '').trim() },
-        { label: 'Модели (основные)', value: String(row.top_profile || row.top_pages || row.main_activity || '').trim() },
+        { label: 'Модели (основные)', value: String(row.top_profile || row.top_pages || '').trim() },
         { label: 'Комментарий', value: String(row.notes || '').trim() }
       ];
 
@@ -6059,6 +6059,9 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
         'model',
         'top profile',
         'top pages',
+        'от кого',
+        'main activity',
+        'job',
         'комментарий',
         'комментарии',
         'comment',
@@ -6071,6 +6074,7 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       const rawNextPlatform = pickUpdateValue(updates, ['OnlyFans / Fansly', 'Платформа', 'platform', 'platforms']);
       const rawNextExp = pickUpdateValue(updates, ['Опыт, мес.', 'Опыт', 'exp', 'experience']);
       const rawNextModel = pickUpdateValue(updates, ['Модели (основные)', 'Актуальная модель', 'model', 'top_profile', 'top_pages']);
+      const rawNextFromWho = pickUpdateValue(updates, ['От кого', 'main_activity', 'job']);
       const rawNextNotes = pickUpdateValue(updates, ['Комментарий', 'Комментарии', 'notes', 'comment']);
 
       const hasAnyEditableField = Object.keys(updates)
@@ -6113,7 +6117,10 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
         : String(row.exp || row.experience || '').trim();
       const nextModel = rawNextModel !== undefined
         ? String(rawNextModel || '').trim()
-        : String(row.top_profile || row.top_pages || row.main_activity || '').trim();
+        : String(row.top_profile || row.top_pages || '').trim();
+      const nextFromWho = rawNextFromWho !== undefined
+        ? String(rawNextFromWho || '').trim()
+        : String(row.main_activity || row.job || '').trim();
       const nextNotes = rawNextNotes !== undefined
         ? String(rawNextNotes || '').trim()
         : String(row.notes || '').trim();
@@ -6169,14 +6176,15 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
              top_profile = $11,
              top_pages = $12,
              main_activity = $13,
-             notes = $14,
-             team_card_meta = $15::jsonb,
-             status = $16,
-             status_changed_at = COALESCE($17, status_changed_at),
-             hired_at = COALESCE($18, hired_at),
-             rejected_at = COALESCE($19, rejected_at),
-             started_at = COALESCE($20, started_at),
-             fired_at = COALESCE($21, fired_at)
+             job = $14,
+             notes = $15,
+             team_card_meta = $16::jsonb,
+             status = $17,
+             status_changed_at = COALESCE($18, status_changed_at),
+             hired_at = COALESCE($19, hired_at),
+             rejected_at = COALESCE($20, rejected_at),
+             started_at = COALESCE($21, started_at),
+             fired_at = COALESCE($22, fired_at)
          WHERE id = $1 AND agency_id = $2
          RETURNING *`,
         [
@@ -6192,7 +6200,8 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
           nextExp,
           nextModel,
           nextModel,
-          nextModel,
+          nextFromWho,
+          nextFromWho,
           nextNotes,
           JSON.stringify(nextMeta || {}),
           nextStatus,
