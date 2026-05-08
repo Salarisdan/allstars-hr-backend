@@ -1856,16 +1856,17 @@
         `Возраст: ${data.age || '—'}`,
         `Англ: ${data.english || '—'}`,
         `Опыт: ${data.experience || '—'}`,
-        `Опыт / платформы: ${data.experiencePlatforms || fallbackExpPlatforms || '—'}`,
-        `Финансовые ожидания: ${data.financialExpectations || '—'}`,
-        `Итог / следующий шаг: ${data.nextStep || '—'}`,
         `Топ страниц: ${data.topPages || '—'}`,
         `Ср чек: ${data.avgCheck || '—'}`,
         `Смена: ${data.shift || '—'}`,
         `Откуда вы о нас узнали: ${resolveLeadSource(data) || '—'}`,
         `Есть ли основная деятельность/учеба: ${data.study || '—'}`,
         '',
-        `График 5/2 или 6/1: ${data.schedule || '—'}`
+        `График 5/2 или 6/1: ${data.schedule || '—'}`,
+        '',
+        `Финансовые ожидания: ${data.financialExpectations || '—'}`,
+        `Опыт / платформы: ${data.experiencePlatforms || fallbackExpPlatforms || '—'}`,
+        `Дополнительная информация: ${data.nextStep || '—'}`
       ].join('\n');
     }
 

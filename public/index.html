@@ -2254,16 +2254,17 @@
         `Возраст: ${data.age || '—'}`,
         `Англ: ${data.english_level || '—'}`,
         `Опыт: ${data.experience || '—'}`,
-        `Опыт / платформы: ${data.experience_platforms || fallbackExpPlatforms || '—'}`,
-        `Финансовые ожидания: ${data.financial_expectations || '—'}`,
-        `Итог / следующий шаг: ${data.next_step || '—'}`,
         `Топ страниц: ${data.top_pages || data.top_profile || '—'}`,
         `Ср чек: ${data.avg_check || data.average_check || '—'}`,
         `Смена: ${data.shift || '—'}`,
         `Откуда вы о нас узнали: ${data.lead_source || data.candidate_source || '—'}`,
         `Есть ли основная деятельность/учеба: ${data.main_activity || data.study_info || '—'}`,
         '',
-        `График 5/2 или 6/1: ${data.schedule_preference || '—'}`
+        `График 5/2 или 6/1: ${data.schedule_preference || '—'}`,
+        '',
+        `Финансовые ожидания: ${data.financial_expectations || '—'}`,
+        `Опыт / платформы: ${data.experience_platforms || fallbackExpPlatforms || '—'}`,
+        `Дополнительная информация: ${data.next_step || '—'}`
       ];
 
       return lines.join('\n');
