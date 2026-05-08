@@ -3812,7 +3812,7 @@
                 ${item.platform ? `<div class="crm-hint">${escapeHtml(item.platform)}</div>` : ''}
                 ${getItemModels(item).length ? `<div class="crm-hint">Модель: ${escapeHtml(getItemModels(item).join(', '))}</div>` : ''}
                 ${item.transactionEnding ? `<div class="crm-hint">Transaction ending: ${escapeHtml(item.transactionEnding)}</div>` : ''}
-                ${!isSheetBackedItem(item) ? `<div class="crm-hint">Источник: CRM (readonly)</div>` : ''}
+                ${!isSheetBackedItem(item) ? `<div class="crm-hint">Источник: CRM</div>` : ''}
               </div>
 
               <div class="quick-actions">
@@ -4235,7 +4235,7 @@
                   </div>
 
                   ${!isSheetBackedItem(person)
-                    ? `<div class="crm-hint" style="margin-top:8px;">Источник: CRM (readonly)</div>`
+                    ? `<div class="crm-hint" style="margin-top:8px;">Источник: CRM</div>`
                     : ''}
                 </div>
               </div>
@@ -5098,7 +5098,7 @@
 
                   <div class="editor-field full">
                     <div class="editor-label">Режим карточки</div>
-                    <div class="crm-hint" style="margin:0;">Источник: CRM (readonly). Полное редактирование доступно только для строк из Google Sheet.</div>
+                    <div class="crm-hint" style="margin:0;">Источник: CRM. Карточка временно недоступна для редактирования (ошибка загрузки).</div>
                   </div>
                 </div>
               `;

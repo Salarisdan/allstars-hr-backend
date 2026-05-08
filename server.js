@@ -5836,8 +5836,39 @@ app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
 app.get('/api/team-member/:rowNumber', auth, async (req, res) => {
   try {
     const rowNumber = Number(req.params.rowNumber);
-    if (!Number.isFinite(rowNumber) || rowNumber < 2) {
+    if (!Number.isFinite(rowNumber) || rowNumber === 0 || (rowNumber > 0 && rowNumber < 2)) {
       return res.status(400).json({ error: 'Некорректный row number' });
+    }
+
+    if (rowNumber < 0) {
+      const candidateId = Math.abs(rowNumber);
+      const existing = await query(
+        'SELECT * FROM candidates WHERE id = $1 AND agency_id = $2 LIMIT 1',
+        [candidateId, req.user.agencyId]
+      );
+
+      const row = existing.rows[0];
+      if (!row) {
+        return res.status(404).json({ error: 'Кандидат не найден в CRM' });
+      }
+
+      const status = normalizeStatusAlias(row.status || '') || String(row.status || '').trim();
+      const fields = [
+        { label: 'Имя', value: String(row.name || '').trim() },
+        { label: 'Telegram', value: String(row.telegram || row.tg || '').trim() },
+        { label: 'Актуальный статус кандидата (Hr)', value: status },
+        { label: 'OnlyFans / Fansly', value: String(row.platform || row.platforms || '').trim() },
+        { label: 'Опыт, мес.', value: String(row.exp || row.experience || '').trim() },
+        { label: 'Модели (основные)', value: String(row.top_profile || row.top_pages || row.main_activity || '').trim() },
+        { label: 'Комментарий', value: String(row.notes || '').trim() }
+      ];
+
+      return res.json({
+        row_number: rowNumber,
+        source: 'crm',
+        candidate_id: candidateId,
+        fields
+      });
     }
 
     const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
@@ -5920,17 +5951,38 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       return res.status(400).json({ error: 'updates object is required' });
     }
 
+    const pickUpdateValue = (src, keys) => {
+      for (const key of keys) {
+        if (Object.prototype.hasOwnProperty.call(src, key)) {
+          return src[key];
+        }
+      }
+      return undefined;
+    };
+
     // CRM-backed rows are exposed in team dashboard as negative row numbers: -candidate_id.
     if (rowNumber < 0) {
       const candidateId = Math.abs(rowNumber);
-      const rawNextStatus =
-        updates['Актуальный статус кандидата (Hr)'] ??
-        updates.status ??
-        updates['Статус'];
+      const rawNextName = pickUpdateValue(updates, ['Имя', 'name']);
+      const rawNextTelegram = pickUpdateValue(updates, ['Telegram', 'telegram', 'tg', 'Telegram / username']);
+      const rawNextStatus = pickUpdateValue(updates, ['Актуальный статус кандидата (Hr)', 'Статус', 'status']);
+      const rawNextPlatform = pickUpdateValue(updates, ['OnlyFans / Fansly', 'Платформа', 'platform', 'platforms']);
+      const rawNextExp = pickUpdateValue(updates, ['Опыт, мес.', 'Опыт', 'exp', 'experience']);
+      const rawNextModel = pickUpdateValue(updates, ['Модели (основные)', 'Актуальная модель', 'model', 'top_profile', 'top_pages']);
+      const rawNextNotes = pickUpdateValue(updates, ['Комментарий', 'Комментарии', 'notes', 'comment']);
 
-      const nextStatus = normalizeCandidateStatus(String(rawNextStatus || '').trim());
-      if (!nextStatus) {
-        return res.status(400).json({ error: 'CRM card supports status update only' });
+      const hasAnyEditableField = [
+        rawNextName,
+        rawNextTelegram,
+        rawNextStatus,
+        rawNextPlatform,
+        rawNextExp,
+        rawNextModel,
+        rawNextNotes
+      ].some(value => value !== undefined);
+
+      if (!hasAnyEditableField) {
+        return res.status(400).json({ error: 'Нет поддерживаемых полей для обновления CRM-карточки' });
       }
 
       const existing = await query(
@@ -5944,29 +5996,75 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       }
 
       const prevStatus = String(row.status || '').trim();
-      if (nextStatus === prevStatus) {
-        invalidateTeamStatsCache();
-        return res.json({ ok: true, row_number: rowNumber, source: 'crm', candidate_id: candidateId });
+
+      let nextStatus = prevStatus;
+      if (rawNextStatus !== undefined) {
+        const normalized = normalizeCandidateStatus(String(rawNextStatus || '').trim());
+        if (!normalized) {
+          return res.status(400).json({ error: 'Некорректный статус' });
+        }
+        nextStatus = normalized;
       }
 
-      const statusDatePatch = getStatusDatePatch(nextStatus, row);
+      const nextName = rawNextName !== undefined ? String(rawNextName || '').trim() : String(row.name || '').trim();
+      const nextTelegram = rawNextTelegram !== undefined
+        ? String(rawNextTelegram || '').trim()
+        : String(row.telegram || row.tg || '').trim();
+      const nextPlatform = rawNextPlatform !== undefined
+        ? String(rawNextPlatform || '').trim()
+        : String(row.platform || row.platforms || '').trim();
+      const nextExp = rawNextExp !== undefined
+        ? String(rawNextExp || '').trim()
+        : String(row.exp || row.experience || '').trim();
+      const nextModel = rawNextModel !== undefined
+        ? String(rawNextModel || '').trim()
+        : String(row.top_profile || row.top_pages || row.main_activity || '').trim();
+      const nextNotes = rawNextNotes !== undefined
+        ? String(rawNextNotes || '').trim()
+        : String(row.notes || '').trim();
+
+      const statusDatePatch = nextStatus !== prevStatus
+        ? getStatusDatePatch(nextStatus, row)
+        : {};
 
       const updated = await query(
         `UPDATE candidates
          SET updated_by_user_id = $3,
              updated_at = NOW(),
-             status = $4,
-             status_changed_at = COALESCE($5, status_changed_at),
-             hired_at = COALESCE($6, hired_at),
-             rejected_at = COALESCE($7, rejected_at),
-             started_at = COALESCE($8, started_at),
-             fired_at = COALESCE($9, fired_at)
+             name = $4,
+             tg = $5,
+             telegram = $6,
+             platform = $7,
+             platforms = $8,
+             exp = $9,
+             experience = $10,
+             top_profile = $11,
+             top_pages = $12,
+             main_activity = $13,
+             notes = $14,
+             status = $15,
+             status_changed_at = COALESCE($16, status_changed_at),
+             hired_at = COALESCE($17, hired_at),
+             rejected_at = COALESCE($18, rejected_at),
+             started_at = COALESCE($19, started_at),
+             fired_at = COALESCE($20, fired_at)
          WHERE id = $1 AND agency_id = $2
          RETURNING *`,
         [
           candidateId,
           req.user.agencyId,
           req.user.userId,
+          nextName,
+          nextTelegram,
+          nextTelegram,
+          nextPlatform,
+          nextPlatform,
+          nextExp,
+          nextExp,
+          nextModel,
+          nextModel,
+          nextModel,
+          nextNotes,
           nextStatus,
           statusDatePatch.status_changed_at || null,
           statusDatePatch.hired_at || null,
@@ -5976,47 +6074,49 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
         ]
       );
 
-      await query(
-        `INSERT INTO candidate_status_history(candidate_id, status, changed_by_user_id)
-         VALUES ($1,$2,$3)`,
-        [candidateId, nextStatus, req.user.userId]
-      );
+      if (nextStatus !== prevStatus) {
+        await query(
+          `INSERT INTO candidate_status_history(candidate_id, status, changed_by_user_id)
+           VALUES ($1,$2,$3)`,
+          [candidateId, nextStatus, req.user.userId]
+        );
 
-      await appendCrmEvent({
-        entity_type: 'candidate',
-        entity_id: String(candidateId),
-        event_type: 'status_changed',
-        agency_id: req.user?.agencyId,
-        old_value: prevStatus,
-        new_value: nextStatus,
-        meta: {
-          name: updated.rows[0]?.name || row.name || '',
+        await appendCrmEvent({
+          entity_type: 'candidate',
+          entity_id: String(candidateId),
+          event_type: 'status_changed',
+          agency_id: req.user?.agencyId,
+          old_value: prevStatus,
+          new_value: nextStatus,
+          meta: {
+            name: updated.rows[0]?.name || row.name || '',
+            telegram: updated.rows[0]?.telegram || updated.rows[0]?.tg || row.telegram || row.tg || '',
+            platform: updated.rows[0]?.platform || updated.rows[0]?.platforms || row.platform || row.platforms || ''
+          },
+          created_by: req.user?.email || req.user?.full_name || ''
+        });
+
+        await logCrmEvent({
+          entityType: 'candidate',
+          entityId: candidateId,
+          eventType: 'status_changed',
+          oldValue: prevStatus,
+          newValue: nextStatus,
+          meta: {
+            platform: updated.rows[0]?.platform || updated.rows[0]?.platforms || ''
+          },
+          createdBy: req.user?.email || String(req.user?.userId || '')
+        });
+
+        await syncStatusAcrossSources({
+          source: 'candidates',
+          agencyId: req.user.agencyId,
+          status: nextStatus,
           telegram: updated.rows[0]?.telegram || updated.rows[0]?.tg || row.telegram || row.tg || '',
-          platform: updated.rows[0]?.platform || updated.rows[0]?.platforms || row.platform || row.platforms || ''
-        },
-        created_by: req.user?.email || req.user?.full_name || ''
-      });
-
-      await logCrmEvent({
-        entityType: 'candidate',
-        entityId: candidateId,
-        eventType: 'status_changed',
-        oldValue: prevStatus,
-        newValue: nextStatus,
-        meta: {
-          platform: updated.rows[0]?.platform || updated.rows[0]?.platforms || ''
-        },
-        createdBy: req.user?.email || String(req.user?.userId || '')
-      });
-
-      await syncStatusAcrossSources({
-        source: 'candidates',
-        agencyId: req.user.agencyId,
-        status: nextStatus,
-        telegram: updated.rows[0]?.telegram || updated.rows[0]?.tg || row.telegram || row.tg || '',
-        name: updated.rows[0]?.name || row.name || '',
-        updatedByUserId: req.user.userId
-      });
+          name: updated.rows[0]?.name || row.name || '',
+          updatedByUserId: req.user.userId
+        });
+      }
 
       invalidateTeamStatsCache();
       return res.json({ ok: true, row_number: rowNumber, source: 'crm', candidate_id: candidateId });
