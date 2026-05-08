@@ -1816,7 +1816,39 @@
       return '';
     }
 
+    function parseLabeledNotes(notesText = '') {
+      const result = {};
+      const blocks = String(notesText || '')
+        .split(/\n\s*\n/)
+        .map(block => block.trim())
+        .filter(Boolean);
+
+      for (const block of blocks) {
+        const match = block.match(/^([^:\n]+):\s*([\s\S]*)$/);
+        if (!match) continue;
+
+        const label = match[1].trim().toLowerCase();
+        const value = match[2].trim();
+        if (label && value) result[label] = value;
+      }
+
+      return result;
+    }
+
+    function getLabeledNote(notesMap = {}, labels = []) {
+      for (const label of labels) {
+        const key = String(label || '').trim().toLowerCase();
+        if (key && notesMap[key]) return notesMap[key];
+      }
+      return '';
+    }
+
     function buildCandidateInterviewReport(data = {}) {
+      const fallbackExpPlatforms = [data.experience, data.platform]
+        .map(x => String(x || '').trim())
+        .filter(Boolean)
+        .join(' / ');
+
       return [
         `Платформа: ${data.platform || '—'}`,
         `Имя: ${data.name || '—'}`,
@@ -1824,6 +1856,9 @@
         `Возраст: ${data.age || '—'}`,
         `Англ: ${data.english || '—'}`,
         `Опыт: ${data.experience || '—'}`,
+        `Опыт / платформы: ${data.experiencePlatforms || fallbackExpPlatforms || '—'}`,
+        `Финансовые ожидания: ${data.financialExpectations || '—'}`,
+        `Итог / следующий шаг: ${data.nextStep || '—'}`,
         `Топ страниц: ${data.topPages || '—'}`,
         `Ср чек: ${data.avgCheck || '—'}`,
         `Смена: ${data.shift || '—'}`,
@@ -1835,6 +1870,15 @@
     }
 
     function collectCandidateReportData() {
+      const notes = getTextBySelectors([
+        '#notes-editor',
+        '[data-field="notes"]',
+        '#candidate-notes',
+        '#edit-notes',
+        '#notes'
+      ]);
+      const notesMap = parseLabeledNotes(notes);
+
       return {
         platform: getTextBySelectors([
           '[data-field="platform"]',
@@ -1904,7 +1948,10 @@
           '[data-field="schedule_preference"]',
           '#candidateSchedule',
           '.candidate-schedule'
-        ])
+        ]),
+        financialExpectations: getLabeledNote(notesMap, ['Финансовые ожидания']),
+        experiencePlatforms: getLabeledNote(notesMap, ['Опыт / платформы', 'Опыт/платформы']),
+        nextStep: getLabeledNote(notesMap, ['Итог / следующий шаг', 'Итог/следующий шаг'])
       };
     }
 

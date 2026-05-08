@@ -2064,6 +2064,33 @@
         .join('\n\n');
     }
 
+    function parseLabeledNotes(notesText = '') {
+      const result = {};
+      const blocks = String(notesText || '')
+        .split(/\n\s*\n/)
+        .map(block => block.trim())
+        .filter(Boolean);
+
+      for (const block of blocks) {
+        const match = block.match(/^([^:\n]+):\s*([\s\S]*)$/);
+        if (!match) continue;
+
+        const label = match[1].trim().toLowerCase();
+        const value = match[2].trim();
+        if (label && value) result[label] = value;
+      }
+
+      return result;
+    }
+
+    function getLabeledNote(notesMap = {}, labels = []) {
+      for (const label of labels) {
+        const key = String(label || '').trim().toLowerCase();
+        if (key && notesMap[key]) return notesMap[key];
+      }
+      return '';
+    }
+
     function buildFinalNotes(notes, teamleadHandoff) {
       const main = String(notes || '').trim();
       const handoff = String(teamleadHandoff || '').trim();
@@ -2215,6 +2242,11 @@
     }
 
     function buildCandidateInterviewReport(data = {}) {
+      const fallbackExpPlatforms = [data.experience, data.platform]
+        .map(x => String(x || '').trim())
+        .filter(Boolean)
+        .join(' / ');
+
       const lines = [
         `Платформа: ${data.platform || '—'}`,
         `Имя: ${data.name || '—'}`,
@@ -2222,6 +2254,9 @@
         `Возраст: ${data.age || '—'}`,
         `Англ: ${data.english_level || '—'}`,
         `Опыт: ${data.experience || '—'}`,
+        `Опыт / платформы: ${data.experience_platforms || fallbackExpPlatforms || '—'}`,
+        `Финансовые ожидания: ${data.financial_expectations || '—'}`,
+        `Итог / следующий шаг: ${data.next_step || '—'}`,
         `Топ страниц: ${data.top_pages || data.top_profile || '—'}`,
         `Ср чек: ${data.avg_check || data.average_check || '—'}`,
         `Смена: ${data.shift || '—'}`,
@@ -2237,11 +2272,15 @@
     function getFields() {
       const mainNotes = document.getElementById('f-notes').value.trim();
       const questionNotes = collectQuestionNotes();
+      const questionNotesMap = parseLabeledNotes(questionNotes);
       const teamleadHandoff = document.getElementById('f-teamlead-handoff').value.trim();
       const platform = getPill('pills-platforms');
       const telegram = document.getElementById('f-tg').value.trim().replace(/^@*/, '@').replace(/^@$/, '');
       const englishLevel = getPill('pills-english');
       const experience = document.getElementById('f-exp').value.trim();
+      const financialExpectations = getLabeledNote(questionNotesMap, ['Финансовые ожидания']);
+      const experiencePlatforms = getLabeledNote(questionNotesMap, ['Опыт / платформы', 'Опыт/платформы']);
+      const nextStep = getLabeledNote(questionNotesMap, ['Итог / следующий шаг', 'Итог/следующий шаг']);
       const shift = getPill('pills-shifts', true);
       const schedulePreference = getPill('pills-schedule');
       const topPages = document.getElementById('f-top').value.trim();
@@ -2261,6 +2300,9 @@
         age: document.getElementById('f-age').value.trim(),
         english_level: englishLevel,
         experience,
+        experience_platforms: experiencePlatforms,
+        financial_expectations: financialExpectations,
+        next_step: nextStep,
         top_pages: topPages,
         top_profile: topPages,
         avg_check: avgCheck,
