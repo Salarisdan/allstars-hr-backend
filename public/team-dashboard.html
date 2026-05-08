@@ -4558,11 +4558,24 @@
     }
 
     function isTransactionEndingField(label) {
-      return false;
+      const normalized = normalizeTeamLabel(label).toLowerCase();
+      return normalized === 'transaction ending' || normalized === 'transaction ending (есть/нет в табл.)@dvedenis';
     }
 
     async function loadUsedTransactionEndings() {
-      usedTransactionEndings = [];
+      try {
+        const res = await api('/api/team-transaction-endings');
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          usedTransactionEndings = [];
+          return;
+        }
+
+        usedTransactionEndings = Array.isArray(data.used) ? data.used : [];
+      } catch (err) {
+        usedTransactionEndings = [];
+      }
     }
 
     function getFreeTransactionEndingCount(currentRowNumber, currentValue) {
@@ -4571,7 +4584,7 @@
         : null;
 
       const currentAssigned = usedTransactionEndings.find(
-        item => Number(item.assigned_user_id) === Number(currentRowNumber)
+        item => Number(item.assigned_row_number) === Number(currentRowNumber)
       );
 
       const usedSet = new Set(
@@ -4593,7 +4606,7 @@
         : null;
 
       const currentAssigned = usedTransactionEndings.find(
-        item => Number(item.assigned_user_id) === Number(currentRowNumber)
+        item => Number(item.assigned_row_number) === Number(currentRowNumber)
       );
 
       const usedSet = new Set(
@@ -4879,7 +4892,10 @@
           ${currentMemberFields.map((field, idx) => {
             const isMultiselect = isTeamMultiselectField(field.label);
             const long = isLongField(field.label) || isMultiselect;
-            const options = getTeamFieldOptions(field.label);
+            const transactionEndingOptions = isTransactionEndingField(field.label)
+              ? getFreeTransactionEndingValues(currentMemberEditorRow, field.value).map(v => String(v))
+              : null;
+            const options = transactionEndingOptions || getTeamFieldOptions(field.label);
             const isBoolean = isTeamBooleanField(field.label);
             const safeValue = String(field.value || '').replace(/"/g, '&quot;');
 
@@ -5205,7 +5221,10 @@
           ${currentMemberFields.map((field, idx) => {
             const isMultiselect = isTeamMultiselectField(field.label);
             const long = isLongField(field.label) || isMultiselect;
-            const options = getTeamFieldOptions(field.label);
+            const transactionEndingOptions = isTransactionEndingField(field.label)
+              ? getFreeTransactionEndingValues(currentMemberEditorRow, field.value).map(v => String(v))
+              : null;
+            const options = transactionEndingOptions || getTeamFieldOptions(field.label);
             const isBoolean = isTeamBooleanField(field.label);
 
             if (isMultiselect) {

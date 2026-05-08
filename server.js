@@ -5343,7 +5343,7 @@ app.get('/api/team-transaction-endings', auth, async (req, res) => {
 app.get('/api/team-transaction-endings/board', auth, async (req, res) => {
   try {
     const members = await loadTeamItemsFromCandidatesDb(req.user.agencyId);
-    const sheetMembers = members.filter(item => Number(item.row_number) >= 2);
+    const assignableMembers = members.filter(item => Number.isInteger(Number(item.row_number)) && Number(item.row_number) !== 0);
 
     await ensureTransactionEndingsInitialized();
 
@@ -5361,11 +5361,11 @@ app.get('/api/team-transaction-endings/board', auth, async (req, res) => {
       const assignedTo = String(row.assigned_to || '').trim();
       const assignedRowNumberRaw = row.assigned_row_number;
       const parsedAssignedRowNumber = Number(assignedRowNumberRaw);
-      const hasAssignedRowNumber = Number.isInteger(parsedAssignedRowNumber) && parsedAssignedRowNumber >= 2;
+      const hasAssignedRowNumber = Number.isInteger(parsedAssignedRowNumber) && parsedAssignedRowNumber !== 0;
       let assigned = null;
 
       if (hasAssignedRowNumber) {
-        const matchedMember = sheetMembers.find(m => Number(m.row_number) === parsedAssignedRowNumber);
+        const matchedMember = assignableMembers.find(m => Number(m.row_number) === parsedAssignedRowNumber);
 
         // Slot is occupied only when assignment resolves to a real member on the active page.
         if (!matchedMember) {
@@ -5382,7 +5382,7 @@ app.get('/api/team-transaction-endings/board', auth, async (req, res) => {
           telegram: matchedMember ? String(matchedMember.telegram || '').trim() : '',
           status: matchedMember ? String(matchedMember.status || '').trim() : '',
           platform: matchedMember ? String(matchedMember.platform || '').trim() : '',
-          source: 'db'
+          source: matchedMember ? String(matchedMember.source || '').trim() : 'db'
         };
         usedCount += 1;
       }
@@ -5398,7 +5398,7 @@ app.get('/api/team-transaction-endings/board', auth, async (req, res) => {
       used_count: usedCount,
       free_count: 99 - usedCount,
       duplicates: [],
-      assignable_members: sheetMembers.map(item => ({
+      assignable_members: assignableMembers.map(item => ({
         row_number: Number(item.row_number),
         name: String(item.name || '').trim(),
         telegram: String(item.telegram || '').trim(),
@@ -5423,16 +5423,87 @@ app.patch('/api/team-transaction-endings/assign', auth, async (req, res) => {
     const hasEnding = Number.isInteger(ending) && ending >= 1 && ending <= 99;
     const hasTelegram = Boolean(telegramRaw);
 
-    if (!spreadsheetId) {
-      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
-    }
-
-    if (!Number.isInteger(rowNumber) || rowNumber < 2) {
+    if (!Number.isInteger(rowNumber) || rowNumber === 0) {
       return res.status(400).json({ error: 'Некорректный row_number' });
     }
 
     if (!hasEnding && !hasTelegram) {
       return res.status(400).json({ error: 'Передай ending (1..99) или telegram' });
+    }
+
+    if (rowNumber < 0) {
+      const members = await loadTeamItemsFromCandidatesDb(req.user.agencyId);
+      const targetMember = (members || []).find(item => Number(item.row_number) === rowNumber);
+      if (!targetMember || !String(targetMember.name || '').trim()) {
+        return res.status(404).json({ error: 'Сотрудник не найден в CRM' });
+      }
+
+      const targetName = String(targetMember.name || '').trim();
+      const targetTelegram = String(targetMember.telegram || '').trim();
+
+      if (hasEnding) {
+        await ensureTransactionEndingsInitialized();
+
+        await pool.query(
+          `UPDATE transaction_endings
+           SET assigned_to = NULL,
+               assigned_row_number = NULL,
+               assigned_user_id = NULL,
+               updated_at = NOW()
+           WHERE assigned_row_number = $1
+              OR lower(trim(coalesce(assigned_to, ''))) = lower(trim($2))`,
+          [rowNumber, targetName]
+        );
+
+        const occupied = await pool.query(
+          `SELECT assigned_row_number
+           FROM transaction_endings
+           WHERE ending = $1
+           LIMIT 1`,
+          [ending]
+        );
+        const occupiedRow = Number(occupied.rows?.[0]?.assigned_row_number || 0);
+        if (occupiedRow && occupiedRow !== rowNumber) {
+          return res.status(400).json({ error: 'Этот ending уже занят' });
+        }
+
+        await pool.query(
+          `UPDATE transaction_endings
+           SET assigned_to = $1,
+               assigned_row_number = $2,
+               assigned_user_id = $3,
+               updated_at = NOW()
+           WHERE ending = $4`,
+          [targetName, rowNumber, Number(targetMember.candidate_id) || null, ending]
+        );
+      }
+
+      if (hasTelegram) {
+        const normalizedTelegram = normalizeTelegramForTeam(telegramRaw);
+        await query(
+          `UPDATE candidates
+           SET tg = $3,
+               telegram = $4,
+               updated_by_user_id = $5,
+               updated_at = NOW()
+           WHERE id = $1 AND agency_id = $2`,
+          [Math.abs(rowNumber), req.user.agencyId, normalizedTelegram, normalizedTelegram, req.user.userId]
+        );
+      }
+
+      invalidateTeamStatsCache();
+      broadcastRealtimeUpdate({ scope: 'transaction-endings' });
+
+      return res.json({
+        ok: true,
+        row_number: rowNumber,
+        ending: hasEnding ? ending : null,
+        telegram: hasTelegram ? normalizeTelegramForTeam(telegramRaw) : targetTelegram
+      });
+    }
+
+    if (!spreadsheetId) {
+      return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
     }
 
     const sheets = await getSheetsClient();
@@ -5856,6 +5927,17 @@ app.get('/api/team-member/:rowNumber', auth, async (req, res) => {
       const meta = row.team_card_meta && typeof row.team_card_meta === 'object' && !Array.isArray(row.team_card_meta)
         ? row.team_card_meta
         : {};
+      const assignedEndingRes = await pool.query(
+        `SELECT ending
+         FROM transaction_endings
+         WHERE assigned_row_number = $1
+         LIMIT 1`,
+        [rowNumber]
+      );
+      const assignedEnding = Number(assignedEndingRes.rows?.[0]?.ending || 0);
+      const assignedEndingValue = Number.isInteger(assignedEnding) && assignedEnding >= 1 && assignedEnding <= 99
+        ? String(assignedEnding)
+        : '';
 
       const mappedValues = new Map();
       const setMapped = (value, aliases = []) => {
@@ -5878,6 +5960,7 @@ app.get('/api/team-member/:rowNumber', auth, async (req, res) => {
       setMapped(row.shift || row.schedule || row.schedule_preference || '', ['Смены (основные)', 'Смены']);
       setMapped(row.notes, ['Комментарий', 'Комментарий HR', 'Пометки']);
       setMapped(row.main_activity || row.job || '', ['От кого']);
+      setMapped(assignedEndingValue, ['Transaction ending', 'Transaction Ending']);
 
       const metaByKey = new Map();
       for (const [label, value] of Object.entries(meta)) {
@@ -5919,7 +6002,26 @@ app.get('/api/team-member/:rowNumber', auth, async (req, res) => {
 
                 const key = normalizeHeaderMatchKey(label);
                 const directMeta = String(meta[label] || '').trim();
-                const value = mappedValues.get(key) || directMeta || metaByKey.get(key) || '';
+                const isIdentityField = [
+                  'имя',
+                  'имя ник',
+                  'ник',
+                  'telegram',
+                  'telegram username',
+                  'телеграм',
+                  'тг',
+                  'username',
+                  'актуальный статус кандидата hr',
+                  'статус',
+                  'onlyfans fansly',
+                  'платформа',
+                  'опыт мес',
+                  'опыт'
+                ].includes(key);
+
+                const value = isIdentityField
+                  ? (mappedValues.get(key) || directMeta || metaByKey.get(key) || '')
+                  : (directMeta || metaByKey.get(key) || mappedValues.get(key) || '');
 
                 return {
                   label,
@@ -6059,6 +6161,7 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
         'model',
         'top profile',
         'top pages',
+        'transaction ending',
         'от кого',
         'main activity',
         'job',
@@ -6074,6 +6177,7 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       const rawNextPlatform = pickUpdateValue(updates, ['OnlyFans / Fansly', 'Платформа', 'platform', 'platforms']);
       const rawNextExp = pickUpdateValue(updates, ['Опыт, мес.', 'Опыт', 'exp', 'experience']);
       const rawNextModel = pickUpdateValue(updates, ['Модели (основные)', 'Актуальная модель', 'model', 'top_profile', 'top_pages']);
+      const rawNextTransactionEnding = pickUpdateValue(updates, ['Transaction ending', 'Transaction Ending', 'transaction ending']);
       const rawNextFromWho = pickUpdateValue(updates, ['От кого', 'main_activity', 'job']);
       const rawNextNotes = pickUpdateValue(updates, ['Комментарий', 'Комментарии', 'notes', 'comment']);
 
@@ -6124,6 +6228,16 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       const nextNotes = rawNextNotes !== undefined
         ? String(rawNextNotes || '').trim()
         : String(row.notes || '').trim();
+      const nextTransactionEndingRaw = rawNextTransactionEnding !== undefined
+        ? String(rawNextTransactionEnding || '').trim()
+        : undefined;
+
+      if (nextTransactionEndingRaw !== undefined && nextTransactionEndingRaw !== '') {
+        const endingNumber = Number(nextTransactionEndingRaw);
+        if (!Number.isInteger(endingNumber) || endingNumber < 1 || endingNumber > 99) {
+          return res.status(400).json({ error: 'Transaction ending должен быть числом от 1 до 99' });
+        }
+      }
 
       const currentMeta = row.team_card_meta && typeof row.team_card_meta === 'object' && !Array.isArray(row.team_card_meta)
         ? { ...row.team_card_meta }
@@ -6156,6 +6270,26 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
         }
 
         nextMeta[labelText] = textValue;
+      }
+
+      if (nextTransactionEndingRaw !== undefined) {
+        const txMetaLabel = 'Transaction ending';
+        const txKey = normalizeLabel(txMetaLabel);
+
+        if (!nextTransactionEndingRaw) {
+          for (const existingKey of Object.keys(nextMeta)) {
+            if (normalizeLabel(existingKey) === txKey) {
+              delete nextMeta[existingKey];
+            }
+          }
+        } else {
+          for (const existingKey of Object.keys(nextMeta)) {
+            if (normalizeLabel(existingKey) === txKey && existingKey !== txMetaLabel) {
+              delete nextMeta[existingKey];
+            }
+          }
+          nextMeta[txMetaLabel] = nextTransactionEndingRaw;
+        }
       }
 
       const statusDatePatch = nextStatus !== prevStatus
@@ -6212,6 +6346,46 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
           statusDatePatch.fired_at || null
         ]
       );
+
+      if (nextTransactionEndingRaw !== undefined) {
+        await ensureTransactionEndingsInitialized();
+
+        await pool.query(
+          `UPDATE transaction_endings
+           SET assigned_to = NULL,
+               assigned_row_number = NULL,
+               assigned_user_id = NULL,
+               updated_at = NOW()
+           WHERE assigned_row_number = $1
+              OR lower(trim(coalesce(assigned_to, ''))) = lower(trim($2))`,
+          [rowNumber, String(nextName || row.name || '').trim()]
+        );
+
+        if (nextTransactionEndingRaw) {
+          const endingNumber = Number(nextTransactionEndingRaw);
+          const occupied = await pool.query(
+            `SELECT assigned_row_number
+             FROM transaction_endings
+             WHERE ending = $1
+             LIMIT 1`,
+            [endingNumber]
+          );
+          const occupiedRow = Number(occupied.rows?.[0]?.assigned_row_number || 0);
+          if (occupiedRow && occupiedRow !== rowNumber) {
+            return res.status(400).json({ error: 'Этот ending уже занят' });
+          }
+
+          await pool.query(
+            `UPDATE transaction_endings
+             SET assigned_to = $1,
+                 assigned_row_number = $2,
+                 assigned_user_id = $3,
+                 updated_at = NOW()
+             WHERE ending = $4`,
+            [String(nextName || row.name || '').trim(), rowNumber, candidateId, endingNumber]
+          );
+        }
+      }
 
       if (nextStatus !== prevStatus) {
         await query(
