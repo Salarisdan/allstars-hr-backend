@@ -5853,7 +5853,43 @@ app.get('/api/team-member/:rowNumber', auth, async (req, res) => {
       }
 
       const status = normalizeStatusAlias(row.status || '') || String(row.status || '').trim();
-      const fields = [
+      const meta = row.team_card_meta && typeof row.team_card_meta === 'object' && !Array.isArray(row.team_card_meta)
+        ? row.team_card_meta
+        : {};
+
+      const mappedValues = new Map();
+      const setMapped = (value, aliases = []) => {
+        const text = String(value || '').trim();
+        if (!text) return;
+
+        for (const alias of aliases) {
+          const key = normalizeHeaderMatchKey(alias);
+          if (!key) continue;
+          mappedValues.set(key, text);
+        }
+      };
+
+      setMapped(row.name, ['Имя', 'Имя / ник', 'Ник']);
+      setMapped(row.telegram || row.tg || '', ['Telegram', 'Telegram / username', 'Телеграм', 'ТГ', 'Username']);
+      setMapped(status, ['Актуальный статус кандидата (Hr)', 'Статус']);
+      setMapped(row.platform || row.platforms || '', ['OnlyFans / Fansly', 'Платформа']);
+      setMapped(row.exp || row.experience || '', ['Опыт, мес.', 'Опыт']);
+      setMapped(row.top_profile || row.top_pages || row.main_activity || '', ['Модели (основные)', 'Актуальная модель']);
+      setMapped(row.shift || row.schedule || row.schedule_preference || '', ['Смены (основные)', 'Смены']);
+      setMapped(row.notes, ['Комментарий', 'Комментарий HR', 'Пометки']);
+      setMapped(row.main_activity || row.job || '', ['От кого']);
+
+      const metaByKey = new Map();
+      for (const [label, value] of Object.entries(meta)) {
+        const key = normalizeHeaderMatchKey(label);
+        const text = String(value || '').trim();
+        if (!key || !text) continue;
+        if (!metaByKey.has(key)) {
+          metaByKey.set(key, text);
+        }
+      }
+
+      let fields = [
         { label: 'Имя', value: String(row.name || '').trim() },
         { label: 'Telegram', value: String(row.telegram || row.tg || '').trim() },
         { label: 'Актуальный статус кандидата (Hr)', value: status },
@@ -5862,6 +5898,40 @@ app.get('/api/team-member/:rowNumber', auth, async (req, res) => {
         { label: 'Модели (основные)', value: String(row.top_profile || row.top_pages || row.main_activity || '').trim() },
         { label: 'Комментарий', value: String(row.notes || '').trim() }
       ];
+
+      const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
+      const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
+
+      if (spreadsheetId) {
+        try {
+          const sheets = await getSheetsClient();
+          const headersRes = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: `${sheetName}!A1:AU1`
+          });
+          const headers = headersRes.data.values?.[0] || [];
+
+          if (headers.length) {
+            fields = headers
+              .map((header) => {
+                const label = String(header || '').trim();
+                if (!label) return null;
+
+                const key = normalizeHeaderMatchKey(label);
+                const directMeta = String(meta[label] || '').trim();
+                const value = mappedValues.get(key) || directMeta || metaByKey.get(key) || '';
+
+                return {
+                  label,
+                  value
+                };
+              })
+              .filter(Boolean);
+          }
+        } catch (err) {
+          console.warn('CRM card headers fallback:', err.message || err);
+        }
+      }
 
       return res.json({
         row_number: rowNumber,
@@ -5963,6 +6033,38 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
     // CRM-backed rows are exposed in team dashboard as negative row numbers: -candidate_id.
     if (rowNumber < 0) {
       const candidateId = Math.abs(rowNumber);
+      const normalizeLabel = (label) => normalizeHeaderMatchKey(label);
+      const coreFieldKeys = new Set([
+        'имя',
+        'имя ник',
+        'ник',
+        'telegram',
+        'telegram username',
+        'телеграм',
+        'тг',
+        'username',
+        'актуальный статус кандидата hr',
+        'статус',
+        'status',
+        'onlyfans fansly',
+        'платформа',
+        'platform',
+        'platforms',
+        'опыт мес',
+        'опыт',
+        'exp',
+        'experience',
+        'модели основные',
+        'актуальная модель',
+        'model',
+        'top profile',
+        'top pages',
+        'комментарий',
+        'комментарии',
+        'comment',
+        'notes'
+      ]);
+
       const rawNextName = pickUpdateValue(updates, ['Имя', 'name']);
       const rawNextTelegram = pickUpdateValue(updates, ['Telegram', 'telegram', 'tg', 'Telegram / username']);
       const rawNextStatus = pickUpdateValue(updates, ['Актуальный статус кандидата (Hr)', 'Статус', 'status']);
@@ -5971,15 +6073,8 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
       const rawNextModel = pickUpdateValue(updates, ['Модели (основные)', 'Актуальная модель', 'model', 'top_profile', 'top_pages']);
       const rawNextNotes = pickUpdateValue(updates, ['Комментарий', 'Комментарии', 'notes', 'comment']);
 
-      const hasAnyEditableField = [
-        rawNextName,
-        rawNextTelegram,
-        rawNextStatus,
-        rawNextPlatform,
-        rawNextExp,
-        rawNextModel,
-        rawNextNotes
-      ].some(value => value !== undefined);
+      const hasAnyEditableField = Object.keys(updates)
+        .some(label => String(label || '').trim());
 
       if (!hasAnyEditableField) {
         return res.status(400).json({ error: 'Нет поддерживаемых полей для обновления CRM-карточки' });
@@ -6023,6 +6118,39 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
         ? String(rawNextNotes || '').trim()
         : String(row.notes || '').trim();
 
+      const currentMeta = row.team_card_meta && typeof row.team_card_meta === 'object' && !Array.isArray(row.team_card_meta)
+        ? { ...row.team_card_meta }
+        : {};
+      const nextMeta = { ...currentMeta };
+
+      for (const [label, value] of Object.entries(updates || {})) {
+        const labelText = String(label || '').trim();
+        const labelKey = normalizeLabel(labelText);
+        if (!labelText || !labelKey || coreFieldKeys.has(labelKey)) continue;
+
+        const textValue = String(value ?? '').trim();
+        if (!textValue) {
+          if (Object.prototype.hasOwnProperty.call(nextMeta, labelText)) {
+            delete nextMeta[labelText];
+          }
+
+          for (const existingKey of Object.keys(nextMeta)) {
+            if (normalizeLabel(existingKey) === labelKey) {
+              delete nextMeta[existingKey];
+            }
+          }
+          continue;
+        }
+
+        for (const existingKey of Object.keys(nextMeta)) {
+          if (normalizeLabel(existingKey) === labelKey && existingKey !== labelText) {
+            delete nextMeta[existingKey];
+          }
+        }
+
+        nextMeta[labelText] = textValue;
+      }
+
       const statusDatePatch = nextStatus !== prevStatus
         ? getStatusDatePatch(nextStatus, row)
         : {};
@@ -6042,12 +6170,13 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
              top_pages = $12,
              main_activity = $13,
              notes = $14,
-             status = $15,
-             status_changed_at = COALESCE($16, status_changed_at),
-             hired_at = COALESCE($17, hired_at),
-             rejected_at = COALESCE($18, rejected_at),
-             started_at = COALESCE($19, started_at),
-             fired_at = COALESCE($20, fired_at)
+             team_card_meta = $15::jsonb,
+             status = $16,
+             status_changed_at = COALESCE($17, status_changed_at),
+             hired_at = COALESCE($18, hired_at),
+             rejected_at = COALESCE($19, rejected_at),
+             started_at = COALESCE($20, started_at),
+             fired_at = COALESCE($21, fired_at)
          WHERE id = $1 AND agency_id = $2
          RETURNING *`,
         [
@@ -6065,6 +6194,7 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
           nextModel,
           nextModel,
           nextNotes,
+          JSON.stringify(nextMeta || {}),
           nextStatus,
           statusDatePatch.status_changed_at || null,
           statusDatePatch.hired_at || null,
