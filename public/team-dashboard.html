@@ -2628,6 +2628,145 @@
       flex:1;
     }
 
+    .filter-multiselect{
+      position:relative;
+      min-width:210px;
+      flex:1.2;
+    }
+
+    .filter-multiselect-btn{
+      width:100%;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      min-height:42px;
+      padding:10px 12px;
+      border:1px solid rgba(163,194,255,0.14);
+      border-radius:12px;
+      background:rgba(15,18,32,0.9);
+      color:var(--text);
+      cursor:pointer;
+      text-align:left;
+    }
+
+    .filter-multiselect-btn:hover{
+      border-color:rgba(102,217,255,0.28);
+      box-shadow:0 0 0 3px rgba(102,217,255,0.08);
+    }
+
+    .filter-multiselect-label{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      align-items:center;
+      min-width:0;
+    }
+
+    .filter-multiselect-placeholder{
+      color:var(--text3);
+      font-size:12px;
+      font-weight:700;
+    }
+
+    .filter-multiselect-count{
+      flex:0 0 auto;
+      font-size:10px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:0.04em;
+      color:var(--accent2);
+      background:rgba(102,217,255,0.1);
+      border:1px solid rgba(102,217,255,0.18);
+      border-radius:999px;
+      padding:4px 8px;
+    }
+
+    .filter-multiselect-menu{
+      position:absolute;
+      top:calc(100% + 8px);
+      left:0;
+      z-index:30;
+      width:min(360px, 100%);
+      max-height:320px;
+      overflow:auto;
+      display:none;
+      padding:10px;
+      border:1px solid rgba(102,217,255,0.14);
+      border-radius:14px;
+      background:linear-gradient(180deg, rgba(17, 27, 46, 0.98), rgba(13, 20, 35, 0.98));
+      box-shadow:0 24px 44px rgba(0,0,0,0.28);
+    }
+
+    .filter-multiselect.open .filter-multiselect-menu{
+      display:block;
+    }
+
+    .filter-multiselect-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:10px;
+    }
+
+    .filter-multiselect-title{
+      font-size:11px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:0.05em;
+      color:var(--text2);
+    }
+
+    .filter-multiselect-clear{
+      border:0;
+      background:transparent;
+      color:var(--accent2);
+      font-size:11px;
+      font-weight:800;
+      cursor:pointer;
+    }
+
+    .filter-multiselect-options{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .filter-multiselect-option{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:8px 10px;
+      border-radius:10px;
+      cursor:pointer;
+      border:1px solid transparent;
+    }
+
+    .filter-multiselect-option:hover{
+      background:rgba(102,217,255,0.08);
+      border-color:rgba(102,217,255,0.12);
+    }
+
+    .filter-multiselect-option input{
+      margin:0;
+      accent-color:var(--accent2);
+    }
+
+    .filter-multiselect-option.active{
+      background:rgba(102,217,255,0.12);
+      border-color:rgba(102,217,255,0.16);
+    }
+
+    .filter-multiselect-option .filter-option-label{
+      font-size:12px;
+      font-weight:700;
+      color:var(--text);
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
     .density-toggle-btn{
       min-width: 156px;
     }
@@ -2732,53 +2871,6 @@
       text-align: center;
     }
 
-    .data-table th.col-first-contact,
-    .data-table td.col-first-contact {
-      min-width: 154px;
-      width: 154px;
-      max-width: 154px;
-      position: sticky;
-      left: 0;
-    }
-
-    .data-table th.col-status,
-    .data-table td.col-status {
-      min-width: 188px;
-      width: 188px;
-      max-width: 188px;
-      position: sticky;
-      left: 154px;
-    }
-
-    .data-table thead th.col-first-contact,
-    .data-table thead th.col-status {
-      z-index: 14;
-      background: rgba(22, 34, 59, 0.98);
-      backdrop-filter: blur(12px);
-    }
-
-    .data-table tbody td.col-first-contact,
-    .data-table tbody td.col-status {
-      z-index: 5;
-      backdrop-filter: blur(6px);
-      isolation: isolate;
-      overflow: hidden;
-    }
-
-    .data-table tbody td.col-first-contact::before,
-    .data-table tbody td.col-status::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: rgba(16, 26, 45, 0.84);
-      z-index: -1;
-    }
-
-    .data-table tbody td.col-status,
-    .data-table thead th.col-status {
-      box-shadow: 12px 0 18px rgba(3, 8, 18, 0.24);
-    }
-
     .data-table tbody tr{
       animation: tableRowEnter .32s ease both;
       animation-delay: calc(var(--row-index, 0) * 26ms);
@@ -2809,21 +2901,6 @@
       padding: 6px 8px;
       font-size: 11px;
       min-width: 124px;
-    }
-
-    body.dense-table-mode .data-table th.col-first-contact,
-    body.dense-table-mode .data-table td.col-first-contact{
-      min-width: 132px;
-      width: 132px;
-      max-width: 132px;
-    }
-
-    body.dense-table-mode .data-table th.col-status,
-    body.dense-table-mode .data-table td.col-status{
-      min-width: 164px;
-      width: 164px;
-      max-width: 164px;
-      left: 132px;
     }
 
     body.dense-table-mode .data-table th.col-comment,
@@ -3005,6 +3082,20 @@
         <select id="statusFilter" class="select">
           <option value="">Все статусы</option>
         </select>
+        <div class="filter-multiselect" id="modelFilterWrap">
+          <button class="filter-multiselect-btn" type="button" onclick="toggleFilterMultiselect(event, 'model')">
+            <span class="filter-multiselect-label" id="modelFilterLabel"><span class="filter-multiselect-placeholder">Все модели</span></span>
+            <span class="filter-multiselect-count" id="modelFilterCount">0</span>
+          </button>
+          <div class="filter-multiselect-menu" id="modelFilterMenu"></div>
+        </div>
+        <div class="filter-multiselect" id="platformFilterWrap">
+          <button class="filter-multiselect-btn" type="button" onclick="toggleFilterMultiselect(event, 'platform')">
+            <span class="filter-multiselect-label" id="platformFilterLabel"><span class="filter-multiselect-placeholder">Все платформы</span></span>
+            <span class="filter-multiselect-count" id="platformFilterCount">0</span>
+          </button>
+          <div class="filter-multiselect-menu" id="platformFilterMenu"></div>
+        </div>
         <label style="display:flex;align-items:center;gap:8px;color:var(--text2);font-size:13px;">
           <input id="archiveFilter" type="checkbox" />
           Показывать архив
@@ -3377,8 +3468,6 @@
 
     function getColumnClass(column) {
       const classes = [];
-      if (column?.field === 'firstContactDate') classes.push('col-first-contact');
-      if (column?.field === 'status') classes.push('col-status');
       if (isCommentField(column?.field)) classes.push('col-comment');
       return classes.join(' ');
     }
@@ -5835,6 +5924,8 @@
 
         await loadStatusOptions();
         loadTableStatusOptions();
+        loadTableModelOptions();
+        loadTablePlatformOptions();
         applyFilters();
         updateStats();
       } catch (err) {
@@ -5876,6 +5967,105 @@
       }
     }
 
+    const filterMultiState = {
+      model: new Set(),
+      platform: new Set(),
+      modelOptions: [],
+      platformOptions: []
+    };
+
+    function getFilterSummary(selected, placeholder) {
+      const values = Array.from(selected || []);
+      if (!values.length) {
+        return `<span class="filter-multiselect-placeholder">${placeholder}</span>`;
+      }
+
+      const preview = values.slice(0, 2).map(value => `<span class="editor-chip chip-neutral">${escapeHtml(value)}</span>`).join('');
+      const extra = values.length > 2 ? `<span class="filter-multiselect-count">+${values.length - 2}</span>` : '';
+      return `${preview}${extra}`;
+    }
+
+    function renderFilterMultiMenu(kind) {
+      const state = filterMultiState[kind];
+      const menu = document.getElementById(`${kind}FilterMenu`);
+      const label = document.getElementById(`${kind}FilterLabel`);
+      const count = document.getElementById(`${kind}FilterCount`);
+      if (!menu || !label || !count) return;
+
+      const options = state === filterMultiState.model ? filterMultiState.modelOptions : filterMultiState.platformOptions;
+      const placeholder = kind === 'model' ? 'Все модели' : 'Все платформы';
+      const selectedCount = state.size;
+
+      label.innerHTML = getFilterSummary(state, placeholder);
+      count.textContent = String(selectedCount);
+
+      menu.innerHTML = `
+        <div class="filter-multiselect-head">
+          <div class="filter-multiselect-title">${kind === 'model' ? 'Модели' : 'Платформы'}</div>
+          <button type="button" class="filter-multiselect-clear" onclick="clearFilterMulti('${kind}')">Сбросить</button>
+        </div>
+        <div class="filter-multiselect-options">
+          ${options.map(option => {
+            const active = state.has(option);
+            return `
+              <label class="filter-multiselect-option ${active ? 'active' : ''}">
+                <input type="checkbox" ${active ? 'checked' : ''} onchange="toggleFilterMultiValue('${kind}', '${String(option).replace(/'/g, "\\'")}')" />
+                <span class="filter-option-label">${escapeHtml(option)}</span>
+              </label>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    function loadTableModelOptions() {
+      filterMultiState.modelOptions = getModelOptions();
+      renderFilterMultiMenu('model');
+    }
+
+    function loadTablePlatformOptions() {
+      filterMultiState.platformOptions = Array.from(new Set([
+        ...allItems.flatMap(item => splitListValues(item.platform || readColumnRawValue(item, ['OnlyFans / Fansly', 'Платформа']))),
+        'OnlyFans',
+        'Fansly',
+        'KM'
+      ].filter(Boolean)));
+      renderFilterMultiMenu('platform');
+    }
+
+    function toggleFilterMultiselect(event, kind) {
+      event?.stopPropagation?.();
+      const wrap = document.getElementById(`${kind}FilterWrap`);
+      if (!wrap) return;
+
+      document.querySelectorAll('.filter-multiselect.open').forEach(el => {
+        if (el !== wrap) el.classList.remove('open');
+      });
+
+      wrap.classList.toggle('open');
+      renderFilterMultiMenu(kind);
+    }
+
+    function toggleFilterMultiValue(kind, value) {
+      const selected = filterMultiState[kind];
+      if (!selected) return;
+
+      if (selected.has(value)) selected.delete(value);
+      else selected.add(value);
+
+      renderFilterMultiMenu(kind);
+      applyFilters();
+    }
+
+    function clearFilterMulti(kind) {
+      const selected = filterMultiState[kind];
+      if (!selected) return;
+
+      selected.clear();
+      renderFilterMultiMenu(kind);
+      applyFilters();
+    }
+
     function renderTableHeaders() {
       const row = document.getElementById('teamTableHeadRow');
       if (!row) return;
@@ -5889,11 +6079,15 @@
       const search = String(document.getElementById('searchFilter')?.value || '').toLowerCase().trim();
       const status = String(document.getElementById('statusFilter')?.value || '').trim();
       const includeArchive = Boolean(document.getElementById('archiveFilter')?.checked);
+      const selectedModels = filterMultiState.model;
+      const selectedPlatforms = filterMultiState.platform;
 
       filteredItems = allItems.filter(item => {
         let matches = true;
         const itemStatus = String(item.status || '').trim();
         const archived = isArchivedTeamItem(item);
+        const itemModels = getItemModels(item);
+        const itemPlatforms = splitListValues(item.platform || readColumnRawValue(item, ['OnlyFans / Fansly', 'Платформа']));
 
         if (search) {
           const name = String(item.name || '').toLowerCase();
@@ -5902,6 +6096,8 @@
         }
 
         if (status && itemStatus !== status) matches = false;
+        if (selectedModels.size && !itemModels.some(model => selectedModels.has(model))) matches = false;
+        if (selectedPlatforms.size && !itemPlatforms.some(platform => selectedPlatforms.has(platform))) matches = false;
         if (!includeArchive && archived) matches = false;
         return matches;
       });
@@ -5909,6 +6105,19 @@
       sortFilteredItems();
       renderTable();
     }
+
+    let searchFilterDebounceTimer = null;
+
+    function handleSearchFilterInput() {
+      clearTimeout(searchFilterDebounceTimer);
+      searchFilterDebounceTimer = setTimeout(applyFilters, 180);
+    }
+
+    document.addEventListener('click', event => {
+      if (!event.target.closest('.filter-multiselect')) {
+        document.querySelectorAll('.filter-multiselect.open').forEach(el => el.classList.remove('open'));
+      }
+    });
 
     function sortTable(field) {
       if (sortField === field) {
@@ -5947,9 +6156,8 @@
         return;
       }
 
-      tbody.innerHTML = filteredItems.map(item => {
+      tbody.innerHTML = filteredItems.map((item, rowIndex) => {
         const rowNumber = Number(item.row_number || item.rowNumber || 0);
-        const rowIndex = Math.max(0, filteredItems.findIndex(x => Number(x.row_number || x.rowNumber || 0) === rowNumber));
         const rowClass = [
           Number(activeTableRowNumber) === rowNumber ? 'active-row' : '',
           `row-tone-${getTableRowTone(item)}`
@@ -6038,8 +6246,10 @@
       }
     }
 
-    document.getElementById('searchFilter')?.addEventListener('input', applyFilters);
+    document.getElementById('searchFilter')?.addEventListener('input', handleSearchFilterInput);
     document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
+    document.getElementById('modelFilter')?.addEventListener('change', applyFilters);
+    document.getElementById('platformFilter')?.addEventListener('change', applyFilters);
     document.getElementById('archiveFilter')?.addEventListener('change', applyFilters);
     document.getElementById('densityToggleBtn')?.addEventListener('click', toggleDenseTableMode);
     document.getElementById('refreshTableBtn')?.addEventListener('click', loadTeamData);
