@@ -3346,23 +3346,49 @@
       return source.filter(status => !STATUS_EXCLUDED_FOR_TEAM.has(String(status || '').trim()));
     }
 
+    function normalizeShiftOption(value) {
+      const raw = String(value || '')
+        .replace(/[\u2012\u2013\u2014\u2212]/g, '-')
+        .replace(/\s+/g, '')
+        .trim();
+
+      const match = raw.match(/^(\d{1,2})-(\d{1,2})$/);
+      if (!match) return '';
+
+      const from = match[1].padStart(2, '0');
+      const to = match[2].padStart(2, '0');
+      return `${from}-${to}`;
+    }
+
     function getShiftOptions() {
       const values = new Set();
       allItems.forEach(item => {
-        splitListValues(readColumnRawValue(item, ['Смены (основные)', 'Смены'])).forEach(x => values.add(x));
+        splitListValues(readColumnRawValue(item, ['Смены (основные)', 'Смены']))
+          .map(normalizeShiftOption)
+          .filter(Boolean)
+          .forEach(x => values.add(x));
       });
       
       // Всегда добавляем значения по умолчанию
       const defaultShifts = ['00-06', '06-12', '12-18', '18-00'];
-      defaultShifts.forEach(x => values.add(x));
+      defaultShifts
+        .map(normalizeShiftOption)
+        .filter(Boolean)
+        .forEach(x => values.add(x));
       
       return Array.from(values);
     }
 
     function getModelOptions() {
       const values = new Set();
+      const freq = new Map();
       allItems.forEach(item => {
-        getItemModels(item).forEach(x => values.add(x));
+        getItemModels(item).forEach(x => {
+          const key = normalizeModelToken(x);
+          if (!key) return;
+          freq.set(key, (freq.get(key) || 0) + 1);
+          values.add(x);
+        });
       });
       
       // Если нет моделей найдено в данных, используем значения по умолчанию
@@ -3380,14 +3406,53 @@
         'Sia',
         'Kate'
       ];
+
+      const defaultSet = new Set(defaultModels.map(normalizeModelToken));
+      const bannedModelTags = new Set([
+        'bf',
+        'gnd',
+        'альт',
+        'алт',
+        'мистрес',
+        'mistress',
+        'cosplay',
+        'girlnextdoor',
+        'yes',
+        'no'
+      ]);
+
+      const isLikelyModelName = model => {
+        const value = String(model || '').trim();
+        const key = normalizeModelToken(value);
+        if (!value || !key) return false;
+        if (defaultSet.has(key)) return true;
+        if (bannedModelTags.has(key)) return false;
+        if (/^от\s*\d+$/i.test(value)) return false;
+
+        // Allow "Name" and "Name 3" style values, reject random short tags.
+        if (/^\p{Lu}[\p{L}-]{3,}$/u.test(value)) {
+          if (/^[A-Za-z]+$/.test(value) && !/[aeiouy]/i.test(value)) return false;
+          return true;
+        }
+        if (/^\p{Lu}[\p{L}-]{2,}\s\d{1,2}$/u.test(value)) {
+          return true;
+        }
+        return false;
+      };
       
       if (values.size === 0) {
         return defaultModels;
       }
-      
-      // Объединяем найденные модели с значениями по умолчанию
-      defaultModels.forEach(x => values.add(x));
-      return Array.from(values);
+
+      // Оставляем дефолтные модели и часто встречающиеся пользовательские модели.
+      // Это отсекает одиночный мусор из некорректно заполненных ячеек.
+      const frequentDetectedModels = Array.from(values).filter(model => {
+        const key = normalizeModelToken(model);
+        const count = freq.get(key) || 0;
+        return (defaultSet.has(key) || count >= 2) && isLikelyModelName(model);
+      });
+
+      return dedupeModels([...defaultModels, ...frequentDetectedModels]);
     }
 
     function normalizeColumnKey(label) {
@@ -3791,7 +3856,14 @@
             .map(x => String(x || '').trim())
             .filter(Boolean)
         );
-        const allOptions = resolveColumnOptions(column).map(x => String(x || '').trim()).filter(Boolean);
+        const allOptions = Array.from(new Set(
+          resolveColumnOptions(column)
+            .map(x => {
+              const raw = String(x || '').trim();
+              return fieldName === 'mainShifts' ? normalizeShiftOption(raw) : raw;
+            })
+            .filter(Boolean)
+        ));
 
         const anchor = document.createElement('div');
         anchor.className = 'inline-picker-anchor';
