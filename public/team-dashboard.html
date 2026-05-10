@@ -2821,9 +2821,11 @@
       allItems.forEach(item => {
         splitListValues(readColumnRawValue(item, ['Смены (основные)', 'Смены'])).forEach(x => values.add(x));
       });
-      if (!values.size) {
-        ['Утро', 'День', 'Вечер', 'Ночь'].forEach(x => values.add(x));
-      }
+      
+      // Всегда добавляем значения по умолчанию
+      const defaultShifts = ['00-06', '06-12', '12-18', '18-00'];
+      defaultShifts.forEach(x => values.add(x));
+      
       return Array.from(values);
     }
 
@@ -2832,6 +2834,29 @@
       allItems.forEach(item => {
         splitListValues(readColumnRawValue(item, ['Модели (основные)', 'Модели'])).forEach(x => values.add(x));
       });
+      
+      // Если нет моделей найдено в данных, используем значения по умолчанию
+      const defaultModels = [
+        'Alyaska',
+        'Judy',
+        'Riley',
+        'Sofia',
+        'Eva',
+        'Alyaska 3',
+        'Ivanka',
+        'Ivy',
+        'Луна',
+        'Киана',
+        'Sia',
+        'Kate'
+      ];
+      
+      if (values.size === 0) {
+        return defaultModels;
+      }
+      
+      // Объединяем найденные модели с значениями по умолчанию
+      defaultModels.forEach(x => values.add(x));
       return Array.from(values);
     }
 
@@ -5210,30 +5235,6 @@
       } catch (err) {
         console.error('Error:', err);
       }
-    }
-
-    function getFieldValue(item, field) {
-      const column = findColumnConfig(field);
-      if (!column) return '-';
-
-      if (field === 'name') return item.name || readColumnRawValue(item, column.aliases) || '-';
-      if (field === 'telegram') return item.telegram || readColumnRawValue(item, column.aliases) || '-';
-      if (field === 'status') return item.status || readColumnRawValue(item, column.aliases) || '-';
-      if (field === 'platform') return item.platform || readColumnRawValue(item, column.aliases) || '-';
-      if (field === 'experience') return item.experience_months || readColumnRawValue(item, column.aliases) || '0';
-      if (field === 'startDate') return item.start_date || readColumnRawValue(item, column.aliases) || '-';
-      if (field === 'workDays') {
-        if (String(item.status || '').trim() === 'Работает') {
-          const calculated = calculateWorkDaysFromStart(item.start_date || readColumnRawValue(item, ['Дата старта']));
-          if (calculated) return calculated;
-        }
-        return item.work_days || readColumnRawValue(item, column.aliases) || '0';
-      }
-      if (field === 'transactionEnding') return item.transactionEnding || readColumnRawValue(item, column.aliases) || '-';
-      if (field === 'fromWho') return readColumnRawValue(item, ['От кого', 'main_activity', 'job']) || '-';
-
-      const raw = readColumnRawValue(item, column.aliases);
-      return String(raw || '').trim() || '-';
     }
 
     function renderTableHeaders() {
