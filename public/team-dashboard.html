@@ -2432,7 +2432,45 @@
   <script src="/visual-v2.js"></script>
   <script>
     const tokenKey = 'allstars_token';
-    const token = localStorage.getItem(tokenKey);
+    let token = String(localStorage.getItem(tokenKey) || '').trim();
+    let authFailed = false;
+
+    function showAuthErrorState(message) {
+      const tbody = document.getElementById('tableBody');
+      if (tbody) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="14" style="padding:20px;">
+              <div class="error-box" style="margin:0;">
+                ${escapeHtml(message || 'Сессия истекла. Выполняем переход на страницу входа...')}
+              </div>
+            </td>
+          </tr>
+        `;
+      }
+
+      document.getElementById('lastUpdate').textContent = 'Требуется вход';
+      document.getElementById('statTotal').textContent = '0';
+      document.getElementById('statWork').textContent = '0';
+      document.getElementById('statOF').textContent = '0';
+      document.getElementById('statFansly').textContent = '0';
+      document.getElementById('statTest').textContent = '0';
+      document.getElementById('statArchive').textContent = '0';
+    }
+
+    function handleUnauthorized(message) {
+      if (authFailed) return;
+      authFailed = true;
+
+      showAuthErrorState(message || 'Сессия истекла. Выполняем переход на страницу входа...');
+      try { window.AllStarsRealtime?.disconnect?.(); } catch {}
+      try { localStorage.removeItem(tokenKey); } catch {}
+      try { localStorage.removeItem('allstars_me'); } catch {}
+
+      setTimeout(() => {
+        location.href = '/login.html?expired=1';
+      }, 650);
+    }
 
     if (!token) {
       location.href = '/login.html';
@@ -2668,8 +2706,15 @@
     /* ─── конец CRM JS ─────────────────────────────────────────── */
 
 
-    function api(path, options = {}) {
-      return fetch(window.AllStarsConfig?.resolveApiPath?.(path) || path, {
+    async function api(path, options = {}) {
+      if (authFailed) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      const response = await fetch(window.AllStarsConfig?.resolveApiPath?.(path) || path, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
@@ -2677,6 +2722,12 @@
           ...(options.headers || {})
         }
       });
+
+      if (response.status === 401) {
+        handleUnauthorized('Сессия недействительна. Нужна повторная авторизация.');
+      }
+
+      return response;
     }
 
     async function loadStatusOptions() {
@@ -4126,7 +4177,13 @@
 
     async function loadTeamData() {
       try {
+        if (authFailed) return;
+
         const resp = await api('/api/team-stats');
+        if (resp.status === 401) {
+          handleUnauthorized('Сессия недействительна. Нужна повторная авторизация.');
+          return;
+        }
         if (!resp.ok) throw new Error('API error');
         const data = await resp.json();
 
@@ -4147,6 +4204,7 @@
         applyFilters();
         updateStats();
       } catch (err) {
+        if (authFailed) return;
         console.error('Error:', err);
         const tbody = document.getElementById('tableBody');
         if (tbody) {
@@ -4331,10 +4389,12 @@
     }
 
     async function initTeamTablePage() {
+      if (authFailed) return;
       await loadTeamData();
 
-      if (!tableRealtimeBound && window.AllStarsRealtime?.subscribe) {
+      if (!authFailed && !tableRealtimeBound && window.AllStarsRealtime?.subscribe) {
         window.AllStarsRealtime.subscribe((event) => {
+          if (authFailed) return;
           const scope = String(event?.scope || '').trim();
           if (!scope || [
             'team',
