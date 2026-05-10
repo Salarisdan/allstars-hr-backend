@@ -2693,8 +2693,10 @@
     }
 
     .filter-multiselect-menu{
-      position:fixed;
-      z-index:99999;
+      position:absolute;
+      top:calc(100% + 8px);
+      left:0;
+      z-index:3500;
       width:min(360px, 100%);
       max-height:320px;
       overflow:auto;
@@ -6009,13 +6011,15 @@
       label.innerHTML = getFilterSummary(state, placeholder);
       count.textContent = String(selectedCount);
 
+      const emptyStateText = allItems.length === 0 ? 'Загрузка значений...' : 'Нет доступных значений';
+
       menu.innerHTML = `
         <div class="filter-multiselect-head">
           <div class="filter-multiselect-title">${kind === 'model' ? 'Модели' : 'Платформы'}</div>
           <button type="button" class="filter-multiselect-clear" onclick="clearFilterMulti('${kind}')">Сбросить</button>
         </div>
         <div class="filter-multiselect-options">
-          ${options.map(option => {
+          ${options.length ? options.map(option => {
             const active = state.has(option);
             return `
               <label class="filter-multiselect-option ${active ? 'active' : ''}">
@@ -6023,18 +6027,10 @@
                 <span class="filter-option-label">${escapeHtml(option)}</span>
               </label>
             `;
-          }).join('')}
+          }).join('') : `<div class="filter-option-label" style="padding:8px 10px;color:var(--text3);">${emptyStateText}</div>`}
         </div>
       `;
 
-      if (wrap.classList.contains('open')) {
-        const btn = wrap.querySelector('.filter-multiselect-btn');
-        if (btn) {
-          const rect = btn.getBoundingClientRect();
-          menu.style.top = (rect.bottom + 8) + 'px';
-          menu.style.left = rect.left + 'px';
-        }
-      }
     }
 
     function loadTableModelOptions() {
@@ -6063,18 +6059,6 @@
 
       wrap.classList.toggle('open');
       renderFilterMultiMenu(kind);
-      
-      if (wrap.classList.contains('open')) {
-        const menu = document.getElementById(`${kind}FilterMenu`);
-        const btn = wrap.querySelector('.filter-multiselect-btn');
-        if (menu && btn) {
-          setTimeout(() => {
-            const rect = btn.getBoundingClientRect();
-            menu.style.top = (rect.bottom + 8) + 'px';
-            menu.style.left = rect.left + 'px';
-          }, 0);
-        }
-      }
     }
 
     function toggleFilterMultiValue(kind, value) {
