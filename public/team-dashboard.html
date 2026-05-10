@@ -2593,6 +2593,9 @@
       border-radius:14px;
       background:linear-gradient(180deg, rgba(17, 27, 46, 0.96), rgba(13, 20, 35, 0.92));
       box-shadow:0 14px 34px rgba(0,0,0,0.18), inset 0 1px 0 rgba(182,240,255,0.05);
+      position:relative;
+      overflow:visible;
+      z-index:100;
     }
 
     .status-legend{
@@ -2630,9 +2633,10 @@
 
     .filter-multiselect{
       position:relative;
-      z-index:1000;
+      z-index:1001;
       min-width:210px;
       flex:1.2;
+      overflow:visible;
     }
 
     .filter-multiselect-btn{
@@ -2689,19 +2693,18 @@
     }
 
     .filter-multiselect-menu{
-      position:absolute;
-      top:calc(100% + 8px);
-      left:0;
-      z-index:9999;
+      position:fixed;
+      z-index:99999;
       width:min(360px, 100%);
       max-height:320px;
       overflow:auto;
       display:none;
       padding:10px;
-      border:1px solid rgba(102,217,255,0.14);
+      border:1.5px solid rgba(102,217,255,0.28);
       border-radius:14px;
-      background:linear-gradient(180deg, rgba(17, 27, 46, 0.98), rgba(13, 20, 35, 0.98));
-      box-shadow:0 24px 44px rgba(0,0,0,0.28);
+      background:linear-gradient(180deg, rgba(22, 40, 70, 0.99), rgba(15, 27, 48, 0.99));
+      box-shadow:0 24px 54px rgba(0,0,0,0.38), inset 0 1px 0 rgba(182,240,255,0.08);
+      backdrop-filter:blur(4px);
     }
 
     .filter-multiselect.open .filter-multiselect-menu{
@@ -5996,7 +5999,8 @@
       const menu = document.getElementById(`${kind}FilterMenu`);
       const label = document.getElementById(`${kind}FilterLabel`);
       const count = document.getElementById(`${kind}FilterCount`);
-      if (!menu || !label || !count) return;
+      const wrap = document.getElementById(`${kind}FilterWrap`);
+      if (!menu || !label || !count || !wrap) return;
 
       const options = state === filterMultiState.model ? filterMultiState.modelOptions : filterMultiState.platformOptions;
       const placeholder = kind === 'model' ? 'Все модели' : 'Все платформы';
@@ -6022,6 +6026,15 @@
           }).join('')}
         </div>
       `;
+
+      if (wrap.classList.contains('open')) {
+        const btn = wrap.querySelector('.filter-multiselect-btn');
+        if (btn) {
+          const rect = btn.getBoundingClientRect();
+          menu.style.top = (rect.bottom + 8) + 'px';
+          menu.style.left = rect.left + 'px';
+        }
+      }
     }
 
     function loadTableModelOptions() {
@@ -6050,6 +6063,18 @@
 
       wrap.classList.toggle('open');
       renderFilterMultiMenu(kind);
+      
+      if (wrap.classList.contains('open')) {
+        const menu = document.getElementById(`${kind}FilterMenu`);
+        const btn = wrap.querySelector('.filter-multiselect-btn');
+        if (menu && btn) {
+          setTimeout(() => {
+            const rect = btn.getBoundingClientRect();
+            menu.style.top = (rect.bottom + 8) + 'px';
+            menu.style.left = rect.left + 'px';
+          }, 0);
+        }
+      }
     }
 
     function toggleFilterMultiValue(kind, value) {
