@@ -5052,11 +5052,18 @@ function invalidateTeamStatsCache() {
 
 function buildTeamItemFromCandidate(candidate) {
   const status = normalizeStatusAlias(candidate.status || '') || String(candidate.status || '').trim();
+  const createdAtRaw = candidate.created_at || null;
   const startedAtRaw = candidate.started_at || candidate.hired_at || null;
-  const model = String(candidate.top_profile || candidate.top_pages || candidate.main_activity || '').trim();
   const meta = candidate.team_card_meta && typeof candidate.team_card_meta === 'object' && !Array.isArray(candidate.team_card_meta)
     ? candidate.team_card_meta
     : {};
+  const model = String(
+    meta['Модели (основные)']
+    || meta['Актуальная модель']
+    || candidate.top_profile
+    || candidate.top_pages
+    || ''
+  ).trim();
 
   let workDays = '';
   if (startedAtRaw) {
@@ -5071,6 +5078,9 @@ function buildTeamItemFromCandidate(candidate) {
     row_number: Number(candidate.id),
     raw: {
       ...meta,
+      'Дата первого касания': createdAtRaw ? String(createdAtRaw) : String(meta['Дата первого касания'] || meta['Дата'] || '').trim(),
+      'Дата': createdAtRaw ? String(createdAtRaw) : String(meta['Дата'] || '').trim(),
+      'created_at': createdAtRaw ? String(createdAtRaw) : String(meta['created_at'] || '').trim(),
       'Имя': candidate.name || '',
       'Telegram': candidate.telegram || candidate.tg || '',
       'Telegram / username': candidate.telegram || candidate.tg || '',
@@ -5088,6 +5098,8 @@ function buildTeamItemFromCandidate(candidate) {
     status,
     platform: candidate.platform || candidate.platforms || '',
     model,
+    first_contact_date: createdAtRaw ? String(createdAtRaw) : '',
+    created_at: createdAtRaw ? String(createdAtRaw) : '',
     experience_months: candidate.exp || candidate.experience || '',
     work_days: workDays,
     start_date: startedAtRaw ? String(startedAtRaw) : '',
@@ -5103,7 +5115,7 @@ async function loadTeamItemsFromCandidatesDb(agencyId) {
   const [teamRows, candidateResult, transactionEndingResult] = await Promise.all([
     loadAllTeamMembersForBackfill(),
     query(
-      `SELECT id, name, tg, telegram, status, platform, platforms, top_pages, top_profile, main_activity, exp, experience, started_at, hired_at, updated_at, team_card_meta
+      `SELECT id, name, tg, telegram, status, platform, platforms, top_pages, top_profile, main_activity, exp, experience, started_at, hired_at, created_at, updated_at, team_card_meta
        FROM candidates
        WHERE agency_id = $1
        ORDER BY updated_at DESC NULLS LAST, created_at DESC NULLS LAST, id DESC`,

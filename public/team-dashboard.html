@@ -345,6 +345,38 @@
       font-weight: 700;
     }
 
+    .cell-flag.is-on {
+      color: #86efac;
+    }
+
+    .cell-flag.is-off {
+      color: var(--text3);
+    }
+
+    .comment-indicator {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 54px;
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(163, 194, 255, 0.16);
+      background: rgba(148, 163, 184, 0.12);
+      color: var(--text3);
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .comment-indicator.has-value {
+      border-color: rgba(102, 217, 255, 0.34);
+      background: rgba(102, 217, 255, 0.12);
+      color: var(--accent2);
+      box-shadow: inset 0 0 0 1px rgba(102, 217, 255, 0.12);
+    }
+
     .inline-picker-anchor {
       min-height: 36px;
       display: flex;
@@ -665,6 +697,36 @@
       padding:1rem;
       overflow:auto;
       max-height:calc(85vh - 70px);
+    }
+
+    .comment-modal-sheet{
+      width:min(720px, 100%);
+    }
+
+    .comment-modal-textarea{
+      width:100%;
+      min-height:220px;
+      resize:vertical;
+      border:1px solid rgba(163,194,255,.18);
+      border-radius:14px;
+      background:#0f192b;
+      color:var(--text);
+      padding:14px 16px;
+      font:inherit;
+      line-height:1.55;
+      outline:none;
+    }
+
+    .comment-modal-textarea:focus{
+      border-color:var(--accent-border);
+      box-shadow:0 0 0 3px rgba(102,217,255,.12);
+    }
+
+    .comment-modal-actions{
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+      margin-top:14px;
     }
 
     @keyframes mobileSheetIn{
@@ -1349,8 +1411,13 @@
     .badge-orange{background:rgba(245,158,11,.14);color:#fdba74;border-color:rgba(245,158,11,.24);}
     .badge-red{background:rgba(248,113,113,.14);color:#fca5a5;border-color:rgba(248,113,113,.24);}
     .badge-gray{background:rgba(255,255,255,.08);color:#cbd5e1;border-color:rgba(255,255,255,.12);}
+    .badge-cyan{background:rgba(34,211,238,.14);color:#a5f3fc;border-color:rgba(34,211,238,.24);}
+    .badge-purple{background:rgba(168,85,247,.14);color:#d8b4fe;border-color:rgba(168,85,247,.24);}
 
     .status-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
       font-size:11px;
       font-weight:800;
       padding:.35rem .6rem;
@@ -1358,6 +1425,7 @@
       border:1px solid var(--border);
       background:var(--surface3);
       color:var(--text2);
+      letter-spacing:.01em;
       transition:
         background .24s ease,
         border-color .24s ease,
@@ -1365,6 +1433,25 @@
         box-shadow .24s ease,
         transform .16s ease;
     }
+
+    .status-badge::before{
+      content:'';
+      width:8px;
+      height:8px;
+      border-radius:999px;
+      background:currentColor;
+      box-shadow:0 0 10px color-mix(in srgb, currentColor 55%, transparent);
+      flex:0 0 auto;
+    }
+
+    .status-badge.badge-green{box-shadow:0 8px 18px rgba(34,197,94,.14), inset 0 1px 0 rgba(255,255,255,.05);}
+    .status-badge.badge-blue{box-shadow:0 8px 18px rgba(79,110,247,.14), inset 0 1px 0 rgba(255,255,255,.05);}
+    .status-badge.badge-yellow{box-shadow:0 8px 18px rgba(251,191,36,.14), inset 0 1px 0 rgba(255,255,255,.05);}
+    .status-badge.badge-orange{box-shadow:0 8px 18px rgba(245,158,11,.14), inset 0 1px 0 rgba(255,255,255,.05);}
+    .status-badge.badge-red{box-shadow:0 8px 18px rgba(248,113,113,.14), inset 0 1px 0 rgba(255,255,255,.05);}
+    .status-badge.badge-gray{box-shadow:0 8px 18px rgba(148,163,184,.12), inset 0 1px 0 rgba(255,255,255,.04);}
+    .status-badge.badge-cyan{box-shadow:0 8px 18px rgba(34,211,238,.14), inset 0 1px 0 rgba(255,255,255,.05);}
+    .status-badge.badge-purple{box-shadow:0 8px 18px rgba(168,85,247,.14), inset 0 1px 0 rgba(255,255,255,.05);}
 
     .status-badge.state-work-of{
       background:rgba(79,110,247,.18);
@@ -2435,12 +2522,104 @@
       margin-bottom:12px;
     }
 
+    .stat-card{
+      position:relative;
+      overflow:hidden;
+      background:
+        radial-gradient(120% 140% at 0% 0%, rgba(102,217,255,0.12), rgba(102,217,255,0) 48%),
+        linear-gradient(180deg, rgba(23, 36, 63, 0.96), rgba(16, 26, 45, 0.98));
+      border:1px solid rgba(102,217,255,0.16);
+      box-shadow:0 18px 38px rgba(0,0,0,0.22), inset 0 1px 0 rgba(182,240,255,0.08);
+    }
+
+    .stat-card.stat-card-work{
+      background:
+        radial-gradient(120% 140% at 0% 0%, rgba(34,197,94,0.18), rgba(34,197,94,0) 48%),
+        linear-gradient(180deg, rgba(20, 49, 48, 0.98), rgba(11, 28, 33, 0.98));
+      border-color: rgba(34,197,94,0.22);
+    }
+
+    .stat-card.stat-card-work::before{
+      background:linear-gradient(90deg, rgba(34,197,94,0.95), rgba(16,185,129,0.65), rgba(34,197,94,0));
+    }
+
+    .stat-card.stat-card-test{
+      background:
+        radial-gradient(120% 140% at 0% 0%, rgba(251,191,36,0.18), rgba(251,191,36,0) 48%),
+        linear-gradient(180deg, rgba(55, 41, 17, 0.98), rgba(27, 21, 12, 0.98));
+      border-color: rgba(251,191,36,0.22);
+    }
+
+    .stat-card.stat-card-test::before{
+      background:linear-gradient(90deg, rgba(251,191,36,0.95), rgba(245,158,11,0.65), rgba(251,191,36,0));
+    }
+
+    .stat-card.stat-card-archive{
+      background:
+        radial-gradient(120% 140% at 0% 0%, rgba(248,113,113,0.18), rgba(248,113,113,0) 48%),
+        linear-gradient(180deg, rgba(58, 24, 31, 0.98), rgba(30, 15, 20, 0.98));
+      border-color: rgba(248,113,113,0.22);
+    }
+
+    .stat-card.stat-card-archive::before{
+      background:linear-gradient(90deg, rgba(248,113,113,0.95), rgba(239,68,68,0.65), rgba(248,113,113,0));
+    }
+
+    .stat-card.stat-card-work .stat-value,
+    .stat-card.stat-card-work .stat-label{color:#bbf7d0;}
+    .stat-card.stat-card-test .stat-value,
+    .stat-card.stat-card-test .stat-label{color:#fde68a;}
+    .stat-card.stat-card-archive .stat-value,
+    .stat-card.stat-card-archive .stat-label{color:#fecaca;}
+
+    .stat-card::before{
+      content:'';
+      position:absolute;
+      inset:0 auto auto 0;
+      width:100%;
+      height:2px;
+      background:linear-gradient(90deg, rgba(102,217,255,0.9), rgba(125,149,255,0.72), rgba(102,217,255,0));
+      opacity:.9;
+    }
+
     .filter-row{
       display:flex;
       gap:10px;
       align-items:center;
       flex-wrap:wrap;
       margin-bottom:12px;
+      padding:10px 12px;
+      border:1px solid rgba(102,217,255,0.12);
+      border-radius:14px;
+      background:linear-gradient(180deg, rgba(17, 27, 46, 0.96), rgba(13, 20, 35, 0.92));
+      box-shadow:0 14px 34px rgba(0,0,0,0.18), inset 0 1px 0 rgba(182,240,255,0.05);
+    }
+
+    .status-legend{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      margin:-2px 0 12px;
+      padding:10px 12px;
+      border:1px solid rgba(102,217,255,0.1);
+      border-radius:14px;
+      background:linear-gradient(180deg, rgba(16, 25, 42, 0.92), rgba(11, 18, 31, 0.9));
+      box-shadow:0 10px 28px rgba(0,0,0,0.16), inset 0 1px 0 rgba(182,240,255,0.04);
+    }
+
+    .status-legend-label{
+      color:var(--text2);
+      font-size:11px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+      margin-right:4px;
+    }
+
+    .status-legend .status-badge{
+      font-size:10px;
+      padding:.3rem .55rem;
     }
 
     .filter-row .input,
@@ -2449,20 +2628,48 @@
       flex:1;
     }
 
+    .density-toggle-btn{
+      min-width: 156px;
+    }
+
+    .density-toggle-btn.is-active{
+      border-color: rgba(102,217,255,0.34);
+      background: linear-gradient(180deg, rgba(22, 54, 70, 0.98), rgba(14, 34, 45, 0.98));
+      color: var(--accent2);
+      box-shadow: inset 0 1px 0 rgba(182,240,255,0.08), 0 10px 24px rgba(0,0,0,0.14);
+    }
+
     .table-shell{
+      position:relative;
       border:1px solid var(--border);
       border-radius:12px;
       overflow:auto;
-      background:var(--surface2);
-      box-shadow:var(--shadow);
+      background:
+        radial-gradient(120% 90% at 100% 0%, rgba(102,217,255,0.08), rgba(102,217,255,0) 44%),
+        linear-gradient(180deg, rgba(20, 33, 58, 0.98), rgba(13, 20, 35, 0.98));
+      box-shadow:0 24px 54px rgba(0,0,0,0.26), inset 0 1px 0 rgba(182,240,255,0.05);
       max-height:calc(100vh - 420px);
+    }
+
+    .table-shell::before{
+      content:'';
+      position:sticky;
+      top:0;
+      left:0;
+      display:block;
+      width:100%;
+      height:1px;
+      background:linear-gradient(90deg, rgba(102,217,255,0.42), rgba(125,149,255,0.26), rgba(102,217,255,0));
+      z-index:11;
+      pointer-events:none;
     }
 
     .data-table{
       width:max-content;
       min-width:100%;
-      border-collapse:collapse;
-      background:var(--surface2);
+      border-collapse:separate;
+      border-spacing:0;
+      background:transparent;
       margin:0;
       table-layout:auto;
     }
@@ -2470,7 +2677,8 @@
     .data-table thead{
       position:sticky;
       top:0;
-      background:var(--surface3);
+      background:rgba(22, 34, 59, 0.92);
+      backdrop-filter:blur(10px);
       z-index:10;
     }
 
@@ -2480,7 +2688,7 @@
       font-weight: 800;
       cursor: pointer;
       text-align: left;
-      color: var(--text2);
+      color: #c8d7f2;
       border-bottom: 1px solid var(--border);
       border-right: 1px solid rgba(102, 217, 255, 0.08);
       white-space: nowrap;
@@ -2488,6 +2696,8 @@
       text-overflow: ellipsis;
       min-width: 140px;
       user-select: none;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
     }
 
     .data-table th:last-child {
@@ -2506,12 +2716,200 @@
       border-right: 1px solid rgba(102, 217, 255, 0.06);
     }
 
+    .data-table tbody tr td{
+      backdrop-filter: blur(2px);
+    }
+
     .data-table td:last-child {
       border-right: none;
     }
 
-    .data-table tbody tr:hover{
-      background:rgba(255,255,255,0.04);
+    .data-table th.col-comment,
+    .data-table td.col-comment {
+      min-width: 110px;
+      width: 110px;
+      max-width: 110px;
+      text-align: center;
+    }
+
+    .data-table th.col-first-contact,
+    .data-table td.col-first-contact {
+      min-width: 154px;
+      width: 154px;
+      max-width: 154px;
+      position: sticky;
+      left: 0;
+    }
+
+    .data-table th.col-status,
+    .data-table td.col-status {
+      min-width: 188px;
+      width: 188px;
+      max-width: 188px;
+      position: sticky;
+      left: 154px;
+    }
+
+    .data-table thead th.col-first-contact,
+    .data-table thead th.col-status {
+      z-index: 14;
+      background: rgba(22, 34, 59, 0.98);
+      backdrop-filter: blur(12px);
+    }
+
+    .data-table tbody td.col-first-contact,
+    .data-table tbody td.col-status {
+      z-index: 5;
+      backdrop-filter: blur(6px);
+      isolation: isolate;
+      overflow: hidden;
+    }
+
+    .data-table tbody td.col-first-contact::before,
+    .data-table tbody td.col-status::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(16, 26, 45, 0.84);
+      z-index: -1;
+    }
+
+    .data-table tbody td.col-status,
+    .data-table thead th.col-status {
+      box-shadow: 12px 0 18px rgba(3, 8, 18, 0.24);
+    }
+
+    .data-table tbody tr{
+      animation: tableRowEnter .32s ease both;
+      animation-delay: calc(var(--row-index, 0) * 26ms);
+    }
+
+    @keyframes tableRowEnter{
+      from{opacity:0;transform:translateY(8px);}
+      to{opacity:1;transform:translateY(0);}
+    }
+
+    body.dense-table-mode .filter-row{
+      padding:8px 10px;
+      gap:8px;
+    }
+
+    body.dense-table-mode .status-legend{
+      padding:8px 10px;
+      gap:6px;
+    }
+
+    body.dense-table-mode .data-table th{
+      padding: 9px 8px;
+      font-size: 9px;
+      min-width: 124px;
+    }
+
+    body.dense-table-mode .data-table td{
+      padding: 6px 8px;
+      font-size: 11px;
+      min-width: 124px;
+    }
+
+    body.dense-table-mode .data-table th.col-first-contact,
+    body.dense-table-mode .data-table td.col-first-contact{
+      min-width: 132px;
+      width: 132px;
+      max-width: 132px;
+    }
+
+    body.dense-table-mode .data-table th.col-status,
+    body.dense-table-mode .data-table td.col-status{
+      min-width: 164px;
+      width: 164px;
+      max-width: 164px;
+      left: 132px;
+    }
+
+    body.dense-table-mode .data-table th.col-comment,
+    body.dense-table-mode .data-table td.col-comment{
+      min-width: 92px;
+      width: 92px;
+      max-width: 92px;
+    }
+
+    .data-table tbody tr.row-tone-green td,
+    .data-table tbody tr.row-tone-cyan td,
+    .data-table tbody tr.row-tone-blue td,
+    .data-table tbody tr.row-tone-yellow td,
+    .data-table tbody tr.row-tone-purple td,
+    .data-table tbody tr.row-tone-red td,
+    .data-table tbody tr.row-tone-gray td {
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.015), inset 0 -1px 0 rgba(0,0,0,0.12);
+      transition: background .18s ease, box-shadow .18s ease, transform .18s ease;
+    }
+
+    .data-table tbody tr.row-tone-green td {
+      background: linear-gradient(90deg, rgba(16, 185, 129, 0.22), rgba(16, 185, 129, 0.08) 22%, rgba(20, 33, 58, 0.96) 72%);
+    }
+
+    .data-table tbody tr.row-tone-cyan td {
+      background: linear-gradient(90deg, rgba(34, 211, 238, 0.22), rgba(34, 211, 238, 0.085) 22%, rgba(20, 33, 58, 0.96) 72%);
+    }
+
+    .data-table tbody tr.row-tone-blue td {
+      background: linear-gradient(90deg, rgba(59, 130, 246, 0.22), rgba(59, 130, 246, 0.085) 22%, rgba(20, 33, 58, 0.96) 72%);
+    }
+
+    .data-table tbody tr.row-tone-yellow td {
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.24), rgba(245, 158, 11, 0.09) 22%, rgba(20, 33, 58, 0.96) 72%);
+    }
+
+    .data-table tbody tr.row-tone-purple td {
+      background: linear-gradient(90deg, rgba(168, 85, 247, 0.22), rgba(168, 85, 247, 0.08) 22%, rgba(20, 33, 58, 0.96) 72%);
+    }
+
+    .data-table tbody tr.row-tone-red td {
+      background: linear-gradient(90deg, rgba(239, 68, 68, 0.24), rgba(239, 68, 68, 0.095) 22%, rgba(20, 33, 58, 0.965) 72%);
+    }
+
+    .data-table tbody tr.row-tone-gray td {
+      background: linear-gradient(90deg, rgba(148, 163, 184, 0.18), rgba(148, 163, 184, 0.065) 22%, rgba(20, 33, 58, 0.96) 72%);
+    }
+
+    .data-table tbody tr.row-tone-green td:first-child {
+      border-left: 3px solid rgba(52, 211, 153, 0.95);
+      box-shadow: inset 10px 0 18px rgba(16, 185, 129, 0.13);
+    }
+
+    .data-table tbody tr.row-tone-cyan td:first-child {
+      border-left: 3px solid rgba(34, 211, 238, 0.95);
+      box-shadow: inset 10px 0 18px rgba(34, 211, 238, 0.13);
+    }
+
+    .data-table tbody tr.row-tone-blue td:first-child {
+      border-left: 3px solid rgba(96, 165, 250, 0.95);
+      box-shadow: inset 10px 0 18px rgba(59, 130, 246, 0.13);
+    }
+
+    .data-table tbody tr.row-tone-yellow td:first-child {
+      border-left: 3px solid rgba(251, 191, 36, 0.95);
+      box-shadow: inset 10px 0 18px rgba(245, 158, 11, 0.14);
+    }
+
+    .data-table tbody tr.row-tone-purple td:first-child {
+      border-left: 3px solid rgba(192, 132, 252, 0.95);
+      box-shadow: inset 10px 0 18px rgba(168, 85, 247, 0.13);
+    }
+
+    .data-table tbody tr.row-tone-red td:first-child {
+      border-left: 3px solid rgba(248, 113, 113, 0.98);
+      box-shadow: inset 10px 0 18px rgba(239, 68, 68, 0.14);
+    }
+
+    .data-table tbody tr.row-tone-gray td:first-child {
+      border-left: 3px solid rgba(148, 163, 184, 0.92);
+      box-shadow: inset 10px 0 18px rgba(148, 163, 184, 0.12);
+    }
+
+    .data-table tbody tr:hover td{
+      filter: saturate(1.08) brightness(1.03);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.025), inset 0 -1px 0 rgba(0,0,0,0.14), 0 10px 24px rgba(0,0,0,0.08);
     }
 
     .data-table tbody tr.active-row td{
@@ -2595,11 +2993,11 @@
 
       <div class="stats-row" id="statsRow">
         <div class="stat-card"><div class="stat-value" id="statTotal">0</div><div class="stat-label">Всего</div></div>
-        <div class="stat-card"><div class="stat-value" id="statWork">0</div><div class="stat-label">Работает</div></div>
+        <div class="stat-card stat-card-work"><div class="stat-value" id="statWork">0</div><div class="stat-label">Работает</div></div>
         <div class="stat-card"><div class="stat-value" id="statOF">0</div><div class="stat-label">OnlyFans</div></div>
         <div class="stat-card"><div class="stat-value" id="statFansly">0</div><div class="stat-label">Fansly</div></div>
-        <div class="stat-card"><div class="stat-value" id="statTest">0</div><div class="stat-label">Ждет тест</div></div>
-        <div class="stat-card"><div class="stat-value" id="statArchive">0</div><div class="stat-label">Архив</div></div>
+        <div class="stat-card stat-card-test"><div class="stat-value" id="statTest">0</div><div class="stat-label">Ждет тест</div></div>
+        <div class="stat-card stat-card-archive"><div class="stat-value" id="statArchive">0</div><div class="stat-label">Архив</div></div>
       </div>
 
       <div class="filter-row" id="filterRow">
@@ -2611,8 +3009,19 @@
           <input id="archiveFilter" type="checkbox" />
           Показывать архив
         </label>
+        <button class="btn btn-ghost density-toggle-btn" id="densityToggleBtn" type="button">Плотный режим</button>
         <button class="btn btn-ghost" id="refreshTableBtn" type="button">Обновить таблицу</button>
         <div style="margin-left:auto;color:var(--text3);font-size:12px;">Обновлено: <span id="lastUpdate">-</span></div>
+      </div>
+
+      <div class="status-legend" aria-label="Легенда статусов">
+        <span class="status-legend-label">Статусы:</span>
+        <span class="status-badge badge-green">Работает</span>
+        <span class="status-badge badge-cyan">Ожидание старта</span>
+        <span class="status-badge badge-blue">Верификация / Гайд</span>
+        <span class="status-badge badge-yellow">Тест</span>
+        <span class="status-badge badge-purple">Хочу взять</span>
+        <span class="status-badge badge-red">Архив / Отказ</span>
       </div>
 
       <div id="content" class="table-shell">
@@ -2646,6 +3055,22 @@
           </div>
           <div class="modal-body" id="transactionEndingModalBody">
             <div class="loading">Загружаем...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="commentEditorModal" onclick="closeCommentEditorModal(event)">
+        <div class="modal-sheet comment-modal-sheet">
+          <div class="modal-head">
+            <div class="modal-title" id="commentEditorTitle">Комментарий</div>
+            <button class="modal-close" type="button" onclick="forceCloseCommentEditorModal()">Закрыть</button>
+          </div>
+          <div class="modal-body">
+            <textarea id="commentEditorTextarea" class="comment-modal-textarea" placeholder="Введите комментарий..."></textarea>
+            <div class="comment-modal-actions">
+              <button class="modal-close" type="button" onclick="forceCloseCommentEditorModal()">Отмена</button>
+              <button class="btn btn-primary" type="button" onclick="saveCommentEditorModal()">Сохранить</button>
+            </div>
           </div>
         </div>
       </div>
@@ -2739,8 +3164,11 @@
     /* ─── Inline Editing System ──────────────────────────────────── */
     let inlineEditingState = null;
     let activeTableRowNumber = null;
+    let currentCommentEditorState = null;
 
     const STATUS_EXCLUDED_FOR_TEAM = new Set(['Назначено собеседование', 'Ждет собеседования']);
+    const ARCHIVE_STATUSES = new Set(['архив', 'отказ', 'убрать', 'уволен', 'не рассчитан']);
+    const COMMENT_FIELDS = new Set(['teamLeadComment', 'hrComment']);
     const STATUS_FALLBACK_OPTIONS = [
       'Изучает гайд', 'Ждет тест', 'Тест смена', 'Хочу взять', 'Верификация',
       'Ожидание старта', 'Принятый', 'Работает', 'Лист ожидания', 'Нет ответа',
@@ -2773,7 +3201,7 @@
     ];
 
     const TABLE_COLUMNS = [
-      { field: 'firstContactDate', title: 'Дата первого касания', updateLabel: 'Дата первого касания', aliases: ['Дата первого касания', 'Дата'], editable: true, type: 'date' },
+      { field: 'firstContactDate', title: 'Дата первого касания', updateLabel: 'Дата первого касания', aliases: ['Дата первого касания', 'Дата', 'Дата создания', 'created_at', 'crm_created_at'], editable: true, type: 'date' },
       { field: 'status', title: 'Актуальный статус кандидата (Hr)', updateLabel: 'Актуальный статус кандидата (Hr)', aliases: ['Актуальный статус кандидата (Hr)', 'Статус'], editable: true, type: 'select', options: () => getStatusEditorOptions() },
       { field: 'platform', title: 'OnlyFans / Fansly', updateLabel: 'OnlyFans / Fansly', aliases: ['OnlyFans / Fansly', 'Платформа'], editable: true, type: 'multiselect', options: ['OnlyFans', 'Fansly'] },
       { field: 'name', title: 'Имя', updateLabel: 'Имя', aliases: ['Имя', 'Имя / ник'], editable: true, type: 'text' },
@@ -2789,8 +3217,8 @@
       { field: 'workDays', title: 'Срок работы, дни', updateLabel: 'Срок работы, дни', aliases: ['Срок работы, дни'], editable: false, type: 'number' },
       { field: 'dismissDate', title: 'Дата увольнения', updateLabel: 'Дата увольнения', aliases: ['Дата увольнения'], editable: true, type: 'date' },
       { field: 'dismissReason', title: 'Причина увольнения', updateLabel: 'Причина увольнения', aliases: ['Причина увольнения'], editable: true, type: 'select', options: DISMISS_REASON_OPTIONS },
-      { field: 'teamLeadComment', title: 'Комментарий тимлиды', updateLabel: 'Комментарий тимлиды', aliases: ['Комментарий тимлиды', 'Комментарий тимлида'], editable: true, type: 'text' },
-      { field: 'hrComment', title: 'Комментарий HR', updateLabel: 'Комментарий HR', aliases: ['Комментарий HR'], editable: true, type: 'text' },
+      { field: 'teamLeadComment', title: 'Комментарий тимлиды', updateLabel: 'Комментарий тимлиды', aliases: ['Комментарий тимлиды', 'Комментарий тимлида'], editable: true, type: 'comment' },
+      { field: 'hrComment', title: 'Комментарий HR', updateLabel: 'Комментарий HR', aliases: ['Комментарий HR'], editable: true, type: 'comment' },
       { field: 'verificationHr', title: 'Верификация (HR)', updateLabel: 'Верификация (HR)', aliases: ['Верификация (HR)'], editable: true, type: 'select', options: VERIFICATION_OPTIONS },
       { field: 'ndaAgreement', title: 'Соглашение (NDA)', updateLabel: 'Соглашение (NDA)', aliases: ['Соглашение (NDA)'], editable: true, type: 'select', options: NDA_OPTIONS },
       { field: 'email', title: 'Почта', updateLabel: 'Почта', aliases: ['Почта', 'Email'], editable: true, type: 'text' },
@@ -2832,7 +3260,7 @@
     function getModelOptions() {
       const values = new Set();
       allItems.forEach(item => {
-        splitListValues(readColumnRawValue(item, ['Модели (основные)', 'Модели'])).forEach(x => values.add(x));
+        getItemModels(item).forEach(x => values.add(x));
       });
       
       // Если нет моделей найдено в данных, используем значения по умолчанию
@@ -2919,6 +3347,66 @@
       const date = new Date(raw);
       if (Number.isNaN(date.getTime())) return '';
       return date.toISOString().slice(0, 10);
+    }
+
+    function normalizeStatusValue(value) {
+      return String(value || '').trim().toLowerCase();
+    }
+
+    function isCommentField(fieldName) {
+      return COMMENT_FIELDS.has(String(fieldName || '').trim());
+    }
+
+    function getFirstContactDateValue(item) {
+      return item?.first_contact_date
+        || item?.created_at
+        || readColumnRawValue(item, ['Дата первого касания', 'Дата', 'Дата создания', 'created_at', 'crm_created_at'])
+        || '-';
+    }
+
+    function isArchivedTeamItem(item) {
+      const status = normalizeStatusValue(item?.status || readColumnRawValue(item, ['Актуальный статус кандидата (Hr)', 'Статус']));
+      const dismissDate = item?.dismiss_date || readColumnRawValue(item, ['Дата увольнения']);
+      return ARCHIVE_STATUSES.has(status) || Boolean(parseDateToInputValue(dismissDate));
+    }
+
+    function getTableRowTone(item) {
+      if (isArchivedTeamItem(item)) return 'red';
+      return getStatusTone(item?.status || '');
+    }
+
+    function getColumnClass(column) {
+      const classes = [];
+      if (column?.field === 'firstContactDate') classes.push('col-first-contact');
+      if (column?.field === 'status') classes.push('col-status');
+      if (isCommentField(column?.field)) classes.push('col-comment');
+      return classes.join(' ');
+    }
+
+    function sortFilteredItems() {
+      filteredItems.sort((a, b) => {
+        let aVal = getFieldValue(a, sortField);
+        let bVal = getFieldValue(b, sortField);
+
+        const aDate = parseDateToInputValue(aVal);
+        const bDate = parseDateToInputValue(bVal);
+        if (aDate && bDate) {
+          aVal = new Date(`${aDate}T00:00:00`).getTime();
+          bVal = new Date(`${bDate}T00:00:00`).getTime();
+        } else if (!isNaN(aVal) && !isNaN(bVal)) {
+          aVal = parseFloat(aVal) || 0;
+          bVal = parseFloat(bVal) || 0;
+        } else {
+          aVal = String(aVal || '').toLowerCase();
+          bVal = String(bVal || '').toLowerCase();
+        }
+
+        if (sortDirection === 'asc') {
+          return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+        }
+
+        return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+      });
     }
 
     function formatDateForDisplay(value) {
@@ -3065,7 +3553,12 @@
       if (column.field === 'status') item.status = value;
       if (column.field === 'platform') item.platform = value;
       if (column.field === 'experience') item.experience_months = value;
+      if (column.field === 'firstContactDate') {
+        item.first_contact_date = value;
+        item.created_at = value;
+      }
       if (column.field === 'startDate') item.start_date = value;
+      if (column.field === 'dismissDate') item.dismiss_date = value;
       if (column.field === 'workDays') item.work_days = value;
       if (column.field === 'transactionEnding') item.transactionEnding = value;
     }
@@ -3075,11 +3568,16 @@
       if (!column) return escapeHtml(text || '-');
 
       if (column.type === 'checkbox') {
-        return `<span class="cell-flag">${normalizeFlagValue(text) ? '✓' : '-'}</span>`;
+        return `<span class="cell-flag ${normalizeFlagValue(text) ? 'is-on' : 'is-off'}">${normalizeFlagValue(text) ? '✓' : '-'}</span>`;
       }
 
       if (column.type === 'date') {
         return escapeHtml(formatDateForDisplay(text) || '-');
+      }
+
+      if (column.field === 'status') {
+        const tone = getStatusTone(text);
+        return `<span class="status-badge badge-${tone}">${escapeHtml(text || '-')}</span>`;
       }
 
       if (column.field === 'experience') {
@@ -3088,6 +3586,16 @@
 
       if (column.field === 'platform') {
         return escapeHtml(normalizePlatformValue(text) || '-');
+      }
+
+      if (column.field === 'mainModels') {
+        const models = dedupeModels(splitListValues(text));
+        return escapeHtml(models.join(', ') || '-');
+      }
+
+      if (isCommentField(column.field)) {
+        const hasValue = Boolean(text && text !== '-');
+        return `<span class="comment-indicator ${hasValue ? 'has-value' : ''}">${hasValue ? 'есть' : '-'}</span>`;
       }
 
       return escapeHtml(text || '-');
@@ -3105,12 +3613,18 @@
       const column = findColumnConfig(field);
       if (!column) return '-';
 
+      if (field === 'firstContactDate') return getFirstContactDateValue(item);
       if (field === 'name') return item.name || readColumnRawValue(item, column.aliases) || '-';
       if (field === 'telegram') return item.telegram || readColumnRawValue(item, column.aliases) || '-';
       if (field === 'status') return item.status || readColumnRawValue(item, column.aliases) || '-';
       if (field === 'platform') return item.platform || readColumnRawValue(item, column.aliases) || '-';
       if (field === 'experience') return item.experience_months || readColumnRawValue(item, column.aliases) || '0';
+      if (field === 'mainModels') {
+        const models = getItemModels(item);
+        if (models.length) return models.join(', ');
+      }
       if (field === 'startDate') return item.start_date || readColumnRawValue(item, column.aliases) || '-';
+      if (field === 'dismissDate') return item.dismiss_date || readColumnRawValue(item, column.aliases) || '-';
       if (field === 'workDays') {
         if (String(item.status || '').trim() === 'Работает') {
           const calculated = calculateWorkDaysFromStart(item.start_date || readColumnRawValue(item, ['Дата старта']));
@@ -3142,6 +3656,20 @@
       const currentValue = String(getFieldValue(item, fieldName) || '').trim();
       const oldHTML = cell.innerHTML;
 
+      if (column.type === 'checkbox') {
+        saveInlineEdit({
+          cell,
+          fieldName,
+          rowNumber,
+          oldHTML,
+          currentValue,
+          column,
+          item,
+          getValue: () => (normalizeFlagValue(currentValue) ? 'Нет' : 'Да')
+        });
+        return;
+      }
+
       cell.style.position = 'relative';
       cell.style.padding = '0';
       cell.innerHTML = '';
@@ -3149,14 +3677,7 @@
       let input;
       let getValue;
 
-      if (column.type === 'checkbox') {
-        input = document.createElement('input');
-        input.type = 'checkbox';
-        input.className = 'inline-edit-flag';
-        input.checked = normalizeFlagValue(currentValue);
-        input.style.margin = '8px auto';
-        getValue = () => (input.checked ? 'Да' : 'Нет');
-      } else if (column.type === 'date') {
+      if (column.type === 'date') {
         input = document.createElement('input');
         input.type = 'date';
         input.className = 'inline-edit-input';
@@ -3365,8 +3886,17 @@
 
       const handleSave = () => saveInlineEdit(inlineEditingState);
 
-      if (column.type === 'checkbox') {
+      if (column.type === 'date') {
         input.addEventListener('change', handleSave, { once: true });
+        input.addEventListener('blur', handleSave, { once: true });
+        setTimeout(() => {
+          input.focus();
+          if (typeof input.showPicker === 'function') {
+            input.showPicker();
+          } else {
+            input.click();
+          }
+        }, 0);
       } else if (column.type === 'select') {
         input.addEventListener('change', handleSave, { once: true });
         input.addEventListener('blur', handleSave, { once: true });
@@ -3455,11 +3985,26 @@
 
         setItemFieldValue(item, column, newValue);
 
-        safeSetCellHtml(cell, formatCellValue(column, newValue));
-        cell.style.position = 'relative';
-        cell.style.padding = '';
-        cell.style.background = 'rgba(34,197,94,.1)';
-        setTimeout(() => { cell.style.background = ''; }, 280);
+        if (
+          sortField === fieldName
+          || fieldName === 'status'
+          || fieldName === 'dismissDate'
+          || fieldName === 'startDate'
+          || fieldName === 'firstContactDate'
+          || fieldName === 'name'
+          || fieldName === 'telegram'
+          || fieldName === 'platform'
+        ) {
+          updateStats();
+          applyFilters();
+        } else {
+          safeSetCellHtml(cell, formatCellValue(column, newValue));
+          cell.style.position = 'relative';
+          cell.style.padding = '';
+          cell.style.background = 'rgba(34,197,94,.1)';
+          setTimeout(() => { cell.style.background = ''; }, 280);
+          updateStats();
+        }
 
       } catch (err) {
         console.error('Inline edit error:', err);
@@ -3594,9 +4139,13 @@
     function getStatusTone(status) {
       const s = String(status || '').trim().toLowerCase();
       if (s.includes('работает') || s.includes('принятый')) return 'green';
+      if (s.includes('ожидание старта')) return 'cyan';
+      if (s.includes('верификац')) return 'blue';
       if (s.includes('изучает')) return 'blue';
       if (s.includes('ждет тест') || s.includes('тест')) return 'yellow';
+      if (s.includes('хочу взять')) return 'purple';
       if (s.includes('собесед') || s.includes('отписал')) return 'orange';
+      if (s.includes('лист ожидания')) return 'gray';
       if (s.includes('нет ответа')) return 'gray';
       if (s.includes('уволен') || s.includes('не рассчитан') || s.includes('убрать') || s.includes('отказ') || s.includes('не пришел')) return 'red';
       return 'gray';
@@ -5130,6 +5679,66 @@
       currentMemberEditorItem = null;
     }
 
+    async function updateSingleFieldValue(rowNumber, fieldName, value) {
+      const item = allCrmItems.find(x => Number(x.row_number) === Number(rowNumber));
+      const column = findColumnConfig(fieldName);
+      if (!item || !column) throw new Error('Field not found');
+
+      const response = await api(`/api/team-member/${rowNumber}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates: { [column.updateLabel || column.title]: String(value || '').trim() } })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'API error');
+      }
+
+      setItemFieldValue(item, column, String(value || '').trim());
+      updateStats();
+      applyFilters();
+    }
+
+    function openCommentEditorModal(rowNumber, fieldName) {
+      const item = allCrmItems.find(x => Number(x.row_number) === Number(rowNumber));
+      const column = findColumnConfig(fieldName);
+      const modal = document.getElementById('commentEditorModal');
+      const title = document.getElementById('commentEditorTitle');
+      const textarea = document.getElementById('commentEditorTextarea');
+      if (!item || !column || !modal || !title || !textarea) return;
+
+      currentCommentEditorState = { rowNumber: Number(rowNumber), fieldName };
+      title.textContent = `${column.title} · ${item.name || 'Сотрудник'}`;
+      textarea.value = String(getFieldValue(item, fieldName) || '').replace(/^-$/, '').trim();
+      modal.classList.add('show');
+      setTimeout(() => textarea.focus(), 0);
+    }
+
+    function closeCommentEditorModal(event) {
+      if (event?.target?.id === 'commentEditorModal') {
+        forceCloseCommentEditorModal();
+      }
+    }
+
+    function forceCloseCommentEditorModal() {
+      document.getElementById('commentEditorModal')?.classList.remove('show');
+      currentCommentEditorState = null;
+    }
+
+    async function saveCommentEditorModal() {
+      if (!currentCommentEditorState) return;
+      const textarea = document.getElementById('commentEditorTextarea');
+      const nextValue = String(textarea?.value || '').trim();
+
+      try {
+        await updateSingleFieldValue(currentCommentEditorState.rowNumber, currentCommentEditorState.fieldName, nextValue);
+        forceCloseCommentEditorModal();
+      } catch (err) {
+        alert(err.message || 'Не удалось сохранить комментарий');
+      }
+    }
+
     document.getElementById('addMemberBtn')?.addEventListener('click', openNewMemberEditor);
     document.getElementById('transactionEndingBtn')?.addEventListener('click', openTransactionEndingModal);
 
@@ -5148,6 +5757,10 @@
     window.clearTransactionEnding = clearTransactionEnding;
     window.closeTransactionEndingModal = closeTransactionEndingModal;
     window.forceCloseTransactionEndingModal = forceCloseTransactionEndingModal;
+    window.openCommentEditorModal = openCommentEditorModal;
+    window.closeCommentEditorModal = closeCommentEditorModal;
+    window.forceCloseCommentEditorModal = forceCloseCommentEditorModal;
+    window.saveCommentEditorModal = saveCommentEditorModal;
   </script>
   <script>
     (function () {
@@ -5166,9 +5779,35 @@
   </script>
     <script>
     let filteredItems = [];
-    let sortField = 'dateAdded';
+    let sortField = 'firstContactDate';
     let sortDirection = 'desc';
     let tableRealtimeBound = false;
+    const DENSE_TABLE_MODE_KEY = 'team_dashboard_dense_mode';
+
+    function setDenseTableMode(isDense) {
+      document.body.classList.toggle('dense-table-mode', Boolean(isDense));
+      const btn = document.getElementById('densityToggleBtn');
+      if (btn) {
+        btn.classList.toggle('is-active', Boolean(isDense));
+        btn.textContent = isDense ? 'Плотный режим: Вкл' : 'Плотный режим';
+      }
+    }
+
+    function loadDenseTableMode() {
+      try {
+        return localStorage.getItem(DENSE_TABLE_MODE_KEY) === '1';
+      } catch {
+        return false;
+      }
+    }
+
+    function toggleDenseTableMode() {
+      const nextValue = !document.body.classList.contains('dense-table-mode');
+      try {
+        localStorage.setItem(DENSE_TABLE_MODE_KEY, nextValue ? '1' : '0');
+      } catch {}
+      setDenseTableMode(nextValue);
+    }
 
     async function loadTeamData() {
       try {
@@ -5242,7 +5881,7 @@
       if (!row) return;
 
       row.innerHTML = TABLE_COLUMNS.map(column =>
-        `<th onclick="sortTable('${column.field}')">${escapeHtml(column.title)}</th>`
+        `<th class="${getColumnClass(column)}" onclick="sortTable('${column.field}')">${escapeHtml(column.title)}</th>`
       ).join('');
     }
 
@@ -5254,6 +5893,7 @@
       filteredItems = allItems.filter(item => {
         let matches = true;
         const itemStatus = String(item.status || '').trim();
+        const archived = isArchivedTeamItem(item);
 
         if (search) {
           const name = String(item.name || '').toLowerCase();
@@ -5262,11 +5902,12 @@
         }
 
         if (status && itemStatus !== status) matches = false;
-        if (!includeArchive && itemStatus === 'Архив') matches = false;
+        if (!includeArchive && archived) matches = false;
         return matches;
       });
 
-      sortTable(sortField);
+      sortFilteredItems();
+      renderTable();
     }
 
     function sortTable(field) {
@@ -5277,25 +5918,7 @@
         sortDirection = 'desc';
       }
 
-      filteredItems.sort((a, b) => {
-        let aVal = getFieldValue(a, field);
-        let bVal = getFieldValue(b, field);
-
-        if (!isNaN(aVal) && !isNaN(bVal)) {
-          aVal = parseFloat(aVal) || 0;
-          bVal = parseFloat(bVal) || 0;
-        } else {
-          aVal = String(aVal).toLowerCase();
-          bVal = String(bVal).toLowerCase();
-        }
-
-        if (sortDirection === 'asc') {
-          return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-        }
-
-        return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
-      });
-
+      sortFilteredItems();
       renderTable();
     }
 
@@ -5326,18 +5949,24 @@
 
       tbody.innerHTML = filteredItems.map(item => {
         const rowNumber = Number(item.row_number || item.rowNumber || 0);
-        const rowClass = Number(activeTableRowNumber) === rowNumber ? 'active-row' : '';
+        const rowIndex = Math.max(0, filteredItems.findIndex(x => Number(x.row_number || x.rowNumber || 0) === rowNumber));
+        const rowClass = [
+          Number(activeTableRowNumber) === rowNumber ? 'active-row' : '',
+          `row-tone-${getTableRowTone(item)}`
+        ].filter(Boolean).join(' ');
 
         return `
-          <tr data-row-number="${rowNumber}" class="${rowClass}" onclick="setActiveTableRow(${rowNumber}, this)" style="cursor:default;">
+          <tr data-row-number="${rowNumber}" class="${rowClass}" onclick="setActiveTableRow(${rowNumber}, this)" style="cursor:default;--row-index:${rowIndex};">
             ${TABLE_COLUMNS.map(column => {
               const value = getFieldValue(item, column.field);
               const editable = Boolean(column.editable && rowNumber);
               const clickHandler = editable
-                ? `onclick="setActiveTableRow(${rowNumber}, this.parentElement); makeTableCellEditable(this, '${column.field}', ${rowNumber}); event.stopPropagation();"`
+                ? (isCommentField(column.field)
+                  ? `onclick="setActiveTableRow(${rowNumber}, this.parentElement); openCommentEditorModal(${rowNumber}, '${column.field}'); event.stopPropagation();"`
+                  : `onclick="setActiveTableRow(${rowNumber}, this.parentElement); makeTableCellEditable(this, '${column.field}', ${rowNumber}); event.stopPropagation();"`)
                 : '';
               const style = editable ? 'cursor:pointer;user-select:none;' : '';
-              return `<td data-field="${column.field}" data-row-number="${rowNumber}" ${clickHandler} style="${style}">${formatCellValue(column, value)}</td>`;
+              return `<td class="${getColumnClass(column)}" data-field="${column.field}" data-row-number="${rowNumber}" ${clickHandler} style="${style}">${formatCellValue(column, value)}</td>`;
             }).join('')}
           </tr>
         `;
@@ -5362,12 +5991,14 @@
     }
 
     function updateStats() {
-      const total = allItems.length;
-      const work = allItems.filter(i => String(i.status || '').trim() !== 'Архив').length;
-      const of = allItems.filter(i => String(i.platform || '').toLowerCase().includes('onlyfans')).length;
-      const fansly = allItems.filter(i => String(i.platform || '').toLowerCase().includes('fansly')).length;
-      const test = allItems.filter(i => String(i.status || '').trim() === 'Ждет тест').length;
-      const archive = allItems.filter(i => String(i.status || '').trim() === 'Архив').length;
+      const activeItems = allItems.filter(item => !isArchivedTeamItem(item));
+      const archiveItems = allItems.filter(item => isArchivedTeamItem(item));
+      const total = activeItems.length;
+      const work = activeItems.filter(i => normalizeStatusValue(i.status) === 'работает').length;
+      const of = activeItems.filter(i => String(i.platform || '').toLowerCase().includes('onlyfans')).length;
+      const fansly = activeItems.filter(i => String(i.platform || '').toLowerCase().includes('fansly')).length;
+      const test = activeItems.filter(i => normalizeStatusValue(i.status) === 'ждет тест').length;
+      const archive = archiveItems.length;
 
       document.getElementById('statTotal').textContent = total;
       document.getElementById('statWork').textContent = work;
@@ -5384,6 +6015,7 @@
 
     async function initTeamTablePage() {
       if (authFailed) return;
+      setDenseTableMode(loadDenseTableMode());
       renderTableHeaders();
       await loadTeamData();
 
@@ -5409,6 +6041,7 @@
     document.getElementById('searchFilter')?.addEventListener('input', applyFilters);
     document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
     document.getElementById('archiveFilter')?.addEventListener('change', applyFilters);
+    document.getElementById('densityToggleBtn')?.addEventListener('click', toggleDenseTableMode);
     document.getElementById('refreshTableBtn')?.addEventListener('click', loadTeamData);
     document.getElementById('refreshBtn')?.addEventListener('click', loadTeamData);
     document.addEventListener('DOMContentLoaded', initTeamTablePage);
