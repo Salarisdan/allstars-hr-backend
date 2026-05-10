@@ -2483,6 +2483,12 @@
     const autosaveTimers = new Map();
     const autosaveStateTimers = new Map();
 
+    function setAutosaveStatus(el, text, className = '') {
+      if (!el) return;
+      el.textContent = text || '';
+      el.className = className ? `autosave-status ${className}` : 'autosave-status';
+    }
+
     /* ─── CRM JS (общий блок) ──────────────────────────────────── */
     let allCrmItems = [];
 
