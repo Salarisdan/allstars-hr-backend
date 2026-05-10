@@ -2642,17 +2642,20 @@
       gap:10px;
       min-height:42px;
       padding:10px 12px;
-      border:1px solid rgba(163,194,255,0.14);
+      border:1.5px solid rgba(102,217,255,0.28);
       border-radius:12px;
-      background:rgba(15,18,32,0.9);
+      background:linear-gradient(180deg, rgba(28, 48, 75, 0.88), rgba(17, 32, 58, 0.92));
       color:var(--text);
       cursor:pointer;
       text-align:left;
+      transition:all 0.24s ease;
+      box-shadow:0 4px 12px rgba(0,0,0,0.16), inset 0 1px 0 rgba(182,240,255,0.08);
     }
 
     .filter-multiselect-btn:hover{
-      border-color:rgba(102,217,255,0.28);
-      box-shadow:0 0 0 3px rgba(102,217,255,0.08);
+      border-color:rgba(102,217,255,0.48);
+      background:linear-gradient(180deg, rgba(38, 62, 98, 0.92), rgba(22, 42, 72, 0.96));
+      box-shadow:0 8px 20px rgba(102,217,255,0.12), inset 0 1px 0 rgba(182,240,255,0.12);
     }
 
     .filter-multiselect-label{
@@ -2664,9 +2667,10 @@
     }
 
     .filter-multiselect-placeholder{
-      color:var(--text3);
+      color:var(--text2);
       font-size:12px;
       font-weight:700;
+      opacity:0.9;
     }
 
     .filter-multiselect-count{
@@ -2676,10 +2680,11 @@
       text-transform:uppercase;
       letter-spacing:0.04em;
       color:var(--accent2);
-      background:rgba(102,217,255,0.1);
-      border:1px solid rgba(102,217,255,0.18);
+      background:rgba(102,217,255,0.18);
+      border:1px solid rgba(102,217,255,0.3);
       border-radius:999px;
       padding:4px 8px;
+      box-shadow:0 0 8px rgba(102,217,255,0.16);
     }
 
     .filter-multiselect-menu{
