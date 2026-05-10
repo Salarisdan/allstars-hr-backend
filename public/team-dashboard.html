@@ -285,6 +285,26 @@
       color:#9db2ff;
     }
 
+    .inline-edit-input,
+    .inline-edit-select {
+      font-family: inherit;
+      font-size: inherit;
+      line-height: inherit;
+      outline: none;
+      border: 2px solid var(--accent) !important;
+      box-shadow: 0 0 0 3px rgba(93, 155, 252, 0.1);
+    }
+
+    .inline-edit-input::placeholder {
+      color: var(--text2);
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+
     @media (max-width:1100px){
       .hero-stats,
       .summary-list{
@@ -2405,7 +2425,7 @@
         </div>
       </div>
 
-      <div class="modal-overlay" id="memberEditorOverlay" onclick="closeMemberEditor(event)">
+      <div class="modal-overlay" id="memberEditorOverlay" onclick="closeMemberEditor(event)" style="display:none !important;">
         <div class="modal-sheet" style="width:min(1100px,100%); max-height:90vh; overflow:visible;">
           <div class="modal-head">
             <div class="modal-title" id="memberEditorTitle">Карточка сотрудника</div>
@@ -2434,6 +2454,8 @@
     const tokenKey = 'allstars_token';
     let token = String(localStorage.getItem(tokenKey) || '').trim();
     let authFailed = false;
+    let allCrmItems = [];
+    let allItems = [];
 
     function showAuthErrorState(message) {
       const tbody = document.getElementById('tableBody');
@@ -2489,8 +2511,174 @@
       el.className = className ? `autosave-status ${className}` : 'autosave-status';
     }
 
-    /* ─── CRM JS (общий блок) ──────────────────────────────────── */
-    let allCrmItems = [];
+    /* ─── Inline Editing System ──────────────────────────────────── */
+    let inlineEditingState = null;
+
+    const EDITABLE_FIELDS = new Set([
+      'status', 'platform', 'name', 'telegram', 'experience', 'shifts', 
+      'model', 'workDays', 'startDate', 'endDate', 'teamLeadComment', 'notes', 'plan'
+    ]);
+
+    const UNIFIED_STATUS_OPTIONS = [
+      'Назначено собеседование', 'Ждет собеседования', 'Изучает гайд', 'Ждет тест',
+      'Тест смена', 'Хочу взять', 'Верификация', 'Ожидание старта', 'Принятый',
+      'Работает', 'Лист ожидания', 'Нет ответа', 'Отказ', 'Уволен', 'Не рассчитан', 'Убрать'
+    ];
+
+    const DROPDOWN_FIELDS = {
+      status: UNIFIED_STATUS_OPTIONS,
+      platform: ['OnlyFans', 'Fansly']
+    };
+
+    function makeTableCellEditable(cell, fieldName, rowNumber, currentValue) {
+      if (inlineEditingState) {
+        const prev = inlineEditingState.cell;
+        if (prev && prev !== cell) {
+          saveInlineEdit(inlineEditingState);
+        }
+      }
+
+      cell.style.position = 'relative';
+      cell.style.padding = '0';
+
+      const isDropdown = fieldName in DROPDOWN_FIELDS;
+      let input;
+
+      if (isDropdown) {
+        input = document.createElement('select');
+        input.className = 'inline-edit-select';
+        input.style.cssText = 'width:100%;height:100%;padding:8px;border:none;background:var(--surface);color:var(--text);font-size:inherit;border-radius:4px;';
+        
+        const options = DROPDOWN_FIELDS[fieldName];
+        options.forEach(opt => {
+          const option = document.createElement('option');
+          option.value = opt;
+          option.textContent = opt;
+          if (String(opt).trim() === String(currentValue).trim()) option.selected = true;
+          input.appendChild(option);
+        });
+      } else {
+        input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'inline-edit-input';
+        input.value = currentValue || '';
+        input.style.cssText = 'width:100%;height:100%;padding:8px;border:none;background:var(--surface);color:var(--text);font-size:inherit;border-radius:4px;';
+      }
+
+      const oldHTML = cell.innerHTML;
+      cell.innerHTML = '';
+      cell.appendChild(input);
+
+      inlineEditingState = { cell, fieldName, rowNumber, input, oldHTML, currentValue };
+      input.focus();
+      if (input.type === 'text') input.select();
+
+      const handleSave = () => saveInlineEdit(inlineEditingState);
+      input.addEventListener('blur', handleSave);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); handleSave(); }
+        if (e.key === 'Escape') { cancelInlineEdit(inlineEditingState); }
+      });
+    }
+
+    async function saveInlineEdit(state) {
+      if (!state) return;
+      const { cell, fieldName, rowNumber, input, oldHTML, currentValue } = state;
+
+      const newValue = input.value || '';
+      inlineEditingState = null;
+
+      if (newValue === currentValue) {
+        cell.innerHTML = oldHTML;
+        return;
+      }
+
+      // Show loading state
+      cell.innerHTML = '<span style="color:var(--text2);font-size:12px;">⏳</span>';
+
+      try {
+        const item = allCrmItems.find(x => Number(x.row_number) === Number(rowNumber));
+        if (!item) throw new Error('Item not found');
+
+        const fieldMap = {
+          'status': 'Актуальный статус кандидата (Hr)',
+          'platform': 'OnlyFans / Fansly',
+          'name': 'Имя',
+          'telegram': 'Telegram / username',
+          'experience': 'Опыт, мес.',
+          'shifts': 'Смены',
+          'model': 'Модели (основные)',
+          'workDays': 'Срок работы, дни',
+          'startDate': 'Дата старта',
+          'endDate': 'Дата окончания',
+          'teamLeadComment': 'Комментарий тимлида',
+          'notes': 'Пометки',
+          'plan': 'План'
+        };
+
+        const payload = {
+          updates: {
+            [fieldMap[fieldName] || fieldName]: newValue
+          }
+        };
+
+        // Use the correct endpoint for team-member
+        const response = await api(`/api/team-member/${rowNumber}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'API error');
+        }
+
+        // Update item in memory
+        const keyMap = {
+          'status': 'status',
+          'platform': 'platform',
+          'name': 'name',
+          'telegram': 'telegram',
+          'experience': 'experience_months',
+          'shifts': 'shifts',
+          'model': 'model',
+          'workDays': 'work_days',
+          'startDate': 'start_date',
+          'endDate': 'end_date',
+          'teamLeadComment': 'team_lead_comment',
+          'notes': 'notes',
+          'plan': 'plan'
+        };
+        item[keyMap[fieldName]] = newValue;
+
+        // Restore display with new value
+        cell.innerHTML = escapeHtml(newValue || '-');
+        cell.style.position = 'relative';
+        cell.style.padding = '';
+        cell.style.animation = 'pulse 0.3s ease';
+
+        // Show quick success indicator
+        cell.style.background = 'rgba(34,197,94,.1)';
+        setTimeout(() => { cell.style.background = ''; }, 300);
+
+      } catch (err) {
+        console.error('Inline edit error:', err);
+        cell.innerHTML = oldHTML;
+        cell.style.position = 'relative';
+        cell.style.padding = '';
+        cell.style.background = 'rgba(248,113,113,.1)';
+        setTimeout(() => { cell.style.background = ''; }, 300);
+      }
+    }
+
+    function cancelInlineEdit(state) {
+      if (!state) return;
+      inlineEditingState = null;
+      state.cell.innerHTML = state.oldHTML;
+      state.cell.style.position = 'relative';
+      state.cell.style.padding = '';
+    }
 
     function normalizePersonKey(value) {
       return String(value || '')
@@ -4175,7 +4363,6 @@
     })();
   </script>
     <script>
-    let allItems = [];
     let filteredItems = [];
     let sortField = 'dateAdded';
     let sortDirection = 'desc';
@@ -4348,24 +4535,33 @@
 
       tbody.innerHTML = filteredItems.map(item => {
         const rowNumber = Number(item.row_number || item.rowNumber || 0);
-        const rowClick = rowNumber ? `onclick="openMemberEditorByRow(${rowNumber})"` : '';
+        
+        const fields = [
+          { name: 'dateAdded', label: 'Дата', editable: false },
+          { name: 'status', label: 'Статус', editable: true },
+          { name: 'platform', label: 'Платформа', editable: true },
+          { name: 'name', label: 'Имя', editable: true },
+          { name: 'telegram', label: 'Telegram', editable: true },
+          { name: 'experience', label: 'Опыт', editable: true },
+          { name: 'shifts', label: 'Смены', editable: true },
+          { name: 'model', label: 'Модели', editable: true },
+          { name: 'workDays', label: 'Дни', editable: true },
+          { name: 'startDate', label: 'Старт', editable: true },
+          { name: 'endDate', label: 'Конец', editable: true },
+          { name: 'teamLeadComment', label: 'Тимлид', editable: true },
+          { name: 'notes', label: 'Пометки', editable: true },
+          { name: 'plan', label: 'План', editable: true }
+        ];
 
         return `
-          <tr ${rowClick} style="cursor:${rowNumber ? 'pointer' : 'default'};">
-            <td>${escapeHtml(getFieldValue(item, 'dateAdded'))}</td>
-            <td>${escapeHtml(getFieldValue(item, 'status'))}</td>
-            <td>${escapeHtml(getFieldValue(item, 'platform'))}</td>
-            <td>${escapeHtml(getFieldValue(item, 'name'))}</td>
-            <td>${escapeHtml(getFieldValue(item, 'telegram'))}</td>
-            <td>${escapeHtml(getFieldValue(item, 'experience'))}</td>
-            <td>${escapeHtml(getFieldValue(item, 'shifts'))}</td>
-            <td>${escapeHtml(getFieldValue(item, 'model'))}</td>
-            <td>${escapeHtml(getFieldValue(item, 'workDays'))}</td>
-            <td>${escapeHtml(getFieldValue(item, 'startDate'))}</td>
-            <td>${escapeHtml(getFieldValue(item, 'endDate'))}</td>
-            <td>${escapeHtml(getFieldValue(item, 'teamLeadComment'))}</td>
-            <td>${escapeHtml(getFieldValue(item, 'notes'))}</td>
-            <td>${escapeHtml(getFieldValue(item, 'plan'))}</td>
+          <tr data-row-number="${rowNumber}" style="cursor:default;">
+            ${fields.map(f => {
+              const value = escapeHtml(getFieldValue(item, f.name));
+              const editable = f.editable && rowNumber;
+              const clickHandler = editable ? `onclick="makeTableCellEditable(this, '${f.name}', ${rowNumber}, '${value.replace(/'/g, "\\'")}'); event.stopPropagation();"` : '';
+              const style = editable ? 'cursor:pointer;user-select:none;' : '';
+              return `<td data-field="${f.name}" data-row-number="${rowNumber}" ${clickHandler} style="${style}">${value || '-'}</td>`;
+            }).join('')}
           </tr>
         `;
       }).join('');
