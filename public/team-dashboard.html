@@ -299,6 +299,184 @@
       color: var(--text2);
     }
 
+    .inline-edit-multiselect {
+      width: 100%;
+      min-height: 96px;
+      border: 2px solid var(--accent);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 13px;
+    }
+
+    .inline-edit-flag {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .inline-password-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .inline-password-generate {
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      border-radius: 6px;
+      height: 32px;
+      padding: 0 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .cell-flag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      font-weight: 700;
+    }
+
+    .inline-picker-anchor {
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+      padding: 6px 9px;
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 13px;
+      box-shadow: 0 0 0 3px rgba(93, 155, 252, 0.1);
+    }
+
+    .inline-picker-anchor::after {
+      content: '▾';
+      color: var(--text2);
+      font-size: 12px;
+      flex: 0 0 auto;
+    }
+
+    .inline-chip-picker {
+      position: fixed;
+      z-index: 1002;
+      min-width: 240px;
+      max-width: 360px;
+      max-height: min(56vh, 420px);
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(72, 85, 111, 0.45);
+      border-radius: 10px;
+      background: #d7d8dc;
+      box-shadow: 0 16px 34px rgba(6, 10, 18, 0.28);
+      overflow: hidden;
+    }
+
+    .inline-chip-picker-search {
+      border: none;
+      border-bottom: 1px solid rgba(83, 97, 126, 0.35);
+      background: #ececf1;
+      color: #273246;
+      padding: 8px 10px;
+      outline: none;
+      font-size: 12px;
+    }
+
+    .inline-chip-picker-list {
+      overflow: auto;
+      padding: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-content: flex-start;
+    }
+
+    .inline-chip-option {
+      border: 1px solid transparent;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: .14s ease;
+      color: #253047;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      line-height: 1.1;
+    }
+
+    .inline-chip-option.selected {
+      box-shadow: inset 0 0 0 1px rgba(42, 52, 71, 0.66);
+      transform: translateY(-1px);
+    }
+
+    .inline-chip-tone-red { background: #f7c7c9; color: #a72b2b; }
+    .inline-chip-tone-yellow { background: #eddc9b; color: #7c5a14; }
+    .inline-chip-tone-green { background: #b9ddb8; color: #266f2f; }
+    .inline-chip-tone-orange { background: #f0c6a7; color: #8e4a1f; }
+    .inline-chip-tone-blue { background: #b8d2ea; color: #2b5c97; }
+    .inline-chip-tone-cyan { background: #b6dee0; color: #2d6873; }
+    .inline-chip-tone-purple { background: #d6bee6; color: #7342a0; }
+    .inline-chip-tone-gray { background: #d4d5d8; color: #4b5360; }
+
+    .inline-chip-label {
+      display: inline-block;
+      white-space: nowrap;
+    }
+
+    .inline-chip-check {
+      font-size: 12px;
+      color: #2a3447;
+      font-weight: 800;
+      opacity: 0;
+      width: 0;
+      overflow: hidden;
+      transition: .12s ease;
+    }
+
+    .inline-chip-option.selected .inline-chip-check {
+      opacity: 1;
+      width: 10px;
+    }
+
+    .inline-chip-picker-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      border-top: 1px solid rgba(83, 97, 126, 0.35);
+      padding: 8px;
+      background: #d1d4db;
+    }
+
+    .inline-chip-picker-btn {
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      border-radius: 8px;
+      height: 30px;
+      padding: 0 10px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .inline-chip-picker-btn.primary {
+      border-color: color-mix(in srgb, var(--accent) 70%, #ffffff 30%);
+      background: color-mix(in srgb, var(--accent) 24%, var(--surface2) 76%);
+    }
+
     @keyframes pulse {
       0% { opacity: 1; }
       50% { opacity: 0.7; }
@@ -2253,11 +2431,12 @@
     }
 
     .data-table{
-      width:100%;
+      width:max-content;
+      min-width:100%;
       border-collapse:collapse;
       background:var(--surface2);
       margin:0;
-      table-layout:fixed;
+      table-layout:auto;
     }
 
     .data-table thead{
@@ -2276,6 +2455,9 @@
       color:var(--text2);
       border-bottom:1px solid var(--border);
       white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      min-width:160px;
       user-select:none;
     }
 
@@ -2285,12 +2467,32 @@
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
+      min-width:160px;
       color:var(--text);
       border-bottom:1px solid var(--border);
     }
 
     .data-table tbody tr:hover{
       background:rgba(255,255,255,0.04);
+    }
+
+    .data-table tbody tr.active-row td{
+      background:
+        linear-gradient(112deg, rgba(102, 217, 255, 0.2), rgba(125, 149, 255, 0.22), rgba(102, 217, 255, 0.18));
+      background-size:200% 200%;
+      animation:activeRowGlow 3.2s ease-in-out infinite;
+      box-shadow:inset 0 1px 0 rgba(182,240,255,.22), inset 0 -1px 0 rgba(182,240,255,.18);
+    }
+
+    .data-table tbody tr.active-row td:first-child{
+      border-left:3px solid var(--accent);
+      padding-left:11px;
+    }
+
+    @keyframes activeRowGlow{
+      0%{background-position:0% 50%;}
+      50%{background-position:100% 50%;}
+      100%{background-position:0% 50%;}
     }
 
     @media (max-width:1100px){
@@ -2378,25 +2580,10 @@
       <div id="content" class="table-shell">
         <table class="data-table">
           <thead>
-            <tr>
-              <th onclick="sortTable('dateAdded')">Дата</th>
-              <th onclick="sortTable('status')">Статус</th>
-              <th onclick="sortTable('platform')">Платформа</th>
-              <th onclick="sortTable('name')">Имя</th>
-              <th onclick="sortTable('telegram')">Telegram</th>
-              <th onclick="sortTable('experience')">Опыт</th>
-              <th onclick="sortTable('shifts')">Смены</th>
-              <th onclick="sortTable('model')">Модели</th>
-              <th onclick="sortTable('workDays')">Дни</th>
-              <th onclick="sortTable('startDate')">Старт</th>
-              <th onclick="sortTable('endDate')">Конец</th>
-              <th onclick="sortTable('teamLeadComment')">Тимлид</th>
-              <th onclick="sortTable('notes')">Пометки</th>
-              <th onclick="sortTable('plan')">План</th>
-            </tr>
+            <tr id="teamTableHeadRow"></tr>
           </thead>
           <tbody id="tableBody">
-            <tr><td colspan="14" style="padding:20px;color:var(--text2)">Загружаем статистику...</td></tr>
+            <tr><td colspan="36" style="padding:20px;color:var(--text2)">Загружаем статистику...</td></tr>
           </tbody>
         </table>
       </div>
@@ -2462,7 +2649,7 @@
       if (tbody) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="14" style="padding:20px;">
+            <td colspan="${TABLE_COLUMNS.length}" style="padding:20px;">
               <div class="error-box" style="margin:0;">
                 ${escapeHtml(message || 'Сессия истекла. Выполняем переход на страницу входа...')}
               </div>
@@ -2513,24 +2700,375 @@
 
     /* ─── Inline Editing System ──────────────────────────────────── */
     let inlineEditingState = null;
+    let activeTableRowNumber = null;
 
-    const EDITABLE_FIELDS = new Set([
-      'status', 'platform', 'name', 'telegram', 'experience', 'shifts', 
-      'model', 'workDays', 'startDate', 'endDate', 'teamLeadComment', 'notes', 'plan'
-    ]);
-
-    const UNIFIED_STATUS_OPTIONS = [
-      'Назначено собеседование', 'Ждет собеседования', 'Изучает гайд', 'Ждет тест',
-      'Тест смена', 'Хочу взять', 'Верификация', 'Ожидание старта', 'Принятый',
-      'Работает', 'Лист ожидания', 'Нет ответа', 'Отказ', 'Уволен', 'Не рассчитан', 'Убрать'
+    const STATUS_EXCLUDED_FOR_TEAM = new Set(['Назначено собеседование', 'Ждет собеседования']);
+    const STATUS_FALLBACK_OPTIONS = [
+      'Изучает гайд', 'Ждет тест', 'Тест смена', 'Хочу взять', 'Верификация',
+      'Ожидание старта', 'Принятый', 'Работает', 'Лист ожидания', 'Нет ответа',
+      'Отказ', 'Уволен', 'Не рассчитан', 'Убрать'
     ];
 
-    const DROPDOWN_FIELDS = {
-      status: UNIFIED_STATUS_OPTIONS,
-      platform: ['OnlyFans', 'Fansly']
-    };
+    const DISMISS_REASON_OPTIONS = [
+      'Доход ниже ожиданий',
+      'Выгорание/график',
+      'Отказ от обучения',
+      'Конфликт с командой',
+      'Нагрузка/хаос',
+      'Штрафы',
+      'Нашел другую работу',
+      'Низкий результат',
+      'Нарушение правил',
+      'Пропуск смен/нет ответа',
+      'Другое'
+    ];
 
-    function makeTableCellEditable(cell, fieldName, rowNumber, currentValue) {
+    const VERIFICATION_OPTIONS = ['Требуется', 'Написал', 'Пройдена'];
+    const NDA_OPTIONS = ['Требуется', 'Ожидание', 'Подписано'];
+    const NOTION_ACCESS_OPTIONS = [
+      'Отсутствуют',
+      'Гайд OnlyFans',
+      'Гайд Fansly',
+      'Все доступы OnlyFans',
+      'Все доступы Fansly',
+      'Все доступы'
+    ];
+
+    const TABLE_COLUMNS = [
+      { field: 'firstContactDate', title: 'Дата первого касания', updateLabel: 'Дата первого касания', aliases: ['Дата первого касания', 'Дата'], editable: true, type: 'date' },
+      { field: 'status', title: 'Актуальный статус кандидата (Hr)', updateLabel: 'Актуальный статус кандидата (Hr)', aliases: ['Актуальный статус кандидата (Hr)', 'Статус'], editable: true, type: 'select', options: () => getStatusEditorOptions() },
+      { field: 'platform', title: 'OnlyFans / Fansly', updateLabel: 'OnlyFans / Fansly', aliases: ['OnlyFans / Fansly', 'Платформа'], editable: true, type: 'multiselect', options: ['OnlyFans', 'Fansly'] },
+      { field: 'name', title: 'Имя', updateLabel: 'Имя', aliases: ['Имя', 'Имя / ник'], editable: true, type: 'text' },
+      { field: 'telegram', title: 'Телеграм', updateLabel: 'Telegram / username', aliases: ['Телеграм', 'Telegram', 'Telegram / username'], editable: true, type: 'text' },
+      { field: 'experience', title: 'Опыт, мес.', updateLabel: 'Опыт, мес.', aliases: ['Опыт, мес.', 'Опыт'], editable: true, type: 'experience' },
+      { field: 'googleTestDate', title: 'Дата прохожд. гугл теста', updateLabel: 'Дата прохожд. гугл теста', aliases: ['Дата прохожд. гугл теста'], editable: false, type: 'formula' },
+      { field: 'testShiftDate', title: 'Дата тест смены', updateLabel: 'Дата тест смены', aliases: ['Дата тест смены'], editable: false, type: 'formula' },
+      { field: 'testShiftLead', title: 'Кто проводит тест смену', updateLabel: 'Кто проводит тест смену', aliases: ['Кто проводит тест смену'], editable: true, type: 'text' },
+      { field: 'startDate', title: 'Дата старта', updateLabel: 'Дата старта', aliases: ['Дата старта'], editable: true, type: 'date' },
+      { field: 'mainShifts', title: 'Смены (основные)', updateLabel: 'Смены (основные)', aliases: ['Смены (основные)', 'Смены'], editable: true, type: 'multiselect', options: () => getShiftOptions() },
+      { field: 'mainModels', title: 'Модели (основные)', updateLabel: 'Модели (основные)', aliases: ['Модели (основные)', 'Модели'], editable: true, type: 'multiselect', options: () => getModelOptions() },
+      { field: 'replacements', title: 'Замены (да/нет)', updateLabel: 'Замены (да/нет)', aliases: ['Замены (да/нет)'], editable: true, type: 'checkbox' },
+      { field: 'workDays', title: 'Срок работы, дни', updateLabel: 'Срок работы, дни', aliases: ['Срок работы, дни'], editable: false, type: 'number' },
+      { field: 'dismissDate', title: 'Дата увольнения', updateLabel: 'Дата увольнения', aliases: ['Дата увольнения'], editable: true, type: 'date' },
+      { field: 'dismissReason', title: 'Причина увольнения', updateLabel: 'Причина увольнения', aliases: ['Причина увольнения'], editable: true, type: 'select', options: DISMISS_REASON_OPTIONS },
+      { field: 'teamLeadComment', title: 'Комментарий тимлиды', updateLabel: 'Комментарий тимлиды', aliases: ['Комментарий тимлиды', 'Комментарий тимлида'], editable: true, type: 'text' },
+      { field: 'hrComment', title: 'Комментарий HR', updateLabel: 'Комментарий HR', aliases: ['Комментарий HR'], editable: true, type: 'text' },
+      { field: 'verificationHr', title: 'Верификация (HR)', updateLabel: 'Верификация (HR)', aliases: ['Верификация (HR)'], editable: true, type: 'select', options: VERIFICATION_OPTIONS },
+      { field: 'ndaAgreement', title: 'Соглашение (NDA)', updateLabel: 'Соглашение (NDA)', aliases: ['Соглашение (NDA)'], editable: true, type: 'select', options: NDA_OPTIONS },
+      { field: 'email', title: 'Почта', updateLabel: 'Почта', aliases: ['Почта', 'Email'], editable: true, type: 'text' },
+      { field: 'bybitUid', title: 'Криптокошелек / UID Bybit', updateLabel: 'Криптокошелек / UID Bybit', aliases: ['Криптокошелек / UID Bybit'], editable: true, type: 'text' },
+      { field: 'polygonAddress', title: 'Адрес кошелька Polygon PoS', updateLabel: 'Адрес кошелька Polygon PoS', aliases: ['Адрес кошелька Polygon PoS'], editable: true, type: 'text' },
+      { field: 'crmLogin', title: 'Логин CRM', updateLabel: 'Логин CRM', aliases: ['Логин CRM'], editable: true, type: 'text' },
+      { field: 'crmPassword', title: 'Пароль CRM', updateLabel: 'Пароль CRM', aliases: ['Пароль CRM'], editable: true, type: 'password' },
+      { field: 'transactionEnding', title: 'Transaction ending', updateLabel: 'Transaction ending', aliases: ['Transaction ending'], editable: false, type: 'number' },
+      { field: 'birthday', title: 'День рождения', updateLabel: 'День рождения', aliases: ['День рождения'], editable: true, type: 'date' },
+      { field: 'docsLink', title: 'Ссылка на документы', updateLabel: 'Ссылка на документы', aliases: ['Ссылка на документы'], editable: true, type: 'text' },
+      { field: 'notionAccess', title: 'Доступы Notion', updateLabel: 'Доступы Notion', aliases: ['Доступы Notion'], editable: true, type: 'select', options: NOTION_ACCESS_OPTIONS },
+      { field: 'txEndingInTable', title: 'Transaction ending (есть/нет в табл.)@dvedenis', updateLabel: 'Transaction ending (есть/нет в табл.)@dvedenis', aliases: ['Transaction ending (есть/нет в табл.)@dvedenis'], editable: true, type: 'checkbox' },
+      { field: 'crmAccess', title: 'Доступы CRM', updateLabel: 'Доступы CRM', aliases: ['Доступы CRM'], editable: true, type: 'checkbox' },
+      { field: 'ofScheduleAccess', title: 'Доступ к табличке с расписанием OF', updateLabel: 'Доступ к табличке с расписанием OF', aliases: ['Доступ к табличке с расписанием OF'], editable: true, type: 'checkbox' },
+      { field: 'ofChatsAccess', title: 'Доступ к Telegram чатам OF', updateLabel: 'Доступ к Telegram чатам OF', aliases: ['Доступ к Telegram чатам OF'], editable: true, type: 'checkbox' },
+      { field: 'fanslyScheduleAccess', title: 'Доступ к табличке с расписанием Fansly', updateLabel: 'Доступ к табличке с расписанием Fansly', aliases: ['Доступ к табличке с расписанием Fansly'], editable: true, type: 'checkbox' },
+      { field: 'fanslyChatsAccess', title: 'Доступ к Telegram чатам Fansly', updateLabel: 'Доступ к Telegram чатам Fansly', aliases: ['Доступ к Telegram чатам Fansly'], editable: true, type: 'checkbox' },
+      { field: 'fromWho', title: 'От кого', updateLabel: 'От кого', aliases: ['От кого'], editable: false, type: 'text' }
+    ];
+
+    function getStatusEditorOptions() {
+      const source = Array.isArray(STATUS_OPTIONS) && STATUS_OPTIONS.length ? STATUS_OPTIONS : STATUS_FALLBACK_OPTIONS;
+      return source.filter(status => !STATUS_EXCLUDED_FOR_TEAM.has(String(status || '').trim()));
+    }
+
+    function getShiftOptions() {
+      const values = new Set();
+      allItems.forEach(item => {
+        splitListValues(readColumnRawValue(item, ['Смены (основные)', 'Смены'])).forEach(x => values.add(x));
+      });
+      if (!values.size) {
+        ['Утро', 'День', 'Вечер', 'Ночь'].forEach(x => values.add(x));
+      }
+      return Array.from(values);
+    }
+
+    function getModelOptions() {
+      const values = new Set();
+      allItems.forEach(item => {
+        splitListValues(readColumnRawValue(item, ['Модели (основные)', 'Модели'])).forEach(x => values.add(x));
+      });
+      return Array.from(values);
+    }
+
+    function normalizeColumnKey(label) {
+      return String(label || '')
+        .trim()
+        .toLowerCase()
+        .replace(/ё/g, 'е')
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function splitListValues(value) {
+      return String(value || '')
+        .replace(/[\n\r]+/g, ',')
+        .replace(/[;|/]+/g, ',')
+        .split(',')
+        .map(x => x.trim())
+        .filter(Boolean);
+    }
+
+    function readColumnRawValue(item, aliases = []) {
+      const raw = item?.raw && typeof item.raw === 'object' ? item.raw : {};
+      for (const alias of aliases) {
+        if (Object.prototype.hasOwnProperty.call(raw, alias)) {
+          return raw[alias];
+        }
+      }
+
+      const normalizedAliases = aliases.map(normalizeColumnKey).filter(Boolean);
+      if (!normalizedAliases.length) return '';
+
+      for (const [key, val] of Object.entries(raw)) {
+        const normalizedKey = normalizeColumnKey(key);
+        if (normalizedAliases.includes(normalizedKey)) {
+          return val;
+        }
+      }
+
+      return '';
+    }
+
+    function parseDateToInputValue(value) {
+      const raw = String(value || '').trim();
+      if (!raw || raw === '-') return '';
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        return raw;
+      }
+
+      const ru = raw.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})$/);
+      if (ru) {
+        const dd = ru[1].padStart(2, '0');
+        const mm = ru[2].padStart(2, '0');
+        const yyyy = ru[3].length === 2 ? `20${ru[3]}` : ru[3];
+        return `${yyyy}-${mm}-${dd}`;
+      }
+
+      const date = new Date(raw);
+      if (Number.isNaN(date.getTime())) return '';
+      return date.toISOString().slice(0, 10);
+    }
+
+    function formatDateForDisplay(value) {
+      const inputValue = parseDateToInputValue(value);
+      if (!inputValue) return '';
+      const [yyyy, mm, dd] = inputValue.split('-');
+      return `${dd}.${mm}.${yyyy}`;
+    }
+
+    function normalizeExperienceToMonths(value) {
+      const raw = String(value || '').trim().toLowerCase();
+      if (!raw) return 0;
+      if (raw === 'месяц') return 1;
+      if (/нет|без опыта/.test(raw)) return 0;
+
+      const numeric = Number((raw.match(/\d+(?:[.,]\d+)?/) || ['0'])[0].replace(',', '.'));
+      if (!Number.isFinite(numeric) || numeric <= 0) return 0;
+
+      if (/год|года|лет|year/.test(raw)) return Math.round(numeric * 12);
+      return Math.round(numeric);
+    }
+
+    function normalizePlatformValue(value) {
+      const items = splitListValues(value)
+        .map(x => x.toLowerCase())
+        .filter(x => x.includes('onlyfans') || x.includes('fansly'));
+
+      const hasOF = items.some(x => x.includes('onlyfans'));
+      const hasFansly = items.some(x => x.includes('fansly'));
+
+      if (hasOF && hasFansly) return 'OnlyFans, Fansly';
+      if (hasOF) return 'OnlyFans';
+      if (hasFansly) return 'Fansly';
+      return '';
+    }
+
+    function normalizeFlagValue(value) {
+      const raw = String(value || '').trim().toLowerCase();
+      return raw === 'да' || raw === 'true' || raw === '1' || raw === 'yes' || raw === 'y';
+    }
+
+    function generateCrmPassword() {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+      let out = '';
+      for (let i = 0; i < 12; i++) {
+        out += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return out;
+    }
+
+    function findColumnConfig(fieldName) {
+      return TABLE_COLUMNS.find(col => col.field === fieldName) || null;
+    }
+
+    function resolveColumnOptions(column) {
+      if (!column) return [];
+      if (typeof column.options === 'function') return column.options();
+      return Array.isArray(column.options) ? column.options : [];
+    }
+
+    function getPickerTone(fieldName, value) {
+      const text = String(value || '').trim().toLowerCase();
+      if (!text) return 'gray';
+
+      if (fieldName === 'status') {
+        if (text.includes('работает') || text.includes('принятый')) return 'green';
+        if (text.includes('ожидание старта')) return 'cyan';
+        if (text.includes('ждет тест') || text.includes('тест')) return 'yellow';
+        if (text.includes('верификац')) return 'blue';
+        if (text.includes('изучает')) return 'purple';
+        if (text.includes('отказ') || text.includes('уволен') || text.includes('не рассчитан')) return 'red';
+        return 'gray';
+      }
+
+      if (fieldName === 'dismissReason') {
+        if (text.includes('доход') || text.includes('конфликт') || text.includes('наруш')) return 'red';
+        if (text.includes('выгорани') || text.includes('штраф') || text.includes('нагруз')) return 'yellow';
+        if (text.includes('нашел')) return 'blue';
+        if (text.includes('другое')) return 'cyan';
+        return 'gray';
+      }
+
+      if (fieldName === 'verificationHr') {
+        if (text.includes('треб')) return 'red';
+        if (text.includes('напис')) return 'yellow';
+        if (text.includes('пройд')) return 'green';
+      }
+
+      if (fieldName === 'ndaAgreement') {
+        if (text.includes('треб')) return 'red';
+        if (text.includes('ожид')) return 'yellow';
+        if (text.includes('подпис')) return 'green';
+      }
+
+      if (fieldName === 'notionAccess') {
+        if (text.includes('отсутств')) return 'red';
+        if (text.includes('гайд')) return 'yellow';
+        if (text.includes('все доступы')) return 'green';
+      }
+
+      if (fieldName === 'platform') {
+        if (text.includes('onlyfans') && text.includes('fansly')) return 'green';
+        if (text.includes('onlyfans')) return 'blue';
+        if (text.includes('fansly')) return 'purple';
+      }
+
+      return 'gray';
+    }
+
+    function closeInlinePicker(state) {
+      if (!state) return;
+      if (typeof state.detachOutsideClick === 'function') {
+        state.detachOutsideClick();
+      }
+      if (state.panel && state.panel.parentNode) {
+        state.panel.parentNode.removeChild(state.panel);
+      }
+    }
+
+    function safeSetCellHtml(cell, html) {
+      if (!cell) return;
+      try {
+        cell.innerHTML = html;
+      } catch (_) {
+        const fallback = String(html || '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        cell.textContent = fallback || '-';
+      }
+    }
+
+    function setItemFieldValue(item, column, value) {
+      if (!item || !column) return;
+
+      item.raw = item.raw && typeof item.raw === 'object' ? item.raw : {};
+      item.raw[column.updateLabel || column.title] = value;
+      (column.aliases || []).forEach(alias => {
+        item.raw[alias] = value;
+      });
+
+      if (column.field === 'name') item.name = value;
+      if (column.field === 'telegram') item.telegram = value;
+      if (column.field === 'status') item.status = value;
+      if (column.field === 'platform') item.platform = value;
+      if (column.field === 'experience') item.experience_months = value;
+      if (column.field === 'startDate') item.start_date = value;
+      if (column.field === 'workDays') item.work_days = value;
+      if (column.field === 'transactionEnding') item.transactionEnding = value;
+    }
+
+    function formatCellValue(column, value) {
+      const text = String(value ?? '').trim();
+      if (!column) return escapeHtml(text || '-');
+
+      if (column.type === 'checkbox') {
+        return `<span class="cell-flag">${normalizeFlagValue(text) ? '✓' : '-'}</span>`;
+      }
+
+      if (column.type === 'date') {
+        return escapeHtml(formatDateForDisplay(text) || '-');
+      }
+
+      if (column.field === 'experience') {
+        return escapeHtml(String(normalizeExperienceToMonths(text)));
+      }
+
+      if (column.field === 'platform') {
+        return escapeHtml(normalizePlatformValue(text) || '-');
+      }
+
+      return escapeHtml(text || '-');
+    }
+
+    function calculateWorkDaysFromStart(startDate) {
+      const parsed = parseDateToInputValue(startDate);
+      if (!parsed) return '';
+      const date = new Date(`${parsed}T00:00:00`);
+      if (Number.isNaN(date.getTime())) return '';
+      return String(Math.max(0, Math.floor((Date.now() - date.getTime()) / (24 * 60 * 60 * 1000))));
+    }
+
+    function getFieldValue(item, field) {
+      const column = findColumnConfig(field);
+      if (!column) return '-';
+
+      if (field === 'name') return item.name || readColumnRawValue(item, column.aliases) || '-';
+      if (field === 'telegram') return item.telegram || readColumnRawValue(item, column.aliases) || '-';
+      if (field === 'status') return item.status || readColumnRawValue(item, column.aliases) || '-';
+      if (field === 'platform') return item.platform || readColumnRawValue(item, column.aliases) || '-';
+      if (field === 'experience') return item.experience_months || readColumnRawValue(item, column.aliases) || '0';
+      if (field === 'startDate') return item.start_date || readColumnRawValue(item, column.aliases) || '-';
+      if (field === 'workDays') {
+        if (String(item.status || '').trim() === 'Работает') {
+          const calculated = calculateWorkDaysFromStart(item.start_date || readColumnRawValue(item, ['Дата старта']));
+          if (calculated) return calculated;
+        }
+        return item.work_days || readColumnRawValue(item, column.aliases) || '0';
+      }
+      if (field === 'transactionEnding') return item.transactionEnding || readColumnRawValue(item, column.aliases) || '-';
+      if (field === 'fromWho') return readColumnRawValue(item, ['От кого', 'main_activity', 'job']) || '-';
+
+      const raw = readColumnRawValue(item, column.aliases);
+      return String(raw || '').trim() || '-';
+    }
+
+    function makeTableCellEditable(cell, fieldName, rowNumber) {
+      const column = findColumnConfig(fieldName);
+      if (!column || !column.editable) return;
+
+      const item = allCrmItems.find(x => Number(x.row_number) === Number(rowNumber));
+      if (!item) return;
+
       if (inlineEditingState) {
         const prev = inlineEditingState.cell;
         if (prev && prev !== cell) {
@@ -2538,95 +3076,313 @@
         }
       }
 
+      const currentValue = String(getFieldValue(item, fieldName) || '').trim();
+      const oldHTML = cell.innerHTML;
+
       cell.style.position = 'relative';
       cell.style.padding = '0';
+      cell.innerHTML = '';
 
-      const isDropdown = fieldName in DROPDOWN_FIELDS;
       let input;
+      let getValue;
 
-      if (isDropdown) {
-        input = document.createElement('select');
-        input.className = 'inline-edit-select';
-        input.style.cssText = 'width:100%;height:100%;padding:8px;border:none;background:var(--surface);color:var(--text);font-size:inherit;border-radius:4px;';
-        
-        const options = DROPDOWN_FIELDS[fieldName];
-        options.forEach(opt => {
-          const option = document.createElement('option');
-          option.value = opt;
-          option.textContent = opt;
-          if (String(opt).trim() === String(currentValue).trim()) option.selected = true;
-          input.appendChild(option);
+      if (column.type === 'checkbox') {
+        input = document.createElement('input');
+        input.type = 'checkbox';
+        input.className = 'inline-edit-flag';
+        input.checked = normalizeFlagValue(currentValue);
+        input.style.margin = '8px auto';
+        getValue = () => (input.checked ? 'Да' : 'Нет');
+      } else if (column.type === 'date') {
+        input = document.createElement('input');
+        input.type = 'date';
+        input.className = 'inline-edit-input';
+        input.value = parseDateToInputValue(currentValue);
+        input.style.cssText = 'width:100%;height:36px;padding:6px 8px;border:none;background:var(--surface);color:var(--text);font-size:13px;border-radius:4px;';
+        getValue = () => (input.value ? formatDateForDisplay(input.value) : '');
+      } else if (column.type === 'select' || column.type === 'multiselect') {
+        const isMulti = column.type === 'multiselect';
+        const selectedValues = new Set(
+          (isMulti ? splitListValues(currentValue) : [currentValue])
+            .map(x => String(x || '').trim())
+            .filter(Boolean)
+        );
+        const allOptions = resolveColumnOptions(column).map(x => String(x || '').trim()).filter(Boolean);
+
+        const anchor = document.createElement('div');
+        anchor.className = 'inline-picker-anchor';
+        anchor.textContent = currentValue || 'Выбрать';
+        input = anchor;
+        getValue = () => Array.from(selectedValues).join(', ');
+
+        const panel = document.createElement('div');
+        panel.className = 'inline-chip-picker';
+
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.className = 'inline-chip-picker-search';
+        searchInput.placeholder = 'Поиск...';
+
+        const list = document.createElement('div');
+        list.className = 'inline-chip-picker-list';
+
+        const renderOptions = () => {
+          const filter = String(searchInput.value || '').toLowerCase().trim();
+          list.innerHTML = '';
+
+          const selectedText = Array.from(selectedValues).join(', ').trim();
+          anchor.textContent = selectedText || 'Выбрать';
+
+          allOptions
+            .filter(opt => !filter || opt.toLowerCase().includes(filter))
+            .forEach(opt => {
+              const chip = document.createElement('button');
+              chip.type = 'button';
+              chip.className = `inline-chip-option inline-chip-tone-${getPickerTone(fieldName, opt)}`;
+              if (selectedValues.has(opt)) chip.classList.add('selected');
+
+              const label = document.createElement('span');
+              label.className = 'inline-chip-label';
+              label.textContent = opt;
+
+              const check = document.createElement('span');
+              check.className = 'inline-chip-check';
+              check.textContent = '✓';
+
+              chip.appendChild(label);
+              chip.appendChild(check);
+
+              chip.addEventListener('click', () => {
+                if (isMulti) {
+                  if (selectedValues.has(opt)) {
+                    selectedValues.delete(opt);
+                  } else {
+                    selectedValues.add(opt);
+                  }
+                  renderOptions();
+                  return;
+                }
+
+                selectedValues.clear();
+                selectedValues.add(opt);
+                saveInlineEdit(inlineEditingState);
+              });
+              list.appendChild(chip);
+            });
+        };
+
+        panel.appendChild(searchInput);
+        panel.appendChild(list);
+
+        if (isMulti) {
+          const actions = document.createElement('div');
+          actions.className = 'inline-chip-picker-actions';
+
+          const cancelBtn = document.createElement('button');
+          cancelBtn.type = 'button';
+          cancelBtn.className = 'inline-chip-picker-btn';
+          cancelBtn.textContent = 'Отмена';
+          cancelBtn.addEventListener('click', () => cancelInlineEdit(inlineEditingState));
+
+          const applyBtn = document.createElement('button');
+          applyBtn.type = 'button';
+          applyBtn.className = 'inline-chip-picker-btn primary';
+          applyBtn.textContent = 'Применить';
+          applyBtn.addEventListener('click', () => saveInlineEdit(inlineEditingState));
+
+          actions.appendChild(cancelBtn);
+          actions.appendChild(applyBtn);
+          panel.appendChild(actions);
+        }
+
+        const placePanel = () => {
+          const rect = cell.getBoundingClientRect();
+          const top = Math.min(window.innerHeight - 20, rect.bottom + 6);
+          const left = Math.max(8, Math.min(rect.left, window.innerWidth - 370));
+          panel.style.top = `${top}px`;
+          panel.style.left = `${left}px`;
+        };
+
+        renderOptions();
+        document.body.appendChild(panel);
+        placePanel();
+
+        const onResize = () => placePanel();
+        window.addEventListener('resize', onResize);
+        window.addEventListener('scroll', onResize, true);
+
+        const onOutsideClick = (event) => {
+          if (!inlineEditingState) return;
+          if (cell.contains(event.target) || panel.contains(event.target)) return;
+          if (isMulti) {
+            cancelInlineEdit(inlineEditingState);
+          } else {
+            saveInlineEdit(inlineEditingState);
+          }
+        };
+
+        const detachOutsideClick = () => {
+          document.removeEventListener('mousedown', onOutsideClick, true);
+          window.removeEventListener('resize', onResize);
+          window.removeEventListener('scroll', onResize, true);
+        };
+
+        setTimeout(() => {
+          document.addEventListener('mousedown', onOutsideClick, true);
+        }, 0);
+
+        cell.appendChild(anchor);
+        inlineEditingState = {
+          cell,
+          fieldName,
+          rowNumber,
+          input,
+          oldHTML,
+          currentValue,
+          column,
+          item,
+          getValue,
+          panel,
+          detachOutsideClick
+        };
+
+        searchInput.focus();
+        searchInput.addEventListener('input', renderOptions);
+        searchInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelInlineEdit(inlineEditingState);
+          }
+          if (e.key === 'Enter' && isMulti) {
+            e.preventDefault();
+            saveInlineEdit(inlineEditingState);
+          }
         });
+        return;
+      } else if (column.type === 'password') {
+        const wrap = document.createElement('div');
+        wrap.className = 'inline-password-wrap';
+        wrap.style.padding = '4px';
+
+        input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'inline-edit-input';
+        input.value = currentValue === '-' ? '' : currentValue;
+        input.style.cssText = 'width:100%;height:32px;padding:6px 8px;border:none;background:var(--surface);color:var(--text);font-size:13px;border-radius:4px;';
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'inline-password-generate';
+        button.textContent = 'Ген';
+        button.addEventListener('click', () => {
+          input.value = generateCrmPassword();
+          input.focus();
+        });
+
+        wrap.appendChild(input);
+        wrap.appendChild(button);
+        cell.appendChild(wrap);
+        getValue = () => String(input.value || '').trim();
       } else {
         input = document.createElement('input');
         input.type = 'text';
         input.className = 'inline-edit-input';
-        input.value = currentValue || '';
-        input.style.cssText = 'width:100%;height:100%;padding:8px;border:none;background:var(--surface);color:var(--text);font-size:inherit;border-radius:4px;';
+        input.value = currentValue === '-' ? '' : currentValue;
+        input.style.cssText = 'width:100%;height:36px;padding:6px 8px;border:none;background:var(--surface);color:var(--text);font-size:13px;border-radius:4px;';
+        getValue = () => String(input.value || '').trim();
       }
 
-      const oldHTML = cell.innerHTML;
-      cell.innerHTML = '';
-      cell.appendChild(input);
+      if (!cell.contains(input)) {
+        cell.appendChild(input);
+      }
 
-      inlineEditingState = { cell, fieldName, rowNumber, input, oldHTML, currentValue };
+      inlineEditingState = { cell, fieldName, rowNumber, input, oldHTML, currentValue, column, item, getValue };
       input.focus();
       if (input.type === 'text') input.select();
 
       const handleSave = () => saveInlineEdit(inlineEditingState);
-      input.addEventListener('blur', handleSave);
+
+      if (column.type === 'checkbox') {
+        input.addEventListener('change', handleSave, { once: true });
+      } else if (column.type === 'select') {
+        input.addEventListener('change', handleSave, { once: true });
+        input.addEventListener('blur', handleSave, { once: true });
+      } else {
+        input.addEventListener('blur', handleSave, { once: true });
+      }
+
       input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); handleSave(); }
-        if (e.key === 'Escape') { cancelInlineEdit(inlineEditingState); }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleSave();
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          cancelInlineEdit(inlineEditingState);
+        }
       });
     }
 
     async function saveInlineEdit(state) {
       if (!state) return;
-      const { cell, fieldName, rowNumber, input, oldHTML, currentValue } = state;
+      if (state.__processed) return;
+      state.__processed = true;
+      const { cell, fieldName, rowNumber, oldHTML, currentValue, column, item, getValue } = state;
 
-      const newValue = input.value || '';
+      closeInlinePicker(state);
+
       inlineEditingState = null;
+      let newValue = String(getValue ? getValue() : '').trim();
 
-      if (newValue === currentValue) {
-        cell.innerHTML = oldHTML;
+      if (fieldName === 'experience') {
+        newValue = String(normalizeExperienceToMonths(newValue));
+      }
+      if (fieldName === 'platform') {
+        newValue = normalizePlatformValue(newValue);
+      }
+      if (column.type === 'checkbox') {
+        newValue = normalizeFlagValue(newValue) ? 'Да' : 'Нет';
+      }
+      if (fieldName === 'telegram' && newValue && !newValue.startsWith('@')) {
+        newValue = `@${newValue}`;
+      }
+
+      const oldComparable = String(currentValue || '').trim();
+      if (newValue === oldComparable) {
+        safeSetCellHtml(cell, oldHTML);
+        cell.style.position = 'relative';
+        cell.style.padding = '';
         return;
       }
 
-      // Show loading state
-      cell.innerHTML = '<span style="color:var(--text2);font-size:12px;">⏳</span>';
+      const patchLabel = column.updateLabel || column.title;
+      const updates = {
+        [patchLabel]: newValue
+      };
+
+      if (fieldName === 'telegram') {
+        const login = newValue.replace(/^@/, '').trim();
+        if (login) {
+          updates['Логин CRM'] = login;
+          setItemFieldValue(item, findColumnConfig('crmLogin'), login);
+        }
+      }
+
+      if (fieldName === 'status' && newValue === 'Работает') {
+        const workDays = calculateWorkDaysFromStart(getFieldValue(item, 'startDate'));
+        if (workDays) {
+          updates['Срок работы, дни'] = workDays;
+          setItemFieldValue(item, findColumnConfig('workDays'), workDays);
+        }
+      }
+
+      safeSetCellHtml(cell, '<span style="color:var(--text2);font-size:12px;">⏳</span>');
 
       try {
-        const item = allCrmItems.find(x => Number(x.row_number) === Number(rowNumber));
-        if (!item) throw new Error('Item not found');
-
-        const fieldMap = {
-          'status': 'Актуальный статус кандидата (Hr)',
-          'platform': 'OnlyFans / Fansly',
-          'name': 'Имя',
-          'telegram': 'Telegram / username',
-          'experience': 'Опыт, мес.',
-          'shifts': 'Смены',
-          'model': 'Модели (основные)',
-          'workDays': 'Срок работы, дни',
-          'startDate': 'Дата старта',
-          'endDate': 'Дата окончания',
-          'teamLeadComment': 'Комментарий тимлида',
-          'notes': 'Пометки',
-          'plan': 'План'
-        };
-
-        const payload = {
-          updates: {
-            [fieldMap[fieldName] || fieldName]: newValue
-          }
-        };
-
-        // Use the correct endpoint for team-member
         const response = await api(`/api/team-member/${rowNumber}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ updates })
         });
 
         if (!response.ok) {
@@ -2634,48 +3390,31 @@
           throw new Error(errorData.error || 'API error');
         }
 
-        // Update item in memory
-        const keyMap = {
-          'status': 'status',
-          'platform': 'platform',
-          'name': 'name',
-          'telegram': 'telegram',
-          'experience': 'experience_months',
-          'shifts': 'shifts',
-          'model': 'model',
-          'workDays': 'work_days',
-          'startDate': 'start_date',
-          'endDate': 'end_date',
-          'teamLeadComment': 'team_lead_comment',
-          'notes': 'notes',
-          'plan': 'plan'
-        };
-        item[keyMap[fieldName]] = newValue;
+        setItemFieldValue(item, column, newValue);
 
-        // Restore display with new value
-        cell.innerHTML = escapeHtml(newValue || '-');
+        safeSetCellHtml(cell, formatCellValue(column, newValue));
         cell.style.position = 'relative';
         cell.style.padding = '';
-        cell.style.animation = 'pulse 0.3s ease';
-
-        // Show quick success indicator
         cell.style.background = 'rgba(34,197,94,.1)';
-        setTimeout(() => { cell.style.background = ''; }, 300);
+        setTimeout(() => { cell.style.background = ''; }, 280);
 
       } catch (err) {
         console.error('Inline edit error:', err);
-        cell.innerHTML = oldHTML;
+        safeSetCellHtml(cell, oldHTML);
         cell.style.position = 'relative';
         cell.style.padding = '';
-        cell.style.background = 'rgba(248,113,113,.1)';
-        setTimeout(() => { cell.style.background = ''; }, 300);
+        cell.style.background = 'rgba(248,113,113,.14)';
+        setTimeout(() => { cell.style.background = ''; }, 280);
       }
     }
 
     function cancelInlineEdit(state) {
       if (!state) return;
+      if (state.__processed) return;
+      state.__processed = true;
+      closeInlinePicker(state);
       inlineEditingState = null;
-      state.cell.innerHTML = state.oldHTML;
+      safeSetCellHtml(state.cell, state.oldHTML);
       state.cell.style.position = 'relative';
       state.cell.style.padding = '';
     }
@@ -4401,7 +5140,7 @@
         console.error('Error:', err);
         const tbody = document.getElementById('tableBody');
         if (tbody) {
-          tbody.innerHTML = '<tr><td colspan="14" style="padding:20px;color:#f87171;">Ошибка загрузки данных</td></tr>';
+          tbody.innerHTML = `<tr><td colspan="${TABLE_COLUMNS.length}" style="padding:20px;color:#f87171;">Ошибка загрузки данных</td></tr>`;
         }
       }
     }
@@ -4436,23 +5175,36 @@
     }
 
     function getFieldValue(item, field) {
-      const map = {
-        dateAdded: () => item.raw?.[0] || '-',
-        status: () => item.status || '-',
-        platform: () => item.platform || item.raw?.[1] || '-',
-        name: () => item.name || item.raw?.[3] || '-',
-        telegram: () => item.telegram || item.raw?.[4] || '-',
-        experience: () => item.experience_months || item.raw?.[5] || '-',
-        shifts: () => item.raw?.[10] || '-',
-        model: () => item.raw?.[11] || '-',
-        workDays: () => item.work_days || '-',
-        startDate: () => item.startDate || item.start_date || item.raw?.[9] || '-',
-        endDate: () => item.endDate || item.end_date || item.raw?.[14] || '-',
-        teamLeadComment: () => item.raw?.[16] || '-',
-        notes: () => item.raw?.[36] || '-',
-        plan: () => item.raw?.[37] || '-'
-      };
-      return map[field] ? map[field]() : '-';
+      const column = findColumnConfig(field);
+      if (!column) return '-';
+
+      if (field === 'name') return item.name || readColumnRawValue(item, column.aliases) || '-';
+      if (field === 'telegram') return item.telegram || readColumnRawValue(item, column.aliases) || '-';
+      if (field === 'status') return item.status || readColumnRawValue(item, column.aliases) || '-';
+      if (field === 'platform') return item.platform || readColumnRawValue(item, column.aliases) || '-';
+      if (field === 'experience') return item.experience_months || readColumnRawValue(item, column.aliases) || '0';
+      if (field === 'startDate') return item.start_date || readColumnRawValue(item, column.aliases) || '-';
+      if (field === 'workDays') {
+        if (String(item.status || '').trim() === 'Работает') {
+          const calculated = calculateWorkDaysFromStart(item.start_date || readColumnRawValue(item, ['Дата старта']));
+          if (calculated) return calculated;
+        }
+        return item.work_days || readColumnRawValue(item, column.aliases) || '0';
+      }
+      if (field === 'transactionEnding') return item.transactionEnding || readColumnRawValue(item, column.aliases) || '-';
+      if (field === 'fromWho') return readColumnRawValue(item, ['От кого', 'main_activity', 'job']) || '-';
+
+      const raw = readColumnRawValue(item, column.aliases);
+      return String(raw || '').trim() || '-';
+    }
+
+    function renderTableHeaders() {
+      const row = document.getElementById('teamTableHeadRow');
+      if (!row) return;
+
+      row.innerHTML = TABLE_COLUMNS.map(column =>
+        `<th onclick="sortTable('${column.field}')">${escapeHtml(column.title)}</th>`
+      ).join('');
     }
 
     function applyFilters() {
@@ -4529,38 +5281,24 @@
             </div>
           `;
 
-        tbody.innerHTML = `<tr><td colspan="14" style="padding:12px;">${emptyMarkup}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${TABLE_COLUMNS.length}" style="padding:12px;">${emptyMarkup}</td></tr>`;
         return;
       }
 
       tbody.innerHTML = filteredItems.map(item => {
         const rowNumber = Number(item.row_number || item.rowNumber || 0);
-        
-        const fields = [
-          { name: 'dateAdded', label: 'Дата', editable: false },
-          { name: 'status', label: 'Статус', editable: true },
-          { name: 'platform', label: 'Платформа', editable: true },
-          { name: 'name', label: 'Имя', editable: true },
-          { name: 'telegram', label: 'Telegram', editable: true },
-          { name: 'experience', label: 'Опыт', editable: true },
-          { name: 'shifts', label: 'Смены', editable: true },
-          { name: 'model', label: 'Модели', editable: true },
-          { name: 'workDays', label: 'Дни', editable: true },
-          { name: 'startDate', label: 'Старт', editable: true },
-          { name: 'endDate', label: 'Конец', editable: true },
-          { name: 'teamLeadComment', label: 'Тимлид', editable: true },
-          { name: 'notes', label: 'Пометки', editable: true },
-          { name: 'plan', label: 'План', editable: true }
-        ];
+        const rowClass = Number(activeTableRowNumber) === rowNumber ? 'active-row' : '';
 
         return `
-          <tr data-row-number="${rowNumber}" style="cursor:default;">
-            ${fields.map(f => {
-              const value = escapeHtml(getFieldValue(item, f.name));
-              const editable = f.editable && rowNumber;
-              const clickHandler = editable ? `onclick="makeTableCellEditable(this, '${f.name}', ${rowNumber}, '${value.replace(/'/g, "\\'")}'); event.stopPropagation();"` : '';
+          <tr data-row-number="${rowNumber}" class="${rowClass}" onclick="setActiveTableRow(${rowNumber}, this)" style="cursor:default;">
+            ${TABLE_COLUMNS.map(column => {
+              const value = getFieldValue(item, column.field);
+              const editable = Boolean(column.editable && rowNumber);
+              const clickHandler = editable
+                ? `onclick="setActiveTableRow(${rowNumber}, this.parentElement); makeTableCellEditable(this, '${column.field}', ${rowNumber}); event.stopPropagation();"`
+                : '';
               const style = editable ? 'cursor:pointer;user-select:none;' : '';
-              return `<td data-field="${f.name}" data-row-number="${rowNumber}" ${clickHandler} style="${style}">${value || '-'}</td>`;
+              return `<td data-field="${column.field}" data-row-number="${rowNumber}" ${clickHandler} style="${style}">${formatCellValue(column, value)}</td>`;
             }).join('')}
           </tr>
         `;
@@ -4569,11 +5307,26 @@
       document.getElementById('lastUpdate').textContent = new Date().toLocaleString('ru-RU');
     }
 
+    function setActiveTableRow(rowNumber, rowEl) {
+      const normalizedRow = Number(rowNumber || 0);
+      if (!normalizedRow) return;
+
+      activeTableRowNumber = normalizedRow;
+
+      document.querySelectorAll('#tableBody tr.active-row').forEach(row => row.classList.remove('active-row'));
+      const targetRow = rowEl && rowEl.tagName === 'TR'
+        ? rowEl
+        : document.querySelector(`#tableBody tr[data-row-number="${normalizedRow}"]`);
+      if (targetRow) {
+        targetRow.classList.add('active-row');
+      }
+    }
+
     function updateStats() {
       const total = allItems.length;
       const work = allItems.filter(i => String(i.status || '').trim() !== 'Архив').length;
-      const of = allItems.filter(i => String(i.platform || '').trim() === 'OnlyFans').length;
-      const fansly = allItems.filter(i => String(i.platform || '').trim() === 'Fansly').length;
+      const of = allItems.filter(i => String(i.platform || '').toLowerCase().includes('onlyfans')).length;
+      const fansly = allItems.filter(i => String(i.platform || '').toLowerCase().includes('fansly')).length;
       const test = allItems.filter(i => String(i.status || '').trim() === 'Ждет тест').length;
       const archive = allItems.filter(i => String(i.status || '').trim() === 'Архив').length;
 
@@ -4592,6 +5345,7 @@
 
     async function initTeamTablePage() {
       if (authFailed) return;
+      renderTableHeaders();
       await loadTeamData();
 
       if (!authFailed && !tableRealtimeBound && window.AllStarsRealtime?.subscribe) {

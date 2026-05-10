@@ -5054,6 +5054,9 @@ function buildTeamItemFromCandidate(candidate) {
   const status = normalizeStatusAlias(candidate.status || '') || String(candidate.status || '').trim();
   const startedAtRaw = candidate.started_at || candidate.hired_at || null;
   const model = String(candidate.top_profile || candidate.top_pages || candidate.main_activity || '').trim();
+  const meta = candidate.team_card_meta && typeof candidate.team_card_meta === 'object' && !Array.isArray(candidate.team_card_meta)
+    ? candidate.team_card_meta
+    : {};
 
   let workDays = '';
   if (startedAtRaw) {
@@ -5067,6 +5070,7 @@ function buildTeamItemFromCandidate(candidate) {
   return {
     row_number: Number(candidate.id),
     raw: {
+      ...meta,
       'Имя': candidate.name || '',
       'Telegram': candidate.telegram || candidate.tg || '',
       'Telegram / username': candidate.telegram || candidate.tg || '',
@@ -5075,7 +5079,9 @@ function buildTeamItemFromCandidate(candidate) {
       'Модели (основные)': model,
       'Опыт, мес.': candidate.exp || candidate.experience || '',
       'Срок работы, дни': workDays,
-      'Дата старта': startedAtRaw ? String(startedAtRaw) : ''
+      'Дата старта': startedAtRaw ? String(startedAtRaw) : '',
+      'От кого': candidate.main_activity || candidate.job || String(meta['От кого'] || '').trim(),
+      'Transaction ending': String(meta['Transaction ending'] || '').trim()
     },
     name: candidate.name || '',
     telegram: candidate.telegram || candidate.tg || '',
@@ -5094,18 +5100,29 @@ async function loadTeamItemsFromCandidatesDb(agencyId) {
   // Sheet data supplements with extra fields (model, experience, work_days, etc.).
   // This guarantees any candidate with a visible status in CRM always appears here.
 
-  const [teamRows, candidateResult] = await Promise.all([
+  const [teamRows, candidateResult, transactionEndingResult] = await Promise.all([
     loadAllTeamMembersForBackfill(),
     query(
-      `SELECT id, name, tg, telegram, status, platform, platforms, top_pages, top_profile, main_activity, exp, experience, started_at, hired_at, updated_at
+      `SELECT id, name, tg, telegram, status, platform, platforms, top_pages, top_profile, main_activity, exp, experience, started_at, hired_at, updated_at, team_card_meta
        FROM candidates
        WHERE agency_id = $1
        ORDER BY updated_at DESC NULLS LAST, created_at DESC NULLS LAST, id DESC`,
       [agencyId]
-    )
+    ),
+    pool.query(
+      `SELECT assigned_row_number, ending
+       FROM transaction_endings
+       WHERE assigned_row_number IS NOT NULL`
+    ).catch(() => ({ rows: [] }))
   ]);
 
   const crmCandidates = candidateResult.rows || [];
+  const transactionEndingByRow = new Map(
+    (transactionEndingResult.rows || []).map(row => [
+      Number(row.assigned_row_number),
+      String(row.ending || '').trim()
+    ])
+  );
 
   // Build sheet lookup by identity for fast supplemental data access
   const sheetItemsRaw = (teamRows || []).map((row) => {
@@ -5123,7 +5140,7 @@ async function loadTeamItemsFromCandidatesDb(agencyId) {
       experience_months: String(row?.raw?.['Опыт, мес.'] || row?.raw?.['Опыт'] || '').trim(),
       work_days: String(row?.raw?.['Срок работы, дни'] || '').trim(),
       start_date: row.date_start || '',
-      transactionEnding: String(row?.raw?.['Transaction ending'] || '').trim()
+      transactionEnding: String(row?.raw?.['Transaction ending'] || transactionEndingByRow.get(Number(row.row_number)) || '').trim()
     };
   });
 
@@ -5209,7 +5226,7 @@ async function loadTeamItemsFromCandidatesDb(agencyId) {
       experience_months: base.experience_months || sheetRow?.experience_months || '',
       work_days: base.work_days || sheetRow?.work_days || '',
       start_date: base.start_date || sheetRow?.start_date || '',
-      transactionEnding: base.transactionEnding || sheetRow?.transactionEnding || '',
+      transactionEnding: base.transactionEnding || sheetRow?.transactionEnding || transactionEndingByRow.get(sheetRow ? Number(sheetRow.row_number) : -Number(candidate.id)) || '',
       raw: sheetRow ? { ...sheetRow.raw, ...base.raw } : base.raw
     });
   }
