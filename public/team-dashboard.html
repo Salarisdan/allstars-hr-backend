@@ -2834,13 +2834,13 @@
 
     .data-table th{
       padding: 12px 10px;
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 800;
       cursor: pointer;
       text-align: left;
-      color: #c8d7f2;
+      color: #d8e5fb;
       border-bottom: 1px solid var(--border);
-      border-right: 1px solid rgba(102, 217, 255, 0.08);
+      border-right: 1px solid rgba(102, 217, 255, 0.12);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -2857,17 +2857,40 @@
     .data-table td {
       padding: 8px 10px;
       font-size: 12px;
+      line-height: 1.35;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       min-width: 140px;
       color: var(--text);
       border-bottom: 1px solid var(--border);
-      border-right: 1px solid rgba(102, 217, 255, 0.06);
+      border-right: 1px solid rgba(102, 217, 255, 0.11);
+    }
+
+    .data-table th.col-focus,
+    .data-table td.col-focus {
+      color:#e7f1ff;
+      font-weight:600;
+    }
+
+    .data-table th.col-group-start,
+    .data-table td.col-group-start {
+      border-left:2px solid rgba(134, 165, 220, 0.34);
+    }
+
+    .data-table th.col-group-start::before {
+      content:'';
+      position:absolute;
+      left:-1px;
+      top:20%;
+      height:60%;
+      width:1px;
+      background:rgba(182,240,255,0.35);
+      pointer-events:none;
     }
 
     .data-table tbody tr td{
-      backdrop-filter: blur(2px);
+      backdrop-filter:none;
     }
 
     .data-table td:last-child {
@@ -2921,43 +2944,17 @@
       max-width: 92px;
     }
 
-    .data-table tbody tr.row-tone-green td,
-    .data-table tbody tr.row-tone-cyan td,
-    .data-table tbody tr.row-tone-blue td,
-    .data-table tbody tr.row-tone-yellow td,
-    .data-table tbody tr.row-tone-purple td,
-    .data-table tbody tr.row-tone-red td,
-    .data-table tbody tr.row-tone-gray td {
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.015), inset 0 -1px 0 rgba(0,0,0,0.12);
-      transition: background .18s ease, box-shadow .18s ease, transform .18s ease;
+    .data-table tbody tr td {
+      transition: background .16s ease, box-shadow .16s ease, filter .16s ease;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.012), inset 0 -1px 0 rgba(0,0,0,0.12);
     }
 
-    .data-table tbody tr.row-tone-green td {
-      background: linear-gradient(90deg, rgba(16, 185, 129, 0.22), rgba(16, 185, 129, 0.08) 22%, rgba(20, 33, 58, 0.96) 72%);
+    .data-table tbody tr:nth-child(odd) td {
+      background: rgba(16, 26, 44, 0.9);
     }
 
-    .data-table tbody tr.row-tone-cyan td {
-      background: linear-gradient(90deg, rgba(34, 211, 238, 0.22), rgba(34, 211, 238, 0.085) 22%, rgba(20, 33, 58, 0.96) 72%);
-    }
-
-    .data-table tbody tr.row-tone-blue td {
-      background: linear-gradient(90deg, rgba(59, 130, 246, 0.22), rgba(59, 130, 246, 0.085) 22%, rgba(20, 33, 58, 0.96) 72%);
-    }
-
-    .data-table tbody tr.row-tone-yellow td {
-      background: linear-gradient(90deg, rgba(245, 158, 11, 0.24), rgba(245, 158, 11, 0.09) 22%, rgba(20, 33, 58, 0.96) 72%);
-    }
-
-    .data-table tbody tr.row-tone-purple td {
-      background: linear-gradient(90deg, rgba(168, 85, 247, 0.22), rgba(168, 85, 247, 0.08) 22%, rgba(20, 33, 58, 0.96) 72%);
-    }
-
-    .data-table tbody tr.row-tone-red td {
-      background: linear-gradient(90deg, rgba(239, 68, 68, 0.24), rgba(239, 68, 68, 0.095) 22%, rgba(20, 33, 58, 0.965) 72%);
-    }
-
-    .data-table tbody tr.row-tone-gray td {
-      background: linear-gradient(90deg, rgba(148, 163, 184, 0.18), rgba(148, 163, 184, 0.065) 22%, rgba(20, 33, 58, 0.96) 72%);
+    .data-table tbody tr:nth-child(even) td {
+      background: rgba(20, 31, 52, 0.94);
     }
 
     .data-table tbody tr.row-tone-green td:first-child {
@@ -2996,8 +2993,19 @@
     }
 
     .data-table tbody tr:hover td{
-      filter: saturate(1.08) brightness(1.03);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.025), inset 0 -1px 0 rgba(0,0,0,0.14), 0 10px 24px rgba(0,0,0,0.08);
+      filter:none;
+      background: rgba(35, 53, 82, 0.96);
+      box-shadow: inset 0 1px 0 rgba(182,240,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.16);
+    }
+
+    .data-table tbody:hover tr:not(:hover) td {
+      opacity:0.72;
+      filter:saturate(0.82);
+    }
+
+    .data-table tbody:hover tr:hover td {
+      opacity:1;
+      filter:none;
     }
 
     .data-table tbody tr.active-row td{
@@ -3545,6 +3553,21 @@
     function getColumnClass(column) {
       const classes = [];
       if (isCommentField(column?.field)) classes.push('col-comment');
+
+      const focusFields = new Set(['status', 'name', 'telegram', 'platform']);
+      const groupStartFields = new Set([
+        'firstContactDate',
+        'googleTestDate',
+        'mainShifts',
+        'dismissDate',
+        'verificationHr',
+        'email',
+        'birthday',
+        'crmAccess'
+      ]);
+
+      if (focusFields.has(column?.field)) classes.push('col-focus');
+      if (groupStartFields.has(column?.field)) classes.push('col-group-start');
       return classes.join(' ');
     }
 
