@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AllStars — Действующие</title>
+  <title>AllStars � �����������</title>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@700;800&display=swap" rel="stylesheet">
   <style>
     :root{
@@ -792,7 +792,7 @@
 
     .editor-dropdown-btn::after,
     .editor-multiselect-btn::after{
-      content:'▾';
+      content:'?';
       color:var(--text3);
       font-size:12px;
       flex-shrink:0;
@@ -1107,7 +1107,7 @@
       }
     }
 
-    /* ─── CRM TOOLS ───────────────────────────────────────────── */
+    /* --- CRM TOOLS --------------------------------------------- */
     .sticky-tools{
       position:static;
       z-index:auto;
@@ -3066,9 +3066,247 @@
   </style>
   <link rel="stylesheet" href="/navfx.css">
   <link rel="stylesheet" href="/visual-v2.css">
+  <style>
+    /* Table-specific styles */
+    .table-container {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-top: 16px;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--surface2);
+    }
+
+    .data-table thead {
+      position: sticky;
+      top: 0;
+      background: linear-gradient(180deg, var(--surface3) 0%, var(--surface2) 100%);
+      z-index: 10;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .data-table th {
+      padding: 12px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text3);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      transition: .15s;
+      position: relative;
+    }
+
+    .data-table th:hover {
+      color: var(--text2);
+      background: rgba(255,255,255,.04);
+    }
+
+    .data-table th.sortable::after {
+      content: '�';
+      margin-left: 6px;
+      opacity: .4;
+      font-size: 10px;
+    }
+
+    .data-table th.sorted-asc::after {
+      content: '^';
+      opacity: 1;
+      color: var(--accent2);
+    }
+
+    .data-table th.sorted-desc::after {
+      content: 'v';
+      opacity: 1;
+      color: var(--accent2);
+    }
+
+    .data-table tbody tr {
+      border-bottom: 1px solid rgba(163,194,255,.08);
+      height: 42px;
+    }
+
+    .data-table tbody tr:hover {
+      background: rgba(255,255,255,.02);
+    }
+
+    .data-table td {
+      padding: 8px 14px;
+      font-size: 13px;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .cell-edit-input,
+    .cell-edit-select {
+      width: 100%;
+      background: rgba(15,25,45,.8);
+      border: 1px solid var(--accent-border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 6px 8px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 12px;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(102,217,255,.1);
+    }
+
+    .cell-edit-input:focus,
+    .cell-edit-select:focus {
+      box-shadow: 0 0 0 2px rgba(102,217,255,.25);
+    }
+
+    .cell-status {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 11px;
+      display: inline-block;
+      white-space: nowrap;
+    }
+
+    .cell-status.work { background: rgba(34,197,94,.18); color: #86efac; }
+    .cell-status.test { background: rgba(251,191,36,.18); color: #fde68a; }
+    .cell-status.waiting { background: rgba(59,130,246,.18); color: #93c5fd; }
+    .cell-status.archive { background: rgba(239,68,68,.18); color: #fca5a5; }
+    .cell-status.guide { background: rgba(168,85,247,.18); color: #d8b4fe; }
+
+    .row-status-work { background: rgba(34,197,94,.06); }
+    .row-status-test { background: rgba(251,191,36,.06); }
+    .row-status-waiting { background: rgba(59,130,246,.06); }
+    .row-status-archive { background: rgba(239,68,68,.06); }
+    .row-status-guide { background: rgba(168,85,247,.06); }
+
+    .table-controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .filter-input {
+      flex: 1;
+      min-width: 200px;
+      background: #0f1220;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 12px;
+    }
+
+    .filter-select {
+      background: #0f1220;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .filter-btn {
+      border: none;
+      background: var(--surface3);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      padding: 8px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: 'Manrope', sans-serif;
+      font-weight: 700;
+      font-size: 11px;
+      transition: .15s;
+    }
+
+    .filter-btn:hover {
+      color: var(--text);
+      border-color: var(--accent-border);
+    }
+
+    .filter-btn.active {
+      background: var(--accent-bg);
+      border-color: var(--accent-border);
+      color: var(--accent2);
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .stat-box {
+      background: linear-gradient(135deg, rgba(79,110,247,.12), rgba(34,197,94,.08));
+      border: 1px solid rgba(79,110,247,.2);
+      border-radius: 12px;
+      padding: 10px 12px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text3);
+      font-weight: 800;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text);
+      margin-top: 4px;
+    }
+
+    .last-update {
+      font-size: 11px;
+      color: var(--text3);
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    @media (max-width: 1100px) {
+      .stats-row { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 768px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .data-table { font-size: 12px; }
+      .data-table td { padding: 6px 8px; }
+    }
+  </style>
 </head>
 <body>
-  <button class="mobile-nav-toggle" id="mobileNavToggle" type="button" aria-label="Открыть меню">
+  <button class="mobile-nav-toggle" id="mobileNavToggle" type="button" aria-label="������� ����">
     <span></span>
     <span></span>
     <span></span>
@@ -3078,43 +3316,43 @@
     <aside class="sidebar">
       <div class="sidebar-logo">
         <div class="brand-row">
-          <div class="brand-mark">✦</div>
+          <div class="brand-mark">?</div>
           <div class="brand">AllStars</div>
         </div>
-        <div class="sub">Действующие</div>
+        <div class="sub">�����������</div>
       </div>
 
-      <div class="sidebar-section">Навигация</div>
-      <a class="nav-item" href="/index.html">🧑‍💼 Новый кандидат</a>
-      <a class="nav-item" href="/candidates.html">👥 Кандидаты</a>
-      <a class="nav-item" href="/referrals.html">🤝 Рефералы</a>
-      <a class="nav-item" href="/interviews.html">📞 Собеседования</a>
-      <a class="nav-item" href="/dashboard.html">📊 Dashboard</a>
-      <a class="nav-item active" href="/team-dashboard.html">🫂 Действующие</a>
-      <a class="nav-item" href="/transaction-endings.html">🪙 Transaction ending</a>
-      <a class="nav-item" href="/hr-needs.html">🎯 Потребности HR</a>
-      <a class="nav-item" href="/team.html">👀 Команда</a>
-      <div class="sidebar-section">Аккаунт</div>
-      <button class="nav-item" type="button" onclick="logoutAllStars()" style="background:none;border:none;width:100%;text-align:left;cursor:pointer;">🚪 Выйти</button>
+      <div class="sidebar-section">���������</div>
+      <a class="nav-item" href="/index.html">????? ����� ��������</a>
+      <a class="nav-item" href="/candidates.html">?? ���������</a>
+      <a class="nav-item" href="/referrals.html">?? ��������</a>
+      <a class="nav-item" href="/interviews.html">?? �������������</a>
+      <a class="nav-item" href="/dashboard.html">?? Dashboard</a>
+      <a class="nav-item active" href="/team-dashboard.html">?? �����������</a>
+      <a class="nav-item" href="/transaction-endings.html">?? Transaction ending</a>
+      <a class="nav-item" href="/hr-needs.html">?? ����������� HR</a>
+      <a class="nav-item" href="/team.html">?? �������</a>
+      <div class="sidebar-section">�������</div>
+      <button class="nav-item" type="button" onclick="logoutAllStars()" style="background:none;border:none;width:100%;text-align:left;cursor:pointer;">?? �����</button>
     </aside>
 
     <main class="main">
       <div class="topbar">
         <div class="title">
-          <h1>Действующие</h1>
-          <p>Операционная статистика по сотрудникам из отдельной таблицы.</p>
+          <h1>�����������</h1>
+          <p>������������ ���������� �� ����������� �� ��������� �������.</p>
         </div>
 
         <div class="toolbar">
-          <button class="btn btn-primary" id="addMemberBtn" type="button">Добавить сотрудника</button>
-          <button class="btn btn-ghost" id="refreshBtn" type="button">Обновить</button>
+          <button class="btn btn-primary" id="addMemberBtn" type="button">�������� ����������</button>
+          <button class="btn btn-ghost" id="refreshBtn" type="button">��������</button>
         </div>
       </div>
 
       <div class="sticky-tools">
         <div class="tools-card" id="toolsCard">
           <div class="tools-head">
-            <div class="tools-head-title">Фильтры и воронка</div>
+            <div class="tools-head-title">������� � �������</div>
             <button
               class="tools-collapse-btn"
               id="toggleToolsBtn"
@@ -3122,17 +3360,17 @@
               onclick="toggleToolsPanel()"
               aria-expanded="true"
             >
-              Свернуть фильтры
+              �������� �������
             </button>
           </div>
 
           <div class="tools-panel-body" id="toolsPanelBody">
             <div class="crm-hint" style="margin-bottom:12px;">
-              Здесь видна воронка действующих сотрудников. Нажми на статус сверху, чтобы отфильтровать нужных людей.
+              ����� ����� ������� ����������� �����������. ����� �� ������ ������, ����� ������������� ������ �����.
             </div>
 
             <div class="tools-row">
-              <input id="crmSearch" class="crm-search" placeholder="Поиск по имени, Telegram, статусу..." />
+              <input id="crmSearch" class="crm-search" placeholder="����� �� �����, Telegram, �������..." />
 
               <button class="crm-filter-btn of" id="filterOnlyFansBtn" type="button" onclick="setCrmPlatform('onlyfans')">
                 OnlyFans
@@ -3148,64 +3386,70 @@
             </div>
 
             <div class="pipeline-hint" id="pipelineHint">
-              💡 Перетащи карточку сотрудника на статус, чтобы быстро изменить этап
-              <span class="pipeline-hint-close" onclick="closePipelineHint()">✕</span>
+              ?? �������� �������� ���������� �� ������, ����� ������ �������� ����
+              <span class="pipeline-hint-close" onclick="closePipelineHint()">?</span>
             </div>
 
             <div class="pipeline" id="pipeline"></div>
           </div>
 
-          <div class="tools-collapsed-hint">Фильтры свернуты. Нажмите кнопку справа, чтобы развернуть панель.</div>
+          <div class="tools-collapsed-hint">������� ��������. ������� ������ ������, ����� ���������� ������.</div>
         </div>
       </div>
 
-      <div id="content">
-        <div class="loading">Загружаем статистику...</div>
-      </div>
+      <div style="margin-top: 24px;">
+        <div class="stats-row" id="statsRow">
+          <div class="stat-box"><div class="stat-label">�����</div><div class="stat-value" id="stat-total">0</div></div>
+          <div class="stat-box"><div class="stat-label">��������</div><div class="stat-value" id="stat-work">0</div></div>
+          <div class="stat-box"><div class="stat-label">OF</div><div class="stat-value" id="stat-of">0</div></div>
+          <div class="stat-box"><div class="stat-label">Fansly</div><div class="stat-value" id="stat-fansly">0</div></div>
+          <div class="stat-box"><div class="stat-label">���� ����</div><div class="stat-value" id="stat-test">0</div></div>
+          <div class="stat-box"><div class="stat-label">�����</div><div class="stat-value" id="stat-archive">0</div></div>
+        </div>
 
-      <div class="modal-overlay" id="statusModal" onclick="closeStatusModal(event)">
-        <div class="modal-sheet">
-          <div class="modal-head">
-            <div class="modal-title" id="statusModalTitle">Список сотрудников</div>
-            <button class="modal-close" type="button" onclick="forceCloseStatusModal()">Закрыть</button>
-          </div>
-          <div class="modal-body" id="statusModalBody">
-            <div class="loading">Загружаем...</div>
+        <div class="filter-row">
+          <input class="filter-input" id="tableSearch" placeholder="����� �� �����, Telegram..." />
+          <select class="filter-select" id="filterStatus">
+            <option value="">��� �������</option>
+          </select>
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2);">
+            <input type="checkbox" id="filterArchive" /> �����
+          </label>
+          <button class="filter-btn" id="refreshTableBtn">��������</button>
+        </div>
+
+        <div class="last-update">
+          <span>��������� ����������: <span id="lastUpdate">�</span></span>
+        </div>
+
+        <div class="table-container">
+          <div class="table-wrapper">
+            <table class="data-table" id="teamTable">
+              <thead>
+                <tr>
+                  <th class="sortable" data-field="dateAdded">���� ����������</th>
+                  <th class="sortable" data-field="status">������</th>
+                  <th class="sortable" data-field="platform">���������</th>
+                  <th class="sortable" data-field="name">���</th>
+                  <th class="sortable" data-field="telegram">Telegram</th>
+                  <th class="sortable" data-field="experience">���� ���.</th>
+                  <th class="sortable" data-field="shifts">�����</th>
+                  <th class="sortable" data-field="models">������</th>
+                  <th class="sortable" data-field="workDays">���� ������ ���</th>
+                  <th class="sortable" data-field="startDate">���� ������</th>
+                  <th class="sortable" data-field="endDate">���� ����������</th>
+                  <th class="sortable" data-field="teamLeadComment">����������� �������</th>
+                  <th class="sortable" data-field="notes">�������</th>
+                  <th class="sortable" data-field="plan">����</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                <tr><td colspan="14" style="text-align: center; padding: 20px;">���������...</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
-
-      <div class="modal-overlay" id="transactionEndingModal" onclick="closeTransactionEndingModal(event)">
-        <div class="modal-sheet" style="width:min(920px,100%); max-height:88vh;">
-          <div class="modal-head">
-            <div class="modal-title">Центы</div>
-            <button class="modal-close" type="button" onclick="forceCloseTransactionEndingModal()">Закрыть</button>
-          </div>
-          <div class="modal-body" id="transactionEndingModalBody">
-            <div class="loading">Загружаем...</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal-overlay" id="memberEditorOverlay" onclick="closeMemberEditor(event)">
-        <div class="modal-sheet" style="width:min(1100px,100%); max-height:90vh; overflow:visible;">
-          <div class="modal-head">
-            <div class="modal-title" id="memberEditorTitle">Карточка сотрудника</div>
-            <button class="modal-close" type="button" onclick="forceCloseMemberEditor()">Закрыть</button>
-          </div>
-
-          <div class="modal-body" style="overflow:auto; max-height:calc(90vh - 78px);">
-            <div id="memberEditorContent">
-              <div class="loading">Загружаем данные...</div>
-            </div>
-
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; gap:10px; flex-wrap:wrap;">
-              <div class="autosave-status" id="memberEditorSaveStatus"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
     </main>
   </div>
 
@@ -3220,741 +3464,12 @@
       location.href = '/login.html';
     }
 
-    const content = document.getElementById('content');
-    const refreshBtn = document.getElementById('refreshBtn');
-    const toolsCollapseStorageKey = 'team_tools_collapsed';
-    let currentTeamStatsData = null;
+    let allItems = [];
+    let filteredItems = [];
+    let currentSort = { field: 'dateAdded', direction: 'desc' };
     let STATUS_OPTIONS = [];
-    const autosaveTimers = new Map();
-    const autosaveStateTimers = new Map();
-
-    /* ─── CRM JS (общий блок) ──────────────────────────────────── */
     let allCrmItems = [];
-    let draggedTeamRowNumber = null;
-    let lastDroppedTeamRowNumber = null;
-
-    function normalizePersonKey(value) {
-      return String(value || '')
-        .trim()
-        .toLowerCase()
-        .replace(/\(f\)/gi, '')
-        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-    }
-
-    function namesLooselyMatch(a, b) {
-      const x = normalizePersonKey(a);
-      const y = normalizePersonKey(b);
-      if (!x || !y) return false;
-      return x === y || x.startsWith(y) || y.startsWith(x);
-    }
-
-
-    const TEAM_VISIBLE_EXCLUDED_STATUSES = new Set([
-      'Назначено собеседование',
-      'Ждет собеседования'
-    ]);
-
-    const CRM_STATUS_GROUPS = [
-      { key: 'Изучает гайд',    label: 'Изучает гайд',    values: ['Изучает гайд'] },
-      { key: 'Ждет тест',       label: 'Ждет тест',       values: ['Ждет тест'] },
-      { key: 'Тест смена',      label: 'Тест смена',      values: ['Тест смена'] },
-      { key: 'Хочу взять',      label: 'Хочу взять',      values: ['Хочу взять'] },
-      { key: 'Верификация',     label: 'Верификация',     values: ['Верификация'] },
-      { key: 'Ожидание старта', label: 'Ожидание старта', values: ['Ожидание старта'] },
-      { key: 'Принятый',        label: 'Принятый',        values: ['Принятый'] },
-      { key: 'Работает',        label: 'Работает',        values: ['Работает'] },
-      { key: 'Лист ожидания',   label: 'Лист ожидания',  values: ['Лист ожидания'] },
-      { key: 'Нет ответа',      label: 'Нет ответа',      values: ['Нет ответа'] },
-      { key: 'Отказ',           label: 'Отказ',           values: ['Отказ'] },
-      { key: 'Уволен',          label: 'Уволен',          values: ['Уволен'] },
-      { key: 'Не рассчитан',    label: 'Не рассчитан',   values: ['Не рассчитан'] },
-      { key: 'Убрать',          label: 'Убрать',          values: ['Убрать'] }
-    ];
-
-    const TEAM_VISIBLE_STATUSES = new Set(
-      CRM_STATUS_GROUPS
-        .flatMap(group => group.values)
-        .filter(status => !TEAM_VISIBLE_EXCLUDED_STATUSES.has(status))
-    );
-
-    const crmFilters = {
-      q: '',
-      pipeline: '',
-      platform: '',
-      models: []
-    };
-
-    function normalizeModelToken(value) {
-      return String(value || '').trim().toLowerCase();
-    }
-
-    function splitModelValues(value) {
-      return String(value || '')
-        .replace(/[\n\r]+/g, ',')
-        .replace(/[;|]/g, ',')
-        .replace(/[\\/]/g, ',')
-        .split(',')
-        .map(x => x.trim())
-        .filter(Boolean);
-    }
-
-    function sanitizeModelCandidate(value) {
-      const token = String(value || '').trim();
-      if (!token) return '';
-
-      const normalized = token.replace(/\s+/g, ' ').trim();
-
-      // Reject long phrases and obvious non-model text blocks.
-      if (normalized.length < 2 || normalized.length > 28) return '';
-      // Reject URLs, emails, dot-notation (e.g. docs.google.com)
-      if (/[%@.]|https?:\/\//i.test(normalized)) return '';
-      if (/\d{5,}/.test(normalized)) return '';
-
-      // Allow only single word OR "Name Number" pattern (e.g. "Alyaska 3")
-      const words = normalized.split(/\s+/);
-      if (words.length > 2) return '';
-      if (words.length === 2 && !/^\d+$/.test(words[1])) return '';
-
-      const lower = normalized.toLowerCase();
-      const bannedWords = [
-        'конверси', 'анкет', 'просмотр', 'подписчик', 'соотношен', 'скриншот',
-        'работал', 'работала', 'правильно', 'соответственно', 'месяц', 'моделью',
-        'топ', 'процент', 'доход', 'выручк', 'продаж',
-        'студент', 'инженер', 'трансами', 'университет', 'spreadsheet', 'google'
-      ];
-      if (bannedWords.some(word => lower.includes(word))) return '';
-
-      // Keep names like "Alyaska 3", "Киана", "Eva" — no dots allowed inside
-      if (!/^[\p{L}][\p{L}\p{N}\s_-]{1,27}$/u.test(normalized)) return '';
-
-      return normalized;
-    }
-
-    function dedupeModels(values) {
-      const out = [];
-      const seen = new Set();
-
-      values.forEach(value => {
-        const model = sanitizeModelCandidate(value);
-        if (!model) return;
-
-        const key = normalizeModelToken(model);
-        if (!key || seen.has(key)) return;
-
-        seen.add(key);
-        out.push(model);
-      });
-
-      return out;
-    }
-
-    function getItemModels(item) {
-      const rawParts = [
-        item.model,
-        item.raw?.['Модели (основные)'],
-        item.raw?.['Модели'],
-        item.raw?.['Актуальная модель']
-      ].filter(Boolean);
-
-      const allModels = rawParts.flatMap(part => splitModelValues(part));
-      return dedupeModels(allModels);
-    }
-
-    function getStatusTone(status) {
-      const s = String(status || '').trim().toLowerCase();
-      if (s.includes('работает') || s.includes('принятый')) return 'green';
-      if (s.includes('изучает')) return 'blue';
-      if (s.includes('ждет тест') || s.includes('тест')) return 'yellow';
-      if (s.includes('собесед') || s.includes('отписал')) return 'orange';
-      if (s.includes('нет ответа')) return 'gray';
-      if (s.includes('уволен') || s.includes('не рассчитан') || s.includes('убрать') || s.includes('отказ') || s.includes('не пришел')) return 'red';
-      return 'gray';
-    }
-
-    function getStatusBadgeClass(status) {
-      return `badge-${getStatusTone(status)}`;
-    }
-
-    function isWorkingStatus(status) {
-      return String(status || '').trim().toLowerCase() === 'работает';
-    }
-
-    function getTeamCardVisualClass(item) {
-      const status = String(item.status || '').trim().toLowerCase();
-      const platform = String(item.platform || '').trim().toLowerCase();
-
-      if (status.includes('работает') || status.includes('принятый')) {
-        if (platform.includes('onlyfans')) return 'state-work-of';
-        if (platform.includes('fansly')) return 'state-work-fansly';
-        return 'state-work-of';
-      }
-
-      if (status.includes('ожидание старта')) return 'state-start';
-      if (status.includes('верификация')) return 'state-verification';
-      if (status.includes('ждет тест') || status.includes('тест')) return 'state-test';
-      if (status.includes('изучает гайд')) return 'state-guide';
-      if (status.includes('хочу взять')) return 'state-want';
-      if (status.includes('лист ожидания') || status.includes('ждет собеседования')) return 'state-waiting';
-      if (status.includes('не рассчитан') || status.includes('уволен') || status.includes('отказ') || status.includes('нет ответа') || status.includes('убрать')) return 'state-fired';
-
-      return 'state-neutral';
-    }
-
-    function getNextAction(item) {
-      const status = String(item.status || '').trim();
-      if (status === 'Верификация') return '⚡ Завершить верификацию';
-      if (status === 'Ожидание старта') return '⚡ Выдать доступы и назначить старт';
-      if (status === 'Изучает гайд') return '⚡ Проверить прохождение гайда';
-      if (status === 'Ждет тест' || status === 'Тест смена') return '⚡ Назначить тест смену';
-      if (status === 'Хочу взять') return '⚡ Подтвердить перевод в старт';
-      if (status === 'Лист ожидания') return '⚡ Следить за освобождением места';
-      return '';
-    }
-
-      function normalizeSearchText(value) {
-        return String(value || '')
-          .toLowerCase()
-          .trim()
-          .replace(/^@+/, '')
-          .replace(/\s+/g, ' ');
-      }
-
-    function applyCrmFilters(items) {
-      let out = [...items];
-
-      if (crmFilters.q) {
-          const q = normalizeSearchText(crmFilters.q);
-
-        out = out.filter(item => {
-            const telegramCandidates = [
-              item.telegram,
-              item.tg,
-              item.username,
-              item.raw?.['Телеграм'],
-              item.raw?.['Telegram'],
-              item.raw?.['ТГ'],
-              item.raw?.['Telegram / username']
-            ];
-
-            const haystack = [
-            item.name,
-            item.status,
-            item.platform,
-            item.model,
-              item.transactionEnding,
-              ...telegramCandidates
-            ]
-              .map(normalizeSearchText)
-              .join(' ');
-
-            return haystack.includes(q);
-        });
-      }
-
-      if (crmFilters.pipeline) {
-        const group = CRM_STATUS_GROUPS.find(x => x.key === crmFilters.pipeline);
-        if (group) {
-          out = out.filter(item => group.values.includes(item.status));
-        }
-      }
-
-      if (crmFilters.platform) {
-        out = out.filter(item =>
-          String(item.platform || '').toLowerCase().includes(crmFilters.platform)
-        );
-      }
-
-      if (Array.isArray(crmFilters.models) && crmFilters.models.length) {
-        const selectedTokens = crmFilters.models
-          .map(normalizeModelToken)
-          .filter(Boolean);
-
-        out = out.filter(item => {
-          if (!isWorkingStatus(item.status)) return false;
-          const modelTokens = getItemModels(item).map(normalizeModelToken);
-          return selectedTokens.some(token => modelTokens.includes(token));
-        });
-      }
-
-      return out;
-    }
-
-    function getPipelineVisualClass(groupKey) {
-      const key = String(groupKey || '').trim().toLowerCase();
-
-      if (key === 'работает') return 'state-work';
-      if (key === 'принятый') return 'state-work';
-      if (key === 'ожидание старта') return 'state-start';
-      if (key === 'верификация') return 'state-verification';
-      if (key === 'ждет тест') return 'state-test';
-      if (key === 'тест смена') return 'state-test';
-      if (key === 'изучает гайд') return 'state-guide';
-      if (key === 'хочу взять') return 'state-want';
-      if (key === 'лист ожидания') return 'state-waiting';
-      if (key === 'нет ответа') return 'state-neutral';
-      if (key === 'отказ' || key === 'уволен' || key === 'не рассчитан' || key === 'убрать') return 'state-fired';
-
-      return '';
-    }
-
-    function getDropStatusFromPipelineKey(key) {
-      // Direct return for any status key (used in drag-drop operations)
-      return String(key || '');
-    }
-
-    function clearPipelineDropStates() {
-      document.querySelectorAll('.pipeline-item').forEach(el => {
-        el.classList.remove('drop-ready', 'drop-over');
-      });
-    }
-
-    function markAllPipelineDropReady() {
-      document.querySelectorAll('.pipeline-item').forEach(el => {
-        el.classList.add('drop-ready');
-      });
-    }
-
-    function onTeamCardDragStart(event, rowNumber) {
-      draggedTeamRowNumber = Number(rowNumber);
-      event.dataTransfer.effectAllowed = 'move';
-      event.dataTransfer.setData('text/plain', String(rowNumber));
-
-      const card = event.currentTarget;
-      requestAnimationFrame(() => {
-        card.classList.add('dragging');
-      });
-
-      markAllPipelineDropReady();
-    }
-
-    function onTeamCardDragEnd(event) {
-      event.currentTarget.classList.remove('dragging');
-      draggedTeamRowNumber = null;
-      clearPipelineDropStates();
-    }
-
-    function onPipelineDragOver(event, groupKey) {
-      if (!draggedTeamRowNumber) return;
-      event.preventDefault();
-      event.dataTransfer.dropEffect = 'move';
-
-      clearPipelineDropStates();
-      const target = event.currentTarget;
-      target.classList.add('drop-ready', 'drop-over');
-    }
-
-    function onPipelineDragLeave(event) {
-      event.currentTarget.classList.remove('drop-over');
-    }
-
-    async function onPipelineDrop(event, groupKey) {
-      event.preventDefault();
-
-      const rowNumber = draggedTeamRowNumber || Number(event.dataTransfer.getData('text/plain'));
-      clearPipelineDropStates();
-
-      if (!rowNumber) return;
-
-      const nextStatus = getDropStatusFromPipelineKey(groupKey);
-      if (!nextStatus) return;
-
-      await quickSetTeamStatus(rowNumber, nextStatus, { silent: true });
-
-      lastDroppedTeamRowNumber = rowNumber;
-      rerenderCrmPage();
-
-      requestAnimationFrame(() => {
-        const card = document.querySelector(`[data-row-number="${rowNumber}"]`);
-        if (card) {
-          card.classList.add('drop-animate');
-          setTimeout(() => card.classList.remove('drop-animate'), 500);
-        }
-      });
-    }
-
-    window.onTeamCardDragStart = onTeamCardDragStart;
-    window.onTeamCardDragEnd = onTeamCardDragEnd;
-    window.onPipelineDragOver = onPipelineDragOver;
-    window.onPipelineDragLeave = onPipelineDragLeave;
-    window.onPipelineDrop = onPipelineDrop;
-
-    function renderPipelineBlock(items) {
-      const el = document.getElementById('pipeline');
-      if (!el) return;
-
-      el.innerHTML = CRM_STATUS_GROUPS.map(group => {
-        const count = items.filter(item => group.values.includes(item.status)).length;
-        const visualClass = getPipelineVisualClass(group.key);
-        const isActive = crmFilters.pipeline === group.key ? 'active' : '';
-
-        return `
-          <div
-            class="pipeline-item ${visualClass} ${isActive}"
-            onclick="setCrmPipeline('${group.key.replace(/'/g, "\\'")}')"
-            ondragover="onPipelineDragOver(event, '${group.key.replace(/'/g, "\\'")}')"
-            ondragleave="onPipelineDragLeave(event)"
-            ondrop="onPipelineDrop(event, '${group.key.replace(/'/g, "\\'")}')"
-          >
-            <div class="pipeline-label">${group.label}</div>
-            <div class="pipeline-count">${count}</div>
-          </div>
-        `;
-      }).join('');
-
-      renderModelFilters(items);
-    }
-
-    function renderModelFilters(items) {
-      const metricsEl = document.getElementById('modelFilters');
-      if (!metricsEl) return;
-
-      const workingItems = (Array.isArray(items) ? items : []).filter(item => isWorkingStatus(item.status));
-
-      const modelMap = new Map();
-      workingItems.forEach(item => {
-        const models = getItemModels(item);
-        models.forEach(model => {
-          const key = model.trim();
-          if (!key) return;
-          modelMap.set(key, (modelMap.get(key) || 0) + 1);
-        });
-      });
-
-      const sortedModels = Array.from(modelMap.entries())
-        .sort((a, b) => b[1] - a[1]);
-
-      if (!sortedModels.length) {
-        metricsEl.innerHTML = `
-          <div class="model-filters-head">
-            <div class="model-filters-title">Фильтры по моделям</div>
-            <div class="model-filters-note">Учитываются только сотрудники со статусом Работает</div>
-          </div>
-          <div class="crm-hint">По сотрудникам со статусом Работает модели пока не заполнены</div>
-        `;
-        return;
-      }
-
-      const totalWorking = workingItems.length;
-      const selectedModels = Array.isArray(crmFilters.models) ? crmFilters.models : [];
-      const allActive = selectedModels.length ? '' : 'active';
-
-      const modelCards = sortedModels.map(([model, count]) => {
-        const token = normalizeModelToken(model);
-        const isActive = selectedModels.some(selected => normalizeModelToken(selected) === token) ? 'active' : '';
-        return `
-          <div class="status-metric-block model-chip ${isActive}" onclick="setCrmModel('${model.replace(/'/g, "\\'")}')" title="${model}">
-            <div class="status-metric-label">${model}</div>
-            <div class="status-metric-value">${count}</div>
-          </div>
-        `;
-      }).join('');
-
-      metricsEl.innerHTML = `
-        <div class="model-filters-head">
-          <div class="model-filters-title">Фильтры по моделям</div>
-          <div class="model-filters-note">Показываются модели только у статуса Работает • можно выбрать несколько</div>
-        </div>
-        <div class="model-filter-grid">
-          <div class="status-metric-block model-chip ${allActive}" onclick="setCrmModel('')" title="Все работающие">
-            <div class="status-metric-label">Все работающие</div>
-            <div class="status-metric-value">${totalWorking}</div>
-          </div>
-          ${modelCards}
-        </div>
-      `;
-    }
-
-    function setCrmPipeline(key) {
-      crmFilters.pipeline = crmFilters.pipeline === key ? '' : key;
-      rerenderCrmPage();
-    }
-
-    window.setCrmPipeline = setCrmPipeline;
-
-    function setCrmPlatform(platform) {
-      crmFilters.platform = crmFilters.platform === platform ? '' : platform;
-      rerenderCrmPage();
-    }
-
-    window.setCrmPlatform = setCrmPlatform;
-
-    function setCrmModel(model) {
-      const nextModel = String(model || '').trim();
-
-      if (!nextModel) {
-        crmFilters.models = [];
-        rerenderCrmPage();
-        return;
-      }
-
-      const nextToken = normalizeModelToken(nextModel);
-      const current = Array.isArray(crmFilters.models) ? [...crmFilters.models] : [];
-      const index = current.findIndex(x => normalizeModelToken(x) === nextToken);
-
-      if (index >= 0) {
-        current.splice(index, 1);
-      } else {
-        current.push(nextModel);
-      }
-
-      crmFilters.models = current;
-      rerenderCrmPage();
-    }
-
-    window.setCrmModel = setCrmModel;
-
-    function updatePlatformFilterButtons() {
-      document.getElementById('filterOnlyFansBtn')?.classList.toggle('active', crmFilters.platform === 'onlyfans');
-      document.getElementById('filterFanslyBtn')?.classList.toggle('active', crmFilters.platform === 'fansly');
-    }
-
-    async function teamQuickSetStatus(rowNumber, status) {
-      const res = await api(`/api/team-member/${rowNumber}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ updates: { 'Актуальный статус кандидата (Hr)': status } })
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert(err.error || 'Не удалось обновить статус');
-        return;
-      }
-      await loadAllCrmMembers();
-    }
-
-    window.teamQuickSetStatus = teamQuickSetStatus;
-
-    async function quickSetTeamStatus(rowNumber, status, options = {}) {
-      const res = await api(`/api/team-member/${rowNumber}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          updates: {
-            'Актуальный статус кандидата (Hr)': status
-          }
-        })
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        if (!options.silent) {
-          alert(data.error || 'Не удалось обновить статус');
-        }
-        return false;
-      }
-
-      const item = allCrmItems.find(x => Number(x.row_number) === Number(rowNumber));
-      if (item) {
-        item.status = status;
-      }
-
-      if (!options.silent) {
-        rerenderCrmPage();
-      }
-
-      return true;
-    }
-
-    window.quickSetTeamStatus = quickSetTeamStatus;
-
-    function findTeamMemberByRowNumber(rowNumber) {
-      return allCrmItems.find(x => Number(x.row_number) === Number(rowNumber)) || null;
-    }
-
-    function isSheetBackedItem(item) {
-      return String(item?.source || '').trim().toLowerCase() !== 'crm';
-    }
-
-    function canOpenMemberCard(item) {
-      return Number.isFinite(Number(item?.row_number)) && Number(item.row_number) !== 0;
-    }
-
-    function canDragTeamCard(item) {
-      return Number.isFinite(Number(item?.row_number)) && Number(item.row_number) !== 0;
-    }
-
-    function renderTeamCards(items) {
-      const el = document.getElementById('teamCards');
-      if (!el) return;
-
-      if (!items.length) {
-        el.innerHTML = `<div class="empty-state">По этому фильтру сотрудников нет</div>`;
-        return;
-      }
-
-      el.innerHTML = `
-        <div class="member-grid">
-          ${items.map(item => `
-            <div
-              class="member-card ${getTeamCardVisualClass(item)}"
-              data-row-number="${item.row_number}"
-              draggable="${canDragTeamCard(item) ? 'true' : 'false'}"
-              ${canOpenMemberCard(item) ? `onclick="openMemberEditorByRow(${item.row_number})"` : ''}
-              ${canDragTeamCard(item) ? `ondragstart="onTeamCardDragStart(event, ${item.row_number})"` : ''}
-              ${canDragTeamCard(item) ? `ondragend="onTeamCardDragEnd(event)"` : ''}
-            >
-              <div class="crm-card-top">
-                <div>
-                  <div class="member-name">${escapeHtml(item.name || 'Без имени')}</div>
-                  <div class="member-meta">${escapeHtml(item.telegram || '—')}</div>
-                </div>
-
-                <div class="status-badge ${getTeamCardVisualClass(item)}">
-                  ${escapeHtml(item.status || 'Без статуса')}
-                </div>
-              </div>
-
-              <div class="crm-next-action">
-                ${getNextAction(item) || '⚡ Действие не требуется'}
-              </div>
-
-              <div class="crm-meta-hints">
-                ${item.platform ? `<div class="crm-hint">${escapeHtml(item.platform)}</div>` : ''}
-                ${getItemModels(item).length ? `<div class="crm-hint">Модель: ${escapeHtml(getItemModels(item).join(', '))}</div>` : ''}
-                ${item.transactionEnding ? `<div class="crm-hint">Transaction ending: ${escapeHtml(item.transactionEnding)}</div>` : ''}
-                ${!isSheetBackedItem(item) ? `<div class="crm-hint">Источник: CRM</div>` : ''}
-              </div>
-
-              <div class="quick-actions">
-                ${isSheetBackedItem(item) ? buildTeamQuickActions(item.row_number) : ''}
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      `;
-    }
-
-    function rerenderCrmPage() {
-      const searchEl = document.getElementById('crmSearch');
-      if (searchEl) {
-        crmFilters.q = String(searchEl.value || '').trim();
-      }
-
-      const filtered = applyCrmFilters(allCrmItems);
-
-      renderPipelineBlock(allCrmItems);
-      updatePlatformFilterButtons?.();
-      renderTeamCards(filtered);
-    }
-
-    function applyToolsPanelCollapsed(collapsed) {
-      const toolsCard = document.getElementById('toolsCard');
-      const toggleBtn = document.getElementById('toggleToolsBtn');
-      if (!toolsCard || !toggleBtn) return;
-
-      toolsCard.classList.toggle('collapsed', Boolean(collapsed));
-      toggleBtn.textContent = collapsed ? 'Развернуть фильтры' : 'Свернуть фильтры';
-      toggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-    }
-
-    function toggleToolsPanel() {
-      const toolsCard = document.getElementById('toolsCard');
-      if (!toolsCard) return;
-
-      const collapsed = !toolsCard.classList.contains('collapsed');
-      localStorage.setItem(toolsCollapseStorageKey, collapsed ? '1' : '0');
-      applyToolsPanelCollapsed(collapsed);
-    }
-
-    window.toggleToolsPanel = toggleToolsPanel;
-
-    function initPipelineHint(){
-      const seen = localStorage.getItem('crm_drag_hint_seen');
-
-      if (seen === '1') {
-        const el = document.getElementById('pipelineHint');
-        if (el) el.remove();
-        return;
-      }
-
-      setTimeout(() => {
-        triggerDragHintAnimation();
-      }, 600);
-    }
-
-    function closePipelineHint(){
-      localStorage.setItem('crm_drag_hint_seen', '1');
-      const el = document.getElementById('pipelineHint');
-      if (el) el.remove();
-    }
-
-    window.closePipelineHint = closePipelineHint;
-
-    function triggerDragHintAnimation(){
-      const firstCard = document.querySelector('.member-card');
-      const firstPipeline = document.querySelector('.pipeline-item');
-
-      if (!firstCard || !firstPipeline) return;
-
-      firstCard.classList.add('hint-drag');
-
-      setTimeout(() => {
-        firstPipeline.classList.add('hint-drop');
-      }, 400);
-
-      setTimeout(() => {
-        firstCard.classList.remove('hint-drag');
-        firstPipeline.classList.remove('hint-drop');
-      }, 1600);
-    }
-
-    async function loadAllCrmMembers() {
-      await loadTeamStatsPage();
-    }
-
-    document.getElementById('crmSearch')?.addEventListener('input', debounce(() => {
-      rerenderCrmPage();
-    }, 400));
-
-    window.rerenderCrmPage = rerenderCrmPage;
-    /* ─── конец CRM JS ─────────────────────────────────────────── */
-
-
-    async function loadStatusOptions() {
-      const res = await cachedApi('/api/status-options');
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Не удалось загрузить статусы');
-      }
-
-      STATUS_OPTIONS = Array.isArray(data.team) ? data.team : [];
-    }
-
-    function setAutosaveStatus(el, text, type = '') {
-      if (!el) return;
-
-      el.textContent = text;
-      el.className = `autosave-status ${type}`.trim();
-
-      if (autosaveStateTimers.has(el)) {
-        clearTimeout(autosaveStateTimers.get(el));
-      }
-
-      if (text === 'Сохранено') {
-        const t = setTimeout(() => {
-          el.textContent = '';
-          el.className = 'autosave-status';
-        }, 1200);
-        autosaveStateTimers.set(el, t);
-      }
-    }
-
-    function queueAutosave(key, fn, delay = 500) {
-      if (autosaveTimers.has(key)) {
-        clearTimeout(autosaveTimers.get(key));
-      }
-
-      const t = setTimeout(async () => {
-        try {
-          await fn();
-        } finally {
-          autosaveTimers.delete(key);
-        }
-      }, delay);
-
-      autosaveTimers.set(key, t);
-    }
+    const toolsCollapseStorageKey = 'team_tools_collapsed';
 
     function api(path, options = {}) {
       return fetch(window.AllStarsConfig?.resolveApiPath?.(path) || path, {
@@ -3973,1627 +3488,306 @@
       return div.innerHTML;
     }
 
-    function escapeSingleQuotedJs(value = '') {
-      return String(value).replaceAll('\\', '\\\\').replaceAll("'", "\\'");
-    }
-
-    function getTeamQuickStatuses() {
-      const preferred = ['Верификация', 'Ждет тест', 'Ожидание старта', 'Работает'];
-      const picked = preferred.filter(status => STATUS_OPTIONS.includes(status));
-
-      if (picked.length) return picked;
-      return STATUS_OPTIONS.slice(0, 4);
-    }
-
-    function buildTeamQuickActions(rowNumber) {
-      return getTeamQuickStatuses().map(status => {
-        const escapedStatus = escapeSingleQuotedJs(status);
-        const shortLabel = status === 'Ожидание старта' ? 'Старт' : status;
-
-        return `<button class="quick-btn" type="button" onclick="event.stopPropagation(); quickSetTeamStatus(${rowNumber}, '${escapedStatus}')">${escapeHtml(shortLabel)}</button>`;
-      }).join('');
-    }
-
-    function getStatusClass(name) {
-      const s = String(name || '').toLowerCase();
-
-      if (s.includes('работает')) return 'status-green';
-      if (s.includes('уволен')) return 'status-red';
-      if (s.includes('не рассчитан')) return 'status-yellow';
-
-      return '';
-    }
-
-    function renderTeamStats(data) {
-      const content = document.getElementById('content');
-      if (!content) return;
-
-      const totals = data?.totals || {};
-      const averages = data?.averages || {};
-
-      content.innerHTML = `
-        <section class="hero-stats">
-          <div class="stat-card">
-            <div class="stat-value">${totals.total || 0}</div>
-            <div class="stat-label">Всего сотрудников</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-value">${totals.active || 0}</div>
-            <div class="stat-label">Работает</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-value">${totals.unpaid || 0}</div>
-            <div class="stat-label">Не рассчитан</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-value">${totals.onlyfans || 0}</div>
-            <div class="stat-label">OnlyFans</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-value">${totals.fansly || 0}</div>
-            <div class="stat-label">Fansly</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-value">${averages.experience_months || 0}</div>
-            <div class="stat-label">Средний опыт, мес.</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-value">${averages.work_days || 0}</div>
-            <div class="stat-label">Средний срок работы, дни</div>
-          </div>
-        </section>
-
-        <div id="teamCards" style="margin-top:18px;"></div>
-      `;
-    }
-
-    async function loadTeamStatsPage() {
-      const content = document.getElementById('content');
-
-      try {
-        if (content) {
-          content.innerHTML = `<div class="loading">Загружаем страницу действующие...</div>`;
-        }
-
-        const res = await cachedApi('/api/team-stats');
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          throw new Error(data.error || 'Не удалось загрузить страницу действующие');
-        }
-
-        currentTeamStatsData = data || {};
-
-        allCrmItems = (Array.isArray(data.items) ? data.items : [])
-          .map(item => ({
-            ...item,
-            row_number: Number(item.row_number),
-            name: item.name || '',
-            telegram: item.telegram || item.tg || item.username || '',
-            tg: item.tg || '',
-            username: item.username || '',
-            status: item.status || '',
-            platform: item.platform || '',
-            model: item.model || item.raw?.['Модели (основные)'] || '',
-            experience_months: item.experience_months || '',
-            work_days: item.work_days || '',
-            transactionEnding: item.transactionEnding || '',
-            raw: item.raw || {}
-          }))
-          .filter(item => TEAM_VISIBLE_STATUSES.has(String(item.status || '').trim()));
-
-        renderTeamStats(currentTeamStatsData);
-        rerenderCrmPage();
-      } catch (err) {
-        console.error('loadTeamStatsPage error:', err);
-        if (content) {
-          content.innerHTML = `<div class="error-box">${err.message || 'Не удалось загрузить страницу действующие'}</div>`;
-        }
+    async function loadStatusOptions() {
+      const res = await fetch(window.AllStarsConfig?.resolveApiPath?.('/api/status-options') || '/api/status-options', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        STATUS_OPTIONS = Array.isArray(data.team) ? data.team : [];
+        updateStatusFilter();
       }
     }
 
-    document.getElementById('refreshBtn')?.addEventListener('click', loadTeamStatsPage);
+    function updateStatusFilter() {
+      const select = document.getElementById('filterStatus');
+      if (!select) return;
+      
+      const currentValue = select.value;
+      select.innerHTML = '<option value="">��� �������</option>' + 
+        STATUS_OPTIONS.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+      select.value = currentValue;
+    }
 
-    async function initTeamDashboardPage() {
+    function getStatusClass(status) {
+      const s = String(status || '').toLowerCase();
+      if (s.includes('��������') || s.includes('��������')) return 'work';
+      if (s.includes('���� ����')) return 'test';
+      if (s.includes('���� �������') || s.includes('���� ��������')) return 'waiting';
+      if (s.includes('������') || s.includes('������') || s.includes('�����') || s.includes('�����')) return 'archive';
+      if (s.includes('�������')) return 'guide';
+      return '';
+    }
+
+    function getRowStatusClass(status) {
+      const cls = getStatusClass(status);
+      return cls ? `row-status-${cls}` : '';
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '�';
+      try {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('ru-RU');
+      } catch {
+        return dateStr;
+      }
+    }
+
+    function getFieldValue(item, field) {
+      switch (field) {
+        case 'dateAdded': return item.raw?.[0] || '';
+        case 'status': return item.status || '';
+        case 'platform': return item.platform || '';
+        case 'name': return item.name || '';
+        case 'telegram': return item.telegram || '';
+        case 'experience': return item.experience_months || '';
+        case 'shifts': return item.raw?.[10] || '';
+        case 'models': return item.model || item.raw?.[11] || '';
+        case 'workDays': return item.work_days || '';
+        case 'startDate': return item.raw?.[9] || '';
+        case 'endDate': return item.raw?.[14] || '';
+        case 'teamLeadComment': return item.raw?.[16] || '';
+        case 'notes': return item.raw?.[36] || '';
+        case 'plan': return item.raw?.[37] || '';
+        default: return '';
+      }
+    }
+
+    function applyFilters() {
+      const search = document.getElementById('tableSearch')?.value?.toLowerCase() || '';
+      const statusFilter = document.getElementById('filterStatus')?.value || '';
+      const includeArchive = document.getElementById('filterArchive')?.checked || false;
+
+      filteredItems = allItems.filter(item => {
+        if (!includeArchive) {
+          const s = String(item.status || '').toLowerCase();
+          if (s.includes('������') || s.includes('������') || s.includes('�����') || s.includes('�����') || s.includes('�� ���������')) {
+            return false;
+          }
+        }
+
+        if (statusFilter && item.status !== statusFilter) return false;
+
+        if (search) {
+          const hay = [
+            item.name,
+            item.telegram,
+            item.status,
+            item.platform,
+            item.model
+          ].join(' ').toLowerCase();
+          if (!hay.includes(search)) return false;
+        }
+
+        return true;
+      });
+
+      sortItems();
+      updateStats();
+      renderTable();
+    }
+
+    function sortItems() {
+      const field = currentSort.field;
+      const direction = currentSort.direction === 'asc' ? 1 : -1;
+
+      filteredItems.sort((a, b) => {
+        let aVal = getFieldValue(a, field);
+        let bVal = getFieldValue(b, field);
+
+        if (!isNaN(aVal) && !isNaN(bVal)) {
+          aVal = Number(aVal);
+          bVal = Number(bVal);
+        } else {
+          aVal = String(aVal).toLowerCase();
+          bVal = String(bVal).toLowerCase();
+        }
+
+        if (aVal < bVal) return -direction;
+        if (aVal > bVal) return direction;
+        return 0;
+      });
+    }
+
+    function updateStats() {
+      const total = filteredItems.length;
+      const work = filteredItems.filter(i => getStatusClass(i.status) === 'work').length;
+      const of = filteredItems.filter(i => String(i.platform || '').toLowerCase().includes('onlyfans')).length;
+      const fansly = filteredItems.filter(i => String(i.platform || '').toLowerCase().includes('fansly')).length;
+      const test = filteredItems.filter(i => getStatusClass(i.status) === 'test').length;
+      const archive = filteredItems.filter(i => getStatusClass(i.status) === 'archive').length;
+
+      document.getElementById('stat-total').textContent = total;
+      document.getElementById('stat-work').textContent = work;
+      document.getElementById('stat-of').textContent = of;
+      document.getElementById('stat-fansly').textContent = fansly;
+      document.getElementById('stat-test').textContent = test;
+      document.getElementById('stat-archive').textContent = archive;
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('tableBody');
+      if (!tbody) return;
+
+      if (!filteredItems.length) {
+        tbody.innerHTML = '<tr><td colspan="14" style="text-align: center; padding: 20px;">��� ������</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filteredItems.map(item => `
+        <tr class="${getRowStatusClass(item.status)}">
+          <td>${formatDate(getFieldValue(item, 'dateAdded'))}</td>
+          <td><span class="cell-status ${getStatusClass(item.status)}">${escapeHtml(item.status)}</span></td>
+          <td>${escapeHtml(item.platform)}</td>
+          <td><strong>${escapeHtml(item.name)}</strong></td>
+          <td><a href="https://t.me/${escapeHtml((item.telegram || '').replace(/^@/, ''))}" target="_blank" style="color: var(--accent2);">${escapeHtml(item.telegram)}</a></td>
+          <td>${getFieldValue(item, 'experience')}</td>
+          <td>${escapeHtml(getFieldValue(item, 'shifts'))}</td>
+          <td>${escapeHtml(getFieldValue(item, 'models'))}</td>
+          <td>${getFieldValue(item, 'workDays')}</td>
+          <td>${formatDate(getFieldValue(item, 'startDate'))}</td>
+          <td>${formatDate(getFieldValue(item, 'endDate'))}</td>
+          <td>${escapeHtml(getFieldValue(item, 'teamLeadComment'))}</td>
+          <td>${escapeHtml(getFieldValue(item, 'notes'))}</td>
+          <td>${escapeHtml(getFieldValue(item, 'plan'))}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadTeamData() {
+      const res = await fetch(window.AllStarsConfig?.resolveApiPath?.('/api/team-stats') || '/api/team-stats', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && Array.isArray(data.items)) {
+        allItems = data.items.map(item => ({
+          ...item,
+          row_number: Number(item.row_number),
+          name: item.name || '',
+          telegram: item.telegram || item.tg || item.username || '',
+          status: item.status || '',
+          platform: item.platform || '',
+          model: item.model || '',
+          experience_months: item.experience_months || '',
+          work_days: item.work_days || '',
+          raw: item.raw || {}
+        }));
+        
+        allCrmItems = allItems;
+        document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('ru-RU');
+        applyFilters();
+      }
+    }
+
+    document.getElementById('tableSearch')?.addEventListener('input', () => applyFilters());
+    document.getElementById('filterStatus')?.addEventListener('change', () => applyFilters());
+    document.getElementById('filterArchive')?.addEventListener('change', () => applyFilters());
+    document.getElementById('refreshTableBtn')?.addEventListener('click', loadTeamData);
+
+    document.querySelectorAll('th.sortable').forEach(th => {
+      th.addEventListener('click', () => {
+        const field = th.dataset.field;
+        if (currentSort.field === field) {
+          currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+          currentSort.field = field;
+          currentSort.direction = 'asc';
+        }
+
+        document.querySelectorAll('th').forEach(h => {
+          h.classList.remove('sorted-asc', 'sorted-desc');
+        });
+        th.classList.add(`sorted-${currentSort.direction}`);
+
+        sortItems();
+        renderTable();
+      });
+    });
+
+    // CRM Functions for backward compatibility with existing code
+    const CRM_STATUS_GROUPS = [
+      { key: '������� ����',    label: '������� ����',    values: ['������� ����'] },
+      { key: '���� ����',       label: '���� ����',       values: ['���� ����'] },
+      { key: '��������',        label: '��������',        values: ['��������'] },
+    ];
+
+    const crmFilters = { q: '', pipeline: '', platform: '', models: [] };
+
+    function normalizeModelToken(value) {
+      return String(value || '').trim().toLowerCase();
+    }
+
+    function getItemModels(item) {
+      const model = item.model || item.raw?.['������ (��������)'] || '';
+      return model ? [model] : [];
+    }
+
+    function renderPipelineBlock(items) {
+      const el = document.getElementById('pipeline');
+      if (!el) return;
+      el.innerHTML = '';
+    }
+
+    function renderModelFilters(items) {
+      const metricsEl = document.getElementById('modelFilters');
+      if (!metricsEl) return;
+      metricsEl.innerHTML = '';
+    }
+
+    function setCrmPipeline(key) {
+      crmFilters.pipeline = crmFilters.pipeline === key ? '' : key;
+    }
+
+    function setCrmPlatform(platform) {
+      crmFilters.platform = crmFilters.platform === platform ? '' : platform;
+    }
+
+    function setCrmModel(model) {
+      // No-op for compatibility
+    }
+
+    function closePipelineHint() {
+      const el = document.getElementById('pipelineHint');
+      if (el) el.remove();
+    }
+
+    window.setCrmPipeline = setCrmPipeline;
+    window.setCrmPlatform = setCrmPlatform;
+    window.setCrmModel = setCrmModel;
+    window.closePipelineHint = closePipelineHint;
+
+    function applyToolsPanelCollapsed(collapsed) {
+      const toolsCard = document.getElementById('toolsCard');
+      const toggleBtn = document.getElementById('toggleToolsBtn');
+      if (!toolsCard || !toggleBtn) return;
+
+      toolsCard.classList.toggle('collapsed', Boolean(collapsed));
+      toggleBtn.textContent = collapsed ? '���������� �������' : '�������� �������';
+    }
+
+    function toggleToolsPanel() {
+      const toolsCard = document.getElementById('toolsCard');
+      if (!toolsCard) return;
+
+      const collapsed = !toolsCard.classList.contains('collapsed');
+      localStorage.setItem(toolsCollapseStorageKey, collapsed ? '1' : '0');
+      applyToolsPanelCollapsed(collapsed);
+    }
+
+    window.toggleToolsPanel = toggleToolsPanel;
+
+    async function initPage() {
       applyToolsPanelCollapsed(localStorage.getItem(toolsCollapseStorageKey) === '1');
       await loadStatusOptions();
-      await loadTeamStatsPage();
-      initPipelineHint();
-      window.AllStarsRealtime?.subscribe(() => loadTeamStatsPage());
+      await loadTeamData();
+      window.AllStarsRealtime?.subscribe(() => loadTeamData());
     }
 
-    initTeamDashboardPage().catch(err => {
+    initPage().catch(err => {
       console.error(err);
-      content.innerHTML = `<div class="error-box">${err.message || 'Ошибка загрузки статистики команды'}</div>`;
     });
-
-    let currentStatusMembers = [];
-    let currentStatusName = '';
-    let filteredStatusMembers = [];
-    let visibleStatusMembersCount = 40;
-    const STATUS_MEMBERS_PAGE_SIZE = 40;
-    window.__teamMemberSearchQuery = '';
-
-    async function openStatusMembers(statusName) {
-      const modal = document.getElementById('statusModal');
-      const title = document.getElementById('statusModalTitle');
-      const body = document.getElementById('statusModalBody');
-
-      currentStatusName = statusName;
-      currentStatusMembers = [];
-
-      title.textContent = `Статус: ${statusName}`;
-      body.innerHTML = `<div class="loading">Загружаем список...</div>`;
-      modal.classList.add('show');
-
-      const res = await api(`/api/team-status-members?status=${encodeURIComponent(statusName)}`);
-      const data = await res.json().catch(() => []);
-
-      if (!res.ok) {
-        body.innerHTML = `<div class="error-box">Не удалось загрузить список</div>`;
-        return;
-      }
-
-      currentStatusMembers = Array.isArray(data) ? data : [];
-      filteredStatusMembers = [...currentStatusMembers];
-      visibleStatusMembersCount = STATUS_MEMBERS_PAGE_SIZE;
-      window.__teamMemberSearchQuery = '';
-      renderStatusMembersList(filteredStatusMembers);
-    }
-
-    function getPlatformBadge(platformValue) {
-      const platform = String(platformValue || '').toLowerCase();
-
-      if (platform.includes('onlyfans')) {
-        return `<span class="badge-platform badge-of">OnlyFans</span>`;
-      }
-
-      if (platform.includes('fansly')) {
-        return `<span class="badge-platform badge-fansly">Fansly</span>`;
-      }
-
-      return '';
-    }
-
-    function renderStatusMembersList(list) {
-      const body = document.getElementById('statusModalBody');
-      if (!body) return;
-
-      const safeList = Array.isArray(list) ? list : [];
-      const visibleList = safeList.slice(0, visibleStatusMembersCount);
-      const hasMore = safeList.length > visibleStatusMembersCount;
-
-      if (!safeList.length) {
-        body.innerHTML = `
-          <div class="modal-toolbar">
-            <input class="modal-search" id="memberSearchInput" placeholder="Поиск по имени или Telegram..." oninput="debouncedFilterStatusMembers()" />
-            <div class="modal-toolbar-actions">
-              <button class="modal-btn" type="button" onclick="copyStatusTelegrams()">Скопировать Telegram</button>
-            </div>
-          </div>
-          <div class="modal-empty">По этому статусу никого не найдено</div>
-        `;
-        return;
-      }
-
-      body.innerHTML = `
-        <div class="modal-toolbar">
-          <input
-            class="modal-search"
-            id="memberSearchInput"
-            placeholder="Поиск по имени или Telegram..."
-            oninput="debouncedFilterStatusMembers()"
-          />
-          <div class="modal-toolbar-actions">
-            <button class="modal-btn" type="button" onclick="copyStatusTelegrams()">Скопировать Telegram</button>
-          </div>
-        </div>
-
-        <div class="modal-meta-line">
-          Найдено: ${safeList.length} · Показано: ${visibleList.length}
-        </div>
-
-        <div class="member-grid">
-          ${visibleList.map(person => {
-            const platform = String(person.platform || '').toLowerCase();
-
-            let platformBadge = '';
-
-            if (platform.includes('onlyfans')) {
-              platformBadge = `<span class="badge-platform badge-of">OnlyFans</span>`;
-            } else if (platform.includes('fansly')) {
-              platformBadge = `<span class="badge-platform badge-fansly">Fansly</span>`;
-            }
-
-            return `
-              <div class="member-card ${getTeamCardVisualClass(person)}" ${canOpenMemberCard(person) ? `onclick="openMemberEditorByRow(${person.row_number})"` : ''}>
-                <div class="member-name">
-                  ${person.name || 'Без имени'}
-                  ${platformBadge}
-                </div>
-
-                <div class="member-meta">
-                  <div class="member-row">
-                    <span class="member-label">Telegram</span>
-                    <span class="member-value">${person.telegram || '—'}</span>
-                  </div>
-
-                  <div class="member-row">
-                    <span class="member-label">Дата старта</span>
-                    <span class="member-value">${person.start_date || '—'}</span>
-                  </div>
-
-                  <div class="member-row">
-                    <span class="member-label">Срок работы</span>
-                    <span class="member-value">${person.work_days || '—'} дней</span>
-                  </div>
-
-                  ${!isSheetBackedItem(person)
-                    ? `<div class="crm-hint" style="margin-top:8px;">Источник: CRM</div>`
-                    : ''}
-                </div>
-              </div>
-            `;
-          }).join('')}
-        </div>
-
-        ${
-          hasMore
-            ? `
-              <div style="display:flex; justify-content:center; margin-top:16px;">
-                <button class="modal-btn" type="button" onclick="showMoreStatusMembers()">
-                  Показать ещё
-                </button>
-              </div>
-            `
-            : ''
-        }
-      `;
-
-      const inputAfterRender = document.getElementById('memberSearchInput');
-      const previousQuery = window.__teamMemberSearchQuery || '';
-      if (inputAfterRender) {
-        inputAfterRender.value = previousQuery;
-      }
-    }
-
-    let memberSearchTimer = null;
-
-    function debouncedFilterStatusMembers() {
-      clearTimeout(memberSearchTimer);
-      memberSearchTimer = setTimeout(() => {
-        filterStatusMembers();
-      }, 180);
-    }
-
-    function filterStatusMembers() {
-      const input = document.getElementById('memberSearchInput');
-      const q = String(input?.value || '').trim().toLowerCase();
-
-      window.__teamMemberSearchQuery = q;
-
-      if (!q) {
-        filteredStatusMembers = [...currentStatusMembers];
-        visibleStatusMembersCount = STATUS_MEMBERS_PAGE_SIZE;
-        renderStatusMembersList(filteredStatusMembers);
-        return;
-      }
-
-      filteredStatusMembers = currentStatusMembers.filter(person => {
-        const hay = [
-          person.name,
-          person.telegram,
-          person.platform,
-          person.start_date,
-          person.work_days
-        ].join(' ').toLowerCase();
-
-        return hay.includes(q);
-      });
-
-      visibleStatusMembersCount = STATUS_MEMBERS_PAGE_SIZE;
-      renderStatusMembersList(filteredStatusMembers);
-    }
-
-    function showMoreStatusMembers() {
-      visibleStatusMembersCount += STATUS_MEMBERS_PAGE_SIZE;
-      renderStatusMembersList(filteredStatusMembers);
-    }
-
-    async function copyStatusTelegrams() {
-      const items = currentStatusMembers
-        .map(x => String(x.telegram || '').trim())
-        .filter(Boolean);
-
-      if (!items.length) {
-        alert('В этом списке нет Telegram для копирования');
-        return;
-      }
-
-      const text = items.join('\n');
-
-      try {
-        await navigator.clipboard.writeText(text);
-        alert(`Скопировано Telegram: ${items.length}`);
-      } catch (err) {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        alert(`Скопировано Telegram: ${items.length}`);
-      }
-    }
-
-    function closeStatusModal(event) {
-      if (event.target.id === 'statusModal') {
-        document.getElementById('statusModal').classList.remove('show');
-      }
-    }
-
-    function forceCloseStatusModal() {
-      document.getElementById('statusModal').classList.remove('show');
-    }
-
-    async function openTransactionEndingModal() {
-      const modal = document.getElementById('transactionEndingModal');
-      const body = document.getElementById('transactionEndingModalBody');
-
-      body.innerHTML = `<div class="loading">Загружаем центы...</div>`;
-      modal.classList.add('show');
-
-      const res = await api('/api/team-transaction-endings');
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        body.innerHTML = `<div class="error-box">${data.error || 'Не удалось загрузить центы'}</div>`;
-        return;
-      }
-
-      const used = Array.isArray(data.used) ? data.used : [];
-
-      body.innerHTML = `
-        <div class="tx-summary">
-          <div class="tx-box">
-            <div class="tx-box-k">Занято</div>
-            <div class="tx-box-v">${data.used_count || 0}</div>
-          </div>
-          <div class="tx-box">
-            <div class="tx-box-k">Свободно</div>
-            <div class="tx-box-v">${data.free_count || 0}</div>
-          </div>
-        </div>
-
-        ${
-          used.length
-            ? `
-              <div class="tx-list">
-                ${used.map(item => `
-                  <div class="tx-item">
-                    <div class="tx-item-head">
-                      <div class="tx-name">${item.assigned_to || item.name || 'Без имени'}</div>
-                      <div class="tx-value-badge">${item.ending}</div>
-                    </div>
-
-                    <div class="tx-meta">
-                      <div><strong>Ending:</strong> ${item.ending_raw || item.ending}</div>
-                    </div>
-
-                    <button
-                      class="tx-clear-btn"
-                      type="button"
-                      onclick="clearTransactionEnding(${item.ending})"
-                    >
-                      Удалить цент
-                    </button>
-                  </div>
-                `).join('')}
-              </div>
-            `
-            : `<div class="empty">Сейчас нет занятых ending</div>`
-        }
-      `;
-    }
-
-    async function clearTransactionEnding(ending) {
-      if (!confirm('Удалить цент у этого сотрудника?')) return;
-
-      const res = await api('/api/team-transaction-endings/clear', {
-        method: 'PATCH',
-        body: JSON.stringify({ ending: Number(ending) })
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        alert(data.error || 'Не удалось удалить цент');
-        return;
-      }
-
-      await loadUsedTransactionEndings();
-      await loadAllCrmMembers();
-      await openTransactionEndingModal();
-    }
-
-    function closeTransactionEndingModal(event) {
-      if (event.target.id === 'transactionEndingModal') {
-        forceCloseTransactionEndingModal();
-      }
-    }
-
-    function forceCloseTransactionEndingModal() {
-      document.getElementById('transactionEndingModal').classList.remove('show');
-    }
-
-    window.openStatusMembers = openStatusMembers;
-    window.closeStatusModal = closeStatusModal;
-    window.forceCloseStatusModal = forceCloseStatusModal;
-    window.filterStatusMembers = filterStatusMembers;
-    window.copyStatusTelegrams = copyStatusTelegrams;
-    window.showMoreStatusMembers = showMoreStatusMembers;
-
-    const TEAM_FIELD_OPTIONS = {
-      'Актуальный статус кандидата (Hr)': [
-        'Работает',
-        'Ожидание старта',
-        'Верификация',
-        'Ждет тест',
-        'Изучает гайд',
-        'Хочу взять',
-        'Ждет собеседования',
-        'Лист ожидания',
-        'Уволен',
-        'Не рассчитан',
-        'Нет ответа',
-        'Убрать'
-      ],
-
-      'OnlyFans / Fansly': [
-        'OnlyFans',
-        'Fansly',
-        'KM'
-      ],
-
-      'Модели (основные)': [
-        'Alyaska',
-        'Judy',
-        'Riley',
-        'Sofia',
-        'Eva',
-        'Alyaska 3',
-        'Ivanka',
-        'Ivy',
-        'Луна',
-        'Киана',
-        'Sia',
-        'Kate'
-      ],
-
-      'Актуальная модель': [
-        'Alyaska',
-        'Judy',
-        'Riley',
-        'Sofia',
-        'Eva',
-        'Alyaska 3',
-        'Ivanka',
-        'Ivy',
-        'Луна',
-        'Киана',
-        'Sia',
-        'Kate'
-      ],
-
-      'Смены (основные)': [
-        '00-06',
-        '06-12',
-        '12-18',
-        '18-00'
-      ],
-
-      'Верификация (HR)': [
-        'Требуется',
-        'Написал',
-        'Пройдена'
-      ],
-
-      'Соглашение (NDA)': [
-        'Требуется',
-        'Ожидание',
-        'Подписано'
-      ],
-
-      'Доступы Notion': [
-        'Отсутствуют',
-        'Гайд OnlyFans',
-        'Гайд Fansly',
-        'Все доступы OnlyFans',
-        'Все доступы Fansly',
-        'Все доступы'
-      ]
-    };
-
-    const TEAM_MULTISELECT_FIELDS = new Set([
-      'Модели (основные)'
-    ]);
-
-    const TEAM_BOOLEAN_FIELDS = new Set([
-      'Transaction ending (есть/нет в табл.)@dvedenis',
-      'Доступы CRM',
-      'Доступ к табличке с расписанием OF',
-      'Доступ к Telegram чатам OF',
-      'Доступ к табличке с расписанием Fansly',
-      'Доступ к Telegram чатам Fansly',
-      'Замены (да/нет)'
-    ]);
-
-    function normalizeTeamLabel(label) {
-      return String(label || '').trim().replace(/\s+/g, ' ');
-    }
-
-    function getTeamFieldOptions(label) {
-      const normalized = normalizeTeamLabel(label);
-
-      if (normalized === 'Актуальный статус кандидата (Hr)') {
-        return STATUS_OPTIONS;
-      }
-
-      return TEAM_FIELD_OPTIONS[normalized] || null;
-    }
-
-    function isTeamBooleanField(label) {
-      const normalized = normalizeTeamLabel(label);
-      return TEAM_BOOLEAN_FIELDS.has(normalized);
-    }
-
-    function isTeamMultiselectField(label) {
-      return TEAM_MULTISELECT_FIELDS.has(normalizeTeamLabel(label));
-    }
-
-    function isTransactionEndingField(label) {
-      const normalized = normalizeTeamLabel(label).toLowerCase();
-      return normalized === 'transaction ending' || normalized === 'transaction ending (есть/нет в табл.)@dvedenis';
-    }
-
-    async function loadUsedTransactionEndings() {
-      try {
-        const res = await api('/api/team-transaction-endings');
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          usedTransactionEndings = [];
-          return;
-        }
-
-        usedTransactionEndings = Array.isArray(data.used) ? data.used : [];
-      } catch (err) {
-        usedTransactionEndings = [];
-      }
-    }
-
-    function getFreeTransactionEndingCount(currentRowNumber, currentValue) {
-      const currentNumeric = /^\d+$/.test(String(currentValue || '').trim())
-        ? Number(currentValue)
-        : null;
-
-      const currentAssigned = usedTransactionEndings.find(
-        item => Number(item.assigned_row_number) === Number(currentRowNumber)
-      );
-
-      const usedSet = new Set(
-        usedTransactionEndings
-          .map(item => Number(item.ending))
-          .filter(n => Number.isInteger(n) && n >= 1 && n <= 99)
-      );
-
-      let freeCount = 0;
-      for (let i = 1; i <= 99; i++) {
-        if (!usedSet.has(i) || i === currentNumeric || i === Number(currentAssigned?.ending)) freeCount++;
-      }
-      return freeCount;
-    }
-
-    function getFreeTransactionEndingValues(currentRowNumber, currentValue) {
-      const currentNumeric = /^\d+$/.test(String(currentValue || '').trim())
-        ? Number(currentValue)
-        : null;
-
-      const currentAssigned = usedTransactionEndings.find(
-        item => Number(item.assigned_row_number) === Number(currentRowNumber)
-      );
-
-      const usedSet = new Set(
-        usedTransactionEndings
-          .map(item => Number(item.ending))
-          .filter(n => Number.isInteger(n) && n >= 1 && n <= 99)
-      );
-
-      const result = [];
-      for (let i = 1; i <= 99; i++) {
-        if (!usedSet.has(i) || i === currentNumeric || i === Number(currentAssigned?.ending)) result.push(i);
-      }
-      return result;
-    }
-
-    function getFieldValueByLabel(label) {
-      const found = currentMemberFields.find(field => normalizeTeamLabel(field.label) === normalizeTeamLabel(label));
-      return found ? found.value : '';
-    }
-
-    function splitMultiValue(value) {
-      return String(value || '')
-        .split(',')
-        .map(x => x.trim())
-        .filter(Boolean);
-    }
-
-    function joinMultiValue(values) {
-      return (Array.isArray(values) ? values : [])
-        .map(x => String(x || '').trim())
-        .filter(Boolean)
-        .join(', ');
-    }
-
-    function booleanFromCellValue(value) {
-      const s = String(value || '').trim().toLowerCase();
-      return ['true', '1', 'yes', 'y', 'да', 'есть'].includes(s);
-    }
-
-    function booleanToCellValue(checked) {
-      return checked ? 'TRUE' : '';
-    }
-
-    function getOptionChipClass(fieldLabel, value) {
-      const label = normalizeTeamLabel(fieldLabel).toLowerCase();
-      const v = String(value || '').trim().toLowerCase();
-
-      if (label.includes('модели')) {
-        if (v === 'alyaska') return 'chip-blue';
-        if (v === 'judy') return 'chip-yellow';
-        if (v === 'riley') return 'chip-green';
-        if (v === 'sofia') return 'chip-purple';
-        if (v === 'eva') return 'chip-neutral';
-        if (v === 'alyaska 3') return 'chip-blue';
-        if (v === 'ivanka') return 'chip-neutral';
-        if (v === 'ivy') return 'chip-red';
-        if (v === 'луна') return 'chip-green';
-        if (v === 'киана') return 'chip-blue';
-        if (v === 'sia') return 'chip-purple';
-        if (v === 'kate') return 'chip-neutral';
-        return 'chip-blue';
-      }
-
-      if (label.includes('модель')) {
-        return 'chip-blue';
-      }
-
-      if (label === 'актуальный статус кандидата (hr)') {
-        if (v.includes('работает')) return 'chip-green';
-        if (v.includes('ожидание старта')) return 'chip-yellow';
-        if (v.includes('верификация')) return 'chip-blue';
-        if (v.includes('ждет тест')) return 'chip-yellow';
-        if (v.includes('изучает гайд')) return 'chip-blue';
-        if (v.includes('хочу взять')) return 'chip-purple';
-        if (v.includes('ждет собеседования')) return 'chip-orange';
-        if (v.includes('лист ожидания')) return 'chip-neutral';
-        if (v.includes('уволен')) return 'chip-red';
-        if (v.includes('не рассчитан')) return 'chip-red';
-        if (v.includes('нет ответа')) return 'chip-red';
-        if (v.includes('убрать')) return 'chip-red';
-      }
-
-      if (label === 'onlyfans / fansly') {
-        if (v.includes('onlyfans')) return 'chip-blue';
-        if (v.includes('fansly')) return 'chip-purple';
-        return 'chip-yellow';
-      }
-
-      if (label === 'верификация (hr)' || label === 'соглашение (nda)') {
-        if (v.includes('пройдена') || v.includes('подписано')) return 'chip-green';
-        if (v.includes('требуется')) return 'chip-red';
-        return 'chip-yellow';
-      }
-
-      if (label === 'доступы notion') {
-        if (v.includes('отсутств')) return 'chip-red';
-        if (v.includes('все доступы')) return 'chip-green';
-        return 'chip-yellow';
-      }
-
-      if (label === 'смены (основные)') {
-        return 'chip-blue';
-      }
-
-      return 'chip-neutral';
-    }
-
-    function toggleEditorDropdown(event) {
-      event.stopPropagation();
-
-      const dropdown = event.currentTarget.closest('.editor-dropdown');
-      if (!dropdown) return;
-
-      document.querySelectorAll('.editor-dropdown.open').forEach(el => {
-        if (el !== dropdown) el.classList.remove('open');
-      });
-
-      dropdown.classList.toggle('open');
-    }
-
-    function selectEditorOption(event, fieldIndex, value) {
-      event.stopPropagation();
-
-      const dropdown = event.currentTarget.closest('.editor-dropdown');
-      if (!dropdown) return;
-
-      const field = currentMemberFields[fieldIndex];
-      if (!field) return;
-
-      dropdown.dataset.selectedValue = value;
-
-      const btn = dropdown.querySelector('.editor-dropdown-btn');
-      if (btn) {
-        btn.innerHTML = `
-          <span class="editor-chip ${getOptionChipClass(field.label, value)}">${value}</span>
-        `;
-      }
-
-      dropdown.querySelectorAll('.editor-option').forEach(opt => {
-        opt.classList.remove('active');
-      });
-
-      event.currentTarget.classList.add('active');
-      dropdown.classList.remove('open');
-      autosaveMemberEditor();
-    }
-
-    function toggleEditorMultiselect(event) {
-      event.stopPropagation();
-      const multiselect = event.currentTarget.closest('.editor-multiselect');
-      if (!multiselect) return;
-
-      document.querySelectorAll('.editor-multiselect.open').forEach(el => {
-        if (el !== multiselect) el.classList.remove('open');
-      });
-
-      multiselect.classList.toggle('open');
-    }
-
-    function toggleEditorMultiselectOption(event, fieldIndex, value) {
-      event.stopPropagation();
-
-      const multiselect = event.currentTarget.closest('.editor-multiselect');
-      if (!multiselect) return;
-
-      const field = currentMemberFields[fieldIndex];
-      if (!field) return;
-
-      const raw = multiselect.dataset.selectedValues || '';
-      const selected = raw ? raw.split('||').filter(Boolean) : [];
-
-      const nextValues = selected.includes(value)
-        ? selected.filter(x => x !== value)
-        : [...selected, value];
-
-      multiselect.dataset.selectedValues = nextValues.join('||');
-
-      const valuesWrap = multiselect.querySelector('.editor-multiselect-values');
-      if (valuesWrap) {
-        valuesWrap.innerHTML = nextValues.length
-          ? nextValues.map(opt => `
-              <span class="editor-chip ${getOptionChipClass(field.label, opt)}">${opt}</span>
-            `).join('')
-          : `<span class="editor-multiselect-placeholder">— выбрать модели —</span>`;
-      }
-
-      multiselect.querySelectorAll('.editor-option').forEach(optEl => {
-        const chip = optEl.querySelector('.editor-chip');
-        const text = chip ? chip.textContent.trim() : '';
-        optEl.classList.toggle('active', nextValues.includes(text));
-      });
-
-      autosaveMemberEditor();
-    }
-
-    document.addEventListener('click', () => {
-      document.querySelectorAll('.editor-dropdown.open').forEach(el => {
-        el.classList.remove('open');
-      });
-
-      document.querySelectorAll('.editor-multiselect.open').forEach(el => {
-        el.classList.remove('open');
-      });
-    });
-
-    let currentMemberEditorRow = null;
-    let currentMemberEditorItem = null;
-    let currentMemberFields = [];
-    let isCreatingMember = false;
-
-    // КЭШ КАРТОЧЕК ПО row_number
-    const memberEditorCache = new Map();
-
-    let usedTransactionEndings = [];
-
-    function isLongField(label) {
-      const s = String(label || '').toLowerCase();
-      return (
-        s.includes('комментар') ||
-        s.includes('пометки') ||
-        s.includes('причина') ||
-        s.includes('ссылка') ||
-        s.includes('доступ') ||
-        s.includes('логин') ||
-        s.includes('пароль')
-      );
-    }
-
-    function generateStrongPassword(length = 14) {
-      const lower = 'abcdefghijkmnopqrstuvwxyz';
-      const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-      const digits = '23456789';
-      const symbols = '!@#$%^&*-_=+?';
-      const all = lower + upper + digits + symbols;
-
-      const randomIndex = (max) => {
-        const arr = new Uint32Array(1);
-        crypto.getRandomValues(arr);
-        return arr[0] % max;
-      };
-
-      const picks = [
-        lower[randomIndex(lower.length)],
-        upper[randomIndex(upper.length)],
-        digits[randomIndex(digits.length)],
-        symbols[randomIndex(symbols.length)]
-      ];
-
-      while (picks.length < length) {
-        picks.push(all[randomIndex(all.length)]);
-      }
-
-      for (let i = picks.length - 1; i > 0; i--) {
-        const j = randomIndex(i + 1);
-        [picks[i], picks[j]] = [picks[j], picks[i]];
-      }
-
-      return picks.join('');
-    }
-
-    function isCrmPasswordField(label) {
-      return String(label || '').trim().toLowerCase() === 'пароль crm';
-    }
-
-    function renderMemberEditorForm(data) {
-      const overlay = document.getElementById('memberEditorOverlay');
-      const title = document.getElementById('memberEditorTitle');
-      const content = document.getElementById('memberEditorContent');
-      const createBtn = document.getElementById('memberEditorCreateBtn');
-      const statusEl = document.getElementById('memberEditorSaveStatus');
-
-      if (!overlay || !title || !content) return;
-
-      if (createBtn) createBtn.style.display = 'none';
-      setAutosaveStatus(statusEl, '');
-
-      currentMemberFields = Array.isArray(data.fields)
-        ? data.fields.map(field => ({ ...field }))
-        : [];
-
-      content.innerHTML = `
-        <div class="editor-grid">
-          ${currentMemberFields.map((field, idx) => {
-            const isMultiselect = isTeamMultiselectField(field.label);
-            const long = isLongField(field.label) || isMultiselect;
-            const transactionEndingOptions = isTransactionEndingField(field.label)
-              ? getFreeTransactionEndingValues(currentMemberEditorRow, field.value).map(v => String(v))
-              : null;
-            const options = transactionEndingOptions || getTeamFieldOptions(field.label);
-            const isBoolean = isTeamBooleanField(field.label);
-            const safeValue = String(field.value || '').replace(/"/g, '&quot;');
-
-            if (isMultiselect) {
-              return `
-                <div class="editor-field full">
-                  <div class="editor-label">${field.label}</div>
-                  <div
-                    class="editor-multiselect"
-                    data-field-index="${idx}"
-                    data-field-type="multiselect"
-                    data-selected-values="${splitMultiValue(field.value).join('||')}"
-                  >
-                    <button
-                      type="button"
-                      class="editor-multiselect-btn"
-                      onclick="toggleEditorMultiselect(event)"
-                    >
-                      <div class="editor-multiselect-values">
-                        ${
-                          splitMultiValue(field.value).length
-                            ? splitMultiValue(field.value).map(opt => `
-                                <span class="editor-chip ${getOptionChipClass(field.label, opt)}">${opt}</span>
-                              `).join('')
-                            : `<span class="editor-multiselect-placeholder">— выбрать модели —</span>`
-                        }
-                      </div>
-                    </button>
-
-                    <div class="editor-multiselect-menu">
-                      ${(options || []).map(opt => {
-                        const selected = splitMultiValue(field.value).includes(opt);
-                        return `
-                          <div
-                            class="editor-option ${selected ? 'active' : ''}"
-                            onclick="toggleEditorMultiselectOption(event, ${idx}, '${String(opt).replace(/'/g, "\\'")}')"
-                          >
-                            <span class="editor-chip ${getOptionChipClass(field.label, opt)}">${opt}</span>
-                            <span class="editor-option-check">✓</span>
-                          </div>
-                        `;
-                      }).join('')}
-                    </div>
-                  </div>
-                </div>
-              `;
-            }
-
-            if (isCrmPasswordField(field.label)) {
-              return `
-                <div class="editor-field ${long ? 'full' : ''}">
-                  <div class="editor-label">${field.label}</div>
-
-                  <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                    <input
-                      class="editor-input"
-                      id="member-field-${idx}"
-                      data-field-index="${idx}"
-                      data-field-type="text"
-                      value="${escapeHtml(field.value || '')}"
-                      style="flex:1; min-width:220px;"
-                    />
-
-                    <button
-                      type="button"
-                      class="password-gen-btn"
-                      onclick="event.stopPropagation(); generateCrmPasswordForField(${idx}, ${currentMemberEditorRow})"
-                    >
-                      Сгенерировать пароль
-                    </button>
-                  </div>
-                </div>
-              `;
-            }
-
-            return `
-              <div class="editor-field ${long ? 'full' : ''}">
-                <div class="editor-label">${field.label}</div>
-                ${
-                  isBoolean
-                    ? `
-                      <div class="editor-checkbox-wrap">
-                        <span class="editor-checkbox-label">Есть доступ</span>
-                        <input
-                          type="checkbox"
-                          class="editor-checkbox"
-                          data-field-index="${idx}"
-                          data-field-type="boolean"
-                          ${booleanFromCellValue(field.value) ? 'checked' : ''}
-                        >
-                      </div>
-                    `
-                    : options
-                      ? `
-                        <div
-                          class="editor-dropdown"
-                          data-field-index="${idx}"
-                          data-field-type="select"
-                          data-selected-value="${safeValue}"
-                        >
-                          <button
-                            type="button"
-                            class="editor-dropdown-btn"
-                            onclick="toggleEditorDropdown(event)"
-                          >
-                            <span class="editor-chip ${getOptionChipClass(field.label, field.value || '— выбрать —')}">
-                              ${field.value || '— выбрать —'}
-                            </span>
-                          </button>
-
-                          <div class="editor-dropdown-menu">
-                            ${options.map(opt => `
-                              <div
-                                class="editor-option ${String(field.value || '').trim() === String(opt).trim() ? 'active' : ''}"
-                                onclick="selectEditorOption(event, ${idx}, '${String(opt).replace(/'/g, "\\'")}')"
-                              >
-                                <span class="editor-chip ${getOptionChipClass(field.label, opt)}">${opt}</span>
-                                <span class="editor-option-check">✓</span>
-                              </div>
-                            `).join('')}
-                          </div>
-                        </div>
-                      `
-                      : long
-                        ? `<textarea class="editor-textarea" data-field-index="${idx}" data-field-type="text">${field.value || ''}</textarea>`
-                        : `<input class="editor-input" data-field-index="${idx}" data-field-type="text" value="${safeValue}">`
-                }
-              </div>
-            `;
-          }).join('')}
-        </div>
-      `;
-
-      bindMemberEditorAutosave();
-    }
-
-    async function openMemberEditorByRow(rowNumber) {
-      console.log('CLICK row_number =', rowNumber);
-
-      const item = allCrmItems.find(x => Number(x.row_number) === Number(rowNumber));
-      console.log('FRONT item =', item?.name, item?.row_number);
-
-      if (!item) {
-        alert('Сотрудник не найден');
-        return;
-      }
-
-      await openMemberEditor(item);
-    }
-
-    async function openMemberEditor(item) {
-      if (!item) return;
-
-      currentMemberEditorRow = Number(item.row_number);
-      currentMemberEditorItem = item;
-      isCreatingMember = false;
-
-      const overlay = document.getElementById('memberEditorOverlay');
-      const title = document.getElementById('memberEditorTitle');
-      const content = document.getElementById('memberEditorContent');
-      const createBtn = document.getElementById('memberEditorCreateBtn');
-      const statusEl = document.getElementById('memberEditorSaveStatus');
-
-      if (!overlay || !title || !content) return;
-
-      title.textContent = `Карточка сотрудника · строка ${item.row_number}`;
-      if (createBtn) createBtn.style.display = 'none';
-      setAutosaveStatus(statusEl, '');
-
-      overlay.classList.add('show');
-
-      const cacheKey = Number(item.row_number);
-      const cached = memberEditorCache.get(cacheKey);
-
-      if (cached) {
-        currentMemberFields = Array.isArray(cached.fields)
-          ? cached.fields.map(field => ({ ...field }))
-          : [];
-
-        renderMemberEditorForm(cached);
-      } else {
-        content.innerHTML = `<div class="loading">Загружаем данные...</div>`;
-      }
-
-      try {
-        console.log('REQUEST /api/team-member/', item.row_number);
-
-        const res = await api(`/api/team-member/${item.row_number}`);
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          if (!cached) {
-            const isCrmReadonly = !isSheetBackedItem(item);
-            if (isCrmReadonly) {
-              content.innerHTML = `
-                <div class="editor-grid">
-                  <div class="editor-field">
-                    <div class="editor-label">Имя</div>
-                    <div class="crm-hint" style="margin:0; font-size:13px; color:var(--text);">${escapeHtml(item.name || 'Без имени')}</div>
-                  </div>
-
-                  <div class="editor-field">
-                    <div class="editor-label">Telegram</div>
-                    <div class="crm-hint" style="margin:0; font-size:13px; color:var(--text);">${escapeHtml(item.telegram || item.tg || item.username || '—')}</div>
-                  </div>
-
-                  <div class="editor-field">
-                    <div class="editor-label">Статус</div>
-                    <div class="crm-hint" style="margin:0; font-size:13px; color:var(--text);">${escapeHtml(item.status || '—')}</div>
-                  </div>
-
-                  <div class="editor-field">
-                    <div class="editor-label">Платформа</div>
-                    <div class="crm-hint" style="margin:0; font-size:13px; color:var(--text);">${escapeHtml(item.platform || '—')}</div>
-                  </div>
-
-                  <div class="editor-field full">
-                    <div class="editor-label">Режим карточки</div>
-                    <div class="crm-hint" style="margin:0;">Источник: CRM. Карточка временно недоступна для редактирования (ошибка загрузки).</div>
-                  </div>
-                </div>
-              `;
-            } else {
-              content.innerHTML = `<div class="error-box">${data.error || 'Не удалось загрузить карточку сотрудника'}</div>`;
-            }
-          }
-          return;
-        }
-
-        memberEditorCache.set(cacheKey, data);
-
-        currentMemberFields = Array.isArray(data.fields)
-          ? data.fields.map(field => ({ ...field }))
-          : [];
-
-        console.log('API CARD DATA =', data);
-        renderMemberEditorForm(data);
-      } catch (err) {
-        console.error('openMemberEditor error:', err);
-        if (!cached) {
-          content.innerHTML = `<div class="error-box">Не удалось загрузить карточку сотрудника</div>`;
-        }
-      }
-    }
-
-    function updateMemberEditorCacheField(rowNumber, fieldLabel, nextValue) {
-      const key = Number(rowNumber);
-      const cached = memberEditorCache.get(key);
-      if (!cached || !Array.isArray(cached.fields)) return;
-
-      cached.fields = cached.fields.map(field =>
-        String(field.label || '').trim() === String(fieldLabel || '').trim()
-          ? { ...field, value: nextValue }
-          : field
-      );
-
-      memberEditorCache.set(key, cached);
-    }
-
-    function normalizeTeamFieldLabel(label) {
-      return String(label || '')
-        .trim()
-        .toLowerCase()
-        .replace(/ё/g, 'е')
-        .replace(/\s+/g, ' ');
-    }
-
-    function syncTeamListItemFromUpdates(rowNumber, updates) {
-      const item = allCrmItems.find(x => Number(x.row_number) === Number(rowNumber));
-      if (!item) return;
-
-      const mapLabelToKey = {
-        'имя': 'name',
-        'telegram': 'telegram',
-        'телеграм': 'telegram',
-        'тг': 'telegram',
-        'telegram / username': 'telegram',
-        'актуальный статус кандидата (hr)': 'status',
-        'статус': 'status',
-        'onlyfans / fansly': 'platform',
-        'transaction ending': 'transactionEnding',
-        'опыт, мес.': 'experience_months',
-        'срок работы, дни': 'work_days'
-      };
-
-      Object.entries(updates || {}).forEach(([label, value]) => {
-        const key = mapLabelToKey[normalizeTeamFieldLabel(label)];
-        if (key) {
-          item[key] = value;
-        }
-      });
-    }
-
-    async function openNewMemberEditor() {
-      isCreatingMember = true;
-      currentMemberEditorRow = null;
-      currentMemberEditorItem = null;
-
-      const overlay = document.getElementById('memberEditorOverlay');
-      const title = document.getElementById('memberEditorTitle');
-      const content = document.getElementById('memberEditorContent');
-      const createBtn = document.getElementById('memberEditorCreateBtn');
-      const statusEl = document.getElementById('memberEditorSaveStatus');
-
-      title.textContent = 'Новый сотрудник';
-      if (createBtn) createBtn.style.display = 'inline-flex';
-      setAutosaveStatus(statusEl, '');
-
-      currentMemberFields = [
-        { label: 'Имя', value: '' },
-        { label: 'Telegram', value: '' },
-        { label: 'OnlyFans / Fansly', value: '' },
-        { label: 'Актуальный статус кандидата (Hr)', value: '' },
-        { label: 'Опыт, мес.', value: '' },
-        { label: 'Смены (основные)', value: '' },
-        { label: 'Комментарий', value: '' }
-      ];
-
-      await loadUsedTransactionEndings();
-
-      content.innerHTML = `
-        <div class="editor-grid">
-          ${currentMemberFields.map((field, idx) => {
-            const isMultiselect = isTeamMultiselectField(field.label);
-            const long = isLongField(field.label) || isMultiselect;
-            const transactionEndingOptions = isTransactionEndingField(field.label)
-              ? getFreeTransactionEndingValues(currentMemberEditorRow, field.value).map(v => String(v))
-              : null;
-            const options = transactionEndingOptions || getTeamFieldOptions(field.label);
-            const isBoolean = isTeamBooleanField(field.label);
-
-            if (isMultiselect) {
-              return `
-                <div class="editor-field full">
-                  <div class="editor-label">${field.label}</div>
-                  <div
-                    class="editor-multiselect"
-                    data-field-index="${idx}"
-                    data-field-type="multiselect"
-                    data-selected-values="${splitMultiValue(field.value).join('||')}"
-                  >
-                    <button
-                      type="button"
-                      class="editor-multiselect-btn"
-                      onclick="toggleEditorMultiselect(event)"
-                    >
-                      <div class="editor-multiselect-values">
-                        ${
-                          splitMultiValue(field.value).length
-                            ? splitMultiValue(field.value).map(opt => `
-                                <span class="editor-chip ${getOptionChipClass(field.label, opt)}">${opt}</span>
-                              `).join('')
-                            : `<span class="editor-multiselect-placeholder">— выбрать модели —</span>`
-                        }
-                      </div>
-                    </button>
-
-                    <div class="editor-multiselect-menu">
-                      ${(options || []).map(opt => {
-                        const selected = splitMultiValue(field.value).includes(opt);
-                        return `
-                          <div
-                            class="editor-option ${selected ? 'active' : ''}"
-                            onclick="toggleEditorMultiselectOption(event, ${idx}, '${String(opt).replace(/'/g, "\\'")}')"
-                          >
-                            <span class="editor-chip ${getOptionChipClass(field.label, opt)}">${opt}</span>
-                            <span class="editor-option-check">✓</span>
-                          </div>
-                        `;
-                      }).join('')}
-                    </div>
-                  </div>
-                </div>
-              `;
-            }
-
-            return `
-              <div class="editor-field ${long ? 'full' : ''}">
-                <div class="editor-label">${field.label}</div>
-                ${
-                  isBoolean
-                    ? `
-                      <div class="editor-checkbox-wrap">
-                        <span class="editor-checkbox-label">Есть доступ</span>
-                        <input
-                          type="checkbox"
-                          class="editor-checkbox"
-                          data-field-index="${idx}"
-                          data-field-type="boolean"
-                        >
-                      </div>
-                    `
-                    : options
-                      ? `
-                        <div
-                          class="editor-dropdown"
-                          data-field-index="${idx}"
-                          data-field-type="select"
-                          data-selected-value=""
-                        >
-                          <button
-                            type="button"
-                            class="editor-dropdown-btn"
-                            onclick="toggleEditorDropdown(event)"
-                          >
-                            <span class="editor-chip chip-neutral">— выбрать —</span>
-                          </button>
-
-                          <div class="editor-dropdown-menu">
-                            ${options.map(opt => `
-                              <div
-                                class="editor-option"
-                                onclick="selectEditorOption(event, ${idx}, '${String(opt).replace(/'/g, "\\'")}')"
-                              >
-                                <span class="editor-chip ${getOptionChipClass(field.label, opt)}">${opt}</span>
-                                <span class="editor-option-check">✓</span>
-                              </div>
-                            `).join('')}
-                          </div>
-                        </div>
-                      `
-                      : long
-                        ? `<textarea class="editor-textarea" data-field-index="${idx}" data-field-type="text"></textarea>`
-                        : `<input class="editor-input" data-field-index="${idx}" data-field-type="text" value="">`
-            }
-          </div>
-        `;
-      }).join('')}
-        </div>
-      `;
-
-      overlay.classList.add('show');
-    }
-
-    async function generateCrmPasswordForField(fieldIndex, rowNumber) {
-      const input = document.getElementById(`member-field-${fieldIndex}`);
-      if (!input) return;
-
-      const newPassword = generateStrongPassword(14);
-      input.value = newPassword;
-
-      const statusEl = document.getElementById('memberEditorSaveStatus');
-      if (statusEl) {
-        statusEl.textContent = 'Сохранение...';
-        statusEl.className = 'autosave-status saving';
-      }
-
-      const field = currentMemberFields?.[fieldIndex];
-      if (!field) return;
-
-      const res = await api(`/api/team-member/${rowNumber}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          updates: {
-            [field.label]: newPassword
-          }
-        })
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        if (statusEl) {
-          statusEl.textContent = data.error || 'Ошибка';
-          statusEl.className = 'autosave-status err';
-        }
-        return;
-      }
-
-      if (field) {
-        field.value = newPassword;
-      }
-
-      updateMemberEditorCacheField(rowNumber, field.label, newPassword);
-      syncTeamListItemFromUpdates(rowNumber, { [field.label]: newPassword });
-      rerenderCrmPage();
-
-      const currentItem = findTeamMemberByRowNumber(rowNumber);
-      if (currentItem) {
-        currentItem[field.label] = newPassword;
-        currentMemberEditorItem = currentItem;
-      }
-
-      if (statusEl) {
-        statusEl.textContent = 'Сохранено';
-        statusEl.className = 'autosave-status ok';
-
-        setTimeout(() => {
-          statusEl.textContent = '';
-          statusEl.className = 'autosave-status';
-        }, 1200);
-      }
-    }
-    window.generateCrmPasswordForField = generateCrmPasswordForField;
-
-    function autosaveMemberEditor() {
-      if (!currentMemberEditorRow || isCreatingMember) return;
-
-      const statusEl = document.getElementById('memberEditorSaveStatus');
-      if (statusEl) setAutosaveStatus(statusEl, 'Сохранение...', 'saving');
-
-      queueAutosave(`member-editor-${currentMemberEditorRow}`, async () => {
-        const updates = {};
-
-        document.querySelectorAll('[data-field-index]').forEach(el => {
-          const idx = Number(el.dataset.fieldIndex);
-          const field = currentMemberFields[idx];
-          if (!field) return;
-
-          const fieldType = el.dataset.fieldType || 'text';
-
-          if (fieldType === 'boolean') {
-            updates[field.label] = booleanToCellValue(el.checked);
-            return;
-          }
-
-          if (fieldType === 'select') {
-            updates[field.label] = el.dataset.selectedValue || '';
-            return;
-          }
-
-          if (fieldType === 'multiselect') {
-            const raw = el.dataset.selectedValues || '';
-            const values = raw ? raw.split('||').filter(Boolean) : [];
-            updates[field.label] = joinMultiValue(values);
-            return;
-          }
-
-          updates[field.label] = el.value || '';
-        });
-
-        const res = await api(`/api/team-member/${currentMemberEditorRow}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ updates })
-        });
-
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          if (statusEl) setAutosaveStatus(statusEl, data.error || 'Ошибка', 'err');
-          return;
-        }
-
-        currentMemberFields = currentMemberFields.map(field => {
-          const next = Object.prototype.hasOwnProperty.call(updates, field.label)
-            ? updates[field.label]
-            : field.value;
-          return { ...field, value: next };
-        });
-
-        Object.entries(updates).forEach(([label, value]) => {
-          updateMemberEditorCacheField(currentMemberEditorRow, label, value);
-        });
-
-        syncTeamListItemFromUpdates(currentMemberEditorRow, updates);
-        rerenderCrmPage();
-
-        currentMemberEditorItem = findTeamMemberByRowNumber(currentMemberEditorRow) || currentMemberEditorItem;
-        if (document.getElementById('transactionEndingModal')?.classList.contains('show')) {
-          await openTransactionEndingModal();
-        }
-
-        if (statusEl) setAutosaveStatus(statusEl, 'Сохранено', 'ok');
-      }, 700);
-    }
-
-    function bindMemberEditorAutosave() {
-      document.querySelectorAll('[data-field-index]').forEach(el => {
-        const type = el.dataset.fieldType || 'text';
-        const eventName = type === 'text' ? 'input' : 'change';
-        el.addEventListener(eventName, autosaveMemberEditor);
-      });
-    }
-
-    async function saveMemberEditor() {
-      const updates = {};
-
-      document.querySelectorAll('[data-field-index]').forEach(el => {
-        const idx = Number(el.dataset.fieldIndex);
-        const field = currentMemberFields[idx];
-        if (!field) return;
-
-        const fieldType = el.dataset.fieldType || 'text';
-
-        if (fieldType === 'boolean') {
-          updates[field.label] = booleanToCellValue(el.checked);
-          return;
-        }
-
-        if (fieldType === 'multiselect') {
-          const raw = el.dataset.selectedValues || '';
-          const values = raw ? raw.split('||').filter(Boolean) : [];
-          updates[field.label] = joinMultiValue(values);
-          return;
-        }
-
-        if (fieldType === 'select') {
-          updates[field.label] = el.dataset.selectedValue || '';
-          return;
-        }
-
-        updates[field.label] = el.value;
-      });
-
-      let res;
-      if (isCreatingMember) {
-        res = await api('/api/team-member', {
-          method: 'POST',
-          body: JSON.stringify({ values: updates })
-        });
-      } else {
-        if (!currentMemberEditorRow) return;
-        res = await api(`/api/team-member/${currentMemberEditorRow}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ updates })
-        });
-      }
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        alert(data.error || 'Не удалось сохранить сотрудника');
-        return;
-      }
-
-      currentMemberFields = currentMemberFields.map(field => {
-        const next = Object.prototype.hasOwnProperty.call(updates, field.label)
-          ? updates[field.label]
-          : field.value;
-        return { ...field, value: next };
-      });
-
-      Object.entries(updates).forEach(([label, value]) => {
-        updateMemberEditorCacheField(currentMemberEditorRow, label, value);
-      });
-
-      syncTeamListItemFromUpdates(currentMemberEditorRow, updates);
-      rerenderCrmPage();
-
-      if (currentMemberEditorRow) {
-        const freshRes = await api(`/api/team-member/${currentMemberEditorRow}`);
-        const freshData = await freshRes.json().catch(() => ({}));
-
-        if (freshRes.ok) {
-          memberEditorCache.set(Number(currentMemberEditorRow), freshData);
-        }
-      }
-
-      currentMemberEditorItem = currentMemberEditorRow
-        ? findTeamMemberByRowNumber(currentMemberEditorRow)
-        : null;
-      if (document.getElementById('transactionEndingModal')?.classList.contains('show')) {
-        await openTransactionEndingModal();
-      }
-
-      alert('Сохранено');
-      forceCloseMemberEditor();
-      isCreatingMember = false;
-
-      if (currentStatusName) {
-        await openStatusMembers(currentStatusName);
-      }
-    }
-
-    function closeMemberEditor(event) {
-      if (event.target.id === 'memberEditorOverlay') {
-        document.getElementById('memberEditorOverlay').classList.remove('show');
-        currentMemberEditorRow = null;
-        currentMemberEditorItem = null;
-      }
-    }
-
-    function forceCloseMemberEditor() {
-      document.getElementById('memberEditorOverlay').classList.remove('show');
-      setAutosaveStatus(document.getElementById('memberEditorSaveStatus'), '');
-      isCreatingMember = false;
-      currentMemberEditorRow = null;
-      currentMemberEditorItem = null;
-    }
-
-    document.getElementById('addMemberBtn')?.addEventListener('click', openNewMemberEditor);
-    document.getElementById('transactionEndingBtn')?.addEventListener('click', openTransactionEndingModal);
-
-    window.findTeamMemberByRowNumber = findTeamMemberByRowNumber;
-    window.openMemberEditorByRow = openMemberEditorByRow;
-    window.openMemberEditor = openMemberEditor;
-    window.saveMemberEditor = saveMemberEditor;
-    window.closeMemberEditor = closeMemberEditor;
-    window.forceCloseMemberEditor = forceCloseMemberEditor;
-    window.toggleEditorDropdown = toggleEditorDropdown;
-    window.selectEditorOption = selectEditorOption;
-    window.toggleEditorMultiselect = toggleEditorMultiselect;
-    window.toggleEditorMultiselectOption = toggleEditorMultiselectOption;
-    window.debouncedFilterStatusMembers = debouncedFilterStatusMembers;
-    window.openTransactionEndingModal = openTransactionEndingModal;
-    window.clearTransactionEnding = clearTransactionEnding;
-    window.closeTransactionEndingModal = closeTransactionEndingModal;
-    window.forceCloseTransactionEndingModal = forceCloseTransactionEndingModal;
   </script>
   <script>
     (function () {
