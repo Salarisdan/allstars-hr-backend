@@ -575,14 +575,18 @@
       padding-left:31px;
     }
 
-    .q-note{
+    .q-note-wrap{
+      position:relative;
       margin-top:8px;
+    }
+
+    .q-note{
       width:100%;
       min-height:64px;
       background:rgba(0,0,0,.20);
       border:1px solid var(--border);
       border-radius:10px;
-      padding:.65rem;
+      padding:.65rem 2.6rem .65rem .65rem;
       color:var(--text);
       font-family:'Manrope',sans-serif;
       font-size:13px;
@@ -597,6 +601,90 @@
 
     .q-note::placeholder{
       color:var(--text3);
+    }
+
+    /* --- Быстрые чипы-оценки --- */
+    .q-fast-chips{
+      display:flex;
+      gap:8px;
+      margin-top:10px;
+      flex-wrap:wrap;
+    }
+
+    .q-chip{
+      display:inline-flex;
+      align-items:center;
+      gap:5px;
+      padding:7px 14px;
+      border-radius:20px;
+      border:1.5px solid transparent;
+      font-size:13px;
+      font-weight:600;
+      cursor:pointer;
+      transition:all .15s;
+      background:rgba(255,255,255,.06);
+      color:var(--text2);
+      user-select:none;
+    }
+
+    .q-chip:hover{ filter:brightness(1.2); }
+
+    .q-chip[data-val="ok"]{ border-color:rgba(52,211,153,.3); }
+    .q-chip[data-val="ok"].active{ background:rgba(52,211,153,.18); color:#34d399; border-color:#34d399; }
+
+    .q-chip[data-val="warn"]{ border-color:rgba(251,191,36,.3); }
+    .q-chip[data-val="warn"].active{ background:rgba(251,191,36,.18); color:#fbbf24; border-color:#fbbf24; }
+
+    .q-chip[data-val="bad"]{ border-color:rgba(239,68,68,.3); }
+    .q-chip[data-val="bad"].active{ background:rgba(239,68,68,.18); color:#f87171; border-color:#f87171; }
+
+    .q-note-toggle{
+      display:block;
+      margin-top:7px;
+      font-size:11.5px;
+      color:var(--text3);
+      cursor:pointer;
+      user-select:none;
+      text-decoration:underline dotted;
+    }
+    .q-note-toggle:hover{ color:var(--text2); }
+
+    .q-note-collapsible{ display:none; }
+    .q-note-collapsible.open{ display:block; }
+
+    .mic-btn{
+      position:absolute;
+      top:8px;
+      right:8px;
+      width:28px;
+      height:28px;
+      border-radius:50%;
+      border:none;
+      background:rgba(255,255,255,.07);
+      color:var(--text2);
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:14px;
+      transition:background .15s,color .15s;
+      flex-shrink:0;
+    }
+
+    .mic-btn:hover{
+      background:rgba(255,255,255,.14);
+      color:var(--text);
+    }
+
+    .mic-btn.recording{
+      background:rgba(239,68,68,.25);
+      color:#f87171;
+      animation:micpulse 1s ease-in-out infinite;
+    }
+
+    @keyframes micpulse{
+      0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.35);}
+      50%{box-shadow:0 0 0 6px rgba(239,68,68,.0);}
     }
 
     .note{
@@ -1384,13 +1472,20 @@
               <div class="section-num">1</div>
               <h3>Опыт и платформы</h3>
             </div>
-
             <div class="question">
               <div class="q-top">
                 <div class="q-badge">1</div>
                 <div class="q-text">Расскажи кратко, где работал, с каким типажом моделей и на каких платформах?</div>
               </div>
-              <textarea class="q-note" data-note-label="Опыт / платформы" placeholder="✍️ Ответ кандидата..."></textarea>
+              <div class="q-fast-chips" data-for="Опыт / платформы">
+                <span class="q-chip" data-val="ok">👍 Конкретно и структурно</span>
+                <span class="q-chip" data-val="warn">⚠️ Размыто</span>
+                <span class="q-chip" data-val="bad">🚩 Нет опыта / врёт</span>
+              </div>
+              <span class="q-note-toggle">+ добавить заметку</span>
+              <div class="q-note-collapsible">
+                <textarea class="q-note" data-note-label="Опыт / платформы" placeholder="✍️ Детали ответа..."></textarea>
+              </div>
             </div>
           </section>
 
@@ -1399,13 +1494,20 @@
               <div class="section-num">2</div>
               <h3>Цифры и метрики</h3>
             </div>
-
             <div class="question">
               <div class="q-top">
                 <div class="q-badge">2</div>
                 <div class="q-text">Какие были цифры: средний чек, конверсия в PPV, сколько фанов одновременно вёл?</div>
               </div>
-              <textarea class="q-note" data-note-label="Цифры / метрики" placeholder="✍️ Цифры и показатели кандидата..."></textarea>
+              <div class="q-fast-chips" data-for="Цифры / метрики">
+                <span class="q-chip" data-val="ok">👍 Знает цифры</span>
+                <span class="q-chip" data-val="warn">⚠️ Примерно / не уверен</span>
+                <span class="q-chip" data-val="bad">🚩 Не считал / нет понимания</span>
+              </div>
+              <span class="q-note-toggle">+ добавить заметку</span>
+              <div class="q-note-collapsible">
+                <textarea class="q-note" data-note-label="Цифры / метрики" placeholder="✍️ Детали ответа..."></textarea>
+              </div>
             </div>
           </section>
 
@@ -1414,13 +1516,20 @@
               <div class="section-num">3</div>
               <h3>Занятость и хобби</h3>
             </div>
-
             <div class="question">
               <div class="q-top">
                 <div class="q-badge">3</div>
                 <div class="q-text">Чем занимаешься помимо работы — учёба, хобби, другая занятость?</div>
               </div>
-              <textarea class="q-note" data-note-label="Занятость / фон" placeholder="✍️ Дополнительная занятость кандидата..."></textarea>
+              <div class="q-fast-chips" data-for="Занятость / фон">
+                <span class="q-chip" data-val="ok">👍 Свободен / совместимо</span>
+                <span class="q-chip" data-val="warn">⚠️ Есть нагрузка</span>
+                <span class="q-chip" data-val="bad">🚩 Сильная занятость / риск</span>
+              </div>
+              <span class="q-note-toggle">+ добавить заметку</span>
+              <div class="q-note-collapsible">
+                <textarea class="q-note" data-note-label="Занятость / фон" placeholder="✍️ Детали ответа..."></textarea>
+              </div>
             </div>
           </section>
 
@@ -1429,13 +1538,20 @@
               <div class="section-num">4</div>
               <h3>Ожидания по доходу</h3>
             </div>
-
             <div class="question">
               <div class="q-top">
                 <div class="q-badge">4</div>
                 <div class="q-text">Какой уровень дохода рассматриваешь на старте и через 3 месяца?</div>
               </div>
-              <textarea class="q-note" data-note-label="Финансовые ожидания" placeholder="✍️ Доход на старте и через 3 месяца..."></textarea>
+              <div class="q-fast-chips" data-for="Финансовые ожидания">
+                <span class="q-chip" data-val="ok">👍 Реалистично</span>
+                <span class="q-chip" data-val="warn">⚠️ Немного завышено</span>
+                <span class="q-chip" data-val="bad">🚩 Нереалистичные ожидания</span>
+              </div>
+              <span class="q-note-toggle">+ добавить заметку</span>
+              <div class="q-note-collapsible">
+                <textarea class="q-note" data-note-label="Финансовые ожидания" placeholder="✍️ Детали ответа..."></textarea>
+              </div>
             </div>
           </section>
 
@@ -1444,13 +1560,20 @@
               <div class="section-num">5</div>
               <h3>Итог и следующий шаг</h3>
             </div>
-
             <div class="question">
               <div class="q-top">
                 <div class="q-badge">5</div>
                 <div class="q-text">Итог по кандидату и следующий шаг</div>
               </div>
-              <textarea class="q-note" data-note-label="Итог / следующий шаг" placeholder="✍️ Решение по кандидату и следующий шаг..."></textarea>
+              <div class="q-fast-chips" data-for="Итог / следующий шаг">
+                <span class="q-chip" data-val="ok">✅ Тестовое</span>
+                <span class="q-chip" data-val="warn">⚠️ Думаем</span>
+                <span class="q-chip" data-val="bad">🚩 Отказ</span>
+              </div>
+              <span class="q-note-toggle">+ добавить заметку</span>
+              <div class="q-note-collapsible">
+                <textarea class="q-note" data-note-label="Итог / следующий шаг" placeholder="✍️ Детали решения..."></textarea>
+              </div>
             </div>
           </section>
 
@@ -1466,7 +1589,15 @@
                 <div class="q-text">Расскажи про самый неприятный конфликт или недопонимание на прошлой работе. Из-за чего это произошло и к чему в итоге пришло?</div>
               </div>
               <div class="q-hint">Ищем зрелость в конфликте: как человек объясняет причину и чем завершилась ситуация.</div>
-              <textarea class="q-note" data-note-label="Психология 1 / реакция на фидбэк" placeholder="✍️ Как реагирует на критику и что делает после..."></textarea>
+              <div class="q-fast-chips" data-for="Психология 1 / реакция на фидбэк">
+                <span class="q-chip" data-val="ok">👍 Зрелый ответ / взял ответственность</span>
+                <span class="q-chip" data-val="warn">⚠️ Свалил вину на других</span>
+                <span class="q-chip" data-val="bad">🚩 Агрессия / обида / отрицание</span>
+              </div>
+              <span class="q-note-toggle">+ добавить заметку</span>
+              <div class="q-note-collapsible">
+                <textarea class="q-note" data-note-label="Психология 1 / реакция на фидбэк" placeholder="✍️ Детали ответа..."></textarea>
+              </div>
             </div>
 
             <div class="question">
@@ -1475,7 +1606,15 @@
                 <div class="q-text">Бывали ли у тебя ситуации, когда работа начинала сильно раздражать эмоционально? Как ты обычно ведешь себя в такие моменты?</div>
               </div>
               <div class="q-hint">Важна зрелая стратегия саморегуляции, а не импульсивная реакция.</div>
-              <textarea class="q-note" data-note-label="Психология 2 / стресс и саморегуляция" placeholder="✍️ Какие техники использует в состоянии стресса..."></textarea>
+              <div class="q-fast-chips" data-for="Психология 2 / стресс и саморегуляция">
+                <span class="q-chip" data-val="ok">👍 Управляет собой / есть стратегия</span>
+                <span class="q-chip" data-val="warn">⚠️ Замыкается / уходит в себя</span>
+                <span class="q-chip" data-val="bad">🚩 Срывается / конфликтует</span>
+              </div>
+              <span class="q-note-toggle">+ добавить заметку</span>
+              <div class="q-note-collapsible">
+                <textarea class="q-note" data-note-label="Психология 2 / стресс и саморегуляция" placeholder="✍️ Детали ответа..."></textarea>
+              </div>
             </div>
 
             <div class="question">
@@ -1484,7 +1623,15 @@
                 <div class="q-text">Какой тип людей тебе сложнее всего воспринимать или работать с?</div>
               </div>
               <div class="q-hint">Смотрим на уровень эмпатии, токсичность формулировок и способность держать рабочие границы.</div>
-              <textarea class="q-note" data-note-label="Психология 3 / конфликт в команде" placeholder="✍️ Поведение в конфликте и выводы..."></textarea>
+              <div class="q-fast-chips" data-for="Психология 3 / конфликт в команде">
+                <span class="q-chip" data-val="ok">👍 Осознанный ответ / держит границы</span>
+                <span class="q-chip" data-val="warn">⚠️ Лёгкая нетерпимость</span>
+                <span class="q-chip" data-val="bad">🚩 Токсичные формулировки / без границ</span>
+              </div>
+              <span class="q-note-toggle">+ добавить заметку</span>
+              <div class="q-note-collapsible">
+                <textarea class="q-note" data-note-label="Психология 3 / конфликт в команде" placeholder="✍️ Детали ответа..."></textarea>
+              </div>
             </div>
 
             <div class="question">
@@ -1493,7 +1640,15 @@
                 <div class="q-text">Если правило в работе кажется нелогичным, как ты действуешь: споришь, игнорируешь или предлагаешь решение?</div>
               </div>
               <div class="q-hint">Важно: соблюдение процессов + конструктивная обратная связь.</div>
-              <textarea class="q-note" data-note-label="Психология 4 / отношение к правилам" placeholder="✍️ Как ведёт себя при несогласии с правилами..."></textarea>
+              <div class="q-fast-chips" data-for="Психология 4 / отношение к правилам">
+                <span class="q-chip" data-val="ok">👍 Предлагает решение</span>
+                <span class="q-chip" data-val="warn">⚠️ Спорит, но слышит</span>
+                <span class="q-chip" data-val="bad">🚩 Игнорирует / делает по-своему</span>
+              </div>
+              <span class="q-note-toggle">+ добавить заметку</span>
+              <div class="q-note-collapsible">
+                <textarea class="q-note" data-note-label="Психология 4 / отношение к правилам" placeholder="✍️ Детали ответа..."></textarea>
+              </div>
             </div>
 
             <div class="question">
@@ -1502,7 +1657,15 @@
                 <div class="q-text">С каким типом людей тебе сложнее всего работать и как ты не переносишь это в рабочую коммуникацию?</div>
               </div>
               <div class="q-hint">Ищем эмпатию, профессиональные границы и отсутствие токсичности.</div>
-              <textarea class="q-note" data-note-label="Психология 5 / взаимодействие с людьми" placeholder="✍️ Что триггерит и как управляет этим в работе..."></textarea>
+              <div class="q-fast-chips" data-for="Психология 5 / взаимодействие с людьми">
+                <span class="q-chip" data-val="ok">👍 Разделяет личное и рабочее</span>
+                <span class="q-chip" data-val="warn">⚠️ Иногда переносит</span>
+                <span class="q-chip" data-val="bad">🚩 Переносит конфликты в работу</span>
+              </div>
+              <span class="q-note-toggle">+ добавить заметку</span>
+              <div class="q-note-collapsible">
+                <textarea class="q-note" data-note-label="Психология 5 / взаимодействие с людьми" placeholder="✍️ Детали ответа..."></textarea>
+              </div>
             </div>
 
             <div class="question">
@@ -1511,7 +1674,15 @@
                 <div class="q-text">Что делаешь, если фан провоцирует, оскорбляет или нарушает границы?</div>
               </div>
               <div class="q-hint">Критично: выдержка, деэскалация, следование регламенту.</div>
-              <textarea class="q-note" data-note-label="Психология 6 / провокации и границы" placeholder="✍️ Как деэскалирует и держит границы..."></textarea>
+              <div class="q-fast-chips" data-for="Психология 6 / провокации и границы">
+                <span class="q-chip" data-val="ok">👍 Деэскалирует / следует регламенту</span>
+                <span class="q-chip" data-val="warn">⚠️ Зависит от ситуации</span>
+                <span class="q-chip" data-val="bad">🚩 Отвечает агрессией / теряет контроль</span>
+              </div>
+              <span class="q-note-toggle">+ добавить заметку</span>
+              <div class="q-note-collapsible">
+                <textarea class="q-note" data-note-label="Психология 6 / провокации и границы" placeholder="✍️ Детали ответа..."></textarea>
+              </div>
             </div>
           </section>
         </div>
@@ -2441,8 +2612,128 @@
       setSaveStatus('Форма очищена');
     }
 
+    // ── Быстрые чипы-оценки ──────────────────────────────────────────────────
+    (function initFastChips() {
+      const CHIP_LABELS = {
+        ok:   'ok',
+        warn: 'warn',
+        bad:  'bad'
+      };
+
+      document.querySelectorAll('.q-fast-chips').forEach(group => {
+        const label = group.dataset.for;
+
+        group.querySelectorAll('.q-chip').forEach(chip => {
+          chip.addEventListener('click', () => {
+            const wasActive = chip.classList.contains('active');
+            group.querySelectorAll('.q-chip').forEach(c => c.classList.remove('active'));
+            if (!wasActive) chip.classList.add('active');
+
+            // найти textarea с тем же data-note-label и обновить первую строку
+            const question = group.closest('.question');
+            const textarea = question?.querySelector('.q-note');
+            if (!textarea) return;
+
+            const existing = textarea.value;
+            const chipLine = chip.classList.contains('active')
+              ? `[${chip.textContent.trim()}]`
+              : '';
+
+            // заменить или убрать первую строку если она была чипом
+            const lines = existing.split('\n');
+            if (lines[0] && lines[0].startsWith('[')) {
+              lines[0] = chipLine;
+            } else {
+              if (chipLine) lines.unshift(chipLine);
+            }
+            textarea.value = lines.filter((l, i) => i !== 0 || l).join('\n').trim();
+          });
+        });
+      });
+
+      // toggle «+ добавить заметку»
+      document.querySelectorAll('.q-note-toggle').forEach(toggle => {
+        toggle.addEventListener('click', () => {
+          const collapsible = toggle.nextElementSibling;
+          if (!collapsible) return;
+          const open = collapsible.classList.toggle('open');
+          toggle.textContent = open ? '− скрыть заметку' : '+ добавить заметку';
+          if (open) collapsible.querySelector('textarea')?.focus();
+        });
+      });
+    })();
+
     buildChecklist();
     updateTotal();
+
+    // ── Voice-to-text для всех .q-note ──────────────────────────────
+    (function initVoiceInput() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) return; // браузер не поддерживает
+
+      let activeRecognition = null;
+      let activeBtn = null;
+
+      function stopActive() {
+        if (activeRecognition) { try { activeRecognition.stop(); } catch(e) {} }
+        if (activeBtn) { activeBtn.classList.remove('recording'); activeBtn.title = 'Голосовой ввод'; activeBtn.textContent = '🎙'; }
+        activeRecognition = null;
+        activeBtn = null;
+      }
+
+      document.querySelectorAll('.q-note').forEach(textarea => {
+        // обернуть в .q-note-wrap если ещё не обёрнуто
+        if (!textarea.parentElement.classList.contains('q-note-wrap')) {
+          const wrap = document.createElement('div');
+          wrap.className = 'q-note-wrap';
+          textarea.parentNode.insertBefore(wrap, textarea);
+          wrap.appendChild(textarea);
+        }
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'mic-btn';
+        btn.textContent = '🎙';
+        btn.title = 'Голосовой ввод';
+        textarea.parentElement.appendChild(btn);
+
+        btn.addEventListener('click', () => {
+          if (activeBtn === btn) { stopActive(); return; }
+          stopActive();
+
+          const rec = new SpeechRecognition();
+          rec.lang = 'ru-RU';
+          rec.interimResults = true;
+          rec.continuous = true;
+
+          let baseText = textarea.value;
+          if (baseText && !baseText.endsWith(' ')) baseText += ' ';
+
+          btn.classList.add('recording');
+          btn.textContent = '⏹';
+          btn.title = 'Остановить запись';
+          activeRecognition = rec;
+          activeBtn = btn;
+
+          rec.onresult = (e) => {
+            let interim = '';
+            let final = '';
+            for (let i = e.resultIndex; i < e.results.length; i++) {
+              const t = e.results[i][0].transcript;
+              if (e.results[i].isFinal) final += t + ' ';
+              else interim += t;
+            }
+            if (final) baseText += final;
+            textarea.value = baseText + interim;
+          };
+
+          rec.onerror = () => stopActive();
+          rec.onend = () => { if (activeBtn === btn) stopActive(); };
+
+          rec.start();
+        });
+      });
+    })();
   </script>
   <script>
     (function () {
