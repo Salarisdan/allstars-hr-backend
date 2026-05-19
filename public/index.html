@@ -722,6 +722,56 @@
 
     .transcript-box .interim{ color:var(--text3); font-style:italic; }
 
+    .transcript-setup-btn{
+      padding:7px 13px;
+      border-radius:20px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.05);
+      color:var(--text2);
+      font-size:12px;
+      font-family:'Manrope',sans-serif;
+      cursor:pointer;
+      transition:all .15s;
+    }
+    .transcript-setup-btn:hover{ background:rgba(255,255,255,.12); color:var(--text); }
+
+    .transcript-guide{
+      margin-top:.7rem;
+      padding:.65rem .75rem;
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:rgba(255,255,255,.03);
+    }
+
+    .transcript-checklist{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-bottom:6px;
+    }
+
+    .setup-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:5px 10px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      font-size:11.5px;
+      color:var(--text2);
+      background:rgba(255,255,255,.04);
+    }
+
+    .setup-pill.ok{ border-color:rgba(52,211,153,.45); color:#34d399; }
+    .setup-pill.warn{ border-color:rgba(251,191,36,.45); color:#fbbf24; }
+    .setup-pill.bad{ border-color:rgba(239,68,68,.45); color:#f87171; }
+
+    .transcript-hint{
+      font-size:11.5px;
+      color:var(--text3);
+      line-height:1.45;
+    }
+
     .transcript-paste-btn{
       display:inline-flex;
       align-items:center;
@@ -1564,7 +1614,18 @@
                 <span id="transcriptBtnLabel">Запустить запись</span>
               </button>
               <button class="transcript-clear-btn" type="button" onclick="clearTranscript()">Очистить</button>
-              <span class="transcript-status" id="transcriptStatus">При звонке на громкой — пишет слова обоих ● Под гарнитуры — только ты</span>
+              <button class="transcript-setup-btn" type="button" onclick="checkDiscordSamsonSetup()">Проверить setup</button>
+              <span class="transcript-status" id="transcriptStatus">Discord + гарнитура → пишет только твои слова. Для обеих сторон — включи Stereo Mix или VB-Cable</span>
+            </div>
+            <div class="transcript-guide">
+              <div class="transcript-checklist">
+                <span class="setup-pill warn" id="setupMicState">Mic: проверить</span>
+                <span class="setup-pill warn" id="setupMixInputState">Mix input: проверить</span>
+                <span class="setup-pill warn" id="setupDiscordOutputState">Discord output: проверить</span>
+              </div>
+              <div class="transcript-hint" id="setupHint">
+                Рекомендуемый пресет: Discord Input = Samson C01U Pro, Discord Output = CABLE Input/VoiceMeeter Input, браузерный микрофон = CABLE Output/VoiceMeeter Output или Stereo Mix.
+              </div>
             </div>
             <div class="transcript-box" id="transcriptBox"><span style="color:var(--text3);font-style:italic">Здесь появится транскрипт звонка...</span></div>
           </div>
@@ -2730,6 +2791,92 @@
     let _transcriptInterim = '';
     let _transcriptRec = null;
     let _transcriptRunning = false;
+
+    function setSetupPill(id, level, text) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove('ok', 'warn', 'bad');
+      el.classList.add(level);
+      el.textContent = text;
+    }
+
+    function matchAny(label, needles) {
+      return needles.some(n => label.includes(n));
+    }
+
+    async function checkDiscordSamsonSetup() {
+      const status = document.getElementById('transcriptStatus');
+      const hint = document.getElementById('setupHint');
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        status.textContent = 'Проверка недоступна: браузер не поддерживает MediaDevices API';
+        setSetupPill('setupMicState', 'bad', 'Mic: недоступно');
+        setSetupPill('setupMixInputState', 'bad', 'Mix input: недоступно');
+        setSetupPill('setupDiscordOutputState', 'bad', 'Discord output: недоступно');
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(track => track.stop());
+
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const inputs = devices
+          .filter(d => d.kind === 'audioinput')
+          .map(d => ({ ...d, labelNorm: String(d.label || '').toLowerCase() }));
+        const outputs = devices
+          .filter(d => d.kind === 'audiooutput')
+          .map(d => ({ ...d, labelNorm: String(d.label || '').toLowerCase() }));
+
+        const hasSamsonMic = inputs.some(d => matchAny(d.labelNorm, ['samson', 'c01u']));
+        const hasMixInput = inputs.some(d => matchAny(d.labelNorm, [
+          'cable output',
+          'voicemeeter output',
+          'stereo mix',
+          'стерео микшер',
+          'mixage'
+        ]));
+        const hasDiscordRouteOutput = outputs.some(d => matchAny(d.labelNorm, [
+          'cable input',
+          'voicemeeter input'
+        ]));
+
+        setSetupPill(
+          'setupMicState',
+          hasSamsonMic ? 'ok' : 'bad',
+          hasSamsonMic ? 'Mic: Samson найден' : 'Mic: Samson не найден'
+        );
+
+        setSetupPill(
+          'setupMixInputState',
+          hasMixInput ? 'ok' : 'bad',
+          hasMixInput ? 'Mix input: найден' : 'Mix input: не найден'
+        );
+
+        setSetupPill(
+          'setupDiscordOutputState',
+          hasDiscordRouteOutput ? 'ok' : 'warn',
+          hasDiscordRouteOutput ? 'Discord output: route найден' : 'Discord output: route не найден'
+        );
+
+        if (hasSamsonMic && hasMixInput) {
+          status.textContent = 'Готово: CRM может слышать обе стороны (проверь в браузере выбор mix input)';
+          hint.textContent = 'Перед звонком: в Discord Output выбери CABLE Input/VoiceMeeter Input, а для транскрипта в браузере выбери CABLE Output/VoiceMeeter Output или Stereo Mix.';
+        } else if (hasSamsonMic) {
+          status.textContent = 'Частично: микрофон найден, но нет loopback-устройства для второй стороны';
+          hint.textContent = 'Установи/включи VB-Cable, VoiceMeeter или Stereo Mix, затем выбери mix input в разрешениях микрофона браузера.';
+        } else {
+          status.textContent = 'Не готово: не найден Samson C01U Pro среди входов';
+          hint.textContent = 'Проверь USB-подключение Samson и выбери его как Discord Input Device.';
+        }
+      } catch (err) {
+        status.textContent = 'Проверка не выполнена: дай доступ к микрофону в браузере';
+        setSetupPill('setupMicState', 'warn', 'Mic: нет доступа');
+        setSetupPill('setupMixInputState', 'warn', 'Mix input: нет доступа');
+        setSetupPill('setupDiscordOutputState', 'warn', 'Discord output: нет доступа');
+        hint.textContent = 'Разреши микрофон для сайта CRM, затем нажми Проверить setup снова.';
+      }
+    }
 
     function renderTranscript() {
       const box = document.getElementById('transcriptBox');
