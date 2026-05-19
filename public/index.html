@@ -652,6 +652,94 @@
     .q-note-collapsible{ display:none; }
     .q-note-collapsible.open{ display:block; }
 
+    /* --- Транскрипт --- */
+    .transcript-panel{
+      background:rgba(0,0,0,.28);
+      border:1.5px solid var(--border);
+      border-radius:14px;
+      padding:1.1rem 1.2rem;
+      margin-bottom:1.4rem;
+    }
+
+    .transcript-head{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .transcript-rec-btn{
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      padding:9px 18px;
+      border-radius:24px;
+      border:none;
+      font-family:'Manrope',sans-serif;
+      font-size:13px;
+      font-weight:700;
+      cursor:pointer;
+      transition:background .15s;
+      background:rgba(239,68,68,.18);
+      color:#f87171;
+    }
+    .transcript-rec-btn:hover{ background:rgba(239,68,68,.28); }
+    .transcript-rec-btn.active{ background:#ef4444; color:#fff; animation:micpulse 1s ease-in-out infinite; }
+
+    .transcript-clear-btn{
+      padding:7px 13px;
+      border-radius:20px;
+      border:1px solid var(--border);
+      background:none;
+      color:var(--text3);
+      font-size:12px;
+      font-family:'Manrope',sans-serif;
+      cursor:pointer;
+    }
+    .transcript-clear-btn:hover{ color:var(--text2); }
+
+    .transcript-status{
+      font-size:12px;
+      color:var(--text3);
+      margin-left:auto;
+    }
+
+    .transcript-box{
+      margin-top:.9rem;
+      min-height:70px;
+      max-height:180px;
+      overflow-y:auto;
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:.7rem;
+      font-size:13px;
+      line-height:1.65;
+      color:var(--text);
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    .transcript-box .interim{ color:var(--text3); font-style:italic; }
+
+    .transcript-paste-btn{
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+      padding:5px 11px;
+      border-radius:16px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.05);
+      color:var(--text2);
+      font-size:12px;
+      font-family:'Manrope',sans-serif;
+      cursor:pointer;
+      transition:all .15s;
+      margin-top:8px;
+    }
+    .transcript-paste-btn:hover{ background:rgba(255,255,255,.12); color:var(--text); }
+    .transcript-paste-btn.pasted{ background:rgba(52,211,153,.15); color:#34d399; border-color:#34d399; }
+
     .mic-btn{
       position:absolute;
       top:8px;
@@ -1467,6 +1555,20 @@
         </div>
 
         <div class="script-wrap" id="interviewScriptBlock">
+
+          <!-- Живой транскрипт звонка -->
+          <div class="transcript-panel">
+            <div class="transcript-head">
+              <button class="transcript-rec-btn" id="transcriptToggleBtn" type="button" onclick="toggleTranscript()">
+                <span id="transcriptBtnDot">●</span>
+                <span id="transcriptBtnLabel">Запустить запись</span>
+              </button>
+              <button class="transcript-clear-btn" type="button" onclick="clearTranscript()">Очистить</button>
+              <span class="transcript-status" id="transcriptStatus">При звонке на громкой — пишет слова обоих ● Под гарнитуры — только ты</span>
+            </div>
+            <div class="transcript-box" id="transcriptBox"><span style="color:var(--text3);font-style:italic">Здесь появится транскрипт звонка...</span></div>
+          </div>
+
           <section class="section" id="q1">
             <div class="section-header">
               <div class="section-num">1</div>
@@ -1482,7 +1584,8 @@
                 <span class="q-chip" data-val="warn">⚠️ Размыто</span>
                 <span class="q-chip" data-val="bad">🚩 Нет опыта / врёт</span>
               </div>
-              <span class="q-note-toggle">+ добавить заметку</span>
+              <button type="button" class="transcript-paste-btn" onclick="pasteTranscript(this)">📋 Вставить из транскрипта</button>
+              <span class="q-note-toggle">+ заметка вручную</span>
               <div class="q-note-collapsible">
                 <textarea class="q-note" data-note-label="Опыт / платформы" placeholder="✍️ Детали ответа..."></textarea>
               </div>
@@ -1504,7 +1607,8 @@
                 <span class="q-chip" data-val="warn">⚠️ Примерно / не уверен</span>
                 <span class="q-chip" data-val="bad">🚩 Не считал / нет понимания</span>
               </div>
-              <span class="q-note-toggle">+ добавить заметку</span>
+              <button type="button" class="transcript-paste-btn" onclick="pasteTranscript(this)">📋 Вставить из транскрипта</button>
+              <span class="q-note-toggle">+ заметка вручную</span>
               <div class="q-note-collapsible">
                 <textarea class="q-note" data-note-label="Цифры / метрики" placeholder="✍️ Детали ответа..."></textarea>
               </div>
@@ -1526,7 +1630,8 @@
                 <span class="q-chip" data-val="warn">⚠️ Есть нагрузка</span>
                 <span class="q-chip" data-val="bad">🚩 Сильная занятость / риск</span>
               </div>
-              <span class="q-note-toggle">+ добавить заметку</span>
+              <button type="button" class="transcript-paste-btn" onclick="pasteTranscript(this)">📋 Вставить из транскрипта</button>
+              <span class="q-note-toggle">+ заметка вручную</span>
               <div class="q-note-collapsible">
                 <textarea class="q-note" data-note-label="Занятость / фон" placeholder="✍️ Детали ответа..."></textarea>
               </div>
@@ -1548,7 +1653,8 @@
                 <span class="q-chip" data-val="warn">⚠️ Немного завышено</span>
                 <span class="q-chip" data-val="bad">🚩 Нереалистичные ожидания</span>
               </div>
-              <span class="q-note-toggle">+ добавить заметку</span>
+              <button type="button" class="transcript-paste-btn" onclick="pasteTranscript(this)">📋 Вставить из транскрипта</button>
+              <span class="q-note-toggle">+ заметка вручную</span>
               <div class="q-note-collapsible">
                 <textarea class="q-note" data-note-label="Финансовые ожидания" placeholder="✍️ Детали ответа..."></textarea>
               </div>
@@ -1570,7 +1676,8 @@
                 <span class="q-chip" data-val="warn">⚠️ Думаем</span>
                 <span class="q-chip" data-val="bad">🚩 Отказ</span>
               </div>
-              <span class="q-note-toggle">+ добавить заметку</span>
+              <button type="button" class="transcript-paste-btn" onclick="pasteTranscript(this)">📋 Вставить из транскрипта</button>
+              <span class="q-note-toggle">+ заметка вручную</span>
               <div class="q-note-collapsible">
                 <textarea class="q-note" data-note-label="Итог / следующий шаг" placeholder="✍️ Детали решения..."></textarea>
               </div>
@@ -1594,7 +1701,8 @@
                 <span class="q-chip" data-val="warn">⚠️ Свалил вину на других</span>
                 <span class="q-chip" data-val="bad">🚩 Агрессия / обида / отрицание</span>
               </div>
-              <span class="q-note-toggle">+ добавить заметку</span>
+              <button type="button" class="transcript-paste-btn" onclick="pasteTranscript(this)">📋 Вставить из транскрипта</button>
+              <span class="q-note-toggle">+ заметка вручную</span>
               <div class="q-note-collapsible">
                 <textarea class="q-note" data-note-label="Психология 1 / реакция на фидбэк" placeholder="✍️ Детали ответа..."></textarea>
               </div>
@@ -1611,7 +1719,8 @@
                 <span class="q-chip" data-val="warn">⚠️ Замыкается / уходит в себя</span>
                 <span class="q-chip" data-val="bad">🚩 Срывается / конфликтует</span>
               </div>
-              <span class="q-note-toggle">+ добавить заметку</span>
+              <button type="button" class="transcript-paste-btn" onclick="pasteTranscript(this)">📋 Вставить из транскрипта</button>
+              <span class="q-note-toggle">+ заметка вручную</span>
               <div class="q-note-collapsible">
                 <textarea class="q-note" data-note-label="Психология 2 / стресс и саморегуляция" placeholder="✍️ Детали ответа..."></textarea>
               </div>
@@ -1628,7 +1737,8 @@
                 <span class="q-chip" data-val="warn">⚠️ Лёгкая нетерпимость</span>
                 <span class="q-chip" data-val="bad">🚩 Токсичные формулировки / без границ</span>
               </div>
-              <span class="q-note-toggle">+ добавить заметку</span>
+              <button type="button" class="transcript-paste-btn" onclick="pasteTranscript(this)">📋 Вставить из транскрипта</button>
+              <span class="q-note-toggle">+ заметка вручную</span>
               <div class="q-note-collapsible">
                 <textarea class="q-note" data-note-label="Психология 3 / конфликт в команде" placeholder="✍️ Детали ответа..."></textarea>
               </div>
@@ -1645,7 +1755,8 @@
                 <span class="q-chip" data-val="warn">⚠️ Спорит, но слышит</span>
                 <span class="q-chip" data-val="bad">🚩 Игнорирует / делает по-своему</span>
               </div>
-              <span class="q-note-toggle">+ добавить заметку</span>
+              <button type="button" class="transcript-paste-btn" onclick="pasteTranscript(this)">📋 Вставить из транскрипта</button>
+              <span class="q-note-toggle">+ заметка вручную</span>
               <div class="q-note-collapsible">
                 <textarea class="q-note" data-note-label="Психология 4 / отношение к правилам" placeholder="✍️ Детали ответа..."></textarea>
               </div>
@@ -1662,7 +1773,8 @@
                 <span class="q-chip" data-val="warn">⚠️ Иногда переносит</span>
                 <span class="q-chip" data-val="bad">🚩 Переносит конфликты в работу</span>
               </div>
-              <span class="q-note-toggle">+ добавить заметку</span>
+              <button type="button" class="transcript-paste-btn" onclick="pasteTranscript(this)">📋 Вставить из транскрипта</button>
+              <span class="q-note-toggle">+ заметка вручную</span>
               <div class="q-note-collapsible">
                 <textarea class="q-note" data-note-label="Психология 5 / взаимодействие с людьми" placeholder="✍️ Детали ответа..."></textarea>
               </div>
@@ -1679,7 +1791,8 @@
                 <span class="q-chip" data-val="warn">⚠️ Зависит от ситуации</span>
                 <span class="q-chip" data-val="bad">🚩 Отвечает агрессией / теряет контроль</span>
               </div>
-              <span class="q-note-toggle">+ добавить заметку</span>
+              <button type="button" class="transcript-paste-btn" onclick="pasteTranscript(this)">📋 Вставить из транскрипта</button>
+              <span class="q-note-toggle">+ заметка вручную</span>
               <div class="q-note-collapsible">
                 <textarea class="q-note" data-note-label="Психология 6 / провокации и границы" placeholder="✍️ Детали ответа..."></textarea>
               </div>
@@ -2610,6 +2723,133 @@
       });
       updateTotal();
       setSaveStatus('Форма очищена');
+    }
+
+    // ── Живой транскрипт ────────────────────────────────────────────────────
+    let _transcriptFinal = '';
+    let _transcriptInterim = '';
+    let _transcriptRec = null;
+    let _transcriptRunning = false;
+
+    function renderTranscript() {
+      const box = document.getElementById('transcriptBox');
+      if (!box) return;
+      box.innerHTML = '';
+
+      if (!_transcriptFinal && !_transcriptInterim) {
+        box.innerHTML = '<span style="color:var(--text3);font-style:italic">Здесь появится транскрипт звонка...</span>';
+        return;
+      }
+
+      const finalNode = document.createTextNode(_transcriptFinal);
+      box.appendChild(finalNode);
+
+      if (_transcriptInterim) {
+        const interim = document.createElement('span');
+        interim.className = 'interim';
+        interim.textContent = _transcriptInterim;
+        box.appendChild(interim);
+      }
+
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function startTranscriptRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        document.getElementById('transcriptStatus').textContent = 'Браузер не поддерживает распознавание речи (используйте Chrome)';
+        return;
+      }
+
+      _transcriptRec = new SpeechRecognition();
+      _transcriptRec.lang = 'ru-RU';
+      _transcriptRec.interimResults = true;
+      _transcriptRec.continuous = true;
+
+      _transcriptRec.onresult = (e) => {
+        let interim = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const t = e.results[i][0].transcript;
+          if (e.results[i].isFinal) {
+            _transcriptFinal += t + ' ';
+          } else {
+            interim += t;
+          }
+        }
+        _transcriptInterim = interim;
+        renderTranscript();
+      };
+
+      _transcriptRec.onerror = (e) => {
+        if (e.error === 'no-speech') return; // продолжаем
+        console.warn('transcript error', e.error);
+      };
+
+      _transcriptRec.onend = () => {
+        // автоперезапуск, пока активно
+        if (_transcriptRunning) {
+          try { _transcriptRec.start(); } catch(err) {}
+        }
+      };
+
+      try { _transcriptRec.start(); } catch(err) {}
+    }
+
+    function toggleTranscript() {
+      const btn = document.getElementById('transcriptToggleBtn');
+      const label = document.getElementById('transcriptBtnLabel');
+      const status = document.getElementById('transcriptStatus');
+
+      if (_transcriptRunning) {
+        _transcriptRunning = false;
+        try { _transcriptRec?.stop(); } catch(e) {}
+        _transcriptRec = null;
+        btn.classList.remove('active');
+        label.textContent = 'Запустить запись';
+        status.textContent = 'Запись остановлена';
+      } else {
+        _transcriptRunning = true;
+        btn.classList.add('active');
+        label.textContent = 'Остановить';
+        status.textContent = 'Запись ведётся...';
+        startTranscriptRecognition();
+      }
+    }
+
+    function clearTranscript() {
+      _transcriptFinal = '';
+      _transcriptInterim = '';
+      renderTranscript();
+    }
+
+    function pasteTranscript(btn) {
+      const text = (_transcriptFinal + _transcriptInterim).trim();
+      if (!text) { alert('Транскрипт пустой. Запусти запись сначала.'); return; }
+
+      const question = btn.closest('.question');
+      // развернуть collapsible если закрыт
+      const collapsible = question?.querySelector('.q-note-collapsible');
+      const toggle = question?.querySelector('.q-note-toggle');
+      if (collapsible && !collapsible.classList.contains('open')) {
+        collapsible.classList.add('open');
+        if (toggle) toggle.textContent = '− скрыть заметку';
+      }
+
+      const textarea = question?.querySelector('.q-note');
+      if (!textarea) return;
+
+      const existing = textarea.value.trim();
+      textarea.value = existing ? existing + '\n\n' + text : text;
+
+      btn.classList.add('pasted');
+      btn.textContent = '✔ Вставлено';
+      setTimeout(() => {
+        btn.classList.remove('pasted');
+        btn.textContent = '📋 Вставить из транскрипта';
+      }, 1800);
+
+      // очистить транскрипт после вставки, чтобы следующий ответ записывался чисто
+      clearTranscript();
     }
 
     // ── Быстрые чипы-оценки ──────────────────────────────────────────────────
