@@ -1211,12 +1211,12 @@
       <button class="nav-item" type="button" onclick="logoutAllStars()" style="background:none;border:none;width:100%;text-align:left;cursor:pointer;">🚪 Выйти</button>
 
       <div class="sidebar-section">Скрипт</div>
-      <a class="nav-item" href="#opening">1. Открытие</a>
-      <a class="nav-item" href="#experience">2. Опыт и результаты</a>
-      <a class="nav-item" href="#motivation">3. Личность и мотивация</a>
-      <a class="nav-item" href="#cases">4. Практические кейсы</a>
-      <a class="nav-item" href="#about">5. О нас — AllStars</a>
-      <a class="nav-item" href="#final">6. Финал</a>
+      <a class="nav-item" href="#q1">1. Опыт и платформы</a>
+      <a class="nav-item" href="#q2">2. Цифры и метрики</a>
+      <a class="nav-item" href="#q3">3. Занятость и хобби</a>
+      <a class="nav-item" href="#q4">4. Ожидания по доходу</a>
+      <a class="nav-item" href="#q5">5. Итог и следующий шаг</a>
+      <a class="nav-item" href="#psychology">6. Психология (критично)</a>
     </aside>
 
     <main class="main">
@@ -1379,27 +1379,10 @@
         </div>
 
         <div class="script-wrap" id="interviewScriptBlock">
-          <section class="section" id="opening">
+          <section class="section" id="q1">
             <div class="section-header">
               <div class="section-num">1</div>
-              <h3>Открытие</h3>
-            </div>
-
-            <div class="speech">
-              <div class="speaker">🗣 Влад</div>
-              Привет, [Имя]! Спасибо, что нашёл время. Меня зовут Влад, я HR в AllStars. Сегодня познакомимся: я задам несколько вопросов об опыте, разберём пару рабочих ситуаций, а после расскажу о нас и отвечу на твои вопросы. Обычно это 20–30 минут. Тебе удобно сейчас?
-            </div>
-
-            <div class="note">
-              <span>📌</span>
-              Если кандидат напряжён — скажи: «Это неформальный разговор, правильных ответов нет. Мне важно понять, как ты мыслишь и как работаешь».
-            </div>
-          </section>
-
-          <section class="section" id="experience">
-            <div class="section-header">
-              <div class="section-num">2</div>
-              <h3>Опыт и результаты</h3>
+              <h3>Опыт и платформы</h3>
             </div>
 
             <div class="question">
@@ -1407,210 +1390,128 @@
                 <div class="q-badge">1</div>
                 <div class="q-text">Расскажи кратко, где работал, с каким типажом моделей и на каких платформах?</div>
               </div>
-              <div class="q-hint">Слушай не только факты, но и как человек формулирует опыт: структурно или размыто.</div>
-              <textarea class="q-note" data-note-label="Опыт / платформы" placeholder="✍️ Коротко записать ответ кандидата..."></textarea>
+              <textarea class="q-note" data-note-label="Опыт / платформы" placeholder="✍️ Ответ кандидата..."></textarea>
             </div>
+          </section>
 
-            <div class="listen"><span>👂</span> Сильный кандидат обычно быстро называет платформы, формат трафика, тип моделей и свои зоны ответственности.</div>
+          <section class="section" id="q2">
+            <div class="section-header">
+              <div class="section-num">2</div>
+              <h3>Цифры и метрики</h3>
+            </div>
 
             <div class="question">
               <div class="q-top">
                 <div class="q-badge">2</div>
                 <div class="q-text">Какие были цифры: средний чек, конверсия в PPV, сколько фанов одновременно вёл?</div>
               </div>
-              <div class="q-hint">Понимает ли кандидат свои метрики или работал «на автомате» без контроля результата.</div>
-              <textarea class="q-note" data-note-label="Цифры / метрики" placeholder="✍️ Средний чек, PPV, объём работы..."></textarea>
+              <textarea class="q-note" data-note-label="Цифры / метрики" placeholder="✍️ Цифры и показатели кандидата..."></textarea>
+            </div>
+          </section>
+
+          <section class="section" id="q3">
+            <div class="section-header">
+              <div class="section-num">3</div>
+              <h3>Занятость и хобби</h3>
             </div>
 
             <div class="question">
               <div class="q-top">
                 <div class="q-badge">3</div>
-                <div class="q-text">Какие фишки реально давали результат? Что бы ты внедрил у нас в первый месяц?</div>
+                <div class="q-text">Чем занимаешься помимо работы — учёба, хобби, другая занятость?</div>
               </div>
-              <div class="q-hint">Ищи конкретику: ретеншн, сегментацию, re-engagement, продающие механики, кастомы, голосовые.</div>
-              <textarea class="q-note" data-note-label="Фишки / идеи" placeholder="✍️ Какие подходы реально работали у кандидата..."></textarea>
+              <textarea class="q-note" data-note-label="Занятость / фон" placeholder="✍️ Дополнительная занятость кандидата..."></textarea>
+            </div>
+          </section>
+
+          <section class="section" id="q4">
+            <div class="section-header">
+              <div class="section-num">4</div>
+              <h3>Ожидания по доходу</h3>
             </div>
 
             <div class="question">
               <div class="q-top">
                 <div class="q-badge">4</div>
-                <div class="q-text">Какая была самая крупная ошибка в чаттинге — и что ты из неё вынес?</div>
+                <div class="q-text">Какой уровень дохода рассматриваешь на старте и через 3 месяца?</div>
               </div>
-              <div class="q-hint">Ответ «ошибок не было» — плохой знак. Нужна рефлексия и зрелость.</div>
-              <textarea class="q-note" data-note-label="Ошибки / рефлексия" placeholder="✍️ Как анализирует ошибки и чему научился..."></textarea>
+              <textarea class="q-note" data-note-label="Финансовые ожидания" placeholder="✍️ Доход на старте и через 3 месяца..."></textarea>
+            </div>
+          </section>
+
+          <section class="section" id="q5">
+            <div class="section-header">
+              <div class="section-num">5</div>
+              <h3>Итог и следующий шаг</h3>
             </div>
 
             <div class="question">
               <div class="q-top">
                 <div class="q-badge">5</div>
-                <div class="q-text">Как понимаешь, что фан готов к апсейлу прямо сейчас?</div>
+                <div class="q-text">Итог по кандидату и следующий шаг</div>
               </div>
-              <div class="q-hint">Смотри на понимание сигналов, тайминга и поведения платящего фана.</div>
-              <textarea class="q-note" data-note-label="Апсейл / сигналы" placeholder="✍️ Как читает готовность фана к продаже..."></textarea>
-            </div>
-
-            <div class="question">
-              <div class="q-top">
-                <div class="q-badge">6</div>
-                <div class="q-text">Был ли фан, с которым ты старался, но не вышло? Что пошло не так?</div>
-              </div>
-              <div class="q-hint">Проверка честности и способности видеть собственные ограничения.</div>
-              <textarea class="q-note" data-note-label="Сложный кейс" placeholder="✍️ Что не сработало и как это объясняет кандидат..."></textarea>
+              <textarea class="q-note" data-note-label="Итог / следующий шаг" placeholder="✍️ Решение по кандидату и следующий шаг..."></textarea>
             </div>
           </section>
 
-          <section class="section" id="motivation">
+          <section class="section" id="psychology">
             <div class="section-header">
-              <div class="section-num">3</div>
-              <h3>Личность и мотивация</h3>
+              <div class="section-num">6</div>
+              <h3>Психологический скрининг (супер важно)</h3>
             </div>
 
             <div class="question">
               <div class="q-top">
                 <div class="q-badge">1</div>
-                <div class="q-text">Чем занимаешься помимо работы — учёба, хобби, другая занятость?</div>
+                <div class="q-text">Расскажи про самый неприятный конфликт или недопонимание на прошлой работе. Из-за чего это произошло и к чему в итоге пришло?</div>
               </div>
-              <div class="q-hint">Оцени реальную загрузку и совместимость со сменами.</div>
-              <textarea class="q-note" data-note-label="Занятость / фон" placeholder="✍️ Что ещё есть в жизни кандидата кроме работы..."></textarea>
+              <div class="q-hint">Ищем зрелость в конфликте: как человек объясняет причину и чем завершилась ситуация.</div>
+              <textarea class="q-note" data-note-label="Психология 1 / реакция на фидбэк" placeholder="✍️ Как реагирует на критику и что делает после..."></textarea>
             </div>
 
             <div class="question">
               <div class="q-top">
                 <div class="q-badge">2</div>
-                <div class="q-text">Какой уровень дохода рассматриваешь на старте и через 3 месяца?</div>
+                <div class="q-text">Бывали ли у тебя ситуации, когда работа начинала сильно раздражать эмоционально? Как ты обычно ведешь себя в такие моменты?</div>
               </div>
-              <div class="q-hint">Нереалистичные ожидания без опыта — красный флаг.</div>
-              <textarea class="q-note" data-note-label="Финансовые ожидания" placeholder="✍️ Стартовые ожидания и планы на 3 месяца..."></textarea>
+              <div class="q-hint">Важна зрелая стратегия саморегуляции, а не импульсивная реакция.</div>
+              <textarea class="q-note" data-note-label="Психология 2 / стресс и саморегуляция" placeholder="✍️ Какие техники использует в состоянии стресса..."></textarea>
             </div>
 
             <div class="question">
               <div class="q-top">
                 <div class="q-badge">3</div>
-                <div class="q-text">Какие смены рассматриваешь — утро, день, вечер, ночь?</div>
+                <div class="q-text">Какой тип людей тебе сложнее всего воспринимать или работать с?</div>
               </div>
-              <div class="q-hint">Сразу фиксируй в карточку. Это одна из самых важных операционных переменных.</div>
-              <textarea class="q-note" data-note-label="Смены / доступность" placeholder="✍️ Какие смены и насколько стабильно готов работать..."></textarea>
+              <div class="q-hint">Смотрим на уровень эмпатии, токсичность формулировок и способность держать рабочие границы.</div>
+              <textarea class="q-note" data-note-label="Психология 3 / конфликт в команде" placeholder="✍️ Поведение в конфликте и выводы..."></textarea>
             </div>
 
             <div class="question">
               <div class="q-top">
                 <div class="q-badge">4</div>
-                <div class="q-text">Что для тебя идеальная работа в агентстве через год?</div>
+                <div class="q-text">Если правило в работе кажется нелогичным, как ты действуешь: споришь, игнорируешь или предлагаешь решение?</div>
               </div>
-              <div class="q-hint">Рост в доходе или тимлидство — оба варианта нормальны. Важно наличие мотивации.</div>
-              <textarea class="q-note" data-note-label="Долгосрочная мотивация" placeholder="✍️ Как видит себя через год..."></textarea>
+              <div class="q-hint">Важно: соблюдение процессов + конструктивная обратная связь.</div>
+              <textarea class="q-note" data-note-label="Психология 4 / отношение к правилам" placeholder="✍️ Как ведёт себя при несогласии с правилами..."></textarea>
             </div>
 
             <div class="question">
               <div class="q-top">
                 <div class="q-badge">5</div>
-                <div class="q-text">Как реагируешь на критику? Был ли случай, когда фидбэк задел, но ты согласился?</div>
+                <div class="q-text">С каким типом людей тебе сложнее всего работать и как ты не переносишь это в рабочую коммуникацию?</div>
               </div>
-              <div class="q-hint">Защитная реакция на обратную связь — слабый признак для командной работы.</div>
-              <textarea class="q-note" data-note-label="Фидбэк / зрелость" placeholder="✍️ Как принимает критику и меняет поведение..."></textarea>
+              <div class="q-hint">Ищем эмпатию, профессиональные границы и отсутствие токсичности.</div>
+              <textarea class="q-note" data-note-label="Психология 5 / взаимодействие с людьми" placeholder="✍️ Что триггерит и как управляет этим в работе..."></textarea>
             </div>
 
             <div class="question">
               <div class="q-top">
                 <div class="q-badge">6</div>
-                <div class="q-text">Что тебя может выбить из рабочего ритма — и как ты с этим справляешься?</div>
+                <div class="q-text">Что делаешь, если фан провоцирует, оскорбляет или нарушает границы?</div>
               </div>
-              <div class="q-hint">Проверка стрессоустойчивости и осознанности.</div>
-              <textarea class="q-note" data-note-label="Стресс / ритм" placeholder="✍️ Как описывает стресс и выход из него..."></textarea>
-            </div>
-          </section>
-
-          <section class="section" id="cases">
-            <div class="section-header">
-              <div class="section-num">4</div>
-              <h3>Практические кейсы</h3>
-            </div>
-
-            <div class="speech">
-              <div class="speaker">🗣 Влад</div>
-              Теперь самое интересное — дам несколько реальных ситуаций. Не ищи «правильный» ответ: мне важно увидеть ход твоих мыслей и как ты пишешь. Представь, что ты отправляешь это фану прямо сейчас. Готов?
-            </div>
-
-            <div class="note"><span>📌</span> Дай кандидату время на каждый кейс. Не торопи. Можно просить думать вслух.</div>
-
-            <div class="case">
-              <div class="case-label">Кейс 1</div>
-              <div class="case-text">Новый лид с TikTok. Лайкнул фото, но молчит. Модель — брюнетка, vibe «girlfriend experience». Напиши первое сообщение — не спам.</div>
-              <div class="case-hint">Тёплый вход, отход от шаблонов, сохранение вайба модели.</div>
-              <textarea class="q-note" data-note-label="Кейс 1" placeholder="✍️ Как кандидат заходит в диалог, насколько тепло и нешаблонно..."></textarea>
-            </div>
-
-            <div class="case">
-              <div class="case-label">Кейс 2</div>
-              <div class="case-text">Фан флиртует 10 минут. Ты скидываешь PPV за $15. Он отвечает: «Дорого, у других дешевле» или «Скинь бесплатно, я хороший мальчик». Что делаешь?</div>
-              <div class="case-hint">Работа с возражениями, удержание ценности, спокойствие в продаже.</div>
-              <textarea class="q-note" data-note-label="Кейс 2" placeholder="✍️ Как отрабатывает возражения и защищает ценность..."></textarea>
-            </div>
-
-            <div class="case">
-              <div class="case-label">Кейс 3</div>
-              <div class="case-text">Топ-спендер платил $500/мес, перестал открывать сообщения. Прошло 2 недели. Напиши win-back сообщение: без нужды и без давления.</div>
-              <div class="case-hint">Ретеншн, персонализация, правильный тон, отсутствие desperate vibe.</div>
-              <textarea class="q-note" data-note-label="Кейс 3" placeholder="✍️ Как возвращает фаната и насколько тон уверенный..."></textarea>
-            </div>
-
-            <div class="case">
-              <div class="case-label">Кейс 4</div>
-              <div class="case-text">Фан несколько раз покупал PPV, но сегодня груб: «Надоело, одно и то же». Как реагируешь?</div>
-              <div class="case-hint">Управление эмоциями, быстрый ретейн, смена подачи, отсутствие конфликта.</div>
-              <textarea class="q-note" data-note-label="Кейс 4" placeholder="✍️ Как держит эмоции и меняет подачу..."></textarea>
-            </div>
-          </section>
-
-          <section class="section" id="about">
-            <div class="section-header">
-              <div class="section-num">5</div>
-              <h3>О нас — AllStars</h3>
-            </div>
-
-            <div class="speech">
-              <div class="speaker">🗣 Кто мы</div>
-              Наше агентство называется AllStars. Мы агентство полного цикла: сами делаем трафик и продажи. Приводим около 20 000 фанов в месяц. Работаем на двух платформах: Fansly — 12 моделей, OnlyFans — 7. Есть учебные страницы и топовые. Работаем по цифрам, команда живая.
-            </div>
-
-            <div class="speech">
-              <div class="speaker">🗣 Деньги и рост</div>
-              Начинаешь на учебной странице — оборот 2–2.5k$/мес, ставка 25%. Расти можно быстро. Верхний ориентир — топ 0.5, оборот около 60 000$/мес. Это реальная траектория роста.
-            </div>
-
-            <div class="speech">
-              <div class="speaker">🗣 AI-технологии</div>
-              Генерация голосовых из CRM с именем фана. Генерация изображений и видео под запрос. AI-переводчик из короткой фразы делает вовлекающий текст. Кастомы за 1–2 дня. У тебя такое уже было на прошлом месте?
-            </div>
-
-            <div class="note"><span>📌</span> После этого дай кандидату ответить. Тут хорошо видно, цепляет ли его масштаб и технологичность.</div>
-          </section>
-
-          <section class="section" id="final">
-            <div class="section-header">
-              <div class="section-num">6</div>
-              <h3>Финал</h3>
-            </div>
-
-            <div class="speech">
-              <div class="speaker">🗣 Влад</div>
-              Это всё о нас. Есть вопросы — по условиям, работе, команде, росту?
-            </div>
-
-            <div class="note"><span>📌</span> Хорошие вопросы — признак вовлечённости. Отметь в заметках, что именно его интересует.</div>
-
-            <div class="speech">
-              <div class="speaker">🗣 Влад</div>
-              Если подходим друг другу — пришлю тестовое: стиль и грамотность, 24 часа. После — тест-смена и вход в график. Когда сможешь выполнить тестовое?
-            </div>
-
-            <div class="question">
-              <div class="q-top">
-                <div class="q-badge">✓</div>
-                <div class="q-text">Итог по кандидату и следующий шаг</div>
-              </div>
-              <div class="q-hint">Зафиксируй главный вывод, обещания и следующий шаг после звонка.</div>
-              <textarea class="q-note" data-note-label="Итог / следующий шаг" placeholder="✍️ Что решили: тестовое, тест-смена, отказ, доп. вопросы..."></textarea>
+              <div class="q-hint">Критично: выдержка, деэскалация, следование регламенту.</div>
+              <textarea class="q-note" data-note-label="Психология 6 / провокации и границы" placeholder="✍️ Как деэскалирует и держит границы..."></textarea>
             </div>
           </section>
         </div>
@@ -2101,6 +2002,85 @@
       return `${main}\n\n────────────\n\n📌 Передача тимлиду\n\n${handoff}`;
     }
 
+    function buildBriefInterviewReport(notesMap = {}) {
+      const questions = [
+        {
+          n: 1,
+          text: 'Расскажи кратко, где работал, с каким типажом моделей и на каких платформах?',
+          labels: ['Опыт / платформы', 'Опыт/платформы']
+        },
+        {
+          n: 2,
+          text: 'Какие были цифры: средний чек, конверсия в PPV, сколько фанов одновременно вёл?',
+          labels: ['Цифры / метрики', 'Цифры/метрики']
+        },
+        {
+          n: 3,
+          text: 'Чем занимаешься помимо работы — учёба, хобби, другая занятость?',
+          labels: ['Занятость / фон', 'Занятость/фон']
+        },
+        {
+          n: 4,
+          text: 'Какой уровень дохода рассматриваешь на старте и через 3 месяца?',
+          labels: ['Финансовые ожидания']
+        },
+        {
+          n: 5,
+          text: 'Итог по кандидату и следующий шаг',
+          labels: ['Итог / следующий шаг', 'Итог/следующий шаг']
+        }
+      ];
+
+      return questions
+        .map(item => {
+          const answer = getLabeledNote(notesMap, item.labels) || '—';
+          return `${item.n}. ${item.text}\nОтвет: ${answer}`;
+        })
+        .join('\n\n');
+    }
+
+    function buildPsychologyScreeningReport(notesMap = {}) {
+      const questions = [
+        {
+          n: 1,
+          text: 'Неприятный конфликт или недопонимание на прошлой работе',
+          labels: ['Психология 1 / реакция на фидбэк']
+        },
+        {
+          n: 2,
+          text: 'Эмоциональное раздражение от работы и поведение в такие моменты',
+          labels: ['Психология 2 / стресс и саморегуляция']
+        },
+        {
+          n: 3,
+          text: 'Тип людей, с которыми сложнее всего работать',
+          labels: ['Психология 3 / конфликт в команде']
+        },
+        {
+          n: 4,
+          text: 'Отношение к правилам и процессам',
+          labels: ['Психология 4 / отношение к правилам']
+        },
+        {
+          n: 5,
+          text: 'Взаимодействие с "сложными" людьми',
+          labels: ['Психология 5 / взаимодействие с людьми']
+        },
+        {
+          n: 6,
+          text: 'Реакция на провокации и нарушение границ',
+          labels: ['Психология 6 / провокации и границы']
+        }
+      ];
+
+      return questions
+        .map(item => {
+          const answer = getLabeledNote(notesMap, item.labels) || '—';
+          return `${item.n}. ${item.text}: ${answer}`;
+        })
+        .join('\n');
+    }
+
     initPills('pills-english');
     initPills('pills-platforms');
     initPills('pills-shifts', true);
@@ -2267,6 +2247,20 @@
         `Дополнительная информация: ${data.next_step || '—'}`
       ];
 
+      const briefReport = String(data.brief_interview_report || '').trim();
+      if (briefReport) {
+        lines.push('');
+        lines.push('Краткий отчёт (5 вопросов):');
+        lines.push(briefReport);
+      }
+
+      const psychologyScreening = String(data.psychology_screening || '').trim();
+      if (psychologyScreening) {
+        lines.push('');
+        lines.push('Психологический скрининг (критично):');
+        lines.push(psychologyScreening);
+      }
+
       return lines.join('\n');
     }
 
@@ -2282,6 +2276,8 @@
       const financialExpectations = getLabeledNote(questionNotesMap, ['Финансовые ожидания']);
       const experiencePlatforms = getLabeledNote(questionNotesMap, ['Опыт / платформы', 'Опыт/платформы']);
       const nextStep = getLabeledNote(questionNotesMap, ['Итог / следующий шаг', 'Итог/следующий шаг']);
+      const briefInterviewReport = buildBriefInterviewReport(questionNotesMap);
+      const psychologyScreening = buildPsychologyScreeningReport(questionNotesMap);
       const shift = getPill('pills-shifts', true);
       const schedulePreference = getPill('pills-schedule');
       const topPages = document.getElementById('f-top').value.trim();
@@ -2304,6 +2300,8 @@
         experience_platforms: experiencePlatforms,
         financial_expectations: financialExpectations,
         next_step: nextStep,
+        brief_interview_report: briefInterviewReport,
+        psychology_screening: psychologyScreening,
         top_pages: topPages,
         top_profile: topPages,
         avg_check: avgCheck,
@@ -2337,6 +2335,8 @@
         status: document.getElementById('f-status-select').value,
         lead_source: window.currentLeadSource || '',
         notes: buildFinalNotes(combinedNotes, teamleadHandoff),
+        brief_interview_report: briefInterviewReport,
+        psychology_screening: psychologyScreening,
         interview_report: interviewReport
       };
     }
