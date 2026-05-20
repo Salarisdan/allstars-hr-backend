@@ -177,9 +177,39 @@ if (!JWT_SECRET) {
   console.warn('WARNING: JWT_SECRET not set, using insecure default for development only');
 }
 
+function buildDatabaseConfig() {
+  const connectionString = String(process.env.DATABASE_URL || '').trim();
+  const pgHost = String(process.env.PGHOST || '').trim();
+
+  if (connectionString) {
+    return {
+      connectionString,
+      ssl: connectionString.includes('localhost') ? false : { rejectUnauthorized: false }
+    };
+  }
+
+  if (pgHost) {
+    return {
+      host: pgHost,
+      port: Number(process.env.PGPORT || 5432),
+      user: process.env.PGUSER,
+      password: process.env.PGPASSWORD,
+      database: process.env.PGDATABASE,
+      ssl: pgHost.includes('localhost') ? false : { rejectUnauthorized: false }
+    };
+  }
+
+  console.warn('DATABASE_URL/PGHOST are not set. PostgreSQL connection is not configured.');
+  return {
+    connectionString: 'postgresql://localhost/allstars_dev',
+    ssl: false
+  };
+}
+
+const databaseConfig = buildDatabaseConfig();
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false },
+  ...databaseConfig,
   connectionTimeoutMillis: 10000,
   idleTimeoutMillis: 30000,
   max: 20
@@ -189,8 +219,8 @@ pool.on('error', (err) => {
   console.error('Pool error:', err.message);
 });
 
-if (!process.env.DATABASE_URL) {
-  console.warn('DATABASE_URL is not set. Configure PostgreSQL first.');
+if (!process.env.DATABASE_URL && !process.env.PGHOST) {
+  console.warn('PostgreSQL env is not set. Configure DATABASE_URL or PG* variables first.');
 }
 
 app.use(cors({
@@ -2834,8 +2864,13 @@ async function auth(req, res, next) {
     };
 
     next();
-  } catch {
-    return res.status(401).json({ error: 'Invalid token' });
+  } catch (err) {
+    if (err && ['JsonWebTokenError', 'TokenExpiredError', 'NotBeforeError'].includes(err.name)) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    console.error('Auth middleware error:', err?.message || err);
+    return res.status(503).json({ error: 'Сервис авторизации временно недоступен' });
   }
 }
 
@@ -3025,6 +3060,21 @@ app.post('/auth/login', async (req, res) => {
     });
   } catch (err) {
     console.error('Login error:', err.message);
+
+    const message = String(err.message || '').toLowerCase();
+    const isDbUnavailable =
+      message.includes('econnreset') ||
+      message.includes('connect econnrefused') ||
+      message.includes('connection terminated') ||
+      message.includes('timeout') ||
+      message.includes('database') ||
+      err.code === '57P01' ||
+      err.code === '53300';
+
+    if (isDbUnavailable) {
+      return res.status(503).json({ error: 'База данных временно недоступна. Попробуйте через 1-2 минуты.' });
+    }
+
     res.status(500).json({ error: 'Ошибка входа' });
   }
 });
