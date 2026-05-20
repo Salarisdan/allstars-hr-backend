@@ -239,18 +239,150 @@ function buildDatabaseConfig() {
 
 const databaseConfig = buildDatabaseConfig();
 
-const pool = new Pool({
-  ...databaseConfig,
+const poolRuntimeOptions = {
   connectionTimeoutMillis: 10000,
   idleTimeoutMillis: 30000,
   keepAlive: true,
   keepAliveInitialDelayMillis: 10000,
   max: 20
-});
+};
 
-pool.on('error', (err) => {
-  console.error('Pool error:', err.message);
-});
+function flipSslConfig(rawSsl) {
+  return rawSsl ? false : { rejectUnauthorized: false };
+}
+
+function isConnectionResetError(err) {
+  const text = String(err?.message || '').toLowerCase();
+  return (
+    err?.code === 'ECONNRESET' ||
+    text.includes('econnreset') ||
+    text.includes('connection terminated unexpectedly') ||
+    text.includes('socket hang up')
+  );
+}
+
+function hasConnectionStringConfig(config) {
+  return Boolean(String(config?.connectionString || '').trim());
+}
+
+function buildAlternateDatabaseConfig(config) {
+  if (!config) return null;
+
+  if (hasConnectionStringConfig(config)) {
+    const connectionString = String(config.connectionString);
+    const hasSslDisable = /([?&])sslmode=disable/i.test(connectionString);
+    const hasSslRequire = /([?&])sslmode=require/i.test(connectionString);
+
+    let nextConnectionString = connectionString;
+    if (hasSslDisable) {
+      nextConnectionString = connectionString.replace(/sslmode=disable/ig, 'sslmode=require');
+    } else if (hasSslRequire) {
+      nextConnectionString = connectionString.replace(/sslmode=require/ig, 'sslmode=disable');
+    }
+
+    return {
+      ...config,
+      connectionString: nextConnectionString,
+      ssl: flipSslConfig(config.ssl)
+    };
+  }
+
+  return {
+    ...config,
+    ssl: flipSslConfig(config.ssl)
+  };
+}
+
+function safeDbConfigSummary(config) {
+  if (!config) return { configured: false };
+
+  let host = String(config.host || '').trim();
+  let port = Number(config.port || 0) || undefined;
+
+  if (!host && config.connectionString) {
+    try {
+      const url = new URL(config.connectionString);
+      host = url.hostname || '';
+      port = Number(url.port || 5432);
+    } catch {
+      host = '';
+    }
+  }
+
+  return {
+    configured: true,
+    mode: hasConnectionStringConfig(config) ? 'DATABASE_URL' : 'PGHOST',
+    host: host || 'unknown',
+    port: port || 5432,
+    ssl: config.ssl ? 'on' : 'off'
+  };
+}
+
+let pool = null;
+let dbFallbackUsed = false;
+let dbSwitchPromise = null;
+const alternateDatabaseConfig = buildAlternateDatabaseConfig(databaseConfig);
+
+function createPool(config) {
+  const instance = new Pool({
+    ...config,
+    ...poolRuntimeOptions
+  });
+
+  const originalQuery = instance.query.bind(instance);
+  instance.query = async (...args) => {
+    try {
+      return await originalQuery(...args);
+    } catch (err) {
+      if (instance === pool && isConnectionResetError(err)) {
+        const switched = await switchPoolToAlternate(err.message);
+        if (switched) {
+          return pool.query(...args);
+        }
+      }
+      throw err;
+    }
+  };
+
+  instance.on('error', (err) => {
+    console.error('Pool error:', err.message);
+  });
+
+  return instance;
+}
+
+async function switchPoolToAlternate(reason) {
+  if (dbFallbackUsed || !alternateDatabaseConfig) return false;
+  if (dbSwitchPromise) return dbSwitchPromise;
+
+  dbSwitchPromise = (async () => {
+    dbFallbackUsed = true;
+    const previousPool = pool;
+    pool = createPool(alternateDatabaseConfig);
+
+    console.warn('Switching database connection mode after error:', reason);
+    console.warn('Database config fallback summary:', safeDbConfigSummary(alternateDatabaseConfig));
+
+    if (previousPool) {
+      try {
+        await previousPool.end();
+      } catch {
+        // Ignore pool shutdown errors.
+      }
+    }
+
+    return true;
+  })();
+
+  try {
+    return await dbSwitchPromise;
+  } finally {
+    dbSwitchPromise = null;
+  }
+}
+
+pool = createPool(databaseConfig);
+console.log('Database config summary:', safeDbConfigSummary(databaseConfig));
 
 if (!process.env.DATABASE_URL && !process.env.PGHOST) {
   console.warn('PostgreSQL env is not set. Configure DATABASE_URL or PG* variables first.');
@@ -264,7 +396,18 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 async function query(text, params = []) {
-  return pool.query(text, params);
+  try {
+    return await pool.query(text, params);
+  } catch (err) {
+    if (isConnectionResetError(err)) {
+      const switched = await switchPoolToAlternate(err.message);
+      if (switched) {
+        return pool.query(text, params);
+      }
+    }
+
+    throw err;
+  }
 }
 
 function getGoogleCreds() {
