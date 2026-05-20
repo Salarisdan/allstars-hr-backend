@@ -8140,6 +8140,204 @@ function resolveCandidateForSheetRow(row, candidateMaps, allCandidates) {
   return { candidate: null, reason: 'not_found' };
 }
 
+app.post('/api/admin/import-candidates-from-sheets', auth, requireRole('owner', 'teamlead'), async (req, res) => {
+  try {
+    const dryRun =
+      req.body?.dryRun === true ||
+      String(req.query?.dryRun || '').trim() === '1';
+    const sourceModeRaw = String(req.body?.source || req.query?.source || 'both').trim().toLowerCase();
+    const sourceMode = ['both', 'newcomers', 'active'].includes(sourceModeRaw)
+      ? sourceModeRaw
+      : 'both';
+
+    const agencyId = req.user.agencyId;
+
+    const newcomersSpreadsheetId = process.env.GOOGLE_SPREADSHEET_ID || DASHBOARD_STATS_SPREADSHEET_ID;
+    const activeSpreadsheetId = process.env.TEAM_SPREADSHEET_ID || DASHBOARD_STATS_SPREADSHEET_ID;
+
+    const newcomersSheet = await readSheetRowsWithFallback({
+      spreadsheetId: newcomersSpreadsheetId,
+      sheetNames: [
+        process.env.NEWCOMERS_SHEET_NAME,
+        process.env.GOOGLE_SPREADSHEET_NAME,
+        'Новички',
+        'AllStarsLeads'
+      ]
+    });
+
+    const activeSheet = await readSheetRowsWithFallback({
+      spreadsheetId: activeSpreadsheetId,
+      sheetNames: [
+        process.env.TEAM_SHEET_NAME,
+        'Действующие'
+      ]
+    });
+
+    const sourceRows = [
+      ...(sourceMode !== 'active'
+        ? (newcomersSheet.rows || []).map(row => ({ source: 'newcomers', ...row }))
+        : []),
+      ...(sourceMode !== 'newcomers'
+        ? (activeSheet.rows || []).map(row => ({ source: 'active', ...row }))
+        : [])
+    ];
+
+    const seenTelegrams = new Set();
+    let inserted = 0;
+    let skipped = 0;
+    const insertErrors = [];
+    const skippedSample = [];
+
+    for (const sourceRow of sourceRows) {
+      const normalized = normalizeSheetCandidateRow(sourceRow.raw || {});
+
+      if (!normalized.name && !normalized.telegram) {
+        skipped++;
+        continue;
+      }
+
+      const tgKey = normalizeTelegramKey(normalized.telegram || '');
+
+      if (tgKey) {
+        if (seenTelegrams.has(tgKey)) {
+          skipped++;
+          skippedSample.push({ reason: 'duplicate_in_sheet', name: normalized.name, telegram: normalized.telegram });
+          continue;
+        }
+        seenTelegrams.add(tgKey);
+      }
+
+      if (!dryRun) {
+        try {
+          const status = normalizeCandidateStatus(normalized.status || '') || 'Без статуса';
+          const statusDatePatch = getStatusDatePatch(status, {});
+
+          await query(
+            `INSERT INTO candidates (
+               agency_id,
+               owner_user_id,
+               created_by_user_id,
+               updated_by_user_id,
+               name,
+               tg,
+               telegram,
+               age,
+               english,
+               english_level,
+               exp,
+               experience,
+               platform,
+               platforms,
+               shift,
+               schedule,
+               schedule_preference,
+               top_pages,
+               top_profile,
+               avg_check,
+               job,
+               main_activity,
+               interview_report,
+               status,
+               source,
+               lead_source,
+               notes,
+               status_changed_at,
+               hired_at,
+               rejected_at,
+               started_at,
+               fired_at,
+               ratings,
+               total
+             )
+             VALUES (
+               $1,$2,$3,$4,$5,
+               $6,$7,$8,$9,$10,
+               $11,$12,$13,$14,$15,
+               $16,$17,$18,$19,$20,
+               $21,$22,$23,$24,$25,
+               $26,$27,$28,$29,$30,
+               $31,$32,$33,$34
+             )
+             ON CONFLICT DO NOTHING`,
+            [
+              agencyId,
+              req.user.userId,
+              req.user.userId,
+              req.user.userId,
+              normalized.name || '',
+              normalized.telegram || '',
+              normalized.telegram || '',
+              normalized.age || '',
+              normalized.english || '',
+              normalized.english || '',
+              normalized.exp || '',
+              normalized.exp || '',
+              normalized.platform || '',
+              normalized.platform || '',
+              normalized.shift || '',
+              normalized.schedule || '',
+              normalized.schedule || '',
+              normalized.topPages || '',
+              normalized.topProfile || normalized.topPages || '',
+              normalized.avgCheck || '',
+              normalized.mainActivity || '',
+              normalized.mainActivity || '',
+              normalized.interviewReport || '',
+              status,
+              normalized.source || sourceRow.source || 'sheets',
+              normalized.leadSource || '',
+              normalized.notes || '',
+              statusDatePatch.status_changed_at || null,
+              statusDatePatch.hired_at || null,
+              statusDatePatch.rejected_at || null,
+              statusDatePatch.started_at || null,
+              statusDatePatch.fired_at || null,
+              '{}',
+              0
+            ]
+          );
+          inserted++;
+        } catch (err) {
+          insertErrors.push({ name: normalized.name, telegram: normalized.telegram, error: err.message });
+        }
+      } else {
+        inserted++;
+      }
+    }
+
+    if (inserted > 0 && !dryRun) {
+      invalidateTeamStatsCache();
+    }
+
+    res.json({
+      ok: true,
+      dry_run: dryRun,
+      source_mode: sourceMode,
+      agency_id: agencyId,
+      total_sheet_rows: sourceRows.length,
+      inserted,
+      skipped,
+      insert_errors: insertErrors,
+      skipped_sample: skippedSample.slice(0, 50),
+      sources: {
+        newcomers: {
+          spreadsheet_id: newcomersSheet.spreadsheetId,
+          sheet_name: newcomersSheet.sheetName,
+          rows: newcomersSheet.rows.length
+        },
+        active: {
+          spreadsheet_id: activeSheet.spreadsheetId,
+          sheet_name: activeSheet.sheetName,
+          rows: activeSheet.rows.length
+        }
+      }
+    });
+  } catch (err) {
+    console.error('import-candidates-from-sheets error:', err);
+    res.status(500).json({ error: err.message || 'Import from sheets failed' });
+  }
+});
+
 app.post('/api/admin/restore-candidates-from-sheets', auth, requireRole('owner', 'teamlead'), async (req, res) => {
   try {
     const dryRun =
