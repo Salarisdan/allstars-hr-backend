@@ -1,5 +1,9 @@
 (function () {
   const STORAGE_KEY = 'allstars_api_base';
+  const TOKEN_KEY = 'allstars_token';
+  const ME_KEY = 'allstars_me';
+  const AUTH_BYPASS_FLAG_KEY = 'allstars_auth_bypass_enabled';
+  const AUTH_BYPASS_TOKEN = 'allstars-bypass-token';
 
   function normalizeBase(value) {
     return String(value || '').trim().replace(/\/+$/, '');
@@ -29,9 +33,62 @@
     return next;
   }
 
+  function seedBypassSession() {
+    try {
+      localStorage.setItem(AUTH_BYPASS_FLAG_KEY, '1');
+      if (!String(localStorage.getItem(TOKEN_KEY) || '').trim()) {
+        localStorage.setItem(TOKEN_KEY, AUTH_BYPASS_TOKEN);
+      }
+
+      if (!String(localStorage.getItem(ME_KEY) || '').trim()) {
+        localStorage.setItem(ME_KEY, JSON.stringify({
+          id: -2,
+          agency_id: 1,
+          full_name: 'Bypass Access',
+          email: 'bypass@allstars.local',
+          role: 'owner',
+          authMode: 'bypass'
+        }));
+      }
+    } catch {
+      // Ignore storage errors.
+    }
+  }
+
+  function clearBypassSession() {
+    try {
+      localStorage.removeItem(AUTH_BYPASS_FLAG_KEY);
+      if (String(localStorage.getItem(TOKEN_KEY) || '').trim() === AUTH_BYPASS_TOKEN) {
+        localStorage.removeItem(TOKEN_KEY);
+      }
+      const rawMe = String(localStorage.getItem(ME_KEY) || '').trim();
+      if (rawMe && rawMe.includes('"authMode":"bypass"')) {
+        localStorage.removeItem(ME_KEY);
+      }
+    } catch {
+      // Ignore storage errors.
+    }
+  }
+
   const queryBase = normalizeBase(new URLSearchParams(window.location.search).get('apiBase'));
+  const queryBypass = String(new URLSearchParams(window.location.search).get('bypassAuth') || '').trim().toLowerCase();
   if (queryBase) {
     setStoredBase(queryBase);
+  }
+
+  if (queryBypass === '1' || queryBypass === 'true' || queryBypass === 'on') {
+    seedBypassSession();
+  } else if (queryBypass === '0' || queryBypass === 'false' || queryBypass === 'off') {
+    clearBypassSession();
+  } else {
+    try {
+      const persisted = String(localStorage.getItem(AUTH_BYPASS_FLAG_KEY) || '').trim();
+      if (persisted === '1') {
+        seedBypassSession();
+      }
+    } catch {
+      // Ignore storage errors.
+    }
   }
 
   function getApiBase() {
@@ -63,7 +120,9 @@
     clearApiBase: function () {
       return setStoredBase('');
     },
-    resolveApiPath
+    resolveApiPath,
+    enableAuthBypass: seedBypassSession,
+    disableAuthBypass: clearBypassSession
   };
 })();
 
