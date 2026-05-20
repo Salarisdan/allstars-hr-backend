@@ -17,9 +17,9 @@
       --accent-bg:rgba(102,217,255,.14);
       --accent-border:rgba(102,217,255,.36);
       
-      --brand-pill-text:#9ff2c7;
-      --brand-pill-border:rgba(52,211,153,.34);
-      --brand-pill-bg:rgba(5,150,105,.18);
+      --brand-pill-text:#bffff0;
+      --brand-pill-border:rgba(102,217,255,.34);
+      --brand-pill-bg:rgba(9,124,96,.24);
       --text:#edf4ff;
       --text2:#a5b8d8;
       --text3:#667da4;
@@ -2194,238 +2194,10 @@
       transition:transform .14s ease, border-color .2s ease, background .2s ease, color .2s ease;
     }
 
-    .btn-primary:hover,
-    .btn-ghost:hover,
-    .modal-btn:hover{
-      transform:translateY(-1px);
-    }
-
-    .stat-card,
-    .summary-card,
-    .tx-box,
-    .endings-stat{
-      background:linear-gradient(180deg, rgba(25,41,68,.92), rgba(18,30,50,.95));
-      border-color:rgba(163,194,255,.16);
-      position:relative;
-      overflow:hidden;
-    }
-
-    .stat-card::before,
-    .summary-card::before{
-      content:'';
-      position:absolute;
-      top:0;
-      left:0;
-      right:0;
-      height:2px;
-      background:linear-gradient(90deg, rgba(102,217,255,.9), rgba(99,102,241,.8));
-      opacity:.8;
-    }
-
-    .member-card,
-    .crm-member-card,
-    .tx-item,
-    .ending-card{
-      border-color:rgba(163,194,255,.18);
-    }
-
-    .member-card:hover,
-    .crm-member-card:hover,
-    .ending-card:hover,
-    .tx-item:hover{
-      border-color:rgba(182,240,255,.35);
-    }
-
-    .modal-sheet{
-      background:linear-gradient(180deg,#162743,#101c30);
-      border-color:rgba(163,194,255,.2);
-      box-shadow:0 26px 90px rgba(0,0,0,.56);
-    }
-
-    .loading{
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
-
-    .loading::before{
-      content:'';
-      width:16px;
-      height:16px;
-      border-radius:999px;
-      border:2px solid rgba(182,240,255,.26);
-      border-top-color:var(--accent);
-      animation:dashSpin .8s linear infinite;
-      flex-shrink:0;
-    }
-
-    @keyframes dashSpin{
-      to{transform:rotate(360deg)}
-    }
-
-    .mobile-nav-toggle{display:none}
-    .mobile-nav-backdrop{display:none}
-    .mobile-nav-toggle span{display:block;width:18px;height:2px;border-radius:999px;background:currentColor}
-    .mobile-nav-toggle span + span{margin-top:4px}
-
-    @media (max-width:1024px){
-      .main{padding:1.15rem 1.15rem 2.25rem}
-      .member-grid,.crm-grid{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
-      .endings-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
-    }
-
-    @media (max-width:920px){
-      body.nav-open{overflow:hidden}
-      .mobile-nav-toggle{
-        display:inline-flex;
-        flex-direction:column;
-        align-items:center;
-        justify-content:center;
-        position:fixed;
-        top:12px;
-        right:12px;
-        width:48px;
-        height:48px;
-        border:none;
-        border-radius:14px;
-        background:rgba(20,23,32,.96);
-        border:1px solid rgba(255,255,255,.12);
-        color:var(--text);
-        z-index:70;
-        box-shadow:var(--shadow);
-        cursor:pointer;
-      }
-      .mobile-nav-backdrop{
-        display:block;
-        position:fixed;
-        inset:0;
-        background:rgba(0,0,0,.48);
-        opacity:0;
-        pointer-events:none;
-        transition:opacity .18s ease;
-        z-index:55;
-      }
-      body.nav-open .mobile-nav-backdrop{opacity:1;pointer-events:auto}
-      .layout{display:block}
-      .sidebar{
-        display:block;
-        position:fixed;
-        top:0;
-        left:0;
-        bottom:0;
-        width:min(82vw,320px);
-        padding:1rem 0 1.5rem;
-        border-right:1px solid var(--border);
-        border-bottom:none;
-        overflow-y:auto;
-        overflow-x:hidden;
-        transform:translateX(-100%);
-        transition:transform .2s ease;
-        z-index:60;
-        background:var(--surface);
-      }
-      body.nav-open .sidebar{transform:translateX(0)}
-      .sidebar-logo,.sidebar-section{display:block}
-      .nav-item{display:flex;border-left:2px solid transparent;border-bottom:none;border-radius:0;padding:7px 1rem;white-space:normal;background:none}
-      .nav-item.active{border-bottom:none;border-left-color:var(--accent)}
-      .main{margin-left:0;padding:4.75rem 1rem 1.25rem}
-    }
-
-    @media (max-width:768px){
-      .main{padding:4.6rem .9rem 1rem}
-      .topbar,.toolbar,.transaction-toolbar,.endings-toolbar,.modal-toolbar,.modal-toolbar-actions{flex-direction:column;align-items:stretch}
-      .btn,.modal-btn,.tx-clear-btn{width:100%}
-      .modal-search,.search,.select{min-width:0;width:100%}
-      .hero-stats,.summary-list{grid-template-columns:repeat(2,minmax(0,1fr))}
-      .member-grid,.tx-list,.endings-summary,.crm-grid{grid-template-columns:1fr}
-      .member-card,.crm-member-card{padding:.9rem;border-radius:16px}
-      .modal-overlay{align-items:flex-end;padding:0;background:rgba(10,12,18,.82)}
-      .modal-sheet,.endings-sheet{width:100%;max-height:min(88vh, calc(100vh - .5rem));border-radius:20px 20px 0 0;animation:mobileSheetIn .22s ease}
-      .modal-head{position:sticky;top:0;z-index:2;background:linear-gradient(180deg,#1b1f2c 0%, #1b1f2c 86%, rgba(27,31,44,.92) 100%);padding-top:1.2rem}
-      .modal-head::before{content:'';position:absolute;top:.45rem;left:50%;transform:translateX(-50%);width:44px;height:5px;border-radius:999px;background:rgba(255,255,255,.18)}
-      .modal-body,.endings-body{max-height:calc(100vh - 92px);padding:.85rem}
-    }
-
-    @media (max-width:390px){
-      .main{padding:4.4rem .75rem 1rem}
-      .title h1{font-size:22px}
-      .mobile-nav-toggle{top:10px;right:10px;width:44px;height:44px}
-      .sidebar{width:min(88vw,300px)}
-      .hero-stats,.summary-list,.endings-summary{grid-template-columns:1fr}
-      .stat-card,.summary-card,.member-card,.crm-member-card{padding:.85rem}
-      .modal-sheet,.endings-sheet{border-radius:14px}
-    }
-
-    /* Unified AllStars theme */
-    :root{
-      --bg:#08101c;
-      --surface:#101a2d;
-      --surface2:#14213a;
-      --surface3:#1a2b48;
-      --border:rgba(163,194,255,.13);
-      --border2:rgba(163,194,255,.2);
-      --accent:#66d9ff;
-      --accent2:#b6f0ff;
-      --accent-bg:rgba(102,217,255,.14);
-      --accent-border:rgba(102,217,255,.36);
-      --brand-pill-text:#bffff0;
-      --brand-pill-border:rgba(102,217,255,.34);
-      --brand-pill-bg:rgba(9,124,96,.24);
-      --text:#edf4ff;
-      --text2:#a5b8d8;
-      --text3:#667da4;
-      --green:#34d399;
-      --green-bg:rgba(52,211,153,.10);
-      --green-border:rgba(52,211,153,.22);
-      --yellow:#fbbf24;
-      --yellow-bg:rgba(251,191,36,.10);
-      --yellow-border:rgba(251,191,36,.22);
-      --red:#f87171;
-      --red-bg:rgba(248,113,113,.10);
-      --red-border:rgba(248,113,113,.22);
-      --purple:#a78bfa;
-      --purple-bg:rgba(167,139,250,.10);
-      --purple-border:rgba(167,139,250,.22);
-      --shadow:0 14px 44px rgba(0,0,0,.34);
-    }
-
-    .title h1,
-    .page-title h1,
-    .dashboard-title{
-      background:linear-gradient(180deg,#eef8ff 10%,#b6f0ff 88%);
-      -webkit-background-clip:text;
-      background-clip:text;
-      color:transparent;
-      text-shadow:0 0 22px rgba(102,217,255,.12);
-    }
-
-    .btn,
-    .btn-primary,
-    .btn-ghost,
-    .dashboard-tab,
-    .dashboard-refresh-btn,
-    .payout-chip,
-    .action-btn,
-    .modal-btn,
-    .modal-close,
-    .quick-btn,
-    .q-btn,
-    .interview-main-btn{
-      transition:transform .14s ease, border-color .2s ease, background .2s ease, color .2s ease;
-    }
-
     .btn:hover,
     .btn-primary:hover,
     .btn-ghost:hover,
-    .dashboard-tab:hover,
-    .dashboard-refresh-btn:hover,
-    .payout-chip:hover,
-    .action-btn:hover,
-    .modal-btn:hover,
-    .modal-close:hover,
-    .quick-btn:hover,
-    .q-btn:hover,
-    .interview-main-btn:hover{
+    .modal-btn:hover{
       transform:translateY(-1px);
     }
 
@@ -2433,7 +2205,7 @@
     .payout-chip.active,
     .dashboard-tab.active,
     .dashboard-refresh-btn,
-    .interview-main-btn.primary{
+    .interview-main-btn{
       background:linear-gradient(135deg, rgba(102,217,255,.30), rgba(99,102,241,.20));
       border-color:rgba(102,217,255,.45);
       color:#ecfff8;
@@ -2464,7 +2236,7 @@
     .interview-editor-head,
     .interview-view-field{
       border-color:rgba(163,194,255,.16);
-      background:linear-gradient(180deg, rgba(25,41,68,.92), rgba(18,30,50,.96));
+      background:linear-gradient(180deg, rgba(25,41,68,.92), rgba(18,30,50,.95));
     }
 
     .search,
@@ -2511,7 +2283,7 @@
       border-radius:999px;
       border:2px solid rgba(182,240,255,.26);
       border-top-color:var(--accent);
-      animation:unifiedDashSpin .8s linear infinite;
+      animation:dashSpin .8s linear infinite;
       flex-shrink:0;
     }
 
@@ -2564,13 +2336,6 @@
     .stat-card.stat-card-archive::before{
       background:linear-gradient(90deg, rgba(248,113,113,0.95), rgba(239,68,68,0.65), rgba(248,113,113,0));
     }
-
-    .stat-card.stat-card-work .stat-value,
-    .stat-card.stat-card-work .stat-label{color:#bbf7d0;}
-    .stat-card.stat-card-test .stat-value,
-    .stat-card.stat-card-test .stat-label{color:#fde68a;}
-    .stat-card.stat-card-archive .stat-value,
-    .stat-card.stat-card-archive .stat-label{color:#fecaca;}
 
     .stat-card::before{
       content:'';
@@ -2891,62 +2656,6 @@
 
     .data-table tbody tr td{
       backdrop-filter:none;
-    }
-
-    .data-table td:last-child {
-      border-right: none;
-    }
-
-    .data-table th.col-comment,
-    .data-table td.col-comment {
-      min-width: 110px;
-      width: 110px;
-      max-width: 110px;
-      text-align: center;
-    }
-
-    .data-table tbody tr{
-      animation: tableRowEnter .32s ease both;
-      animation-delay: calc(var(--row-index, 0) * 26ms);
-    }
-
-    @keyframes tableRowEnter{
-      from{opacity:0;transform:translateY(8px);}
-      to{opacity:1;transform:translateY(0);}
-    }
-
-    body.dense-table-mode .filter-row{
-      padding:8px 10px;
-      gap:8px;
-    }
-
-    body.dense-table-mode .status-legend{
-      padding:8px 10px;
-      gap:6px;
-    }
-
-    body.dense-table-mode .data-table th{
-      padding: 9px 8px;
-      font-size: 9px;
-      min-width: 124px;
-    }
-
-    body.dense-table-mode .data-table td{
-      padding: 6px 8px;
-      font-size: 11px;
-      min-width: 124px;
-    }
-
-    body.dense-table-mode .data-table th.col-comment,
-    body.dense-table-mode .data-table td.col-comment{
-      min-width: 92px;
-      width: 92px;
-      max-width: 92px;
-    }
-
-    .data-table tbody tr td {
-      transition: background .16s ease, box-shadow .16s ease, filter .16s ease;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.012), inset 0 -1px 0 rgba(0,0,0,0.12);
     }
 
     .data-table tbody tr:nth-child(odd) td {
@@ -3420,7 +3129,7 @@
         'bf',
         'gnd',
         'альт',
-        'алт',
+        'ал',
         'мистрес',
         'mistress',
         'cosplay',
@@ -4618,7 +4327,7 @@
       modal?.classList.add('show');
 
       const res = await api(`/api/team-status-members?status=${encodeURIComponent(statusName)}`);
-      const data = await res.json().catch(() => []);
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         if (body) body.innerHTML = `<div class="error-box">Не удалось загрузить список</div>`;
@@ -5299,9 +5008,7 @@
                             class="editor-dropdown-btn"
                             onclick="toggleEditorDropdown(event)"
                           >
-                            <span class="editor-chip ${getOptionChipClass(field.label, field.value || '— выбрать —')}">
-                              ${field.value || '— выбрать —'}
-                            </span>
+                            <span class="editor-chip chip-neutral">— выбрать —</span>
                           </button>
 
                           <div class="editor-dropdown-menu">
@@ -5319,7 +5026,7 @@
                       `
                       : long
                         ? `<textarea class="editor-textarea" data-field-index="${idx}" data-field-type="text">${field.value || ''}</textarea>`
-                        : `<input class="editor-input" data-field-index="${idx}" data-field-type="text" value="${safeValue}">`
+                        : `<input class="editor-input" data-field-index="${idx}" data-field-type="text" value="">`
                 }
               </div>
             `;
@@ -5618,10 +5325,10 @@
                       : long
                         ? `<textarea class="editor-textarea" data-field-index="${idx}" data-field-type="text"></textarea>`
                         : `<input class="editor-input" data-field-index="${idx}" data-field-type="text" value="">`
-            }
-          </div>
-        `;
-      }).join('')}
+                }
+              </div>
+            `;
+          }).join('')}
         </div>
       `;
 
@@ -5710,15 +5417,15 @@
             return;
           }
 
-          if (fieldType === 'select') {
-            updates[field.label] = el.dataset.selectedValue || '';
-            return;
-          }
-
           if (fieldType === 'multiselect') {
             const raw = el.dataset.selectedValues || '';
             const values = raw ? raw.split('||').filter(Boolean) : [];
             updates[field.label] = joinMultiValue(values);
+            return;
+          }
+
+          if (fieldType === 'select') {
+            updates[field.label] = el.dataset.selectedValue || '';
             return;
           }
 
@@ -5751,7 +5458,9 @@
         syncTeamListItemFromUpdates(currentMemberEditorRow, updates);
         rerenderCrmPage();
 
-        currentMemberEditorItem = findTeamMemberByRowNumber(currentMemberEditorRow) || currentMemberEditorItem;
+        currentMemberEditorItem = currentMemberEditorRow
+          ? findTeamMemberByRowNumber(currentMemberEditorRow)
+          : null;
         if (document.getElementById('transactionEndingModal')?.classList.contains('show')) {
           await openTransactionEndingModal();
         }
