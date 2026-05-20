@@ -175,7 +175,14 @@ if (!JWT_SECRET) {
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false }
+  ssl: process.env.DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false },
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000,
+  max: 20
+});
+
+pool.on('error', (err) => {
+  console.error('Pool error:', err.message);
 });
 
 if (!process.env.DATABASE_URL) {
@@ -2603,7 +2610,23 @@ CREATE INDEX IF NOT EXISTS idx_candidates_agency_owner ON candidates(agency_id, 
 `;
 
 async function initDb() {
-  await query(bootstrapSql);
+  try {
+    // Test connection first
+    const client = await pool.connect();
+    client.release();
+    console.log('Database connection verified ✓');
+  } catch (err) {
+    console.error('Failed to connect to database:', err.message);
+    console.warn('Server will start but database features will be unavailable');
+    return;
+  }
+
+  try {
+    await query(bootstrapSql);
+    console.log('Database schema initialized ✓');
+  } catch (err) {
+    console.warn('Warning initializing schema:', err.message);
+  }
 
   await pool.query(`
     ALTER TABLE candidates
@@ -7858,13 +7881,14 @@ app.post('/api/admin/restore-candidates-from-sheets', auth, requireRole('owner',
 async function start() {
   try {
     await initDb();
-    app.listen(PORT, () => {
-      console.log(`AllStars HR SaaS running on ${PORT}`);
-    });
   } catch (err) {
-    console.error('Startup failed:', err.message);
-    process.exit(1);
+    console.error('Database initialization error:', err.message);
+    console.warn('Starting server anyway - database may be unavailable');
   }
+
+  app.listen(PORT, () => {
+    console.log(`AllStars HR SaaS running on ${PORT}`);
+  });
 }
 
 start();
