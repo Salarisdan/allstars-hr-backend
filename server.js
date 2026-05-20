@@ -248,6 +248,9 @@ const poolRuntimeOptions = {
   max: 20
 };
 
+const liveBackfillDisabledRaw = String(process.env.DISABLE_LIVE_BACKFILL || '').trim().toLowerCase();
+const LIVE_BACKFILL_DISABLED = liveBackfillDisabledRaw === '1' || liveBackfillDisabledRaw === 'true' || liveBackfillDisabledRaw === 'yes';
+
 function flipSslConfig(rawSsl) {
   return rawSsl ? false : { rejectUnauthorized: false };
 }
@@ -1755,28 +1758,33 @@ function buildBackfillEvent({
 }
 
 async function loadAllCandidatesForBackfill(agencyId) {
-  const result = await query(
-    `SELECT
-       id,
-       created_at,
-       updated_at,
-       name,
-       tg,
-       telegram,
-       platform,
-       platforms,
-       status,
-       hired_at,
-       rejected_at,
-       started_at,
-       fired_at
-     FROM candidates
-     WHERE agency_id = $1
-     ORDER BY created_at DESC`,
-    [agencyId]
-  );
+  try {
+    const result = await query(
+      `SELECT
+         id,
+         created_at,
+         updated_at,
+         name,
+         tg,
+         telegram,
+         platform,
+         platforms,
+         status,
+         hired_at,
+         rejected_at,
+         started_at,
+         fired_at
+       FROM candidates
+       WHERE agency_id = $1
+       ORDER BY created_at DESC`,
+      [agencyId]
+    );
 
-  return result.rows || [];
+    return result.rows || [];
+  } catch (err) {
+    console.warn('loadAllCandidatesForBackfill fallback:', err.message);
+    return [];
+  }
 }
 
 function pushCandidateDateBackfillEvent(newEvents, candidate, agencyId, dateValue, newValue) {
@@ -1799,110 +1807,129 @@ function pushCandidateDateBackfillEvent(newEvents, candidate, agencyId, dateValu
 }
 
 async function loadCandidateStatusHistoryForBackfill(agencyId) {
-  const result = await query(
-    `SELECT
-       h.candidate_id,
-       h.status,
-       h.created_at,
-       c.name,
-       c.tg,
-       c.telegram,
-       c.platform,
-       c.platforms
-     FROM candidate_status_history h
-     JOIN candidates c ON c.id = h.candidate_id
-     WHERE c.agency_id = $1
-     ORDER BY h.created_at DESC`,
-    [agencyId]
-  );
+  try {
+    const result = await query(
+      `SELECT
+         h.candidate_id,
+         h.status,
+         h.created_at,
+         c.name,
+         c.tg,
+         c.telegram,
+         c.platform,
+         c.platforms
+       FROM candidate_status_history h
+       JOIN candidates c ON c.id = h.candidate_id
+       WHERE c.agency_id = $1
+       ORDER BY h.created_at DESC`,
+      [agencyId]
+    );
 
-  return result.rows || [];
+    return result.rows || [];
+  } catch (err) {
+    console.warn('loadCandidateStatusHistoryForBackfill fallback:', err.message);
+    return [];
+  }
 }
 
 async function loadAllInterviewsForBackfill() {
-  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
-  if (!spreadsheetId) return [];
+  if (LIVE_BACKFILL_DISABLED) return [];
 
-  const sheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
-  const sheets = await getSheetsClient();
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: `${sheetName}!A1:AU5000`
-  });
+  try {
+    const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+    if (!spreadsheetId) return [];
 
-  const values = response.data.values || [];
-  if (!values.length) return [];
+    const sheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
+    const sheets = await getSheetsClient();
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A1:AU5000`
+    });
 
-  const headers = values[0];
-  const rows = values.slice(1);
+    const values = response.data.values || [];
+    if (!values.length) return [];
 
-  return rows
-    .map((row, index) => {
-      const normalized = normalizeRow(headers, row, index + 2);
-      const get = (...names) => {
-        for (const name of names) {
-          const idx = headers.indexOf(name);
-          if (idx >= 0) return row[idx] ?? '';
-        }
-        return '';
-      };
+    const headers = values[0];
+    const rows = values.slice(1);
 
-      return {
-        ...normalized,
-        completed_at: get('completed_at', 'Completed At', 'Дата завершения'),
-        updated_at: get('updated_at', 'Updated At', 'Дата обновления'),
-        tg: normalized.tg || normalized.telegram || normalized.username || ''
-      };
-    })
-    .filter(x => x.telegram_user_id || x.telegram_username || x.name);
+    return rows
+      .map((row, index) => {
+        const normalized = normalizeRow(headers, row, index + 2);
+        const get = (...names) => {
+          for (const name of names) {
+            const idx = headers.indexOf(name);
+            if (idx >= 0) return row[idx] ?? '';
+          }
+          return '';
+        };
+
+        return {
+          ...normalized,
+          completed_at: get('completed_at', 'Completed At', 'Дата завершения'),
+          updated_at: get('updated_at', 'Updated At', 'Дата обновления'),
+          tg: normalized.tg || normalized.telegram || normalized.username || ''
+        };
+      })
+      .filter(x => x.telegram_user_id || x.telegram_username || x.name);
+  } catch (err) {
+    console.warn('loadAllInterviewsForBackfill fallback:', err.message);
+    return [];
+  }
 }
 
 async function loadAllTeamMembersForBackfill() {
-  const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
-  if (!spreadsheetId) return [];
+  if (LIVE_BACKFILL_DISABLED) return [];
 
-  const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
-  const sheets = await getSheetsClient();
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: `${sheetName}!A1:AU5000`
-  });
+  try {
+    const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
+    if (!spreadsheetId) return [];
 
-  const values = response.data.values || [];
-  if (!values.length) return [];
-
-  const headers = values[0];
-  const rows = values.slice(1);
-
-  return rows
-    .filter(row => row.some(cell => String(cell || '').trim() !== ''))
-    .map((row, index) => {
-      const obj = {};
-      headers.forEach((header, colIndex) => {
-        obj[header] = row[colIndex] || '';
-      });
-
-      const model = String(
-        obj['Модели (основные)'] ||
-        obj['Модели'] ||
-        obj['Актуальная модель'] ||
-        obj['Топ страниц'] ||
-        ''
-      ).trim();
-
-      return {
-        row_number: index + 2,
-        name: String(obj['Имя'] || obj['Имя / ник'] || obj['Ник'] || '').trim(),
-        telegram: String(obj['Телеграм'] || obj['Telegram'] || obj['ТГ'] || obj['Telegram / username'] || obj['TG Username'] || obj['Username'] || '').trim(),
-        status: String(obj['Актуальный статус кандидата (Hr)'] || '').trim() || 'Без статуса',
-        platform: String(obj['OnlyFans / Fansly'] || obj['Платформа'] || '').trim(),
-        model,
-        date_start: String(obj['Дата старта'] || '').trim(),
-        date_fired: String(obj['Дата увольнения'] || obj['Дата уволен'] || obj['Дата расчета'] || obj['Дата расчёта'] || '').trim(),
-        updated_at: String(obj['Updated At'] || obj['Дата обновления'] || '').trim(),
-        raw: obj
-      };
+    const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
+    const sheets = await getSheetsClient();
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${sheetName}!A1:AU5000`
     });
+
+    const values = response.data.values || [];
+    if (!values.length) return [];
+
+    const headers = values[0];
+    const rows = values.slice(1);
+
+    return rows
+      .filter(row => row.some(cell => String(cell || '').trim() !== ''))
+      .map((row, index) => {
+        const obj = {};
+        headers.forEach((header, colIndex) => {
+          obj[header] = row[colIndex] || '';
+        });
+
+        const model = String(
+          obj['Модели (основные)'] ||
+          obj['Модели'] ||
+          obj['Актуальная модель'] ||
+          obj['Топ страниц'] ||
+          ''
+        ).trim();
+
+        return {
+          row_number: index + 2,
+          name: String(obj['Имя'] || obj['Имя / ник'] || obj['Ник'] || '').trim(),
+          telegram: String(obj['Телеграм'] || obj['Telegram'] || obj['ТГ'] || obj['Telegram / username'] || obj['TG Username'] || obj['Username'] || '').trim(),
+          status: String(obj['Актуальный статус кандидата (Hr)'] || '').trim() || 'Без статуса',
+          platform: String(obj['OnlyFans / Fansly'] || obj['Платформа'] || '').trim(),
+          model,
+          date_start: String(obj['Дата старта'] || '').trim(),
+          date_fired: String(obj['Дата увольнения'] || obj['Дата уволен'] || obj['Дата расчета'] || obj['Дата расчёта'] || '').trim(),
+          updated_at: String(obj['Updated At'] || obj['Дата обновления'] || '').trim(),
+          raw: obj
+        };
+      });
+  } catch (err) {
+    console.warn('loadAllTeamMembersForBackfill fallback:', err.message);
+    return [];
+  }
 }
 
 async function collectBackfillEvents({ agencyId, fromDate, toDate }) {
@@ -5308,11 +5335,13 @@ app.get('/api/dashboard/stats-live', auth, async (req, res) => {
     const prevTo = resolved.previousTo;
 
     const existingEvents = await readCrmEvents();
-    const liveEvents = await collectBackfillEvents({
-      agencyId: req.user.agencyId,
-      fromDate: prevFrom,
-      toDate
-    });
+    const liveEvents = LIVE_BACKFILL_DISABLED
+      ? []
+      : await collectBackfillEvents({
+          agencyId: req.user.agencyId,
+          fromDate: prevFrom,
+          toDate
+        });
     const { filteredNew, merged } = mergeCrmEvents(existingEvents, liveEvents);
 
     if (filteredNew.length) {
@@ -5320,7 +5349,7 @@ app.get('/api/dashboard/stats-live', auth, async (req, res) => {
     }
 
     const allEvents = filterDashboardEventsByAgency(merged, req.user.agencyId);
-    const teamMembers = await loadAllTeamMembersForBackfill();
+    const teamMembers = LIVE_BACKFILL_DISABLED ? [] : await loadAllTeamMembersForBackfill();
     const workingSnapshot = buildDashboardWorkingSnapshot(teamMembers);
 
     const current = buildDashboardRangeStats(allEvents, fromDate, toDate);
@@ -5364,7 +5393,45 @@ app.get('/api/dashboard/stats-live', auth, async (req, res) => {
     });
   } catch (err) {
     console.error('GET /api/dashboard/stats-live error:', err);
-    res.status(500).json({ error: 'Не удалось загрузить live dashboard статистику' });
+    try {
+      const empty = resolveDashboardPeriodRange({
+        period: req.query?.period,
+        mode: req.query?.mode || req.query?.week
+      });
+
+      return res.json({
+        range: {
+          date_from: formatDateOnly(empty.fromDate),
+          date_to: formatDateOnly(empty.toDate),
+          week: empty.mode,
+          period: empty.period,
+          mode: empty.mode
+        },
+        previous_range: {
+          date_from: formatDateOnly(empty.previousFrom),
+          date_to: formatDateOnly(empty.previousTo)
+        },
+        summary: { leads: 0, interviews: 0, hired: 0, rejected: 0, fired: 0, started: 0, unpaid: 0 },
+        daily: [],
+        platforms: [],
+        platform_breakdown: [],
+        working_snapshot: buildDashboardWorkingSnapshot([]),
+        conversion: { interview_rate: 0, hire_rate: 0, reject_rate: 0 },
+        top_people: [],
+        trends: {
+          leads: { current: 0, previous: 0, diff: 0, diff_percent: 0 },
+          interviews: { current: 0, previous: 0, diff: 0, diff_percent: 0 },
+          hired: { current: 0, previous: 0, diff: 0, diff_percent: 0 },
+          rejected: { current: 0, previous: 0, diff: 0, diff_percent: 0 },
+          fired: { current: 0, previous: 0, diff: 0, diff_percent: 0 },
+          started: { current: 0, previous: 0, diff: 0, diff_percent: 0 },
+          unpaid: { current: 0, previous: 0, diff: 0, diff_percent: 0 }
+        }
+      });
+    } catch (fallbackErr) {
+      console.error('GET /api/dashboard/stats-live fallback error:', fallbackErr);
+      res.status(500).json({ error: 'Не удалось загрузить live dashboard статистику' });
+    }
   }
 });
 
@@ -5666,7 +5733,13 @@ app.get('/api/team-stats', auth, async (req, res) => {
       return res.json(teamStatsCache.data);
     }
 
-    const items = await loadTeamItemsFromCandidatesDb(req.user.agencyId);
+    let items = [];
+    try {
+      items = await loadTeamItemsFromCandidatesDb(req.user.agencyId);
+    } catch (err) {
+      console.warn('loadTeamItemsFromCandidatesDb fallback:', err.message);
+      items = [];
+    }
 
     const toNumber = (value) => {
       const n = Number(String(value || '').replace(',', '.').trim());
@@ -5710,7 +5783,16 @@ app.get('/api/team-stats', auth, async (req, res) => {
     res.json(payload);
   } catch (err) {
     console.error('Team stats error:', err);
-    res.status(500).json({ error: 'Не удалось загрузить страницу действующие' });
+    if (teamStatsCache.data) {
+      return res.json(teamStatsCache.data);
+    }
+
+    return res.json({
+      totals: { total: 0, active: 0, onlyfans: 0, fansly: 0, unpaid: 0 },
+      averages: { experience_months: 0, work_days: 0 },
+      items: [],
+      data_source: 'fallback'
+    });
   }
 });
 
