@@ -3006,6 +3006,74 @@ function signToken(user) {
   );
 }
 
+function isDbUnavailableError(err) {
+  const message = String(err?.message || '').toLowerCase();
+  return (
+    message.includes('econnreset') ||
+    message.includes('connect econnrefused') ||
+    message.includes('connection terminated') ||
+    message.includes('timeout') ||
+    message.includes('database') ||
+    err?.code === '57P01' ||
+    err?.code === '53300'
+  );
+}
+
+function readEmergencyAuthConfig() {
+  const enabledRaw = String(process.env.AUTH_FALLBACK_ENABLED || '').trim().toLowerCase();
+  const enabled = enabledRaw === '1' || enabledRaw === 'true' || enabledRaw === 'yes';
+
+  const email = normalizeEmail(process.env.AUTH_FALLBACK_EMAIL || '');
+  const password = String(process.env.AUTH_FALLBACK_PASSWORD || '');
+
+  if (!enabled || !email || !password) return null;
+
+  const roleRaw = String(process.env.AUTH_FALLBACK_ROLE || 'owner').trim().toLowerCase();
+  const allowedRoles = new Set(['owner', 'teamlead', 'hr', 'senior_operator']);
+  const role = allowedRoles.has(roleRaw) ? roleRaw : 'owner';
+
+  const agencyId = Number(process.env.AUTH_FALLBACK_AGENCY_ID || 1) || 1;
+  const userId = Number(process.env.AUTH_FALLBACK_USER_ID || -1) || -1;
+
+  return {
+    email,
+    password,
+    role,
+    agencyId,
+    userId,
+    fullName: String(process.env.AUTH_FALLBACK_NAME || 'Emergency Access').trim() || 'Emergency Access'
+  };
+}
+
+function buildEmergencyAuthPayload(config) {
+  return {
+    id: config.userId,
+    userId: config.userId,
+    agency_id: config.agencyId,
+    agencyId: config.agencyId,
+    full_name: config.fullName,
+    email: config.email,
+    role: config.role,
+    is_active: true,
+    authMode: 'fallback'
+  };
+}
+
+function signEmergencyToken(profile) {
+  return jwt.sign(
+    {
+      id: profile.userId,
+      agencyId: profile.agencyId,
+      email: profile.email,
+      role: profile.role,
+      fullName: profile.full_name,
+      authMode: 'fallback'
+    },
+    JWT_SECRET,
+    { expiresIn: '12h' }
+  );
+}
+
 async function auth(req, res, next) {
   try {
     const header = req.headers.authorization || '';
@@ -3018,6 +3086,24 @@ async function auth(req, res, next) {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
+
+    if (decoded?.authMode === 'fallback') {
+      const fallbackConfig = readEmergencyAuthConfig();
+      if (!fallbackConfig) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+
+      req.user = buildEmergencyAuthPayload({
+        ...fallbackConfig,
+        email: String(decoded.email || fallbackConfig.email),
+        role: String(decoded.role || fallbackConfig.role),
+        agencyId: Number(decoded.agencyId || fallbackConfig.agencyId) || fallbackConfig.agencyId,
+        userId: Number(decoded.id || decoded.userId || fallbackConfig.userId) || fallbackConfig.userId,
+        fullName: String(decoded.fullName || fallbackConfig.fullName)
+      });
+
+      return next();
+    }
 
     const result = await pool.query(
       `SELECT id, agency_id, full_name, email, role, is_active
@@ -3241,17 +3327,40 @@ app.post('/auth/login', async (req, res) => {
   } catch (err) {
     console.error('Login error:', err.message);
 
-    const message = String(err.message || '').toLowerCase();
-    const isDbUnavailable =
-      message.includes('econnreset') ||
-      message.includes('connect econnrefused') ||
-      message.includes('connection terminated') ||
-      message.includes('timeout') ||
-      message.includes('database') ||
-      err.code === '57P01' ||
-      err.code === '53300';
+    const isDbUnavailable = isDbUnavailableError(err);
 
     if (isDbUnavailable) {
+      const fallbackConfig = readEmergencyAuthConfig();
+      const email = normalizeEmail(req.body?.email);
+      const password = String(req.body?.password || '');
+
+      if (fallbackConfig && email === fallbackConfig.email && password === fallbackConfig.password) {
+        const profile = buildEmergencyAuthPayload(fallbackConfig);
+        const token = signEmergencyToken(profile);
+
+        console.warn('Emergency auth fallback login granted because database is unavailable');
+
+        return res.json({
+          token,
+          mode: 'fallback',
+          me: {
+            id: profile.userId,
+            email: profile.email,
+            name: profile.full_name,
+            role: profile.role,
+            is_active: true
+          },
+          user: {
+            id: profile.userId,
+            agency_id: profile.agencyId,
+            full_name: profile.full_name,
+            email: profile.email,
+            role: profile.role,
+            is_active: true
+          }
+        });
+      }
+
       return res.status(503).json({ error: 'База данных временно недоступна. Попробуйте через 1-2 минуты.' });
     }
 
@@ -3395,6 +3504,17 @@ app.delete('/api/users/:id', auth, async (req, res) => {
 });
 
 app.get('/auth/me', auth, async (req, res) => {
+  if (req.user?.authMode === 'fallback') {
+    return res.json({
+      id: req.user.userId,
+      agency_id: req.user.agencyId,
+      full_name: req.user.full_name,
+      email: req.user.email,
+      role: req.user.role,
+      agency_name: 'Emergency mode'
+    });
+  }
+
   const user = await query(
     `SELECT u.id, u.agency_id, u.full_name, u.email, u.role, a.name AS agency_name
      FROM users u
