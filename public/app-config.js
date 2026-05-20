@@ -3,7 +3,7 @@
   const TOKEN_KEY = 'allstars_token';
   const ME_KEY = 'allstars_me';
   const AUTH_BYPASS_FLAG_KEY = 'allstars_auth_bypass_enabled';
-  const AUTH_BYPASS_TOKEN = 'allstars-bypass-token';
+  const AUTH_BYPASS_TOKEN = 'as_bypass_2026_X9mK2pQ7vL4tR8nW5cD1';
 
   function normalizeBase(value) {
     return String(value || '').trim().replace(/\/+$/, '');
