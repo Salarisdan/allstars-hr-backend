@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AllStars HR SaaS вЂ” Р’С…РѕРґ</title>
+  <title>AllStars HR SaaS — Вход</title>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
 :root{
@@ -271,28 +271,28 @@ a{text-decoration:none;color:inherit}
     <div class="auth-card">
       <div class="page-header" style="display:block;margin-bottom:1rem">
         <div class="tag">Multi-tenant HR CRM</div>
-        <h1>Р’С…РѕРґ РІ AllStars</h1>
-        <p>Р›РѕРіРёРЅ, РєРѕРјР°РЅРґР°, Р°РЅР°Р»РёС‚РёРєР° Рё SaaS-СЃС‚СЂСѓРєС‚СѓСЂР° РїРѕРґ Р°РіРµРЅС‚СЃС‚РІРѕ.</p>
+        <h1>Вход в AllStars</h1>
+        <p>Логин, команда, аналитика и SaaS-структура под агентство.</p>
       </div>
 
       <div class="panel">
         <div style="display:flex;gap:8px;margin-bottom:1rem">
-          <button class="btn" id="tab-login" type="button">Р’С…РѕРґ</button>
-          <button class="btn ghost" id="tab-register" type="button">Р РµРіРёСЃС‚СЂР°С†РёСЏ</button>
+          <button class="btn" id="tab-login" type="button">Вход</button>
+          <button class="btn ghost" id="tab-register" type="button">Регистрация</button>
         </div>
 
         <form id="login-form" class="list">
           <input class="input" name="email" placeholder="Email">
-<input class="input" name="password" placeholder="РџР°СЂРѕР»СЊ" type="password">
-          <button class="btn" type="submit">Р’РѕР№С‚Рё</button>
+<input class="input" name="password" placeholder="Пароль" type="password">
+          <button class="btn" type="submit">Войти</button>
         </form>
 
         <form id="register-form" class="list hidden">
-          <input class="input" name="agencyName" placeholder="РќР°Р·РІР°РЅРёРµ Р°РіРµРЅС‚СЃС‚РІР°">
-          <input class="input" name="fullName" placeholder="РўРІРѕС‘ РёРјСЏ">
+          <input class="input" name="agencyName" placeholder="Название агентства">
+          <input class="input" name="fullName" placeholder="Твоё имя">
           <input class="input" name="email" placeholder="Email">
-          <input class="input" name="password" type="password" placeholder="РџР°СЂРѕР»СЊ РѕС‚ 8 СЃРёРјРІРѕР»РѕРІ">
-          <button class="btn" type="submit">РЎРѕР·РґР°С‚СЊ workspace</button>
+          <input class="input" name="password" type="password" placeholder="Пароль от 8 символов">
+          <button class="btn" type="submit">Создать workspace</button>
         </form>
 
         <div id="auth-msg" class="small muted" style="margin-top:1rem"></div>
@@ -335,21 +335,21 @@ function verdictClass(total){
   return 'default';
 }
 function verdictLabel(total){
-  if (total >= 40) return 'Р‘РµСЂС‘Рј';
-  if (total >= 28) return 'Р”СѓРјР°РµРј';
-  if (total > 0) return 'РћС‚РєР°Р·';
-  return 'Р‘РµР· РѕС†РµРЅРєРё';
+  if (total >= 40) return 'Берём';
+  if (total >= 28) return 'Думаем';
+  if (total > 0) return 'Отказ';
+  return 'Без оценки';
 }
 function statusClass(status=''){
   const x = status.toLowerCase();
-  if (x.includes('РїСЂРёРЅСЏС‚')) return 'green';
-  if (x.includes('С‚РµСЃС‚')) return 'purple';
-  if (x.includes('РіР°Р№Рґ')) return 'yellow';
-  if (x.includes('РѕС‚РєР°Р·')) return 'red';
+  if (x.includes('принят')) return 'green';
+  if (x.includes('тест')) return 'purple';
+  if (x.includes('гайд')) return 'yellow';
+  if (x.includes('отказ')) return 'red';
   return 'default';
 }
 function fmtDate(s){
-  if (!s) return 'вЂ”';
+  if (!s) return '—';
   return new Date(s).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
 async function loadMe(){
@@ -371,8 +371,8 @@ async function loadMe(){
     const registerForm = document.getElementById('register-form');
     const msg = document.getElementById('auth-msg');
 
-    const loginHint = 'Р’РІРµРґРёС‚Рµ email Рё РїР°СЂРѕР»СЊ, РєРѕС‚РѕСЂС‹Рµ РІР°Рј РІС‹РґР°Р»Рё. Р РµРіРёСЃС‚СЂР°С†РёСЏ РЅСѓР¶РЅР° С‚РѕР»СЊРєРѕ РґР»СЏ СЃРѕР·РґР°РЅРёСЏ РЅРѕРІРѕРіРѕ Р°РіРµРЅС‚СЃС‚РІР°.';
-    const registerHint = 'РџРѕСЃР»Рµ СЂРµРіРёСЃС‚СЂР°С†РёРё СЃРѕР·РґР°С‘С‚СЃСЏ agency + owner account.';
+    const loginHint = 'Введите email и пароль, которые вам выдали. Регистрация нужна только для создания нового агентства.';
+    const registerHint = 'После регистрации создаётся agency + owner account.';
 
     function switchTab(mode) {
       const isLogin = mode === 'login';
@@ -388,7 +388,7 @@ async function loadMe(){
 
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      msg.textContent = 'Р’С…РѕРґРёРј...';
+      msg.textContent = 'Входим...';
       const fd = new FormData(loginForm);
       try {
         const data = await api('/auth/login', {
@@ -404,7 +404,7 @@ async function loadMe(){
 
     registerForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      msg.textContent = 'РЎРѕР·РґР°С‘Рј workspace...';
+      msg.textContent = 'Создаём workspace...';
       const fd = new FormData(registerForm);
       try {
         const data = await api('/auth/register', {

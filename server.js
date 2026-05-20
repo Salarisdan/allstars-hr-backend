@@ -163,11 +163,15 @@ async function appendCrmEvent(event) {
 }
 
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET;
+const isProductionRuntime =
+  String(process.env.NODE_ENV || '').toLowerCase() === 'production' ||
+  Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_ENVIRONMENT_NAME);
+const JWT_SECRET = String(process.env.JWT_SECRET || '').trim() ||
+  (isProductionRuntime ? '' : 'allstars-dev-jwt-secret');
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
 
 if (!JWT_SECRET) {
-  if (process.env.NODE_ENV === 'production') {
+  if (isProductionRuntime) {
     throw new Error('JWT_SECRET environment variable is required in production');
   }
   console.warn('WARNING: JWT_SECRET not set, using insecure default for development only');
@@ -2997,7 +3001,7 @@ app.post('/auth/login', async (req, res) => {
         email: user.email,
         role: user.role
       },
-      process.env.JWT_SECRET,
+      JWT_SECRET,
       { expiresIn: '30d' }
     );
 
