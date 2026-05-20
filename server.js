@@ -319,9 +319,10 @@ function safeDbConfigSummary(config) {
 }
 
 let pool = null;
-let dbFallbackUsed = false;
 let dbSwitchPromise = null;
 const alternateDatabaseConfig = buildAlternateDatabaseConfig(databaseConfig);
+const canToggleDbConfig = Boolean(alternateDatabaseConfig);
+let usingAlternateDbConfig = false;
 
 function createPool(config) {
   const instance = new Pool({
@@ -352,16 +353,19 @@ function createPool(config) {
 }
 
 async function switchPoolToAlternate(reason) {
-  if (dbFallbackUsed || !alternateDatabaseConfig) return false;
+  if (!canToggleDbConfig) return false;
   if (dbSwitchPromise) return dbSwitchPromise;
 
   dbSwitchPromise = (async () => {
-    dbFallbackUsed = true;
+    const nextUseAlternate = !usingAlternateDbConfig;
+    const nextConfig = nextUseAlternate ? alternateDatabaseConfig : databaseConfig;
+    const nextModeLabel = nextUseAlternate ? 'fallback' : 'primary';
     const previousPool = pool;
-    pool = createPool(alternateDatabaseConfig);
+    pool = createPool(nextConfig);
+    usingAlternateDbConfig = nextUseAlternate;
 
     console.warn('Switching database connection mode after error:', reason);
-    console.warn('Database config fallback summary:', safeDbConfigSummary(alternateDatabaseConfig));
+    console.warn(`Database config ${nextModeLabel} summary:`, safeDbConfigSummary(nextConfig));
 
     if (previousPool) {
       try {
