@@ -178,13 +178,44 @@ if (!JWT_SECRET) {
 }
 
 function buildDatabaseConfig() {
+  function resolveSslConfig(rawHost, rawConnectionString) {
+    const host = String(rawHost || '').toLowerCase();
+    const conn = String(rawConnectionString || '');
+    const dbSsl = String(process.env.DB_SSL || '').trim().toLowerCase();
+    const pgSslMode = String(process.env.PGSSLMODE || '').trim().toLowerCase();
+
+    if (dbSsl === 'true' || dbSsl === '1') return { rejectUnauthorized: false };
+    if (dbSsl === 'false' || dbSsl === '0') return false;
+
+    if (pgSslMode === 'disable' || pgSslMode === 'allow' || pgSslMode === 'prefer') return false;
+    if (pgSslMode === 'require' || pgSslMode === 'verify-ca' || pgSslMode === 'verify-full') {
+      return { rejectUnauthorized: false };
+    }
+
+    if (/sslmode=disable/i.test(conn)) return false;
+    if (/sslmode=require/i.test(conn)) return { rejectUnauthorized: false };
+
+    if (!host || host === 'localhost' || host === '127.0.0.1' || host.endsWith('.railway.internal')) {
+      return false;
+    }
+
+    return { rejectUnauthorized: false };
+  }
+
   const connectionString = String(process.env.DATABASE_URL || '').trim();
   const pgHost = String(process.env.PGHOST || '').trim();
 
   if (connectionString) {
+    let parsedHost = '';
+    try {
+      parsedHost = new URL(connectionString).hostname || '';
+    } catch {
+      parsedHost = '';
+    }
+
     return {
       connectionString,
-      ssl: connectionString.includes('localhost') ? false : { rejectUnauthorized: false }
+      ssl: resolveSslConfig(parsedHost, connectionString)
     };
   }
 
@@ -195,7 +226,7 @@ function buildDatabaseConfig() {
       user: process.env.PGUSER,
       password: process.env.PGPASSWORD,
       database: process.env.PGDATABASE,
-      ssl: pgHost.includes('localhost') ? false : { rejectUnauthorized: false }
+      ssl: resolveSslConfig(pgHost, '')
     };
   }
 
@@ -212,6 +243,8 @@ const pool = new Pool({
   ...databaseConfig,
   connectionTimeoutMillis: 10000,
   idleTimeoutMillis: 30000,
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000,
   max: 20
 });
 
