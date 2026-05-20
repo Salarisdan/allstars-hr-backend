@@ -170,6 +170,7 @@ const JWT_SECRET = String(process.env.JWT_SECRET || '').trim() ||
   (isProductionRuntime ? '' : 'allstars-dev-jwt-secret');
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
 const AUTH_BYPASS_TOKEN = String(process.env.AUTH_BYPASS_TOKEN || 'allstars-bypass-token').trim();
+const AUTH_BYPASS_AGENCY_ID = Number(process.env.AUTH_BYPASS_AGENCY_ID || 0) || 0;
 
 if (!JWT_SECRET) {
   if (isProductionRuntime) {
@@ -3102,6 +3103,60 @@ function signEmergencyToken(profile) {
   );
 }
 
+let cachedBypassAgency = {
+  id: AUTH_BYPASS_AGENCY_ID > 0 ? AUTH_BYPASS_AGENCY_ID : 0,
+  name: 'AllStars Emergency Bypass'
+};
+
+async function resolveBypassAgency() {
+  if (cachedBypassAgency.id > 0) {
+    return cachedBypassAgency;
+  }
+
+  try {
+    const configured = Number(process.env.AUTH_BYPASS_AGENCY_ID || 0) || 0;
+    if (configured > 0) {
+      const exact = await query(
+        `SELECT id, name
+         FROM agencies
+         WHERE id = $1
+         LIMIT 1`,
+        [configured]
+      );
+
+      if (exact.rows[0]) {
+        cachedBypassAgency = {
+          id: Number(exact.rows[0].id),
+          name: String(exact.rows[0].name || 'AllStars Emergency Bypass')
+        };
+        return cachedBypassAgency;
+      }
+    }
+
+    const first = await query(
+      `SELECT id, name
+       FROM agencies
+       ORDER BY id ASC
+       LIMIT 1`
+    );
+
+    if (first.rows[0]) {
+      cachedBypassAgency = {
+        id: Number(first.rows[0].id),
+        name: String(first.rows[0].name || 'AllStars Emergency Bypass')
+      };
+      return cachedBypassAgency;
+    }
+  } catch (err) {
+    console.warn('resolveBypassAgency fallback:', err.message);
+  }
+
+  return {
+    id: AUTH_BYPASS_AGENCY_ID > 0 ? AUTH_BYPASS_AGENCY_ID : 1,
+    name: 'AllStars Emergency Bypass'
+  };
+}
+
 async function auth(req, res, next) {
   try {
     const header = req.headers.authorization || '';
@@ -3110,15 +3165,18 @@ async function auth(req, res, next) {
     const token = bearerToken || queryToken;
 
     if (token && token === AUTH_BYPASS_TOKEN) {
+      const bypassAgency = await resolveBypassAgency();
+
       req.user = {
         id: -2,
         userId: -2,
-        agency_id: 1,
-        agencyId: 1,
+        agency_id: bypassAgency.id,
+        agencyId: bypassAgency.id,
         full_name: 'Bypass Access',
         email: 'bypass@allstars.local',
         role: 'owner',
         is_active: true,
+        agency_name: bypassAgency.name,
         authMode: 'bypass'
       };
 
@@ -3555,7 +3613,7 @@ app.get('/auth/me', auth, async (req, res) => {
       full_name: req.user.full_name,
       email: req.user.email,
       role: req.user.role,
-      agency_name: 'AllStars Emergency Bypass'
+      agency_name: req.user.agency_name || 'AllStars Emergency Bypass'
     });
   }
 
@@ -8087,9 +8145,6 @@ app.post('/api/admin/restore-candidates-from-sheets', auth, requireRole('owner',
     const dryRun =
       req.body?.dryRun === true ||
       String(req.query?.dryRun || '').trim() === '1';
-    const createMissing =
-      req.body?.createMissing === true ||
-      String(req.query?.createMissing || '').trim() === '1';
     const sourceModeRaw = String(req.body?.source || req.query?.source || 'both').trim().toLowerCase();
     const sourceMode = ['both', 'newcomers', 'active'].includes(sourceModeRaw)
       ? sourceModeRaw
@@ -8187,7 +8242,6 @@ app.post('/api/admin/restore-candidates-from-sheets', auth, requireRole('owner',
 
     const candidateDrafts = new Map();
     const unmatched = [];
-    const missingRowsForCreate = [];
 
     let processed = 0;
     let matched = 0;
@@ -8206,16 +8260,6 @@ app.post('/api/admin/restore-candidates-from-sheets', auth, requireRole('owner',
           telegram: normalized.telegram || '',
           reason: match.reason
         });
-
-        if (createMissing && match.reason === 'not_found') {
-          missingRowsForCreate.push({
-            source: sourceRow.source,
-            row_number: sourceRow.row_number,
-            normalized,
-            raw: sourceRow.raw || {}
-          });
-        }
-
         continue;
       }
 
@@ -8233,46 +8277,7 @@ app.post('/api/admin/restore-candidates-from-sheets', auth, requireRole('owner',
     }
 
     let updated = 0;
-    let created = 0;
     const updateErrors = [];
-    const createErrors = [];
-
-    const createDraftFromSheet = (row) => {
-      const draft = {
-        name: '',
-        tg: '',
-        telegram: '',
-        age: '',
-        english: '',
-        english_level: '',
-        exp: '',
-        experience: '',
-        platform: '',
-        platforms: '',
-        shift: '',
-        schedule: '',
-        schedule_preference: '',
-        top_pages: '',
-        top_profile: '',
-        avg_check: '',
-        job: '',
-        main_activity: '',
-        interview_report: '',
-        status: 'Без статуса',
-        source: 'sheet_restore',
-        lead_source: '',
-        notes: '',
-        team_card_meta: {}
-      };
-
-      mergeSheetIntoCandidateDraft(draft, row.normalized || {}, row.raw || {});
-
-      if (!String(draft.source || '').trim()) {
-        draft.source = 'sheet_restore';
-      }
-
-      return draft;
-    };
 
     if (!dryRun) {
       for (const [candidateId, draft] of candidateDrafts.entries()) {
@@ -8360,105 +8365,7 @@ app.post('/api/admin/restore-candidates-from-sheets', auth, requireRole('owner',
         }
       }
 
-      if (createMissing && missingRowsForCreate.length) {
-        const seenCreateKeys = new Set();
-
-        for (const row of missingRowsForCreate) {
-          const draft = createDraftFromSheet(row);
-          const tgKey = normalizeTelegramKey(draft.tg || draft.telegram || '');
-          const nameKey = normalizePersonKey(draft.name || '');
-          const dedupeKey = tgKey ? `tg:${tgKey}` : (nameKey ? `name:${nameKey}` : '');
-
-          if (!dedupeKey) continue;
-          if (seenCreateKeys.has(dedupeKey)) continue;
-          seenCreateKeys.add(dedupeKey);
-
-          // Do not create duplicates against currently loaded DB dataset.
-          if (tgKey && (byTelegram.get(tgKey) || []).length) continue;
-          if (!tgKey && nameKey && (byName.get(nameKey) || []).length) continue;
-
-          try {
-            const inserted = await query(
-              `INSERT INTO candidates (
-                 agency_id,
-                 created_by_user_id,
-                 updated_by_user_id,
-                 name,
-                 tg,
-                 telegram,
-                 status,
-                 platform,
-                 platforms,
-                 exp,
-                 experience,
-                 shift,
-                 schedule,
-                 schedule_preference,
-                 top_pages,
-                 top_profile,
-                 avg_check,
-                 job,
-                 main_activity,
-                 interview_report,
-                 source,
-                 lead_source,
-                 age,
-                 english,
-                 english_level,
-                 notes,
-                 team_card_meta
-               )
-               VALUES (
-                 $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27::jsonb
-               )
-               RETURNING id` ,
-              [
-                agencyId,
-                req.user.userId,
-                req.user.userId,
-                draft.name || '',
-                draft.tg || draft.telegram || '',
-                draft.telegram || draft.tg || '',
-                normalizeCandidateStatus(draft.status) || draft.status || 'Без статуса',
-                draft.platform || draft.platforms || '',
-                draft.platforms || draft.platform || '',
-                draft.exp || draft.experience || '',
-                draft.experience || draft.exp || '',
-                draft.shift || '',
-                draft.schedule || draft.schedule_preference || '',
-                draft.schedule_preference || draft.schedule || '',
-                draft.top_pages || '',
-                draft.top_profile || draft.top_pages || '',
-                draft.avg_check || '',
-                draft.job || draft.main_activity || '',
-                draft.main_activity || draft.job || '',
-                draft.interview_report || '',
-                draft.source || 'sheet_restore',
-                draft.lead_source || '',
-                draft.age || '',
-                draft.english || draft.english_level || '',
-                draft.english_level || draft.english || '',
-                draft.notes || '',
-                JSON.stringify(draft.team_card_meta || {})
-              ]
-            );
-
-            const insertedId = Number(inserted.rows?.[0]?.id || 0);
-            if (insertedId) {
-              created += 1;
-            }
-          } catch (err) {
-            createErrors.push({
-              row_number: row.row_number,
-              name: draft.name || '',
-              telegram: draft.telegram || draft.tg || '',
-              error: err.message
-            });
-          }
-        }
-      }
-
-      if (updated > 0 || created > 0) {
+      if (updated > 0) {
         invalidateTeamStatsCache();
       }
     }
@@ -8466,17 +8373,13 @@ app.post('/api/admin/restore-candidates-from-sheets', auth, requireRole('owner',
     res.json({
       ok: true,
       dry_run: dryRun,
-      create_missing: createMissing,
       source_mode: sourceMode,
       processed_rows: processed,
       matched_rows: matched,
       unmatched_rows: unmatched.length,
       touched_candidates: candidateDrafts.size,
       updated_candidates: dryRun ? 0 : updated,
-      created_candidates: dryRun ? 0 : created,
       update_errors: updateErrors,
-      create_errors: createErrors,
-      creatable_rows: missingRowsForCreate.length,
       unmatched_sample: unmatched.slice(0, 200),
       sources: {
         newcomers: {
