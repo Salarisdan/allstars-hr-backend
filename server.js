@@ -251,6 +251,16 @@ const poolRuntimeOptions = {
 
 const liveBackfillDisabledRaw = String(process.env.DISABLE_LIVE_BACKFILL || '').trim().toLowerCase();
 const LIVE_BACKFILL_DISABLED = liveBackfillDisabledRaw === '1' || liveBackfillDisabledRaw === 'true' || liveBackfillDisabledRaw === 'yes';
+const sheetsWriteEnabledRaw = String(process.env.ENABLE_SHEETS_WRITE || '').trim().toLowerCase();
+const SHEETS_WRITE_ENABLED = sheetsWriteEnabledRaw === '1' || sheetsWriteEnabledRaw === 'true' || sheetsWriteEnabledRaw === 'yes';
+
+function ensureSheetsWriteEnabled() {
+  if (SHEETS_WRITE_ENABLED) return;
+
+  const err = new Error('Google Sheets write is disabled: CRM -> Sheets sync is blocked');
+  err.code = 'SHEETS_WRITE_DISABLED';
+  throw err;
+}
 
 function flipSslConfig(rawSsl) {
   return rawSsl ? false : { rejectUnauthorized: false };
@@ -817,6 +827,8 @@ function inspectSexterRow(row = []) {
 }
 
 async function assignSexterEndingByName(personName, ending) {
+  if (!SHEETS_WRITE_ENABLED) return false;
+
   const spreadsheetId = process.env.SHELL_OF_SPREADSHEET_ID;
   const sheetName = process.env.SHELL_OF_SEXTER_SHEET_NAME || '# sexter';
 
@@ -878,6 +890,8 @@ async function assignSexterEndingByName(personName, ending) {
 }
 
 async function clearSexterEndingByEnding(ending) {
+  if (!SHEETS_WRITE_ENABLED) return false;
+
   const spreadsheetId = process.env.SHELL_OF_SPREADSHEET_ID;
   const sheetName = process.env.SHELL_OF_SEXTER_SHEET_NAME || '# sexter';
 
@@ -920,6 +934,8 @@ async function clearSexterEndingByEnding(ending) {
 }
 
 async function clearSexterEndingByName(personName) {
+  if (!SHEETS_WRITE_ENABLED) return false;
+
   const spreadsheetId = process.env.SHELL_OF_SPREADSHEET_ID;
   const sheetName = process.env.SHELL_OF_SEXTER_SHEET_NAME || '# sexter';
 
@@ -2263,6 +2279,8 @@ function getStatusDatePatch(status, existingDates = {}) {
 }
 
 async function moveCandidateToTeamSheet(candidate) {
+  ensureSheetsWriteEnabled();
+
   const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
   const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
 
@@ -2344,6 +2362,10 @@ function normalizeTelegramKey(value) {
 }
 
 async function syncInterviewSheetStatus({ status, telegram, name }) {
+  if (!SHEETS_WRITE_ENABLED) {
+    return { updated: 0, skipped: 'sheets_write_disabled' };
+  }
+
   const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
   const sheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
   const normalizedStatus = normalizeInterviewStatus(status);
@@ -2407,6 +2429,10 @@ async function syncInterviewSheetStatus({ status, telegram, name }) {
 }
 
 async function syncInterviewSheetPlatform({ platform, shift, englishLevel, telegram, name }) {
+  if (!SHEETS_WRITE_ENABLED) {
+    return { updated: 0, skipped: 'sheets_write_disabled' };
+  }
+
   const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
   const sheetName = process.env.GOOGLE_SPREADSHEET_NAME || 'AllStarsLeads';
   const nextPlatform = String(platform || '').trim();
@@ -2546,6 +2572,10 @@ async function syncCandidatesPlatformFromInterview({ agencyId, platform, shift, 
 }
 
 async function syncTeamSheetStatus({ status, telegram, name }) {
+  if (!SHEETS_WRITE_ENABLED) {
+    return { updated: 0, skipped: 'sheets_write_disabled' };
+  }
+
   const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
   const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
   const normalizedStatus = normalizeTeamStatus(status);
@@ -4665,7 +4695,7 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
       return res.status(400).json({ error: 'No fields to update' });
     }
 
-    if (updates.length) {
+    if (updates.length && SHEETS_WRITE_ENABLED) {
       await sheets.spreadsheets.values.batchUpdate({
         spreadsheetId,
         requestBody: {
@@ -4676,7 +4706,7 @@ app.patch('/api/interviews/:rowNumber', auth, async (req, res) => {
     }
 
     // When only status is changed, we intentionally keep sheet data untouched.
-    const updatedRow = updates.length
+    const updatedRow = updates.length && SHEETS_WRITE_ENABLED
       ? (await sheets.spreadsheets.values.get({
         spreadsheetId,
         range: `${sheetName}!A${rowNumber}:ZZ${rowNumber}`
@@ -6148,14 +6178,16 @@ app.patch('/api/team-transaction-endings/assign', auth, async (req, res) => {
         return res.status(400).json({ error: 'Колонка Transaction ending не найдена в Действующие' });
       }
 
-      await sheets.spreadsheets.values.update({
-        spreadsheetId,
-        range: `${sheetName}!${columnToLetter(txIdx + 1)}${rowNumber}`,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [[String(ending)]]
-        }
-      });
+      if (SHEETS_WRITE_ENABLED) {
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: `${sheetName}!${columnToLetter(txIdx + 1)}${rowNumber}`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [[String(ending)]]
+          }
+        });
+      }
     }
 
     if (hasTelegram) {
@@ -6164,7 +6196,7 @@ app.patch('/api/team-transaction-endings/assign', auth, async (req, res) => {
       }
 
       const normalizedTelegram = normalizeTelegramForTeam(telegramRaw);
-      if (normalizedTelegram !== targetTelegram) {
+      if (normalizedTelegram !== targetTelegram && SHEETS_WRITE_ENABLED) {
         await sheets.spreadsheets.values.update({
           spreadsheetId,
           range: `${sheetName}!${columnToLetter(tgIdx + 1)}${rowNumber}`,
@@ -6192,6 +6224,12 @@ app.patch('/api/team-transaction-endings/assign', auth, async (req, res) => {
 
 app.post('/api/team-transaction-endings/import-sexter', auth, async (req, res) => {
   try {
+    if (!SHEETS_WRITE_ENABLED) {
+      return res.status(409).json({
+        error: 'CRM -> Sheets sync disabled. Import to sheet is blocked.'
+      });
+    }
+
     const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
     const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
 
@@ -6424,14 +6462,16 @@ app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
         [rowNumber, String(targetMember.name || '').trim()]
       );
 
-      await sheets.spreadsheets.values.update({
-        spreadsheetId,
-        range: `${sheetName}!${txCol}${rowNumber}`,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [['']]
-        }
-      });
+      if (SHEETS_WRITE_ENABLED) {
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: `${sheetName}!${txCol}${rowNumber}`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [['']]
+          }
+        });
+      }
 
       invalidateTeamStatsCache();
       broadcastRealtimeUpdate({ scope: 'transaction-endings' });
@@ -6458,7 +6498,7 @@ app.patch('/api/team-transaction-endings/clear', auth, async (req, res) => {
       [ending]
     );
 
-    if (assignedRowNumber >= 2) {
+    if (assignedRowNumber >= 2 && SHEETS_WRITE_ENABLED) {
       await sheets.spreadsheets.values.update({
         spreadsheetId,
         range: `${sheetName}!${txCol}${assignedRowNumber}`,
@@ -7011,6 +7051,12 @@ app.patch('/api/team-member/:rowNumber', auth, async (req, res) => {
 
     const spreadsheetId = process.env.TEAM_SPREADSHEET_ID;
     const sheetName = process.env.TEAM_SHEET_NAME || 'Действующие';
+
+    if (!SHEETS_WRITE_ENABLED) {
+      return res.status(409).json({
+        error: 'CRM -> Sheets sync disabled. Редактирование строк таблицы заблокировано, обновляйте CRM-карточки.'
+      });
+    }
 
     if (!spreadsheetId) {
       return res.status(500).json({ error: 'TEAM_SPREADSHEET_ID is missing' });
@@ -8595,6 +8641,351 @@ app.post('/api/admin/restore-candidates-from-sheets', auth, requireRole('owner',
   } catch (err) {
     console.error('restore-candidates-from-sheets error:', err);
     res.status(500).json({ error: err.message || 'Restore from sheets failed' });
+  }
+});
+
+app.post('/api/admin/rebuild-local-crm-from-sheets', auth, requireRole('owner', 'teamlead'), async (req, res) => {
+  try {
+    const dryRun =
+      req.body?.dryRun === true ||
+      String(req.query?.dryRun || '').trim() === '1';
+    const sourceModeRaw = String(req.body?.source || req.query?.source || 'both').trim().toLowerCase();
+    const sourceMode = ['both', 'newcomers', 'active'].includes(sourceModeRaw)
+      ? sourceModeRaw
+      : 'both';
+    const resetTransactionEndings =
+      req.body?.resetTransactionEndings !== false &&
+      String(req.query?.resetTransactionEndings || '').trim().toLowerCase() !== '0';
+
+    const agencyId = req.user.agencyId;
+
+    const newcomersSpreadsheetId = process.env.GOOGLE_SPREADSHEET_ID || DASHBOARD_STATS_SPREADSHEET_ID;
+    const activeSpreadsheetId = process.env.TEAM_SPREADSHEET_ID || DASHBOARD_STATS_SPREADSHEET_ID;
+
+    const newcomersSheet = await readSheetRowsWithFallback({
+      spreadsheetId: newcomersSpreadsheetId,
+      sheetNames: [
+        process.env.NEWCOMERS_SHEET_NAME,
+        process.env.GOOGLE_SPREADSHEET_NAME,
+        'Новички',
+        'AllStarsLeads'
+      ]
+    });
+
+    const activeSheet = await readSheetRowsWithFallback({
+      spreadsheetId: activeSpreadsheetId,
+      sheetNames: [
+        process.env.TEAM_SHEET_NAME,
+        'Действующие'
+      ]
+    });
+
+    const sourceRows = [
+      ...(sourceMode !== 'active'
+        ? (newcomersSheet.rows || []).map(row => ({ source: 'newcomers', ...row }))
+        : []),
+      ...(sourceMode !== 'newcomers'
+        ? (activeSheet.rows || []).map(row => ({ source: 'active', ...row }))
+        : [])
+    ];
+
+    const seenTelegrams = new Set();
+    const insertPayload = [];
+    const skippedSample = [];
+
+    for (const sourceRow of sourceRows) {
+      const normalized = normalizeSheetCandidateRow(sourceRow.raw || {});
+
+      if (!normalized.name && !normalized.telegram) {
+        skippedSample.push({
+          reason: 'missing_identity',
+          source: sourceRow.source,
+          row_number: sourceRow.row_number
+        });
+        continue;
+      }
+
+      const tgKey = normalizeTelegramKey(normalized.telegram || '');
+      if (tgKey && seenTelegrams.has(tgKey)) {
+        skippedSample.push({
+          reason: 'duplicate_telegram',
+          source: sourceRow.source,
+          row_number: sourceRow.row_number,
+          name: normalized.name,
+          telegram: normalized.telegram
+        });
+        continue;
+      }
+
+      if (tgKey) {
+        seenTelegrams.add(tgKey);
+      }
+
+      const status = normalizeCandidateStatus(normalized.status || '') || 'Без статуса';
+      const statusDatePatch = getStatusDatePatch(status, {});
+
+      insertPayload.push({
+        source: sourceRow.source,
+        row_number: sourceRow.row_number,
+        normalized,
+        status,
+        statusDatePatch
+      });
+    }
+
+    if (dryRun) {
+      return res.json({
+        ok: true,
+        dry_run: true,
+        source_mode: sourceMode,
+        agency_id: agencyId,
+        total_sheet_rows: sourceRows.length,
+        would_insert: insertPayload.length,
+        would_skip: sourceRows.length - insertPayload.length,
+        skipped_sample: skippedSample.slice(0, 100),
+        sources: {
+          newcomers: {
+            spreadsheet_id: newcomersSheet.spreadsheetId,
+            sheet_name: newcomersSheet.sheetName,
+            rows: newcomersSheet.rows.length
+          },
+          active: {
+            spreadsheet_id: activeSheet.spreadsheetId,
+            sheet_name: activeSheet.sheetName,
+            rows: activeSheet.rows.length
+          }
+        }
+      });
+    }
+
+    const txClient = await pool.connect();
+    const insertErrors = [];
+
+    let removedCandidates = 0;
+    let removedStatusHistory = 0;
+    let removedInsights = 0;
+    let removedInterviewMeta = 0;
+    let removedLegacyEvents = 0;
+    let resetEndingsCount = 0;
+
+    try {
+      await txClient.query('BEGIN');
+
+      const existingCandidateIdsRes = await txClient.query(
+        `SELECT id
+         FROM candidates
+         WHERE agency_id = $1`,
+        [agencyId]
+      );
+      const existingCandidateIds = (existingCandidateIdsRes.rows || [])
+        .map(row => Number(row.id))
+        .filter(id => Number.isInteger(id) && id > 0);
+
+      if (existingCandidateIds.length) {
+        const historyDeleteRes = await txClient.query(
+          `DELETE FROM candidate_status_history
+           WHERE candidate_id = ANY($1::int[])`,
+          [existingCandidateIds]
+        );
+        removedStatusHistory = Number(historyDeleteRes.rowCount || 0);
+
+        const insightsDeleteRes = await txClient.query(
+          `DELETE FROM candidate_ai_insights
+           WHERE candidate_id = ANY($1::int[])`,
+          [existingCandidateIds]
+        );
+        removedInsights = Number(insightsDeleteRes.rowCount || 0);
+      }
+
+      const interviewMetaDeleteRes = await txClient.query(
+        `DELETE FROM interview_crm_meta
+         WHERE agency_id = $1`,
+        [agencyId]
+      );
+      removedInterviewMeta = Number(interviewMetaDeleteRes.rowCount || 0);
+
+      const candidatesDeleteRes = await txClient.query(
+        `DELETE FROM candidates
+         WHERE agency_id = $1`,
+        [agencyId]
+      );
+      removedCandidates = Number(candidatesDeleteRes.rowCount || 0);
+
+      const legacyEventsDeleteRes = await txClient.query(
+        `DELETE FROM crm_events
+         WHERE (meta_json ? 'agencyId')
+           AND (meta_json->>'agencyId') ~ '^\\d+$'
+           AND (meta_json->>'agencyId')::int = $1`,
+        [agencyId]
+      ).catch(() => ({ rowCount: 0 }));
+      removedLegacyEvents = Number(legacyEventsDeleteRes.rowCount || 0);
+
+      if (resetTransactionEndings) {
+        const endingsResetRes = await txClient.query(
+          `UPDATE transaction_endings
+           SET assigned_to = NULL,
+               assigned_row_number = NULL,
+               assigned_user_id = NULL,
+               updated_at = NOW()`
+        ).catch(() => ({ rowCount: 0 }));
+        resetEndingsCount = Number(endingsResetRes.rowCount || 0);
+      }
+
+      for (const item of insertPayload) {
+        const normalized = item.normalized;
+        const statusDatePatch = item.statusDatePatch;
+
+        try {
+          await txClient.query(
+            `INSERT INTO candidates (
+               agency_id,
+               owner_user_id,
+               created_by_user_id,
+               updated_by_user_id,
+               name,
+               tg,
+               telegram,
+               age,
+               english,
+               english_level,
+               exp,
+               experience,
+               platform,
+               platforms,
+               shift,
+               schedule,
+               schedule_preference,
+               top_pages,
+               top_profile,
+               avg_check,
+               job,
+               main_activity,
+               interview_report,
+               status,
+               source,
+               lead_source,
+               notes,
+               status_changed_at,
+               hired_at,
+               rejected_at,
+               started_at,
+               fired_at,
+               ratings,
+               total
+             )
+             VALUES (
+               $1,$2,$3,$4,$5,
+               $6,$7,$8,$9,$10,
+               $11,$12,$13,$14,$15,
+               $16,$17,$18,$19,$20,
+               $21,$22,$23,$24,$25,
+               $26,$27,$28,$29,$30,
+               $31,$32,$33,$34
+             )`,
+            [
+              agencyId,
+              req.user.userId,
+              req.user.userId,
+              req.user.userId,
+              normalized.name || '',
+              normalized.telegram || '',
+              normalized.telegram || '',
+              normalized.age || '',
+              normalized.english || '',
+              normalized.english || '',
+              normalized.exp || '',
+              normalized.exp || '',
+              normalized.platform || '',
+              normalized.platform || '',
+              normalized.shift || '',
+              normalized.schedule || '',
+              normalized.schedule || '',
+              normalized.topPages || '',
+              normalized.topProfile || normalized.topPages || '',
+              normalized.avgCheck || '',
+              normalized.mainActivity || '',
+              normalized.mainActivity || '',
+              normalized.interviewReport || '',
+              item.status,
+              normalized.source || item.source || 'sheets',
+              normalized.leadSource || '',
+              normalized.notes || '',
+              statusDatePatch.status_changed_at || null,
+              statusDatePatch.hired_at || null,
+              statusDatePatch.rejected_at || null,
+              statusDatePatch.started_at || null,
+              statusDatePatch.fired_at || null,
+              '{}',
+              0
+            ]
+          );
+        } catch (err) {
+          insertErrors.push({
+            source: item.source,
+            row_number: item.row_number,
+            name: normalized.name,
+            telegram: normalized.telegram,
+            error: err.message
+          });
+        }
+      }
+
+      if (insertErrors.length) {
+        throw new Error(`Failed to insert ${insertErrors.length} candidates`);
+      }
+
+      await txClient.query('COMMIT');
+    } catch (err) {
+      await txClient.query('ROLLBACK');
+      throw err;
+    } finally {
+      txClient.release();
+    }
+
+    try {
+      await writeCrmEvents([]);
+    } catch (eventsErr) {
+      console.warn('Failed to clear local CRM events file:', eventsErr.message);
+    }
+
+    invalidateTeamStatsCache();
+    broadcastRealtimeUpdate({ scope: 'all' });
+
+    res.json({
+      ok: true,
+      dry_run: false,
+      source_mode: sourceMode,
+      agency_id: agencyId,
+      total_sheet_rows: sourceRows.length,
+      inserted: insertPayload.length,
+      skipped: sourceRows.length - insertPayload.length,
+      skipped_sample: skippedSample.slice(0, 100),
+      cleared: {
+        candidates: removedCandidates,
+        candidate_status_history: removedStatusHistory,
+        candidate_ai_insights: removedInsights,
+        interview_crm_meta: removedInterviewMeta,
+        crm_events: removedLegacyEvents,
+        transaction_endings_reset: resetEndingsCount
+      },
+      sources: {
+        newcomers: {
+          spreadsheet_id: newcomersSheet.spreadsheetId,
+          sheet_name: newcomersSheet.sheetName,
+          rows: newcomersSheet.rows.length
+        },
+        active: {
+          spreadsheet_id: activeSheet.spreadsheetId,
+          sheet_name: activeSheet.sheetName,
+          rows: activeSheet.rows.length
+        }
+      }
+    });
+  } catch (err) {
+    console.error('rebuild-local-crm-from-sheets error:', err);
+    res.status(500).json({
+      error: err.message || 'Failed to rebuild local CRM from sheets'
+    });
   }
 });
 

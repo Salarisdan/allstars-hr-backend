@@ -633,6 +633,7 @@
 
         <div class="toolbar">
           <button class="btn btn-primary" id="refreshBtn" type="button">Обновить</button>
+          <button class="btn" id="rebuildFromSheetsBtn" type="button" style="display:none;">Обновить из таблиц сейчас</button>
         </div>
       </div>
 
@@ -731,12 +732,29 @@
     const usersRoleFilter = document.getElementById('usersRoleFilter');
     const usersStatusFilter = document.getElementById('usersStatusFilter');
     const refreshBtn = document.getElementById('refreshBtn');
+    const rebuildFromSheetsBtn = document.getElementById('rebuildFromSheetsBtn');
     const createUserBtn = document.getElementById('createUserBtn');
     const createUserHint = document.getElementById('createUserHint');
     const statTotal = document.getElementById('statTotal');
     const statActive = document.getElementById('statActive');
     const statDisabled = document.getElementById('statDisabled');
     const statOwners = document.getElementById('statOwners');
+    let rebuildInProgress = false;
+
+    function canRebuildFromSheets() {
+      return currentUserRole === 'owner' || currentUserRole === 'teamlead';
+    }
+
+    function updateRebuildButtonState() {
+      if (!rebuildFromSheetsBtn) return;
+
+      const allowed = canRebuildFromSheets();
+      rebuildFromSheetsBtn.style.display = allowed ? 'inline-flex' : 'none';
+      rebuildFromSheetsBtn.disabled = !allowed || rebuildInProgress;
+      rebuildFromSheetsBtn.textContent = rebuildInProgress
+        ? 'Синхронизация...'
+        : 'Обновить из таблиц сейчас';
+    }
 
     async function api(path, options = {}) {
       const res = await fetch(window.AllStarsConfig?.resolveApiPath?.(path) || path, {
@@ -870,6 +888,7 @@
         const meRes = await api('/auth/me');
         const me = await meRes?.json().catch(() => null);
         currentUserRole = me?.role || null;
+        updateRebuildButtonState();
       }
 
       const res = await cachedApi('/api/users');
@@ -883,6 +902,56 @@
       allUsers = Array.isArray(data) ? data : [];
       renderStats(allUsers);
       renderUsers(getFilteredUsers());
+    }
+
+    async function rebuildFromSheetsNow() {
+      if (!canRebuildFromSheets()) {
+        alert('Недостаточно прав для этой операции');
+        return;
+      }
+
+      const confirmed = confirm(
+        'Пересобрать локальную CRM из Google Sheets прямо сейчас?\n\n' +
+        'Текущие локальные данные кандидатов будут очищены и импортированы заново.'
+      );
+
+      if (!confirmed) return;
+
+      rebuildInProgress = true;
+      updateRebuildButtonState();
+
+      try {
+        const res = await api('/api/admin/rebuild-local-crm-from-sheets', {
+          method: 'POST',
+          body: JSON.stringify({ source: 'both' })
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Не удалось обновить данные из таблиц');
+        }
+
+        if (typeof window.clearCache === 'function') {
+          window.clearCache();
+        }
+
+        try {
+          localStorage.setItem('candidateStatusUpdated', String(Date.now()));
+        } catch {
+          // Ignore local storage errors.
+        }
+
+        const inserted = Number(data.inserted || 0);
+        const skipped = Number(data.skipped || 0);
+        alert(`Готово. Импортировано: ${inserted}, пропущено: ${skipped}.`);
+      } catch (err) {
+        alert(err.message || 'Не удалось выполнить синхронизацию');
+      } finally {
+        rebuildInProgress = false;
+        updateRebuildButtonState();
+        await loadUsers();
+      }
     }
 
     async function createUser() {
@@ -972,11 +1041,13 @@
     };
 
     refreshBtn.addEventListener('click', loadUsers);
+    rebuildFromSheetsBtn?.addEventListener('click', rebuildFromSheetsNow);
     createUserBtn.addEventListener('click', createUser);
     usersSearch?.addEventListener('input', () => renderUsers(getFilteredUsers()));
     usersRoleFilter?.addEventListener('change', () => renderUsers(getFilteredUsers()));
     usersStatusFilter?.addEventListener('change', () => renderUsers(getFilteredUsers()));
     window.AllStarsRealtime?.subscribe(() => loadUsers());
+    updateRebuildButtonState();
 
     loadUsers();
   </script>

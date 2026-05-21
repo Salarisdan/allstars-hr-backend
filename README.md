@@ -60,6 +60,51 @@
 - реальный AI scoring через LLM
 - onboarding wizard
 
+## Полный перезапуск локальной CRM из Google Sheets
+
+Важно: чтение из Google Sheets остается онлайн. Этот сценарий не переводит CRM в оффлайн-режим, а только пересобирает локальную БД из актуальных данных таблиц.
+
+Политика синхронизации:
+- по умолчанию включен режим `Sheets -> CRM` (только чтение таблиц)
+- запись `CRM -> Sheets` отключена
+- при необходимости временно включить обратную запись можно через `ENABLE_SHEETS_WRITE=1`
+
+Если данные CRM потерялись, можно пересобрать базу локально с нуля из двух таблиц (новички + действующие).
+
+Эндпоинт:
+- `POST /api/admin/rebuild-local-crm-from-sheets`
+
+Доступ:
+- только роли `owner` и `teamlead`
+
+Что делает:
+- удаляет текущих кандидатов агентства из локальной БД
+- очищает связанные таблицы (`candidate_status_history`, `candidate_ai_insights`, `interview_crm_meta`)
+- по умолчанию сбрасывает назначения `transaction_endings`
+- импортирует кандидатов заново из Google Sheets
+- очищает локальный файл событий `data/crm-events.json`
+
+Параметры:
+- `dryRun=true` (query или body) — только проверка без записи в БД
+- `source=both|newcomers|active` — из каких листов импортировать (`both` по умолчанию)
+- `resetTransactionEndings=0` — не сбрасывать endings
+
+Примеры:
+
+Проверка без изменений:
+```bash
+curl -X POST "http://localhost:3000/api/admin/rebuild-local-crm-from-sheets?dryRun=1" \
+   -H "Authorization: Bearer <TOKEN>"
+```
+
+Полный перезапуск:
+```bash
+curl -X POST "http://localhost:3000/api/admin/rebuild-local-crm-from-sheets" \
+   -H "Authorization: Bearer <TOKEN>" \
+   -H "Content-Type: application/json" \
+   -d '{"source":"both"}'
+```
+
 ## Мобильное приложение (без риска для текущего сайта)
 
 Сайт продолжает работать как раньше. Мобильная часть подключается отдельно через Capacitor.
