@@ -5672,7 +5672,7 @@ async function loadTeamItemsFromCandidatesDb(agencyId) {
   // Sheet data supplements with extra fields (model, experience, work_days, etc.).
   // This guarantees any candidate with a visible status in CRM always appears here.
 
-  const [teamRows, candidateResult, transactionEndingResult] = await Promise.all([
+  const [teamRowsResult, candidateResult, transactionEndingResult] = await Promise.allSettled([
     loadAllTeamMembersForBackfill(),
     query(
       `SELECT id, name, tg, telegram, status, platform, platforms, top_pages, top_profile, main_activity, exp, experience, started_at, hired_at, created_at, updated_at, team_card_meta
@@ -5685,12 +5685,27 @@ async function loadTeamItemsFromCandidatesDb(agencyId) {
       `SELECT assigned_row_number, ending
        FROM transaction_endings
        WHERE assigned_row_number IS NOT NULL`
-    ).catch(() => ({ rows: [] }))
+    )
   ]);
 
-  const crmCandidates = candidateResult.rows || [];
+  const teamRows = teamRowsResult.status === 'fulfilled'
+    ? (teamRowsResult.value || [])
+    : [];
+
+  const crmCandidates = candidateResult.status === 'fulfilled'
+    ? (candidateResult.value?.rows || [])
+    : [];
+
+  const transactionEndingRows = transactionEndingResult.status === 'fulfilled'
+    ? (transactionEndingResult.value?.rows || [])
+    : [];
+
+  if (candidateResult.status === 'rejected') {
+    console.warn('loadTeamItemsFromCandidatesDb: candidates query failed, using sheet-only fallback:', candidateResult.reason?.message || candidateResult.reason);
+  }
+
   const transactionEndingByRow = new Map(
-    (transactionEndingResult.rows || []).map(row => [
+    transactionEndingRows.map(row => [
       Number(row.assigned_row_number),
       String(row.ending || '').trim()
     ])
