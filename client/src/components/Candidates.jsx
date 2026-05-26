@@ -1,5 +1,41 @@
 import { useMemo, useState } from 'react';
 import Card from './Card.jsx';
+import RecordDetails from './RecordDetails.jsx';
+
+function getCandidateTitle(candidate, index) {
+  return (
+    candidate.name ||
+    candidate['Имя'] ||
+    candidate['ФИО'] ||
+    candidate.full_name ||
+    candidate.fullName ||
+    candidate.username ||
+    `Кандидат ${index + 1}`
+  );
+}
+
+function getCandidateSubtitle(candidate) {
+  return candidate.telegram || candidate.tg || candidate.username || candidate.phone || candidate['Телефон'] || '';
+}
+
+function hasReferrer(candidate) {
+  const refFields = [
+    'referral',
+    'referal',
+    'ref',
+    'referrer',
+    'referred_by',
+    'invited_by',
+    'кто пригласил',
+    'от кого',
+    'реферал',
+    'реферер',
+    'telegram ref',
+    'username ref'
+  ];
+
+  return refFields.some((field) => String(candidate[field] || '').trim());
+}
 
 export default function Candidates({ rows = [] }) {
   const [search, setSearch] = useState('');
@@ -47,31 +83,30 @@ export default function Candidates({ rows = [] }) {
         </div>
       </div>
 
-      {!filtered.length ? (
-        <div className="rounded-xl bg-app-card p-6 text-app-muted">Кандидаты не найдены.</div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((candidate, index) => {
-            const title =
-              candidate.name ||
-              candidate['Имя'] ||
-              candidate['ФИО'] ||
-              candidate.full_name ||
-              `Кандидат ${index + 1}`;
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border border-white/10 bg-app-card/70 px-4 py-3 text-sm text-app-muted backdrop-blur-xl">
+        <span>Показано {filtered.length} из {rows.length}</span>
+        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.2em] text-app-muted">
+          Все поля отображаются в карточке
+        </span>
+      </div>
 
-            const subtitle = candidate.telegram || candidate.tg || candidate.username || candidate.phone || '';
+      {!filtered.length ? (
+        <div className="rounded-[1.5rem] border border-white/10 bg-app-card p-6 text-app-muted">Кандидаты не найдены.</div>
+      ) : (
+        <div className="grid gap-5 xl:grid-cols-2">
+          {filtered.map((candidate, index) => {
+            const title = getCandidateTitle(candidate, index);
+            const subtitle = getCandidateSubtitle(candidate);
+            const referrerLabel = hasReferrer(candidate) ? 'Есть реферер' : 'Без реферера';
 
             return (
               <Card key={`${title}-${index}`} title={title} subtitle={subtitle}>
-                {Object.entries(candidate)
-                  .filter(([, value]) => String(value || '').trim())
-                  .slice(0, 10)
-                  .map(([key, value]) => (
-                    <div key={key} className="flex justify-between gap-3 border-b border-slate-700/40 pb-1">
-                      <span className="text-app-muted">{key}</span>
-                      <span className="max-w-[55%] truncate text-right">{String(value || '-')}</span>
-                    </div>
-                  ))}
+                <div className="flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.24em] text-app-muted">
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Кандидат</span>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{referrerLabel}</span>
+                  {subtitle ? <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{subtitle}</span> : null}
+                </div>
+                <RecordDetails record={candidate} />
               </Card>
             );
           })}

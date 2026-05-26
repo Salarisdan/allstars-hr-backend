@@ -1,4 +1,5 @@
 import Card from './Card.jsx';
+import RecordDetails from './RecordDetails.jsx';
 
 function statusBadge(status) {
   const normalized = String(status || '').trim().toLowerCase();
@@ -16,7 +17,7 @@ export default function ActiveUsers({ rows = [] }) {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid gap-5 xl:grid-cols-2">
       {rows.map((user, index) => {
         const name = user['Имя'] || user.name || user.full_name || `Сотрудник ${index + 1}`;
         const status = user._workingStatus || user.status || user['Статус'] || 'Не указан';
@@ -32,15 +33,7 @@ export default function ActiveUsers({ rows = [] }) {
               </span>
             }
           >
-            {Object.entries(user)
-              .filter(([key]) => !key.startsWith('_'))
-              .slice(0, 6)
-              .map(([key, value]) => (
-                <div key={key} className="flex justify-between gap-3 border-b border-slate-700/40 pb-1">
-                  <span className="text-app-muted">{key}</span>
-                  <span className="max-w-[55%] truncate text-right">{String(value || '-')}</span>
-                </div>
-              ))}
+            <RecordDetails record={user} />
           </Card>
         );
       })}

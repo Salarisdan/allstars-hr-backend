@@ -6,16 +6,16 @@ const TABS = [
 
 export default function Tabs({ activeTab, onChange }) {
   return (
-    <div className="mb-6 flex flex-wrap gap-2 rounded-xl bg-app-card p-2">
+    <div className="mb-6 flex flex-wrap gap-2 rounded-[1.5rem] border border-white/10 bg-[rgba(18,26,46,0.7)] p-2 backdrop-blur-xl">
       {TABS.map((tab) => (
         <button
           key={tab.key}
           type="button"
           onClick={() => onChange(tab.key)}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+          className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 ${
             activeTab === tab.key
-              ? 'bg-app-accent text-white'
-              : 'bg-app-soft text-app-muted hover:text-app-text'
+              ? 'bg-gradient-to-r from-app-accent to-cyan-400 text-white shadow-lg shadow-app-accent/20'
+              : 'bg-white/5 text-app-muted hover:bg-white/10 hover:text-app-text'
           }`}
         >
           {tab.label}

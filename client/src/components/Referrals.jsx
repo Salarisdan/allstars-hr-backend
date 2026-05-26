@@ -1,4 +1,5 @@
 import Card from './Card.jsx';
+import RecordDetails from './RecordDetails.jsx';
 import { formatDateTime, relativeFromNow, clampPercent } from '../utils/date.js';
 
 function timerTone(row) {
@@ -13,7 +14,7 @@ export default function Referrals({ rows = [] }) {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid gap-5 xl:grid-cols-2">
       {rows.map((row, index) => {
         const candidate = row.candidate || {};
         const title = candidate.name || candidate['Имя'] || candidate.full_name || `Реферал ${index + 1}`;
@@ -71,6 +72,10 @@ export default function Referrals({ rows = [] }) {
             ) : (
               <div className="text-sm text-app-muted">Ожидает выхода / не работает</div>
             )}
+
+            <div className="pt-1">
+              <RecordDetails record={row} exclude={["candidate"]} />
+            </div>
           </Card>
         );
       })}

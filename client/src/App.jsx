@@ -17,9 +17,9 @@ async function fetchJson(url) {
 
 function StatCard({ title, value, accent = 'text-app-text' }) {
   return (
-    <div className="rounded-xl border border-slate-700/40 bg-app-card p-4">
-      <div className="text-xs uppercase tracking-wide text-app-muted">{title}</div>
-      <div className={`mt-2 text-2xl font-semibold ${accent}`}>{value}</div>
+    <div className="rounded-[1.5rem] border border-white/10 bg-[linear-gradient(180deg,rgba(18,26,46,0.92),rgba(9,13,28,0.9))] p-4 shadow-[0_20px_60px_rgba(2,6,23,0.24)]">
+      <div className="text-[11px] uppercase tracking-[0.24em] text-app-muted">{title}</div>
+      <div className={`mt-2 text-3xl font-semibold tracking-tight ${accent}`}>{value}</div>
     </div>
   );
 }
@@ -73,33 +73,53 @@ export default function App() {
   }, [dashboard, candidates.length, activeUsers.length, referrals]);
 
   return (
-    <main className="min-h-screen px-4 py-6 md:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-app-text md:text-3xl">AllStars Internal CRM</h1>
-            <p className="mt-1 text-sm text-app-muted">Google Sheets synchronized internal dashboard</p>
-          </div>
-          <button
-            type="button"
-            onClick={loadAll}
-            className="rounded-lg bg-app-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
-          >
-            Обновить данные
-          </button>
-        </header>
+    <main className="relative min-h-screen overflow-hidden px-4 py-6 md:px-6 lg:px-8">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(31,142,241,0.18),transparent_28%),radial-gradient(circle_at_top_right,rgba(23,178,106,0.16),transparent_26%),radial-gradient(circle_at_50%_120%,rgba(124,58,237,0.18),transparent_32%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] [background-size:72px_72px]" />
 
-        <section className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard title="Кандидаты" value={counters.totalCandidates} />
-          <StatCard title="Действующие" value={counters.totalActive} accent="text-emerald-300" />
-          <StatCard title="Рефералы" value={counters.totalReferrals} accent="text-sky-300" />
-          <StatCard title="Готовы к выплате" value={counters.payoutReadyCount} accent="text-amber-300" />
+      <div className="relative mx-auto flex max-w-7xl flex-col gap-6">
+        <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(9,13,28,0.92),rgba(12,18,36,0.86))] p-6 shadow-[0_30px_120px_rgba(2,6,23,0.45)] backdrop-blur-xl md:p-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="mb-3 inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.28em] text-app-muted">
+                Live sync · Google Sheets · auto refresh 60s
+              </div>
+              <h1 className="text-3xl font-semibold tracking-tight text-app-text md:text-5xl">
+                AllStars Internal CRM
+              </h1>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-app-muted md:text-base">
+                Единая панель для кандидатов, действующих сотрудников и реферальной логики с живой синхронизацией из таблиц.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={loadAll}
+              className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-r from-app-accent to-cyan-400 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-app-accent/20 transition hover:scale-[1.01] hover:shadow-app-accent/30"
+            >
+              Обновить данные
+            </button>
+          </div>
+
+          <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <StatCard title="Кандидаты" value={counters.totalCandidates} />
+            <StatCard title="Действующие" value={counters.totalActive} accent="text-emerald-300" />
+            <StatCard title="Рефералы" value={counters.totalReferrals} accent="text-sky-300" />
+            <StatCard title="Готовы к выплате" value={counters.payoutReadyCount} accent="text-amber-300" />
+          </section>
         </section>
 
         <Tabs activeTab={activeTab} onChange={setActiveTab} />
 
-        {loading ? <div className="rounded-xl bg-app-card p-6 text-app-muted">Загрузка данных...</div> : null}
-        {error ? <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-200">{error}</div> : null}
+        {loading ? (
+          <div className="rounded-[1.5rem] border border-white/10 bg-app-card/80 p-6 text-app-muted backdrop-blur-xl">
+            Загрузка данных...
+          </div>
+        ) : null}
+        {error ? (
+          <div className="mb-4 rounded-[1.5rem] border border-red-500/30 bg-red-500/10 p-4 text-red-200 backdrop-blur-xl">
+            {error}
+          </div>
+        ) : null}
 
         {!loading && !error ? (
           <>
