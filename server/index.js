@@ -12,7 +12,14 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
-const clientDistPath = path.join(rootDir, 'client', 'dist');
+const clientDistCandidates = [
+  path.join(rootDir, 'dist'),
+  path.join(rootDir, 'client', 'dist')
+];
+
+function getClientDistPath() {
+  return clientDistCandidates.find((candidate) => fs.existsSync(candidate)) || '';
+}
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -21,6 +28,8 @@ app.use(cors());
 app.use(express.json());
 
 app.get('/', (req, res) => {
+  const clientDistPath = getClientDistPath();
+
   if (fs.existsSync(clientDistPath)) {
     return res.sendFile(path.join(clientDistPath, 'index.html'));
   }
@@ -289,7 +298,9 @@ async function getReferralsSafe() {
   return buildReferralRows(candidates, activeUsers);
 }
 
-if (fs.existsSync(clientDistPath)) {
+const clientDistPath = getClientDistPath();
+
+if (clientDistPath) {
   app.use(express.static(clientDistPath));
 
   app.get('*', (req, res, next) => {
