@@ -1,41 +1,22 @@
 import { useMemo, useState } from 'react';
-import Card from './Card.jsx';
+import SheetTable from './SheetTable.jsx';
 import RecordDetails from './RecordDetails.jsx';
+import { getRecordSubtitle, getRecordTitle, hasAnyField, pickFirstField } from './recordHelpers.js';
 
-function getCandidateTitle(candidate, index) {
-  return (
-    candidate.name ||
-    candidate['Имя'] ||
-    candidate['ФИО'] ||
-    candidate.full_name ||
-    candidate.fullName ||
-    candidate.username ||
-    `Кандидат ${index + 1}`
-  );
-}
-
-function getCandidateSubtitle(candidate) {
-  return candidate.telegram || candidate.tg || candidate.username || candidate.phone || candidate['Телефон'] || '';
-}
-
-function hasReferrer(candidate) {
-  const refFields = [
-    'referral',
-    'referal',
-    'ref',
-    'referrer',
-    'referred_by',
-    'invited_by',
-    'кто пригласил',
-    'от кого',
-    'реферал',
-    'реферер',
-    'telegram ref',
-    'username ref'
-  ];
-
-  return refFields.some((field) => String(candidate[field] || '').trim());
-}
+const REFERRER_FIELDS = [
+  'referral',
+  'referal',
+  'ref',
+  'referrer',
+  'referred_by',
+  'invited_by',
+  'кто пригласил',
+  'от кого',
+  'реферал',
+  'реферер',
+  'telegram ref',
+  'username ref'
+];
 
 export default function Candidates({ rows = [] }) {
   const [search, setSearch] = useState('');
@@ -51,14 +32,18 @@ export default function Candidates({ rows = [] }) {
 
       if (!onlyReferrals) return true;
 
-      const refFields = [
-        'referral', 'referal', 'ref', 'referrer', 'referred_by', 'invited_by',
-        'кто пригласил', 'от кого', 'реферал', 'реферер', 'telegram ref', 'username ref'
-      ];
-
-      return refFields.some((field) => String(candidate[field] || '').trim());
+      return hasAnyField(candidate, REFERRER_FIELDS);
     });
   }, [rows, search, onlyReferrals]);
+
+  const columns = [
+    { key: 'name', label: 'Имя', render: (row, index) => getRecordTitle(row, `Кандидат ${index + 1}`), cellClassName: 'font-semibold text-white' },
+    { key: 'telegram', label: 'Telegram', render: (row) => row.telegram || row.tg || row.username || '—' },
+    { key: 'phone', label: 'Телефон', render: (row) => row.phone || row['Телефон'] || '—' },
+    { key: 'city', label: 'Город', render: (row) => row.city || row['Город'] || '—' },
+    { key: 'status', label: 'Статус', render: (row) => pickFirstField(row, ['status', 'Статус']) || '—' },
+    { key: 'referrer', label: 'Реферер', render: (row) => pickFirstField(row, REFERRER_FIELDS) || '—' }
+  ];
 
   return (
     <section className="space-y-4">
@@ -86,32 +71,24 @@ export default function Candidates({ rows = [] }) {
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border border-white/10 bg-app-card/70 px-4 py-3 text-sm text-app-muted backdrop-blur-xl">
         <span>Показано {filtered.length} из {rows.length}</span>
         <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.2em] text-app-muted">
-          Все поля отображаются в карточке
+          Sheet view · все поля внутри строки
         </span>
       </div>
 
-      {!filtered.length ? (
-        <div className="rounded-[1.5rem] border border-white/10 bg-app-card p-6 text-app-muted">Кандидаты не найдены.</div>
-      ) : (
-        <div className="grid gap-5 xl:grid-cols-2">
-          {filtered.map((candidate, index) => {
-            const title = getCandidateTitle(candidate, index);
-            const subtitle = getCandidateSubtitle(candidate);
-            const referrerLabel = hasReferrer(candidate) ? 'Есть реферер' : 'Без реферера';
-
-            return (
-              <Card key={`${title}-${index}`} title={title} subtitle={subtitle}>
-                <div className="flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.24em] text-app-muted">
-                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">Кандидат</span>
-                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{referrerLabel}</span>
-                  {subtitle ? <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{subtitle}</span> : null}
-                </div>
-                <RecordDetails record={candidate} />
-              </Card>
-            );
-          })}
-        </div>
-      )}
+      <SheetTable
+        rows={filtered}
+        columns={columns}
+        emptyText="Кандидаты не найдены."
+        getRowKey={(row, index) => `${getRecordTitle(row, `candidate-${index}`)}-${index}`}
+        getRowTitle={(row, index) => getRecordTitle(row, `Кандидат ${index + 1}`)}
+        getRowSubtitle={(row) => getRecordSubtitle(row)}
+        getRowBadge={(row) => (
+          <span className={`rounded-full border px-2 py-1 text-xs ${hasAnyField(row, REFERRER_FIELDS) ? 'bg-app-success/20 text-emerald-300 border-emerald-500/40' : 'bg-app-warning/20 text-amber-300 border-amber-500/40'}`}>
+            {hasAnyField(row, REFERRER_FIELDS) ? 'Есть реферер' : 'Без реферера'}
+          </span>
+        )}
+        renderExpanded={(candidate) => <RecordDetails record={candidate} />}
+      />
     </section>
   );
 }
