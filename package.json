@@ -1,35 +1,30 @@
 {
-  "name": "allstars-hr-saas",
-  "version": "2.0.0",
-  "description": "Multi-tenant HR CRM for agencies",
-  "main": "server.js",
+  "name": "allstars-crm-sheets",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js",
-    "db:init": "node scripts/init-db.js",
-    "mobile:sync": "npx cap sync",
-    "mobile:copy": "npx cap copy",
-    "mobile:add:android": "npx cap add android",
-    "mobile:add:ios": "npx cap add ios",
-    "mobile:open:android": "npx cap open android",
-    "mobile:open:ios": "npx cap open ios",
-    "mobile:build:android": "cd android && gradlew.bat assembleDebug",
-    "mobile:build:android:clean": "cd android && gradlew.bat clean assembleDebug"
+    "dev": "concurrently -k \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "node --watch server/index.js",
+    "dev:client": "vite --config client/vite.config.js",
+    "build": "vite build --config client/vite.config.js",
+    "start": "node server/index.js"
   },
   "dependencies": {
-    "@capacitor/android": "^7.6.2",
-    "@capacitor/core": "^7.4.3",
-    "bcrypt": "^6.0.0",
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.6",
-    "dotenv": "^16.6.1",
-    "express": "^4.22.1",
-    "google-spreadsheet": "^5.2.0",
-    "googleapis": "^171.4.0",
-    "jsonwebtoken": "^9.0.3",
-    "pg": "^8.20.0"
+    "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "googleapis": "^140.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@capacitor/cli": "^7.4.3"
+    "@vitejs/plugin-react": "^4.3.2",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.0.1",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "vite": "^5.4.8"
   }
 }

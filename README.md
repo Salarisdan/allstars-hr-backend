@@ -1,165 +1,110 @@
-# AllStars HR SaaS — upgraded version
+# AllStars CRM (Railway Ready)
 
-Что внутри:
-- PostgreSQL вместо SQLite
-- auth (регистрация, логин, JWT)
-- multi-tenant структура: agency -> users -> candidates
-- роли: owner / teamlead / hr
-- аналитика и dashboard
-- AI-style инсайты по кандидату (rule-based placeholder, можно позже заменить на OpenAI API)
+Internal CRM for AllStars based on Google Sheets with referral payout timer logic.
 
-## Быстрый деплой на Railway
+## Stack
+- Node.js + Express backend
+- React + Vite frontend
+- TailwindCSS UI
+- Google Sheets API via googleapis + Service Account
+- date-fns for referral timer calculations
 
-1. Создай PostgreSQL сервис в Railway.
-2. В основном сервисе добавь переменные:
-   - `DATABASE_URL` = connection string Railway Postgres
-   - `JWT_SECRET` = длинный случайный ключ
-   - `FRONTEND_ORIGIN` = адрес фронта или `*`
-3. Установи зависимости:
-   ```bash
-   npm install
-   ```
-4. Запусти:
-   ```bash
-   npm start
-   ```
+## Project Structure
+- package.json
+- railway.json
+- nixpacks.toml
+- server/index.js
+- server/googleSheets.js
+- server/referrals.js
+- server/data/referralStartDates.json
+- client/src/App.jsx
+- client/src/components/Tabs.jsx
+- client/src/components/ActiveUsers.jsx
+- client/src/components/Candidates.jsx
+- client/src/components/Referrals.jsx
+- client/src/components/Card.jsx
+- client/src/utils/date.js
+- .env.example
 
-## Demo вход
-После первого запуска автоматически создаётся demo owner:
+## Environment Variables
+Set these variables in local .env and Railway Variables:
 
-- email: `owner@allstars.local`
-- password: `demo12345`
+- PORT
+- GOOGLE_SERVICE_ACCOUNT_JSON
+- GOOGLE_SPREADSHEET_ID
+- GOOGLE_SPREADSHEET_NAME
+- TEAM_SHEET_NAME
+- TEAM_SPREADSHEET_ID
+- TELEGRAM_BOT_TOKEN
 
-## Новые эндпоинты
+Important:
+- Never hardcode tokens or private keys in source code.
+- GOOGLE_SERVICE_ACCOUNT_JSON must be a JSON string.
+- private_key inside JSON must keep escaped newlines (\\n). Backend converts them safely.
 
-### Auth
-- `POST /auth/register`
-- `POST /auth/login`
-- `GET /auth/me`
+## Google Sheets Access Setup
+1. Open Google Cloud Service Account credentials.
+2. Copy the service account email from your JSON.
+3. Share both spreadsheets with this email (Viewer or Editor access).
+4. Put full JSON into GOOGLE_SERVICE_ACCOUNT_JSON.
 
-### Team
-- `GET /users`
-- `POST /users`
+## Local Run
+1. Install dependencies:
 
-### Candidates
-- `GET /candidates`
-- `POST /candidates`
-- `PATCH /candidates/:id`
-- `DELETE /candidates/:id`
-- `GET /candidates/:id/history`
+npm install
 
-### Analytics
-- `GET /analytics/overview`
-- `GET /dashboard/feed`
+2. Create .env from .env.example and fill values.
 
-## Что дальше можно докрутить
-- invite flow по email
-- refresh tokens
-- audit logs
-- drag-and-drop pipeline
-- реальный AI scoring через LLM
-- onboarding wizard
+3. Run development mode (backend + frontend):
 
-## Полный перезапуск локальной CRM из Google Sheets
+npm run dev
 
-Важно: чтение из Google Sheets остается онлайн. Этот сценарий не переводит CRM в оффлайн-режим, а только пересобирает локальную БД из актуальных данных таблиц.
+4. Open frontend:
 
-Политика синхронизации:
-- по умолчанию включен режим `Sheets -> CRM` (только чтение таблиц)
-- запись `CRM -> Sheets` отключена
-- при необходимости временно включить обратную запись можно через `ENABLE_SHEETS_WRITE=1`
+http://localhost:5173
 
-Если данные CRM потерялись, можно пересобрать базу локально с нуля из двух таблиц (новички + действующие).
+Backend API base URL:
 
-Эндпоинт:
-- `POST /api/admin/rebuild-local-crm-from-sheets`
+http://localhost:3000
 
-Доступ:
-- только роли `owner` и `teamlead`
+## Build + Start (Production / Railway)
+1. Build frontend:
 
-Что делает:
-- удаляет текущих кандидатов агентства из локальной БД
-- очищает связанные таблицы (`candidate_status_history`, `candidate_ai_insights`, `interview_crm_meta`)
-- по умолчанию сбрасывает назначения `transaction_endings`
-- импортирует кандидатов заново из Google Sheets
-- очищает локальный файл событий `data/crm-events.json`
+npm run build
 
-Параметры:
-- `dryRun=true` (query или body) — только проверка без записи в БД
-- `source=both|newcomers|active` — из каких листов импортировать (`both` по умолчанию)
-- `resetTransactionEndings=0` — не сбрасывать endings
+2. Start server (Express serves client/dist):
 
-Примеры:
+npm start
 
-Проверка без изменений:
-```bash
-curl -X POST "http://localhost:3000/api/admin/rebuild-local-crm-from-sheets?dryRun=1" \
-   -H "Authorization: Bearer <TOKEN>"
-```
+Railway should use:
+- Build command: npm install ; npm run build
+- Start command: npm start
 
-Полный перезапуск:
-```bash
-curl -X POST "http://localhost:3000/api/admin/rebuild-local-crm-from-sheets" \
-   -H "Authorization: Bearer <TOKEN>" \
-   -H "Content-Type: application/json" \
-   -d '{"source":"both"}'
-```
+This repository already includes Railway-ready config:
+- railway.json
+- nixpacks.toml
 
-## Мобильное приложение (без риска для текущего сайта)
+Healthcheck path:
+- /api/health
 
-Сайт продолжает работать как раньше. Мобильная часть подключается отдельно через Capacitor.
+## API Endpoints
+- GET /api/health -> { ok: true }
+- GET /api/smoke (basic env diagnostics)
+- GET /api/smoke?deep=1 (env + real read test from both sheets)
+- GET /api/candidates
+- GET /api/active
+- GET /api/referrals
+- GET /api/dashboard
 
-1. Установить зависимости:
-   ```bash
-   npm install
-   ```
-2. Добавить мобильную платформу (один раз):
-   ```bash
-   npm run mobile:add:android
-   npm run mobile:add:ios
-   ```
-3. Скопировать текущий web UI в мобильную оболочку:
-   ```bash
-   npm run mobile:sync
-   ```
-4. Открыть проект платформы:
-   ```bash
-   npm run mobile:open:android
-   npm run mobile:open:ios
-   ```
+## Referral Timer Persistence Note
+Referral timer fallback dates are stored in:
 
-Примечание: веб-сборка берется из `public/`, поэтому это самый безопасный старт без изменения серверной логики.
+server/data/referralStartDates.json
 
-### API для мобильного режима
+This works as a simple starter storage.
 
-Веб-режим продолжает использовать относительные пути (`/api/...`) как раньше.
+For production-grade persistence on Railway, use PostgreSQL or Redis because Railway filesystem can reset after redeploy.
 
-Для мобильной оболочки можно задать отдельный backend URL:
-
-1. Один раз открыть приложение с параметром `apiBase`:
-   - пример: `.../login.html?apiBase=https://your-api.example.com`
-2. URL сохранится локально и будет использоваться на всех страницах.
-3. Сбросить сохраненный URL можно в консоли WebView:
-   ```js
-   window.AllStarsConfig.clearApiBase()
-   ```
-
-### Android: первый билд APK
-
-1. Синхронизировать веб-часть:
-   ```bash
-   npm run mobile:sync
-   ```
-2. Собрать debug APK:
-   ```bash
-   npm run mobile:build:android
-   ```
-3. Готовый файл:
-   `android/app/build/outputs/apk/debug/app-debug.apk`
-
-Если в терминале ошибка `JAVA_HOME is not set`, укажите JDK из Android Studio:
-
-```powershell
-$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
-$env:Path = "$env:JAVA_HOME\bin;$env:Path"
-```
+## Security Notes
+- Backend never logs or exposes GOOGLE_SERVICE_ACCOUNT_JSON or TELEGRAM_BOT_TOKEN.
+- Frontend receives only processed API data.

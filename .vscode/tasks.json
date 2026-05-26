@@ -1,0 +1,17 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "git-push-all-current",
+			"type": "shell",
+			"command": "git -C \"e:\\Projects\\allstars-saas\" add -A; git -C \"e:\\Projects\\allstars-saas\" commit -m \"chore: sync current workspace state\"; git -C \"e:\\Projects\\allstars-saas\" push",
+			"isBackground": false
+		},
+		{
+			"label": "git-push-all-current-v2",
+			"type": "shell",
+			"command": "git -C \"e:\\Projects\\allstars-saas\" add -A; git -C \"e:\\Projects\\allstars-saas\" commit -m chore-sync-current-workspace-state; git -C \"e:\\Projects\\allstars-saas\" push",
+			"isBackground": false
+		}
+	]
+}
