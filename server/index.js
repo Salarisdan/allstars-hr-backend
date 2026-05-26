@@ -20,6 +20,83 @@ const PORT = Number(process.env.PORT || 3000);
 app.use(cors());
 app.use(express.json());
 
+app.get('/', (req, res) => {
+  if (fs.existsSync(clientDistPath)) {
+    return res.sendFile(path.join(clientDistPath, 'index.html'));
+  }
+
+  res.type('html').send(`<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AllStars CRM</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b1020;
+        --panel: rgba(15, 23, 42, 0.92);
+        --border: rgba(148, 163, 184, 0.18);
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --accent: #7c3aed;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(circle at top, rgba(124, 58, 237, 0.35), transparent 35%),
+          linear-gradient(180deg, #050816, var(--bg));
+        color: var(--text);
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+      main {
+        width: min(720px, calc(100vw - 32px));
+        padding: 32px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: var(--panel);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+      }
+      h1 { margin: 0 0 12px; font-size: 32px; }
+      p { margin: 0 0 14px; color: var(--muted); line-height: 1.6; }
+      .links { display: grid; gap: 10px; margin-top: 20px; }
+      a {
+        color: #fff;
+        text-decoration: none;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+      }
+      a:hover { border-color: rgba(124, 58, 237, 0.7); }
+      code {
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.08);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>AllStars CRM backend is running</h1>
+      <p>Это backend-сервис Railway. Интерфейса на корне сайта сейчас нет, поэтому здесь отображается эта стартовая страница.</p>
+      <p>Проверка здоровья: <code>/api/health</code></p>
+      <div class="links">
+        <a href="/api/health">/api/health</a>
+        <a href="/api/smoke">/api/smoke</a>
+        <a href="/api/candidates">/api/candidates</a>
+        <a href="/api/active">/api/active</a>
+        <a href="/api/referrals">/api/referrals</a>
+      </div>
+    </main>
+  </body>
+</html>`);
+});
+
 function safeText(value) {
   return String(value || '').toLowerCase();
 }
