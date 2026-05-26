@@ -855,7 +855,7 @@
       <div class="topbar">
         <div class="page-title">
           <h1>Рефералы</h1>
-          <p>Здесь отображаются только кандидаты, у которых в источнике указан Telegram username человека в формате @username.</p>
+          <p>Здесь отображаются кандидаты, которых CRM распознал как реферальных по данным анкеты или по источнику из Google Sheets.</p>
         </div>
 
         <div class="top-actions">
@@ -985,7 +985,12 @@
     }
 
     function resolveLeadSource(candidate = {}) {
+      const metaReferralSource = candidate.team_card_meta && typeof candidate.team_card_meta === 'object'
+        ? candidate.team_card_meta.referral_source
+        : '';
+
       const variants = [
+        metaReferralSource,
         candidate.lead_source,
         candidate.candidate_source,
         candidate.source_name,
@@ -1032,8 +1037,17 @@
     }
 
     function isReferralCandidate(candidate = {}) {
+      const metaReferral = candidate.team_card_meta && typeof candidate.team_card_meta === 'object'
+        ? candidate.team_card_meta.is_referral === true
+        : false;
+      if (metaReferral) return true;
+
       const source = resolveLeadSource(candidate);
       return isValidLeadSource(source) && looksLikeReferralSource(source);
+    }
+
+    function resolveReferralWorkStartDate(item = {}) {
+      return parseDateSafe(item.startedAt || item.hiredAt || item.statusChangedAt || item.createdAt);
     }
 
     function normalizeCandidate(raw = {}) {
@@ -1052,6 +1066,7 @@
         verification: raw.verification || '',
         status: raw.status || '',
         source: resolveLeadSource(raw),
+        team_card_meta: raw.team_card_meta && typeof raw.team_card_meta === 'object' ? raw.team_card_meta : {},
         hiredAt: raw.hired_at || '',
         startedAt: raw.started_at || '',
         statusChangedAt: raw.status_changed_at || '',
@@ -1131,7 +1146,7 @@
     function getWorkReport(item = {}) {
       if (!isWorkingStatus(item.status)) return null;
 
-      const workStartDate = parseDateSafe(item.statusChangedAt || item.createdAt);
+      const workStartDate = resolveReferralWorkStartDate(item);
       if (!workStartDate) return null;
 
       const payoutDate = addOneCalendarMonth(workStartDate);
@@ -1215,7 +1230,7 @@
       const report = getWorkReport(item);
       if (!report) return '';
 
-      const workStartDate = parseDateSafe(item.statusChangedAt || item.createdAt);
+      const workStartDate = resolveReferralWorkStartDate(item);
       const payoutDate = addOneCalendarMonth(workStartDate);
 
       return `

@@ -93,6 +93,20 @@ const DASHBOARD_STATS_SPREADSHEET_ID =
   process.env.DASHBOARD_STATS_SPREADSHEET_ID ||
   '19zpp7Qnhx8RO5kM6iC83mBxcT6f2s5oUk8Uep_mdNeg';
 
+const APPLICATIONS_SPREADSHEET_ID =
+  process.env.APPLICATIONS_SPREADSHEET_ID ||
+  '13IG0zSMMGRCeDT79VQuf-RMj8fnqj9hiitI1mrLi_ds';
+
+const APPLICATIONS_SHEET_NAME =
+  String(process.env.APPLICATIONS_SHEET_NAME || '').trim();
+
+const CANDIDATES_AUTO_SYNC_INTERVAL_MS = Math.max(
+  60_000,
+  Number(process.env.CANDIDATES_AUTO_SYNC_INTERVAL_MS || 180_000) || 180_000
+);
+
+const candidateSheetsAutoSyncState = new Map();
+
 async function ensureCrmEventsFile() {
   const dir = path.dirname(CRM_EVENTS_FILE);
 
@@ -2251,6 +2265,9 @@ function getStatusDatePatch(status, existingDates = {}) {
       if (!hasValue(existingDates.hired_at)) {
         patch.hired_at = now;
       }
+      if (normalizedStatus === 'Работает' && !hasValue(existingDates.started_at)) {
+        patch.started_at = now;
+      }
       break;
 
     case REJECTED_CANDIDATE_STATUS:
@@ -3782,6 +3799,8 @@ app.patch('/users/:id', auth, requireRole('owner'), async (req, res) => {
 });
 
 app.get('/candidates', auth, async (req, res) => {
+  await maybeAutoSyncCandidatesFromSheets(req.user);
+
   const { search = '', status = '', verdict = '', ownerId = '' } = req.query;
   const params = [req.user.agencyId];
   let where = 'WHERE c.agency_id = $1';
@@ -8044,6 +8063,29 @@ function normalizeSheetCandidateRow(raw = {}) {
   const telegram = getRawValueByAliases(raw, ['Телеграм', 'Telegram', 'ТГ', 'Telegram / username', 'TG Username', 'Username']);
   const status = getRawValueByAliases(raw, ['Актуальный статус кандидата (Hr)', 'Статус']);
   const platform = getRawValueByAliases(raw, ['OnlyFans / Fansly', 'Платформа']);
+  const leadSource = getRawValueByAliases(raw, [
+    'Источник лида',
+    'Источник кандидата',
+    'Источник заявки',
+    'Откуда вы о нас узнали?',
+    'Откуда пришел кандидат',
+    'Откуда пришёл кандидат'
+  ]);
+  const referralSource = getRawValueByAliases(raw, [
+    'Реферал',
+    'Реферальный источник',
+    'Кто вас пригласил',
+    'Кто вас пригласил?',
+    'Кто пригласил',
+    'Кто рекомендовал',
+    'Кто привел',
+    'Кто привёл',
+    'От кого пришел',
+    'От кого пришёл',
+    'Referrer',
+    'Referral',
+    'Referral source'
+  ]);
 
   return {
     name,
@@ -8062,7 +8104,36 @@ function normalizeSheetCandidateRow(raw = {}) {
     interviewReport: getRawValueByAliases(raw, ['Отчет интервью', 'Комментарий HR', 'Интервью отчет']),
     notes: getRawValueByAliases(raw, ['Комментарий', 'Комментарии', 'Comment', 'Comments']),
     source: getRawValueByAliases(raw, ['Источник']),
-    leadSource: getRawValueByAliases(raw, ['Источник лида', 'Источник кандидата', 'Откуда вы о нас узнали?'])
+    leadSource,
+    referralSource
+  };
+}
+
+function looksLikeReferralSourceValue(value = '') {
+  const source = String(value || '').trim();
+  if (!source || isLikelyDateTimeText(source)) return false;
+  if (/(^|\s)@[a-zA-Z0-9_]{3,}\b/.test(source)) return true;
+
+  return /(реферал|реф|referral|referrer|recommend|рекоменд|приглас|привел|привёл|от кого|friend|знаком)/iu.test(source);
+}
+
+function deriveReferralMetaFromNormalizedRow(normalizedRow = {}, existingMeta = {}) {
+  const explicitReferralSource = String(normalizedRow.referralSource || '').trim();
+  const leadSource = String(normalizedRow.leadSource || '').trim();
+  const genericSource = String(normalizedRow.source || '').trim();
+  const fallbackReferralSource = explicitReferralSource || leadSource || genericSource;
+
+  const isReferral = Boolean(explicitReferralSource) ||
+    looksLikeReferralSourceValue(leadSource) ||
+    looksLikeReferralSourceValue(genericSource);
+
+  return {
+    ...existingMeta,
+    is_referral: isReferral,
+    referral_source: isReferral ? fallbackReferralSource : String(existingMeta?.referral_source || '').trim(),
+    referral_detected_from: explicitReferralSource
+      ? 'referral_column'
+      : (isReferral ? 'source_field' : String(existingMeta?.referral_detected_from || '').trim())
   };
 }
 
@@ -8143,12 +8214,12 @@ function mergeSheetIntoCandidateDraft(draft, normalizedRow, rawMeta = {}) {
   draft.interview_report = coalesce(draft.interview_report, normalizedRow.interviewReport);
   draft.notes = coalesce(draft.notes, normalizedRow.notes);
   draft.source = coalesce(draft.source, normalizedRow.source);
-  draft.lead_source = coalesce(draft.lead_source, normalizedRow.leadSource);
+  draft.lead_source = coalesce(draft.lead_source, normalizedRow.leadSource || normalizedRow.referralSource);
 
   const currentMeta = draft.team_card_meta && typeof draft.team_card_meta === 'object' && !Array.isArray(draft.team_card_meta)
     ? draft.team_card_meta
     : {};
-  const nextMeta = { ...currentMeta };
+  const nextMeta = deriveReferralMetaFromNormalizedRow(normalizedRow, { ...currentMeta });
 
   for (const [label, value] of Object.entries(rawMeta || {})) {
     const key = String(label || '').trim();
@@ -8159,6 +8230,460 @@ function mergeSheetIntoCandidateDraft(draft, normalizedRow, rawMeta = {}) {
   }
 
   draft.team_card_meta = nextMeta;
+}
+
+async function listSpreadsheetSheetNames(spreadsheetId) {
+  if (!spreadsheetId) return [];
+
+  const sheets = await getSheetsClient();
+  const response = await sheets.spreadsheets.get({ spreadsheetId });
+  return (response.data.sheets || [])
+    .map(item => String(item?.properties?.title || '').trim())
+    .filter(Boolean);
+}
+
+function sheetHeadersLookLikeCandidateSheet(headers = []) {
+  const keys = headers.map(normalizeHeaderMatchKey).filter(Boolean);
+  if (!keys.length) return false;
+
+  const hasName = keys.some(key =>
+    key === 'имя' ||
+    key === 'имя ник' ||
+    key === 'как вас зовут' ||
+    key === 'ник' ||
+    key.includes('имя')
+  );
+
+  const hasTelegram = keys.some(key =>
+    key.includes('телеграм') ||
+    key === 'telegram' ||
+    key === 'username' ||
+    key === 'tg username'
+  );
+
+  const hasSource = keys.some(key =>
+    key.includes('источник') ||
+    key.includes('откуда') ||
+    key.includes('реферал') ||
+    key.includes('приглас')
+  );
+
+  return hasName && (hasTelegram || hasSource);
+}
+
+async function readCandidateRowsFromSpreadsheet({ spreadsheetId, preferredSheetNames = [] }) {
+  if (!spreadsheetId) {
+    return { spreadsheetId: '', sheets: [], rows: [] };
+  }
+
+  let discoveredSheetNames = [];
+  let metadataError = null;
+
+  try {
+    discoveredSheetNames = await listSpreadsheetSheetNames(spreadsheetId);
+  } catch (err) {
+    metadataError = err;
+  }
+
+  const sheetNames = uniqueNonEmpty([...preferredSheetNames, ...discoveredSheetNames]);
+  if (!sheetNames.length && metadataError) {
+    throw metadataError;
+  }
+
+  const candidateSheets = [];
+  let lastError = null;
+
+  for (const sheetName of sheetNames) {
+    try {
+      const sheet = await readSheetRowsWithFallback({
+        spreadsheetId,
+        sheetNames: [sheetName]
+      });
+
+      if (!sheetHeadersLookLikeCandidateSheet(sheet.headers || [])) {
+        continue;
+      }
+
+      candidateSheets.push({
+        spreadsheetId: sheet.spreadsheetId,
+        sheetName: sheet.sheetName,
+        headers: sheet.headers,
+        rows: (sheet.rows || []).map(row => ({
+          ...row,
+          source: 'applications',
+          sheet_name: sheet.sheetName
+        }))
+      });
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  if (!candidateSheets.length && (lastError || metadataError)) {
+    throw lastError || metadataError;
+  }
+
+  return {
+    spreadsheetId,
+    sheets: candidateSheets,
+    rows: candidateSheets.flatMap(item => item.rows || [])
+  };
+}
+
+function buildCandidateIdentityMaps(candidates = []) {
+  const byTelegram = new Map();
+  const byName = new Map();
+
+  for (const candidate of candidates) {
+    const telegramKeys = [candidate.tg, candidate.telegram]
+      .map(value => normalizeTelegramKey(value || ''))
+      .filter(Boolean);
+
+    for (const key of telegramKeys) {
+      const matches = byTelegram.get(key) || [];
+      matches.push(candidate);
+      byTelegram.set(key, matches);
+    }
+
+    const nameKey = normalizePersonKey(candidate.name || '');
+    if (nameKey) {
+      const matches = byName.get(nameKey) || [];
+      matches.push(candidate);
+      byName.set(nameKey, matches);
+    }
+  }
+
+  return { byTelegram, byName };
+}
+
+async function syncAgencyCandidatesFromApplicationsSheet({ agencyId, userId }) {
+  const sourceData = await readCandidateRowsFromSpreadsheet({
+    spreadsheetId: APPLICATIONS_SPREADSHEET_ID,
+    preferredSheetNames: [
+      APPLICATIONS_SHEET_NAME,
+      process.env.NEWCOMERS_SHEET_NAME,
+      process.env.GOOGLE_SPREADSHEET_NAME
+    ]
+  });
+
+  if (!sourceData.rows.length) {
+    return { inserted: 0, updated: 0, processed: 0, skipped: 0 };
+  }
+
+  const dbCandidatesRes = await query(
+    `SELECT
+       id,
+       agency_id,
+       name,
+       tg,
+       telegram,
+       age,
+       english,
+       english_level,
+       exp,
+       experience,
+       platform,
+       platforms,
+       shift,
+       schedule,
+       schedule_preference,
+       top_pages,
+       top_profile,
+       avg_check,
+       job,
+       main_activity,
+       interview_report,
+       status,
+       source,
+       lead_source,
+       notes,
+       team_card_meta,
+       hired_at,
+       rejected_at,
+       started_at,
+       fired_at
+     FROM candidates
+     WHERE agency_id = $1`,
+    [agencyId]
+  );
+
+  const dbCandidates = dbCandidatesRes.rows || [];
+  const candidateMaps = buildCandidateIdentityMaps(dbCandidates);
+  const candidateDrafts = new Map();
+  const inserts = [];
+  const seenInsertKeys = new Set();
+  let skipped = 0;
+
+  for (const sourceRow of sourceData.rows) {
+    const normalized = normalizeSheetCandidateRow(sourceRow.raw || {});
+
+    if (!normalized.name && !normalized.telegram) {
+      skipped += 1;
+      continue;
+    }
+
+    const match = resolveCandidateForSheetRow(normalized, candidateMaps, dbCandidates);
+    if (match.candidate) {
+      const candidateId = Number(match.candidate.id);
+      const draft = candidateDrafts.get(candidateId) || {
+        ...match.candidate,
+        team_card_meta: match.candidate.team_card_meta && typeof match.candidate.team_card_meta === 'object'
+          ? { ...match.candidate.team_card_meta }
+          : {}
+      };
+
+      mergeSheetIntoCandidateDraft(draft, normalized, sourceRow.raw || {});
+      candidateDrafts.set(candidateId, draft);
+      continue;
+    }
+
+    const identityKey = `${normalizeTelegramKey(normalized.telegram || '')}::${normalizePersonKey(normalized.name || '')}`;
+    if (seenInsertKeys.has(identityKey)) {
+      skipped += 1;
+      continue;
+    }
+
+    seenInsertKeys.add(identityKey);
+
+    const teamCardMeta = deriveReferralMetaFromNormalizedRow(normalized, {});
+    const status = normalizeCandidateStatus(normalized.status || '') || 'Без статуса';
+    const statusDatePatch = getStatusDatePatch(status, {});
+
+    inserts.push({
+      normalized,
+      status,
+      statusDatePatch,
+      teamCardMeta
+    });
+  }
+
+  let updated = 0;
+  for (const [candidateId, draft] of candidateDrafts.entries()) {
+    const original = dbCandidates.find(item => Number(item.id) === Number(candidateId));
+    if (!original) continue;
+
+    const statusDatePatch = draft.status && draft.status !== original.status
+      ? getStatusDatePatch(draft.status, original)
+      : {};
+
+    await query(
+      `UPDATE candidates
+       SET name = $3,
+           tg = $4,
+           telegram = $5,
+           status = $6,
+           platform = $7,
+           platforms = $8,
+           exp = $9,
+           experience = $10,
+           shift = $11,
+           schedule = $12,
+           schedule_preference = $13,
+           top_pages = $14,
+           top_profile = $15,
+           avg_check = $16,
+           job = $17,
+           main_activity = $18,
+           interview_report = $19,
+           source = $20,
+           lead_source = $21,
+           age = $22,
+           english = $23,
+           english_level = $24,
+           notes = $25,
+           team_card_meta = $26::jsonb,
+           updated_by_user_id = $27,
+           updated_at = NOW(),
+           status_changed_at = COALESCE($28, status_changed_at),
+           hired_at = COALESCE($29, hired_at),
+           rejected_at = COALESCE($30, rejected_at),
+           started_at = COALESCE($31, started_at),
+           fired_at = COALESCE($32, fired_at)
+       WHERE id = $1 AND agency_id = $2`,
+      [
+        candidateId,
+        agencyId,
+        draft.name || '',
+        draft.tg || draft.telegram || '',
+        draft.telegram || draft.tg || '',
+        normalizeCandidateStatus(draft.status) || draft.status || '',
+        draft.platform || draft.platforms || '',
+        draft.platforms || draft.platform || '',
+        draft.exp || draft.experience || '',
+        draft.experience || draft.exp || '',
+        draft.shift || '',
+        draft.schedule || draft.schedule_preference || '',
+        draft.schedule_preference || draft.schedule || '',
+        draft.top_pages || '',
+        draft.top_profile || draft.top_pages || '',
+        draft.avg_check || '',
+        draft.job || draft.main_activity || '',
+        draft.main_activity || draft.job || '',
+        draft.interview_report || '',
+        draft.source || '',
+        draft.lead_source || '',
+        draft.age || '',
+        draft.english || draft.english_level || '',
+        draft.english_level || draft.english || '',
+        draft.notes || '',
+        JSON.stringify(draft.team_card_meta || {}),
+        userId,
+        statusDatePatch.status_changed_at || null,
+        statusDatePatch.hired_at || null,
+        statusDatePatch.rejected_at || null,
+        statusDatePatch.started_at || null,
+        statusDatePatch.fired_at || null
+      ]
+    );
+
+    updated += 1;
+  }
+
+  let inserted = 0;
+  for (const item of inserts) {
+    const normalized = item.normalized;
+    await query(
+      `INSERT INTO candidates (
+         agency_id,
+         owner_user_id,
+         created_by_user_id,
+         updated_by_user_id,
+         name,
+         tg,
+         telegram,
+         age,
+         english,
+         english_level,
+         exp,
+         experience,
+         platform,
+         platforms,
+         shift,
+         schedule,
+         schedule_preference,
+         top_pages,
+         top_profile,
+         avg_check,
+         job,
+         main_activity,
+         interview_report,
+         team_card_meta,
+         status,
+         source,
+         lead_source,
+         notes,
+         status_changed_at,
+         hired_at,
+         rejected_at,
+         started_at,
+         fired_at,
+         ratings,
+         total
+       )
+       VALUES (
+         $1,$2,$3,$4,$5,
+         $6,$7,$8,$9,$10,
+         $11,$12,$13,$14,$15,
+         $16,$17,$18,$19,$20,
+         $21,$22,$23,$24,$25,
+         $26,$27,$28,$29,$30,
+         $31,$32,$33,$34,$35
+       )`,
+      [
+        agencyId,
+        userId,
+        userId,
+        userId,
+        normalized.name || '',
+        normalized.telegram || '',
+        normalized.telegram || '',
+        normalized.age || '',
+        normalized.english || '',
+        normalized.english || '',
+        normalized.exp || '',
+        normalized.exp || '',
+        normalized.platform || '',
+        normalized.platform || '',
+        normalized.shift || '',
+        normalized.schedule || '',
+        normalized.schedule || '',
+        normalized.topPages || '',
+        normalized.topProfile || normalized.topPages || '',
+        normalized.avgCheck || '',
+        normalized.mainActivity || '',
+        normalized.mainActivity || '',
+        normalized.interviewReport || '',
+        JSON.stringify(item.teamCardMeta || {}),
+        item.status,
+        normalized.source || 'applications',
+        normalized.leadSource || normalized.referralSource || '',
+        normalized.notes || '',
+        item.statusDatePatch.status_changed_at || null,
+        item.statusDatePatch.hired_at || null,
+        item.statusDatePatch.rejected_at || null,
+        item.statusDatePatch.started_at || null,
+        item.statusDatePatch.fired_at || null,
+        '{}',
+        0
+      ]
+    );
+
+    inserted += 1;
+  }
+
+  if (updated > 0 || inserted > 0) {
+    invalidateTeamStatsCache();
+  }
+
+  return {
+    processed: sourceData.rows.length,
+    updated,
+    inserted,
+    skipped
+  };
+}
+
+async function maybeAutoSyncCandidatesFromSheets(user) {
+  const agencyId = Number(user?.agencyId || 0);
+  const userId = Number(user?.userId || 0);
+
+  if (!APPLICATIONS_SPREADSHEET_ID || !agencyId || !userId) {
+    return;
+  }
+
+  const key = String(agencyId);
+  const now = Date.now();
+  const currentState = candidateSheetsAutoSyncState.get(key) || {};
+
+  if (currentState.promise) {
+    await currentState.promise;
+    return;
+  }
+
+  if (currentState.lastAttemptAt && now - currentState.lastAttemptAt < CANDIDATES_AUTO_SYNC_INTERVAL_MS) {
+    return;
+  }
+
+  const nextState = {
+    ...currentState,
+    lastAttemptAt: now
+  };
+
+  nextState.promise = syncAgencyCandidatesFromApplicationsSheet({ agencyId, userId })
+    .catch(err => {
+      console.error('auto sync candidates from applications sheet error:', err.message);
+    })
+    .finally(() => {
+      const latest = candidateSheetsAutoSyncState.get(key) || {};
+      candidateSheetsAutoSyncState.set(key, {
+        ...latest,
+        lastFinishedAt: Date.now(),
+        promise: null
+      });
+    });
+
+  candidateSheetsAutoSyncState.set(key, nextState);
+  await nextState.promise;
 }
 
 function resolveCandidateForSheetRow(row, candidateMaps, allCandidates) {
