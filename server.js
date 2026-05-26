@@ -105,7 +105,24 @@ const CANDIDATES_AUTO_SYNC_INTERVAL_MS = Math.max(
   Number(process.env.CANDIDATES_AUTO_SYNC_INTERVAL_MS || 180_000) || 180_000
 );
 
+const SHEETS_ONLY_MODE = String(process.env.SHEETS_ONLY_MODE || '').trim().toLowerCase() === '1' ||
+  String(process.env.SHEETS_ONLY_MODE || '').trim().toLowerCase() === 'true' ||
+  String(process.env.SHEETS_ONLY_MODE || '').trim().toLowerCase() === 'yes';
+
+const ALLOW_START_WITHOUT_DB = String(process.env.ALLOW_START_WITHOUT_DB || '').trim().toLowerCase() === '1' ||
+  String(process.env.ALLOW_START_WITHOUT_DB || '').trim().toLowerCase() === 'true';
+
+const DASHBOARD_LEADS_CACHE_MS = Math.max(
+  30_000,
+  Number(process.env.DASHBOARD_LEADS_CACHE_MS || 60_000) || 60_000
+);
+
 const candidateSheetsAutoSyncState = new Map();
+const dashboardLeadsSheetCache = {
+  fetchedAt: 0,
+  rows: null,
+  promise: null
+};
 
 async function ensureCrmEventsFile() {
   const dir = path.dirname(CRM_EVENTS_FILE);
@@ -2900,15 +2917,38 @@ CREATE INDEX IF NOT EXISTS idx_candidates_agency_owner ON candidates(agency_id, 
 `;
 
 async function initDb() {
+  async function verifyDatabaseConnection() {
+    const client = await pool.connect();
+    try {
+      await client.query('SELECT 1');
+    } finally {
+      client.release();
+    }
+  }
+
   try {
     // Test connection first
-    const client = await pool.connect();
-    client.release();
+    await verifyDatabaseConnection();
     console.log('Database connection verified ✓');
   } catch (err) {
     console.error('Failed to connect to database:', err.message);
-    console.warn('Server will start but database features will be unavailable');
-    return;
+
+    if (canToggleDbConfig) {
+      const switched = await switchPoolToAlternate(err.message);
+      if (switched) {
+        try {
+          await verifyDatabaseConnection();
+          console.log('Database connection verified via alternate config ✓');
+        } catch (altErr) {
+          console.error('Failed to connect to database with alternate config:', altErr.message);
+          throw altErr;
+        }
+      } else {
+        throw err;
+      }
+    } else {
+      throw err;
+    }
   }
 
   try {
@@ -3097,10 +3137,10 @@ function isDbUnavailableError(err) {
 
 function readEmergencyAuthConfig() {
   const enabledRaw = String(process.env.AUTH_FALLBACK_ENABLED || '').trim().toLowerCase();
-  const enabled = enabledRaw === '1' || enabledRaw === 'true' || enabledRaw === 'yes';
+  const enabled = SHEETS_ONLY_MODE || enabledRaw === '1' || enabledRaw === 'true' || enabledRaw === 'yes';
 
-  const email = normalizeEmail(process.env.AUTH_FALLBACK_EMAIL || '');
-  const password = String(process.env.AUTH_FALLBACK_PASSWORD || '');
+  const email = normalizeEmail(process.env.AUTH_FALLBACK_EMAIL || (SHEETS_ONLY_MODE ? 'owner@allstars.local' : ''));
+  const password = String(process.env.AUTH_FALLBACK_PASSWORD || (SHEETS_ONLY_MODE ? 'demo12345' : ''));
 
   if (!enabled || !email || !password) return null;
 
@@ -3156,6 +3196,13 @@ let cachedBypassAgency = {
 };
 
 async function resolveBypassAgency() {
+  if (SHEETS_ONLY_MODE) {
+    return {
+      id: AUTH_BYPASS_AGENCY_ID > 0 ? AUTH_BYPASS_AGENCY_ID : 1,
+      name: 'AllStars Sheets-only'
+    };
+  }
+
   if (cachedBypassAgency.id > 0) {
     return cachedBypassAgency;
   }
@@ -3358,6 +3405,10 @@ function buildAiInsight(candidate) {
 }
 
 app.post('/auth/register', async (req, res) => {
+  if (SHEETS_ONLY_MODE) {
+    return res.status(503).json({ error: 'Регистрация отключена в Sheets-only режиме' });
+  }
+
   try {
     const { agencyName, fullName, email, password } = req.body || {};
 
@@ -3413,6 +3464,39 @@ app.post('/auth/register', async (req, res) => {
 });
 
 app.post('/auth/login', async (req, res) => {
+  if (SHEETS_ONLY_MODE) {
+    const fallbackConfig = readEmergencyAuthConfig();
+    const email = normalizeEmail(req.body?.email);
+    const password = String(req.body?.password || '');
+
+    if (!fallbackConfig || email !== fallbackConfig.email || password !== fallbackConfig.password) {
+      return res.status(401).json({ error: 'Неверный email или пароль' });
+    }
+
+    const profile = buildEmergencyAuthPayload(fallbackConfig);
+    const token = signEmergencyToken(profile);
+
+    return res.json({
+      token,
+      mode: 'sheets-only',
+      me: {
+        id: profile.userId,
+        email: profile.email,
+        name: profile.full_name,
+        role: profile.role,
+        is_active: true
+      },
+      user: {
+        id: profile.userId,
+        agency_id: profile.agencyId,
+        full_name: profile.full_name,
+        email: profile.email,
+        role: profile.role,
+        is_active: true
+      }
+    });
+  }
+
   try {
     const email = normalizeEmail(req.body?.email);
     const password = String(req.body?.password || '');
@@ -3798,52 +3882,184 @@ app.patch('/users/:id', auth, requireRole('owner'), async (req, res) => {
   }
 });
 
+function buildSheetsFallbackCandidateId(source, rowNumber) {
+  const base = source === 'active' ? -2_000_000_000 : -1_000_000_000;
+  return base - (Number(rowNumber || 0) || 0);
+}
+
+async function loadCandidatesFromSheetsFallback(agencyId) {
+  const newcomersSpreadsheetId = process.env.GOOGLE_SPREADSHEET_ID || DASHBOARD_STATS_SPREADSHEET_ID;
+  const activeSpreadsheetId = process.env.TEAM_SPREADSHEET_ID || DASHBOARD_STATS_SPREADSHEET_ID;
+
+  const newcomersSheet = await readSheetRowsWithFallback({
+    spreadsheetId: newcomersSpreadsheetId,
+    sheetNames: [
+      process.env.NEWCOMERS_SHEET_NAME,
+      process.env.GOOGLE_SPREADSHEET_NAME,
+      'Новички',
+      'AllStarsLeads'
+    ]
+  });
+
+  const activeSheet = await readSheetRowsWithFallback({
+    spreadsheetId: activeSpreadsheetId,
+    sheetNames: [
+      process.env.TEAM_SHEET_NAME,
+      'Действующие'
+    ]
+  });
+
+  const sourceRows = [
+    ...(newcomersSheet.rows || []).map(row => ({ source: 'newcomers', ...row })),
+    ...(activeSheet.rows || []).map(row => ({ source: 'active', ...row }))
+  ];
+
+  const fallbackMap = new Map();
+
+  for (const sourceRow of sourceRows) {
+    const normalized = normalizeSheetCandidateRow(sourceRow.raw || {});
+    if (!normalized.name && !normalized.telegram) {
+      continue;
+    }
+
+    const tgKey = normalizeTelegramKey(normalized.telegram || '');
+    const nameKey = normalizePersonKey(normalized.name || '');
+    const identityKey = tgKey ? `tg:${tgKey}` : `name:${nameKey}:${sourceRow.source}`;
+
+    const draft = fallbackMap.get(identityKey) || {
+      id: buildSheetsFallbackCandidateId(sourceRow.source, sourceRow.row_number),
+      agency_id: agencyId,
+      name: '',
+      tg: '',
+      telegram: '',
+      age: '',
+      english: '',
+      english_level: '',
+      exp: '',
+      experience: '',
+      platform: '',
+      platforms: '',
+      shift: '',
+      schedule: '',
+      schedule_preference: '',
+      top_pages: '',
+      top_profile: '',
+      avg_check: '',
+      job: '',
+      main_activity: '',
+      interview_report: '',
+      status: 'Без статуса',
+      source: sourceRow.source,
+      lead_source: '',
+      notes: '',
+      ratings: {},
+      total: 0,
+      team_card_meta: {},
+      _sheet_source: sourceRow.source,
+      _sheet_row_number: sourceRow.row_number
+    };
+
+    mergeSheetIntoCandidateDraft(draft, normalized, sourceRow.raw || {});
+
+    const createdAt = getDashboardLeadCreatedAtFromSheetRow(sourceRow.raw || {});
+    if (createdAt && !Number.isNaN(createdAt.getTime()) && !draft.created_at) {
+      draft.created_at = createdAt.toISOString();
+    }
+
+    if (!draft.created_at) {
+      draft.created_at = new Date().toISOString();
+    }
+
+    draft.updated_at = draft.created_at;
+    draft.status = normalizeCandidateStatus(draft.status || '') || 'Без статуса';
+    draft.platforms = draft.platforms || draft.platform || '';
+    draft.telegram = draft.telegram || draft.tg || '';
+    draft.tg = draft.tg || draft.telegram || '';
+
+    fallbackMap.set(identityKey, draft);
+  }
+
+  return [...fallbackMap.values()].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+}
+
 app.get('/candidates', auth, async (req, res) => {
-  await maybeAutoSyncCandidatesFromSheets(req.user);
+  try {
+    await maybeAutoSyncCandidatesFromSheets(req.user);
+  } catch (syncErr) {
+    console.warn('maybeAutoSyncCandidatesFromSheets skipped:', syncErr.message);
+  }
 
   const { search = '', status = '', verdict = '', ownerId = '' } = req.query;
-  const params = [req.user.agencyId];
-  let where = 'WHERE c.agency_id = $1';
+  let rows = [];
 
-  if (search) {
-    params.push(`%${String(search).toLowerCase()}%`);
-    where += ` AND (
-      LOWER(c.name) LIKE $${params.length}
-      OR LOWER(c.tg) LIKE $${params.length}
-      OR LOWER(c.english) LIKE $${params.length}
-      OR LOWER(c.platforms) LIKE $${params.length}
-      OR LOWER(c.notes) LIKE $${params.length}
-    )`;
+  try {
+    const params = [req.user.agencyId];
+    let where = 'WHERE c.agency_id = $1';
+
+    if (search) {
+      params.push(`%${String(search).toLowerCase()}%`);
+      where += ` AND (
+        LOWER(c.name) LIKE $${params.length}
+        OR LOWER(c.tg) LIKE $${params.length}
+        OR LOWER(c.english) LIKE $${params.length}
+        OR LOWER(c.platforms) LIKE $${params.length}
+        OR LOWER(c.notes) LIKE $${params.length}
+      )`;
+    }
+
+    if (status) {
+      params.push(status);
+      where += ` AND c.status = $${params.length}`;
+    }
+
+    if (ownerId) {
+      params.push(Number(ownerId));
+      where += ` AND c.owner_user_id = $${params.length}`;
+    }
+
+    if (req.user.role === 'hr') {
+      params.push(req.user.userId);
+      where += ` AND (c.owner_user_id = $${params.length} OR c.created_by_user_id = $${params.length})`;
+    }
+
+    const result = await query(
+      `SELECT c.*,
+              owner.full_name AS owner_name,
+              creator.full_name AS created_by_name
+       FROM candidates c
+       LEFT JOIN users owner ON owner.id = c.owner_user_id
+       LEFT JOIN users creator ON creator.id = c.created_by_user_id
+       ${where}
+       ORDER BY c.created_at DESC`,
+      params
+    );
+
+    rows = result.rows;
+  } catch (dbErr) {
+    console.error('GET /candidates db query failed, fallback to sheets:', dbErr.message);
+
+    rows = await loadCandidatesFromSheetsFallback(req.user.agencyId);
+
+    const q = String(search || '').trim().toLowerCase();
+    if (q) {
+      rows = rows.filter(item => {
+        const hay = [item.name, item.tg, item.telegram, item.english, item.platforms, item.notes]
+          .join(' ')
+          .toLowerCase();
+        return hay.includes(q);
+      });
+    }
+
+    if (status) {
+      const normalizedStatus = normalizeCandidateStatus(status) || String(status || '').trim();
+      rows = rows.filter(item => String(item.status || '').trim() === normalizedStatus);
+    }
+
+    if (ownerId || req.user.role === 'hr') {
+      rows = [];
+    }
   }
 
-  if (status) {
-    params.push(status);
-    where += ` AND c.status = $${params.length}`;
-  }
-
-  if (ownerId) {
-    params.push(Number(ownerId));
-    where += ` AND c.owner_user_id = $${params.length}`;
-  }
-
-  if (req.user.role === 'hr') {
-    params.push(req.user.userId);
-    where += ` AND (c.owner_user_id = $${params.length} OR c.created_by_user_id = $${params.length})`;
-  }
-
-  const result = await query(
-    `SELECT c.*,
-            owner.full_name AS owner_name,
-            creator.full_name AS created_by_name
-     FROM candidates c
-     LEFT JOIN users owner ON owner.id = c.owner_user_id
-     LEFT JOIN users creator ON creator.id = c.created_by_user_id
-     ${where}
-     ORDER BY c.created_at DESC`,
-    params
-  );
-
-  let rows = result.rows;
   if (verdict) rows = rows.filter(r => candidateVerdict(r) === verdict);
 
   res.json(rows);
@@ -5369,8 +5585,22 @@ async function buildDashboardStatsPayload({ week = 'current', period = 'week', m
   const currentEvents = currentRes.rows || [];
   const previousEvents = previousRes.rows || [];
 
-  const current = buildDashboardRangeStats(currentEvents, fromDate, toDate);
-  const previous = buildDashboardRangeStats(previousEvents, previousFrom, previousTo);
+  let current = buildDashboardRangeStats(currentEvents, fromDate, toDate);
+  let previous = buildDashboardRangeStats(previousEvents, previousFrom, previousTo);
+
+  try {
+    const leadStats = await getDashboardLeadStatsForPeriods({
+      fromDate,
+      toDate,
+      previousFrom,
+      previousTo
+    });
+
+    current = mergeDashboardLeadStats(current, leadStats.current);
+    previous = mergeDashboardLeadStats(previous, leadStats.previous);
+  } catch (err) {
+    console.error('buildDashboardStatsPayload sheet leads error:', err.message);
+  }
 
   const trendValue = (curr, prev) => {
     const diff = curr - prev;
@@ -5459,8 +5689,22 @@ app.get('/api/dashboard/stats-live', auth, async (req, res) => {
     const teamMembers = LIVE_BACKFILL_DISABLED ? [] : await loadAllTeamMembersForBackfill();
     const workingSnapshot = buildDashboardWorkingSnapshot(teamMembers);
 
-    const current = buildDashboardRangeStats(allEvents, fromDate, toDate);
-    const previous = buildDashboardRangeStats(allEvents, prevFrom, prevTo);
+    let current = buildDashboardRangeStats(allEvents, fromDate, toDate);
+    let previous = buildDashboardRangeStats(allEvents, prevFrom, prevTo);
+
+    try {
+      const leadStats = await getDashboardLeadStatsForPeriods({
+        fromDate,
+        toDate,
+        previousFrom: prevFrom,
+        previousTo: prevTo
+      });
+
+      current = mergeDashboardLeadStats(current, leadStats.current);
+      previous = mergeDashboardLeadStats(previous, leadStats.previous);
+    } catch (sheetErr) {
+      console.error('GET /api/dashboard/stats-live sheet leads error:', sheetErr.message);
+    }
 
     const trend = (curr, prev) => ({
       current: curr,
@@ -8330,6 +8574,167 @@ async function readCandidateRowsFromSpreadsheet({ spreadsheetId, preferredSheetN
   };
 }
 
+async function getCachedDashboardLeadRows() {
+  const now = Date.now();
+
+  if (dashboardLeadsSheetCache.rows && now - dashboardLeadsSheetCache.fetchedAt < DASHBOARD_LEADS_CACHE_MS) {
+    return dashboardLeadsSheetCache.rows;
+  }
+
+  if (dashboardLeadsSheetCache.promise) {
+    return dashboardLeadsSheetCache.promise;
+  }
+
+  dashboardLeadsSheetCache.promise = readCandidateRowsFromSpreadsheet({
+    spreadsheetId: APPLICATIONS_SPREADSHEET_ID,
+    preferredSheetNames: [
+      APPLICATIONS_SHEET_NAME,
+      process.env.NEWCOMERS_SHEET_NAME,
+      process.env.GOOGLE_SPREADSHEET_NAME,
+      'AllStarsLeads'
+    ]
+  })
+    .then(result => {
+      const rows = result.rows || [];
+      dashboardLeadsSheetCache.rows = rows;
+      dashboardLeadsSheetCache.fetchedAt = Date.now();
+      return rows;
+    })
+    .finally(() => {
+      dashboardLeadsSheetCache.promise = null;
+    });
+
+  return dashboardLeadsSheetCache.promise;
+}
+
+function getDashboardLeadCreatedAtFromSheetRow(raw = {}) {
+  const rawDate = getRawValueByAliases(raw, [
+    'Дата',
+    'Дата заявки',
+    'Дата создания',
+    'Дата первого касания',
+    'created_at',
+    'Created At',
+    'Completed At',
+    'completed_at',
+    'Updated At',
+    'Дата обновления'
+  ]);
+
+  return normalizeDateInput(rawDate);
+}
+
+function buildDashboardLeadStatsFromSheetRows(rows = [], rangeStart, rangeEnd) {
+  const summary = { leads: 0 };
+  const platforms = { onlyfans: 0, fansly: 0 };
+  const platformBreakdown = createDashboardPlatformBreakdown();
+  const dailyMap = new Map();
+
+  for (let cursor = new Date(rangeStart); cursor <= rangeEnd; cursor.setDate(cursor.getDate() + 1)) {
+    const dateStr = formatDateOnly(cursor);
+    dailyMap.set(dateStr, {
+      date: dateStr,
+      leads: 0
+    });
+  }
+
+  for (const item of rows) {
+    const raw = item?.raw || {};
+    const createdAt = getDashboardLeadCreatedAtFromSheetRow(raw);
+    if (!createdAt || Number.isNaN(createdAt.getTime()) || createdAt < rangeStart || createdAt > rangeEnd) {
+      continue;
+    }
+
+    const normalized = normalizeSheetCandidateRow(raw);
+    const dateStr = formatDateOnly(createdAt);
+    const dayRow = dailyMap.get(dateStr);
+    const platformValue = normalized.platform || '';
+
+    summary.leads += 1;
+    if (dayRow) {
+      dayRow.leads += 1;
+    }
+
+    const buckets = getDashboardPlatformBuckets(platformValue);
+    for (const bucket of buckets) {
+      if (bucket === 'onlyfans') platforms.onlyfans += 1;
+      if (bucket === 'fansly') platforms.fansly += 1;
+
+      if (!platformBreakdown[bucket]) {
+        platformBreakdown[bucket] = createDashboardPlatformStats();
+      }
+
+      platformBreakdown[bucket].leads += 1;
+    }
+  }
+
+  return {
+    summary,
+    platforms,
+    platform_breakdown: platformBreakdown,
+    daily: [...dailyMap.values()]
+  };
+}
+
+function mergeDashboardLeadStats(baseStats, leadStats) {
+  if (!leadStats) return baseStats;
+
+  const dailyLeadMap = new Map((leadStats.daily || []).map(item => [item.date, Number(item.leads || 0)]));
+  const basePlatformBreakdown = baseStats.platform_breakdown || createDashboardPlatformBreakdown();
+  const sheetPlatformBreakdown = leadStats.platform_breakdown || createDashboardPlatformBreakdown();
+
+  const merged = {
+    ...baseStats,
+    summary: {
+      ...baseStats.summary,
+      leads: Number(leadStats.summary?.leads || 0)
+    },
+    platforms: {
+      ...baseStats.platforms,
+      onlyfans: Number(leadStats.platforms?.onlyfans || 0),
+      fansly: Number(leadStats.platforms?.fansly || 0)
+    },
+    platform_breakdown: {
+      ...basePlatformBreakdown,
+      onlyfans: {
+        ...(basePlatformBreakdown.onlyfans || createDashboardPlatformStats()),
+        leads: Number(sheetPlatformBreakdown.onlyfans?.leads || 0)
+      },
+      fansly: {
+        ...(basePlatformBreakdown.fansly || createDashboardPlatformStats()),
+        leads: Number(sheetPlatformBreakdown.fansly?.leads || 0)
+      },
+      unknown: {
+        ...(basePlatformBreakdown.unknown || createDashboardPlatformStats()),
+        leads: Number(sheetPlatformBreakdown.unknown?.leads || 0)
+      }
+    },
+    daily: (baseStats.daily || []).map(day => ({
+      ...day,
+      leads: dailyLeadMap.get(day.date) || 0
+    }))
+  };
+
+  merged.conversion = {
+    ...baseStats.conversion,
+    lead_to_interview:
+      merged.summary.leads > 0
+        ? Math.round(((merged.summary.interviews || 0) / merged.summary.leads) * 1000) / 10
+        : 0
+  };
+
+  return merged;
+}
+
+async function getDashboardLeadStatsForPeriods({ fromDate, toDate, previousFrom, previousTo }) {
+  const rows = await getCachedDashboardLeadRows();
+
+  return {
+    current: buildDashboardLeadStatsFromSheetRows(rows, fromDate, toDate),
+    previous: buildDashboardLeadStatsFromSheetRows(rows, previousFrom, previousTo)
+  };
+}
+
 function buildCandidateIdentityMaps(candidates = []) {
   const byTelegram = new Map();
   const byName = new Map();
@@ -9530,11 +9935,25 @@ app.post('/api/admin/rebuild-local-crm-from-sheets', auth, requireRole('owner', 
 });
 
 async function start() {
+  if (SHEETS_ONLY_MODE) {
+    console.warn('SHEETS_ONLY_MODE enabled: skipping PostgreSQL initialization');
+    app.listen(PORT, () => {
+      console.log(`AllStars HR SaaS running on ${PORT} (sheets-only mode)`);
+    });
+    return;
+  }
+
   try {
     await initDb();
   } catch (err) {
     console.error('Database initialization error:', err.message);
-    console.warn('Starting server anyway - database may be unavailable');
+
+    if (ALLOW_START_WITHOUT_DB) {
+      console.warn('ALLOW_START_WITHOUT_DB enabled: starting server without database');
+    } else {
+      console.error('Refusing to start without database. Set ALLOW_START_WITHOUT_DB=1 only for emergency mode.');
+      process.exit(1);
+    }
   }
 
   app.listen(PORT, () => {
