@@ -1,6 +1,31 @@
+import { parse, isValid } from 'date-fns';
 import { google } from 'googleapis';
 
 const READONLY_SCOPE = 'https://www.googleapis.com/auth/spreadsheets.readonly';
+const CANDIDATE_MIN_DATE = new Date('2026-05-01T00:00:00');
+
+const CANDIDATE_DATE_ALIASES = [
+  'date',
+  'дата',
+  'created',
+  'created at',
+  'created_at',
+  'creation date',
+  'дата создания',
+  'дата заявки',
+  'дата подачи',
+  'дата регистрации',
+  'submitted',
+  'submitted at',
+  'application date',
+  'added',
+  'added at',
+  'received',
+  'received at',
+  'поступил',
+  'внесен',
+  'добавлен'
+];
 
 function parseServiceAccountFromEnv() {
   const raw = String(process.env.GOOGLE_SERVICE_ACCOUNT_JSON || '').trim();
@@ -98,6 +123,71 @@ export function findFieldByAliases(record, aliases = []) {
   return '';
 }
 
+function parseSheetDate(value) {
+  const text = String(value || '').trim();
+  if (!text) return null;
+
+  const direct = new Date(text);
+  if (isValid(direct)) {
+    return direct;
+  }
+
+  const ddmmyyyy = text.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
+  if (ddmmyyyy) {
+    const [, dd, mm, yyyy, hh = '00', min = '00'] = ddmmyyyy;
+    const parsed = new Date(`${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}T${hh.padStart(2, '0')}:${min}:00`);
+    if (isValid(parsed)) {
+      return parsed;
+    }
+  }
+
+  const parsedFormats = [
+    'dd.MM.yyyy',
+    'dd.MM.yyyy HH:mm',
+    'dd/MM/yyyy',
+    'dd/MM/yyyy HH:mm',
+    'dd-MM-yyyy',
+    'dd-MM-yyyy HH:mm'
+  ];
+
+  for (const formatString of parsedFormats) {
+    const parsed = parse(text, formatString, new Date());
+    if (isValid(parsed)) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+function getCandidateDate(record) {
+  const directField = findFieldByAliases(record, CANDIDATE_DATE_ALIASES);
+  if (directField) {
+    return parseSheetDate(directField);
+  }
+
+  for (const value of Object.values(record || {})) {
+    const parsed = parseSheetDate(value);
+    if (parsed) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+function filterCandidatesByMinDate(rows, minDate) {
+  return rows.filter((row) => {
+    const candidateDate = getCandidateDate(row);
+
+    if (!candidateDate) {
+      return true;
+    }
+
+    return candidateDate >= minDate;
+  });
+}
+
 async function getFirstSheetTitle(sheetsApi, spreadsheetId) {
   const res = await sheetsApi.spreadsheets.get({
     spreadsheetId,
@@ -138,7 +228,9 @@ export async function loadCandidatesFromSheets() {
   }
 
   const rows = await getValues(spreadsheetId, range);
-  return sheetRowsToObjects(rows);
+  const candidates = sheetRowsToObjects(rows);
+
+  return filterCandidatesByMinDate(candidates, CANDIDATE_MIN_DATE);
 }
 
 export async function loadActiveUsersFromSheets() {
