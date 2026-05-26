@@ -197,17 +197,23 @@ const PORT = process.env.PORT || 3000;
 const isProductionRuntime =
   String(process.env.NODE_ENV || '').toLowerCase() === 'production' ||
   Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_ENVIRONMENT_NAME);
-const JWT_SECRET = String(process.env.JWT_SECRET || '').trim() ||
-  (isProductionRuntime ? '' : 'allstars-dev-jwt-secret');
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || '*';
 const AUTH_BYPASS_TOKEN = String(process.env.AUTH_BYPASS_TOKEN || 'allstars-bypass-token').trim();
 const AUTH_BYPASS_AGENCY_ID = Number(process.env.AUTH_BYPASS_AGENCY_ID || 0) || 0;
+const JWT_SECRET = String(process.env.JWT_SECRET || '').trim() ||
+  (SHEETS_ONLY_MODE
+    ? `sheets-only-${AUTH_BYPASS_TOKEN || 'allstars-bypass-token'}`
+    : (isProductionRuntime ? '' : 'allstars-dev-jwt-secret'));
 
 if (!JWT_SECRET) {
   if (isProductionRuntime) {
     throw new Error('JWT_SECRET environment variable is required in production');
   }
   console.warn('WARNING: JWT_SECRET not set, using insecure default for development only');
+} else if (!String(process.env.JWT_SECRET || '').trim()) {
+  if (SHEETS_ONLY_MODE) {
+    console.warn('WARNING: JWT_SECRET is not set. Using derived secret in sheets-only mode. Configure JWT_SECRET for production safety.');
+  }
 }
 
 function buildDatabaseConfig() {
@@ -5541,49 +5547,44 @@ async function buildDashboardStatsPayload({ week = 'current', period = 'week', m
     previousTo = resolved.previousTo;
   }
 
-  const [currentRes, previousRes] = await Promise.all([
-    pool.query(
-      `
-      SELECT
-        id,
-        entity_type,
-        entity_id,
-        event_type,
-        old_value,
-        new_value,
-        meta_json,
-        created_at,
-        created_by
-      FROM crm_events
-      WHERE created_at >= $1
-        AND created_at <= $2
-      ORDER BY created_at ASC
-      `,
-      [fromDate.toISOString(), toDate.toISOString()]
-    ),
-    pool.query(
-      `
-      SELECT
-        id,
-        entity_type,
-        entity_id,
-        event_type,
-        old_value,
-        new_value,
-        meta_json,
-        created_at,
-        created_by
-      FROM crm_events
-      WHERE created_at >= $1
-        AND created_at <= $2
-      ORDER BY created_at ASC
-      `,
-      [previousFrom.toISOString(), previousTo.toISOString()]
-    )
-  ]);
+  async function loadCrmEventsRange(fromIso, toIso) {
+    try {
+      const result = await query(
+        `
+        SELECT
+          id,
+          entity_type,
+          entity_id,
+          event_type,
+          old_value,
+          new_value,
+          meta_json,
+          created_at,
+          created_by
+        FROM crm_events
+        WHERE created_at >= $1
+          AND created_at <= $2
+        ORDER BY created_at ASC
+        `,
+        [fromIso, toIso]
+      );
 
-  const currentEvents = currentRes.rows || [];
-  const previousEvents = previousRes.rows || [];
+      return result.rows || [];
+    } catch (err) {
+      // In sheets-only and emergency DB-less mode dashboard should still work.
+      if (SHEETS_ONLY_MODE || ALLOW_START_WITHOUT_DB) {
+        console.warn('Dashboard events DB query skipped:', err.message);
+        return [];
+      }
+
+      throw err;
+    }
+  }
+
+  const [currentEvents, previousEvents] = await Promise.all([
+    loadCrmEventsRange(fromDate.toISOString(), toDate.toISOString()),
+    loadCrmEventsRange(previousFrom.toISOString(), previousTo.toISOString())
+  ]);
 
   let current = buildDashboardRangeStats(currentEvents, fromDate, toDate);
   let previous = buildDashboardRangeStats(previousEvents, previousFrom, previousTo);
